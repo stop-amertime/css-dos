@@ -8,6 +8,12 @@ SCREEN_WIDTH = 40
 SCREEN_HEIGHT = 12
 
 
+import sys
+import os
+
+INPUT_BIN = sys.argv[1] if len(sys.argv) > 1 else "program.bin"
+OUTPUT_HTML = os.path.splitext(os.path.basename(INPUT_BIN))[0] + ".html"
+
 epic_charset = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" + \
 ' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~' + \
 'X'*141
@@ -78,7 +84,8 @@ flags: -14
 """
 
 
-with open("program.start", "r") as f:
+START_FILE = os.path.splitext(INPUT_BIN)[0] + ".start"
+with open(START_FILE, "r") as f:
   CODE_START = PROG_OFFSET + int(f.read())
 
 variables.append(createSplitRegister(f"AX", -1, True))
@@ -152,7 +159,7 @@ for k,v in EXTIO.items():
       break
 
 program_start = PROG_OFFSET+var_offset
-with open("program.bin", "rb") as f:
+with open(INPUT_BIN, "rb") as f:
   program = f.read()
   program_size = len(program)
   for i,b in enumerate(program):
@@ -225,7 +232,7 @@ None,  # 00
 "M",   # 39
 ]
 
-with open("x86css.html", "w", encoding="utf-8") as f:
+with open(OUTPUT_HTML, "w", encoding="utf-8") as f:
     vars_1 = "\n".join([f"""@property --{v[0]} {{
   syntax: "<integer>";
   initial-value: {v[2]};

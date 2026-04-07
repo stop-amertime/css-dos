@@ -1,9 +1,10 @@
 # Generated output
-x86css.html
+*.html
+!base_template.html
 
 # Compiled binaries
-program.bin
-program.start
+*.bin
+*.start
 *.o
 *.com
 
@@ -18,5 +19,9 @@ Thumbs.db
 # IDE
 .idea/
 .vscode/
+.serena/
 *.swp
 *.swo
+
+# Third-party source
+examples/Zork_I_-_The_Great_Underground_Empire_1980/

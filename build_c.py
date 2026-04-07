@@ -55,11 +55,11 @@ def full_build():
     build()
     print(asm_build())
     addrs = get_function_addresses()
-    shutil.copyfile(f"tmp/{BASE_NAME}.a", "program.bin")
-    with open("program.bin", "rb") as f:
+    shutil.copyfile(f"tmp/{BASE_NAME}.a", f"{BASE_NAME}.bin")
+    with open(f"{BASE_NAME}.bin", "rb") as f:
         s = len(f.read())
         print("program size:", s, hex(s))
-    with open("program.start", "w") as f:
+    with open(f"{BASE_NAME}.start", "w") as f:
         f.write(str(addrs["_start"]))
 
 if __name__ == '__main__':
