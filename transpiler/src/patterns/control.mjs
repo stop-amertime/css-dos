@@ -164,13 +164,19 @@ export function emitINT(dispatch) {
   const ssBase = `calc(var(--__1SS) * 16)`;
   const retIP = `calc(var(--__1IP) + 2)`;
 
-  // Push FLAGS (at SP-6, SP-5)
+  // 8086 INT pushes: FLAGS first (to highest addr), then CS, then IP (to lowest addr)
+  // After SP -= 6, stack layout is:
+  //   [SP+0, SP+1] = return IP   (pushed last)
+  //   [SP+2, SP+3] = CS          (pushed second)
+  //   [SP+4, SP+5] = FLAGS       (pushed first)
+
+  // Push FLAGS (at SP-2, SP-1) — pushed first, goes to highest address
   dispatch.addMemWrite(0xCD,
-    `calc(${ssBase} + var(--__1SP) - 6)`,
+    `calc(${ssBase} + var(--__1SP) - 2)`,
     `--lowerBytes(var(--__1flags), 8)`,
     `INT push FLAGS lo`);
   dispatch.addMemWrite(0xCD,
-    `calc(${ssBase} + var(--__1SP) - 5)`,
+    `calc(${ssBase} + var(--__1SP) - 1)`,
     `--rightShift(var(--__1flags), 8)`,
     `INT push FLAGS hi`);
 
@@ -184,13 +190,13 @@ export function emitINT(dispatch) {
     `--rightShift(var(--__1CS), 8)`,
     `INT push CS hi`);
 
-  // Push return IP (at SP-2, SP-1)
+  // Push return IP (at SP-6, SP-5) — pushed last, goes to lowest address
   dispatch.addMemWrite(0xCD,
-    `calc(${ssBase} + var(--__1SP) - 2)`,
+    `calc(${ssBase} + var(--__1SP) - 6)`,
     `--lowerBytes(${retIP}, 8)`,
     `INT push IP lo`);
   dispatch.addMemWrite(0xCD,
-    `calc(${ssBase} + var(--__1SP) - 1)`,
+    `calc(${ssBase} + var(--__1SP) - 5)`,
     `--rightShift(${retIP}, 8)`,
     `INT push IP hi`);
 }

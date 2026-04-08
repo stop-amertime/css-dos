@@ -51,36 +51,39 @@ ${PARITY.map((p, i) => `    style(--low8: ${i}): ${p * 4};`).join('\n')}
   else: 0);
 }
 
-/* OF helpers (4 locals each — safe nesting depth) */
+/* OF helpers — arithmetic only, no --xor/--and (avoids Chrome nesting depth limit).
+   ADD OF: signs same on inputs, different on result → overflow.
+     OF = (1 - |sign_dst - sign_src|) * |sign_dst - sign_res|
+   SUB OF: signs differ on inputs, result sign differs from dst → overflow.
+     OF = |sign_dst - sign_src| * |sign_dst - sign_res|
+*/
 
 @function --addOF16(--dst <integer>, --src <integer>, --res <integer>) returns <integer> {
-  --t1: --xor(var(--dst), var(--src));
-  --t2: --xor(var(--t1), 65535);
-  --t3: --xor(var(--dst), var(--res));
-  --t4: --and(var(--t2), var(--t3));
-  result: calc(--bit(var(--t4), 15) * 2048);
+  --sd: --bit(var(--dst), 15);
+  --ss: --bit(var(--src), 15);
+  --sr: --bit(var(--res), 15);
+  result: calc((1 - abs(var(--sd) - var(--ss))) * abs(var(--sd) - var(--sr)) * 2048);
 }
 
 @function --addOF8(--dst <integer>, --src <integer>, --res <integer>) returns <integer> {
-  --t1: --xor(var(--dst), var(--src));
-  --t2: --xor(var(--t1), 255);
-  --t3: --xor(var(--dst), var(--res));
-  --t4: --and(var(--t2), var(--t3));
-  result: calc(--bit(var(--t4), 7) * 2048);
+  --sd: --bit(var(--dst), 7);
+  --ss: --bit(var(--src), 7);
+  --sr: --bit(var(--res), 7);
+  result: calc((1 - abs(var(--sd) - var(--ss))) * abs(var(--sd) - var(--sr)) * 2048);
 }
 
 @function --subOF16(--dst <integer>, --src <integer>, --res <integer>) returns <integer> {
-  --t1: --xor(var(--dst), var(--src));
-  --t2: --xor(var(--dst), var(--res));
-  --t3: --and(var(--t1), var(--t2));
-  result: calc(--bit(var(--t3), 15) * 2048);
+  --sd: --bit(var(--dst), 15);
+  --ss: --bit(var(--src), 15);
+  --sr: --bit(var(--res), 15);
+  result: calc(abs(var(--sd) - var(--ss)) * abs(var(--sd) - var(--sr)) * 2048);
 }
 
 @function --subOF8(--dst <integer>, --src <integer>, --res <integer>) returns <integer> {
-  --t1: --xor(var(--dst), var(--src));
-  --t2: --xor(var(--dst), var(--res));
-  --t3: --and(var(--t1), var(--t2));
-  result: calc(--bit(var(--t3), 7) * 2048);
+  --sd: --bit(var(--dst), 7);
+  --ss: --bit(var(--src), 7);
+  --sr: --bit(var(--res), 7);
+  result: calc(abs(var(--sd) - var(--ss)) * abs(var(--sd) - var(--sr)) * 2048);
 }
 
 /* ===== ADD FLAGS (6 locals) ===== */
