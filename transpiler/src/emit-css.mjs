@@ -21,7 +21,8 @@ import { emitMOV_RegImm16, emitMOV_RegImm8, emitMOV_RegRM } from './patterns/mov
 import { emitAllALU } from './patterns/alu.mjs';
 import { emitAllControl } from './patterns/control.mjs';
 import { emitAllStack } from './patterns/stack.mjs';
-import { emitHLT, emitNOP } from './patterns/misc.mjs';
+import { emitAllMisc } from './patterns/misc.mjs';
+import { emitAllGroups, emitIncDecFlags8 } from './patterns/group.mjs';
 
 /**
  * Dispatch table builder. Collects per-register entries keyed by opcode.
@@ -81,16 +82,17 @@ class DispatchTable {
   }
 
   /**
-   * Emit the 3 memory write slot properties (--memAddr0/Val0 through --memAddr2/Val2).
+   * Emit the 6 memory write slot properties (--memAddr0/Val0 through --memAddr5/Val5).
    * Each slot aggregates across all opcodes that use it.
+   * 6 slots needed: INT pushes 3 words = 6 byte writes.
    */
   emitMemoryWriteSlots() {
-    // Collect all opcodes' memory writes, assign to slots 0, 1, 2
-    const slots = [[], [], []]; // slot index → [{opcode, addrExpr, valExpr}]
+    const NUM_SLOTS = 6;
+    const slots = Array.from({ length: NUM_SLOTS }, () => []);
 
     for (const [opcode, writes] of this.memWritesByOpcode) {
-      if (writes.length > 3) {
-        throw new Error(`Opcode 0x${opcode.toString(16)} uses ${writes.length} memory write slots (max 3)`);
+      if (writes.length > NUM_SLOTS) {
+        throw new Error(`Opcode 0x${opcode.toString(16)} uses ${writes.length} memory write slots (max ${NUM_SLOTS})`);
       }
       for (let i = 0; i < writes.length; i++) {
         slots[i].push({ opcode, ...writes[i] });
@@ -98,7 +100,7 @@ class DispatchTable {
     }
 
     const lines = [];
-    for (let slot = 0; slot < 3; slot++) {
+    for (let slot = 0; slot < NUM_SLOTS; slot++) {
       if (slots[slot].length === 0) {
         lines.push(`  --memAddr${slot}: -1;`);
         lines.push(`  --memVal${slot}: 0;`);
@@ -143,10 +145,10 @@ export function emitCSS(opts) {
   emitMOV_RegImm8(dispatch);
   emitMOV_RegRM(dispatch);
   emitAllALU(dispatch);       // ADD/SUB/CMP/AND/OR/XOR/ADC/SBB/TEST/INC/DEC
-  emitAllControl(dispatch);   // JMP/Jcc/CALL/RET
+  emitAllControl(dispatch);   // JMP/Jcc/CALL/RET/INT/IRET/LOOP
   emitAllStack(dispatch);     // PUSH/POP/PUSHF/POPF
-  emitHLT(dispatch);
-  emitNOP(dispatch);
+  emitAllMisc(dispatch);      // HLT/NOP/LODSB/MOV r/m imm/flag manip/CBW/CWD
+  emitAllGroups(dispatch);    // Group FE/F7/F6
 
   // Assemble CSS
   const sections = [];
@@ -165,6 +167,7 @@ export function emitCSS(opts) {
 
   // 4. Flag computation @functions
   sections.push(emitFlagFunctions());
+  sections.push(emitIncDecFlags8());
 
   // 5. readMem @function
   sections.push('/* ===== MEMORY READ ===== */');
@@ -172,7 +175,7 @@ export function emitCSS(opts) {
 
   // 6. Clock and CPU base
   sections.push('/* ===== EXECUTION ENGINE ===== */');
-  sections.push(emitClockAndCpuBase());
+  sections.push(emitClockAndCpuBase({ htmlMode }));
 
   // 7. .cpu rule body — buffer reads, aliases, decode, dispatch, write rules
   const cpuBody = [];

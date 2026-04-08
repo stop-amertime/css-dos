@@ -118,10 +118,13 @@ export function emitClockKeyframes() {
 /**
  * Emit the .clock and .cpu base rules (animation setup).
  */
-export function emitClockAndCpuBase() {
+export function emitClockAndCpuBase(opts = {}) {
+  // In HTML mode, the JS driver controls the clock — no CSS animation.
+  const clockAnimation = opts.htmlMode
+    ? ''
+    : '  animation: anim-play 400ms steps(4, jump-end) infinite;\n';
   return `.clock {
-  animation: anim-play 400ms steps(4, jump-end) infinite;
-  --clock: 0;
+${clockAnimation}  --clock: 0;
 }
 
 .cpu {
@@ -166,7 +169,7 @@ ${cssContent}
   <div class="cpu"></div>
 </div>
 <script>
-// Optional JS clock driver — CSS works without this, but JS makes it faster.
+// JS clock driver — stops the CSS animation and drives the clock directly.
 let clock = 0;
 
 function tickInstruction() {
@@ -195,7 +198,8 @@ function animate() {
 }
 
 document.querySelector(".clock").style = "--clock:0!important";
-animate();
+// Auto-start after a brief delay to allow external scripts to override
+if (!window.__noAutoStart) requestAnimationFrame(animate);
 </script>
 </body>
 </html>`;

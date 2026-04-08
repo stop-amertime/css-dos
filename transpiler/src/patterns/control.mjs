@@ -98,7 +98,7 @@ export function emitCALL_near(dispatch) {
     `CALL near push ret lo`);
   dispatch.addMemWrite(0xE8,
     `calc(var(--__1SS) * 16 + var(--__1SP) - 1)`,
-    `--rightShift(--lowerBytes(${retAddr}, 16), 8)`,
+    `--rightShift(${retAddr}, 8)`,
     `CALL near push ret hi`);
   // Jump
   dispatch.addEntry('IP', 0xE8,
@@ -132,6 +132,139 @@ export function emitRET_imm(dispatch) {
 }
 
 /**
+ * INT imm8 (0xCD): software interrupt.
+ * Push FLAGS, clear IF+TF, push CS, push IP+2, load IP+CS from IVT.
+ * Uses 6 memory write slots (3 word pushes).
+ */
+export function emitINT(dispatch) {
+  // Interrupt number is at q1 (byte after opcode)
+  // IVT entry at intNum * 4: 2 bytes IP, 2 bytes CS
+  // Stack: SP -= 6 (push FLAGS, CS, IP+2)
+
+  dispatch.addEntry('SP', 0xCD, `calc(var(--__1SP) - 6)`, `INT (SP-=6)`);
+
+  // New IP from IVT: read2(intNum * 4)
+  dispatch.addEntry('IP', 0xCD,
+    `--read2(calc(var(--q1) * 4))`,
+    `INT load IP from IVT`);
+
+  // New CS from IVT: read2(intNum * 4 + 2)
+  dispatch.addEntry('CS', 0xCD,
+    `--read2(calc(var(--q1) * 4 + 2))`,
+    `INT load CS from IVT`);
+
+  // FLAGS: clear IF (bit 9) and TF (bit 8) — keep other bits
+  // new flags = old flags & ~0x0300 = old flags & 0xFCFF
+  // But this is the pushed value; the new flags register value has IF+TF cleared
+  dispatch.addEntry('flags', 0xCD,
+    `--and(var(--__1flags), 64767)`,
+    `INT clear IF+TF`);
+  // 64767 = 0xFCFF = ~(IF|TF) & 0xFFFF
+
+  const ssBase = `calc(var(--__1SS) * 16)`;
+  const retIP = `calc(var(--__1IP) + 2)`;
+
+  // Push FLAGS (at SP-6, SP-5)
+  dispatch.addMemWrite(0xCD,
+    `calc(${ssBase} + var(--__1SP) - 6)`,
+    `--lowerBytes(var(--__1flags), 8)`,
+    `INT push FLAGS lo`);
+  dispatch.addMemWrite(0xCD,
+    `calc(${ssBase} + var(--__1SP) - 5)`,
+    `--rightShift(var(--__1flags), 8)`,
+    `INT push FLAGS hi`);
+
+  // Push CS (at SP-4, SP-3)
+  dispatch.addMemWrite(0xCD,
+    `calc(${ssBase} + var(--__1SP) - 4)`,
+    `--lowerBytes(var(--__1CS), 8)`,
+    `INT push CS lo`);
+  dispatch.addMemWrite(0xCD,
+    `calc(${ssBase} + var(--__1SP) - 3)`,
+    `--rightShift(var(--__1CS), 8)`,
+    `INT push CS hi`);
+
+  // Push return IP (at SP-2, SP-1)
+  dispatch.addMemWrite(0xCD,
+    `calc(${ssBase} + var(--__1SP) - 2)`,
+    `--lowerBytes(${retIP}, 8)`,
+    `INT push IP lo`);
+  dispatch.addMemWrite(0xCD,
+    `calc(${ssBase} + var(--__1SP) - 1)`,
+    `--rightShift(${retIP}, 8)`,
+    `INT push IP hi`);
+}
+
+/**
+ * IRET (0xCF): pop IP, pop CS, pop FLAGS.
+ * SP += 6.
+ */
+export function emitIRET(dispatch) {
+  const ssBase = `calc(var(--__1SS) * 16)`;
+
+  // Pop IP from SP+0
+  dispatch.addEntry('IP', 0xCF,
+    `--read2(calc(${ssBase} + var(--__1SP)))`,
+    `IRET pop IP`);
+  // Pop CS from SP+2
+  dispatch.addEntry('CS', 0xCF,
+    `--read2(calc(${ssBase} + var(--__1SP) + 2))`,
+    `IRET pop CS`);
+  // Pop FLAGS from SP+4 (masked + bit 1 set)
+  // Can't nest --and(--read2(...)) — use precomputed --_iretFlags from decode
+  dispatch.addEntry('flags', 0xCF,
+    `calc(--and(var(--_stackWord2), 4055) + 2)`,
+    `IRET pop FLAGS`);
+  dispatch.addEntry('SP', 0xCF,
+    `calc(var(--__1SP) + 6)`,
+    `IRET (SP+=6)`);
+}
+
+/**
+ * LOOP (0xE2): decrement CX, jump if CX != 0
+ */
+export function emitLOOP(dispatch) {
+  const newCX = `--lowerBytes(calc(var(--__1CX) - 1 + 65536), 16)`;
+  dispatch.addEntry('CX', 0xE2, newCX, `LOOP (CX-=1)`);
+  // IP = IP + 2 + (CX-1 != 0 ? rel8 : 0)
+  // We need to check if the NEW CX is zero
+  dispatch.addEntry('IP', 0xE2,
+    `if(style(--_loopCX: 0): calc(var(--__1IP) + 2); else: --lowerBytes(calc(var(--__1IP) + 2 + --u2s1(var(--q1))), 16))`,
+    `LOOP`);
+}
+
+/**
+ * LOOPE/LOOPZ (0xE1): decrement CX, jump if CX != 0 AND ZF=1
+ */
+export function emitLOOPE(dispatch) {
+  const newCX = `--lowerBytes(calc(var(--__1CX) - 1 + 65536), 16)`;
+  dispatch.addEntry('CX', 0xE1, newCX, `LOOPE (CX-=1)`);
+  dispatch.addEntry('IP', 0xE1,
+    `if(style(--_loopCX: 0): calc(var(--__1IP) + 2); else: if(style(--_zf: 0): calc(var(--__1IP) + 2); else: --lowerBytes(calc(var(--__1IP) + 2 + --u2s1(var(--q1))), 16)))`,
+    `LOOPE`);
+}
+
+/**
+ * LOOPNE/LOOPNZ (0xE0): decrement CX, jump if CX != 0 AND ZF=0
+ */
+export function emitLOOPNE(dispatch) {
+  const newCX = `--lowerBytes(calc(var(--__1CX) - 1 + 65536), 16)`;
+  dispatch.addEntry('CX', 0xE0, newCX, `LOOPNE (CX-=1)`);
+  dispatch.addEntry('IP', 0xE0,
+    `if(style(--_loopCX: 0): calc(var(--__1IP) + 2); else: if(style(--_zf: 1): calc(var(--__1IP) + 2); else: --lowerBytes(calc(var(--__1IP) + 2 + --u2s1(var(--q1))), 16)))`,
+    `LOOPNE`);
+}
+
+/**
+ * JCXZ (0xE3): jump if CX = 0
+ */
+export function emitJCXZ(dispatch) {
+  dispatch.addEntry('IP', 0xE3,
+    `if(style(--__1CX: 0): --lowerBytes(calc(var(--__1IP) + 2 + --u2s1(var(--q1))), 16); else: calc(var(--__1IP) + 2))`,
+    `JCXZ`);
+}
+
+/**
  * Register all control flow opcodes.
  */
 export function emitAllControl(dispatch) {
@@ -141,4 +274,10 @@ export function emitAllControl(dispatch) {
   emitCALL_near(dispatch);
   emitRET(dispatch);
   emitRET_imm(dispatch);
+  emitINT(dispatch);
+  emitIRET(dispatch);
+  emitLOOP(dispatch);
+  emitLOOPE(dispatch);
+  emitLOOPNE(dispatch);
+  emitJCXZ(dispatch);
 }

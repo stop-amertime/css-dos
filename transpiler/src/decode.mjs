@@ -209,5 +209,16 @@ export function emitDecodeProperties() {
 
   /* Carry flag extracted for ADC/SBB (avoids nested --bit() in dispatch expressions) */
   --_cf: --bit(var(--__1flags), 0);
+
+  /* Zero flag extracted for conditional branches */
+  --_zf: --bit(var(--__1flags), 6);
+
+  /* Pre-computed CX-1 for LOOP instruction (avoids nested function call) */
+  --_loopCX: --lowerBytes(calc(var(--__1CX) - 1 + 65536), 16);
+
+  /* Pre-computed stack word reads for POP/IRET (avoids nested --and(--read2(...))) */
+  --_stackBase: calc(var(--__1SS) * 16 + var(--__1SP));
+  --_stackWord0: --read2(var(--_stackBase));
+  --_stackWord2: --read2(calc(var(--_stackBase) + 4));
 `;
 }

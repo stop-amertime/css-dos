@@ -29,7 +29,7 @@ export function emitPUSH_reg(dispatch) {
       `PUSH ${reg} lo`);
     dispatch.addMemWrite(opcode,
       `calc(var(--__1SS) * 16 + var(--__1SP) - 1)`,
-      `--rightShift(--lowerBytes(${pushVal}, 16), 8)`,
+      `--rightShift(${pushVal}, 8)`,
       `PUSH ${reg} hi`);
 
     // IP += 1
@@ -135,7 +135,7 @@ export function emitPUSHF(dispatch) {
 export function emitPOPF(dispatch) {
   // 0xFD7 = all valid flag bits. Bit 1 always set.
   dispatch.addEntry('flags', 0x9D,
-    `calc(--and(--read2(calc(var(--__1SS) * 16 + var(--__1SP))), 4055) + 2)`,
+    `calc(--and(var(--_stackWord0), 4055) + 2)`,
     `POPF`);
   dispatch.addEntry('SP', 0x9D,
     `calc(var(--__1SP) + 2)`,
