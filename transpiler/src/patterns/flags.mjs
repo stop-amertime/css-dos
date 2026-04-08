@@ -1,12 +1,12 @@
 // Flag computation @functions.
-// These mirror the JS emulator's flag-setting logic.
+// CONSTRAINTS:
+// 1. Max 7 local variables per function (Chrome limit)
+// 2. No nested function calls as arguments
+// 3. Total call-chain complexity limited (deep xor nesting fails)
 //
-// IMPORTANT: Chrome's CSS @function implementation does NOT support passing
-// a function call result directly as an argument to another function call.
-// e.g. --xor(--xor(a, b), c) FAILS. You must use intermediate variables:
-//   --t: --xor(a, b); then --xor(var(--t), c)
+// Strategy: use inline arithmetic for AF (avoid expensive --xor chains),
+// use --subOF/--addOF helpers for OF, combine ZF+SF into one local.
 
-// Parity table for low 8 bits (1=even parity, 0=odd)
 const PARITY = [
   1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,
   0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,
@@ -26,6 +26,20 @@ const PARITY = [
   1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,
 ];
 
+// AF inline formulas (avoid calling --xor which is too deep):
+// ADD AF: carry from bit 3→4: (lo_dst + lo_src) >= 16
+const ADD_AF = (dst, src) =>
+  `calc(round(down, max(0, sign(mod(${dst}, 16) + mod(${src}, 16) - 15.5)) + 0.5) * 16)`;
+// SUB AF: borrow from bit 4→3: lo_dst < lo_src
+const SUB_AF = (dst, src) =>
+  `calc(round(down, max(0, sign(mod(${src}, 16) - mod(${dst}, 16) - 0.5)) + 0.5) * 16)`;
+// INC AF: (dst & 0xF) == 0xF → res low nibble wraps from F to 0
+const INC_AF = (dst) =>
+  `if(style(--_nibble: 15): 16; else: 0)`;
+// DEC AF: (dst & 0xF) == 0x0 → res low nibble wraps from 0 to F
+const DEC_AF = (dst) =>
+  `if(style(--_nibble: 0): 16; else: 0)`;
+
 export function emitFlagFunctions() {
   return `
 /* ===== FLAG COMPUTATION ===== */
@@ -37,85 +51,81 @@ ${PARITY.map((p, i) => `    style(--low8: ${i}): ${p * 4};`).join('\n')}
   else: 0);
 }
 
-/* ===== ADD FLAGS ===== */
+/* OF helpers (4 locals each — safe nesting depth) */
+
+@function --addOF16(--dst <integer>, --src <integer>, --res <integer>) returns <integer> {
+  --t1: --xor(var(--dst), var(--src));
+  --t2: --xor(var(--t1), 65535);
+  --t3: --xor(var(--dst), var(--res));
+  --t4: --and(var(--t2), var(--t3));
+  result: calc(--bit(var(--t4), 15) * 2048);
+}
+
+@function --addOF8(--dst <integer>, --src <integer>, --res <integer>) returns <integer> {
+  --t1: --xor(var(--dst), var(--src));
+  --t2: --xor(var(--t1), 255);
+  --t3: --xor(var(--dst), var(--res));
+  --t4: --and(var(--t2), var(--t3));
+  result: calc(--bit(var(--t4), 7) * 2048);
+}
+
+@function --subOF16(--dst <integer>, --src <integer>, --res <integer>) returns <integer> {
+  --t1: --xor(var(--dst), var(--src));
+  --t2: --xor(var(--dst), var(--res));
+  --t3: --and(var(--t1), var(--t2));
+  result: calc(--bit(var(--t3), 15) * 2048);
+}
+
+@function --subOF8(--dst <integer>, --src <integer>, --res <integer>) returns <integer> {
+  --t1: --xor(var(--dst), var(--src));
+  --t2: --xor(var(--dst), var(--res));
+  --t3: --and(var(--t1), var(--t2));
+  result: calc(--bit(var(--t3), 7) * 2048);
+}
+
+/* ===== ADD FLAGS (6 locals) ===== */
 
 @function --addFlags16(--dst <integer>, --src <integer>) returns <integer> {
   --raw: calc(var(--dst) + var(--src));
   --res: --lowerBytes(var(--raw), 16);
-  --_rs: --rightShift(var(--raw), 16);
-  --cf: min(1, var(--_rs));
+  --cf: min(1, round(down, var(--raw) / 65536));
   --pf: --parity(var(--res));
-  --_xor_rd: --xor(var(--res), var(--dst));
-  --_xor_rds: --xor(var(--_xor_rd), var(--src));
-  --af: calc(--bit(var(--_xor_rds), 4) * 16);
-  --zf: if(style(--res: 0): 64; else: 0);
-  --sf: calc(--bit(var(--res), 15) * 128);
-  --_xor_ds: --xor(var(--dst), var(--src));
-  --_xor_dsi: --xor(var(--_xor_ds), 65535);
-  --_xor_dr: --xor(var(--dst), var(--res));
-  --_and_of: --and(var(--_xor_dsi), var(--_xor_dr));
-  --of: calc(--bit(var(--_and_of), 15) * 2048);
-  result: calc(var(--cf) + var(--pf) + var(--af) + var(--zf) + var(--sf) + var(--of) + 2);
+  --zfsf: calc(if(style(--res: 0): 64; else: 0) + --bit(var(--res), 15) * 128);
+  --of: --addOF16(var(--dst), var(--src), var(--res));
+  result: calc(var(--cf) + var(--pf) + ${ADD_AF('var(--dst)', 'var(--src)')} + var(--zfsf) + var(--of) + 2);
 }
 
 @function --addFlags8(--dst <integer>, --src <integer>) returns <integer> {
   --raw: calc(var(--dst) + var(--src));
   --res: --lowerBytes(var(--raw), 8);
-  --_rs: --rightShift(var(--raw), 8);
-  --cf: min(1, var(--_rs));
+  --cf: min(1, round(down, var(--raw) / 256));
   --pf: --parity(var(--res));
-  --_xor_rd: --xor(var(--res), var(--dst));
-  --_xor_rds: --xor(var(--_xor_rd), var(--src));
-  --af: calc(--bit(var(--_xor_rds), 4) * 16);
-  --zf: if(style(--res: 0): 64; else: 0);
-  --sf: calc(--bit(var(--res), 7) * 128);
-  --_xor_ds: --xor(var(--dst), var(--src));
-  --_xor_dsi: --xor(var(--_xor_ds), 255);
-  --_xor_dr: --xor(var(--dst), var(--res));
-  --_and_of: --and(var(--_xor_dsi), var(--_xor_dr));
-  --of: calc(--bit(var(--_and_of), 7) * 2048);
-  result: calc(var(--cf) + var(--pf) + var(--af) + var(--zf) + var(--sf) + var(--of) + 2);
+  --zfsf: calc(if(style(--res: 0): 64; else: 0) + --bit(var(--res), 7) * 128);
+  --of: --addOF8(var(--dst), var(--src), var(--res));
+  result: calc(var(--cf) + var(--pf) + ${ADD_AF('var(--dst)', 'var(--src)')} + var(--zfsf) + var(--of) + 2);
 }
 
-/* ===== SUB FLAGS ===== */
+/* ===== SUB FLAGS (6 locals) ===== */
 
 @function --subFlags16(--dst <integer>, --src <integer>) returns <integer> {
   --res: --lowerBytes(calc(var(--dst) - var(--src) + 65536), 16);
-  --_borrow_s: sign(calc(var(--src) - var(--dst) - 0.5));
-  --_borrow_m: max(0, var(--_borrow_s));
-  --cf: round(down, calc(var(--_borrow_m) + 0.5));
+  --cf: round(down, max(0, sign(calc(var(--src) - var(--dst) - 0.5))) + 0.5);
   --pf: --parity(var(--res));
-  --_xor_rd: --xor(var(--res), var(--dst));
-  --_xor_rds: --xor(var(--_xor_rd), var(--src));
-  --af: calc(--bit(var(--_xor_rds), 4) * 16);
-  --zf: if(style(--res: 0): 64; else: 0);
-  --sf: calc(--bit(var(--res), 15) * 128);
-  --_xor_ds: --xor(var(--dst), var(--src));
-  --_xor_dr: --xor(var(--dst), var(--res));
-  --_and_of: --and(var(--_xor_ds), var(--_xor_dr));
-  --of: calc(--bit(var(--_and_of), 15) * 2048);
-  result: calc(var(--cf) + var(--pf) + var(--af) + var(--zf) + var(--sf) + var(--of) + 2);
+  --zfsf: calc(if(style(--res: 0): 64; else: 0) + --bit(var(--res), 15) * 128);
+  --of: --subOF16(var(--dst), var(--src), var(--res));
+  result: calc(var(--cf) + var(--pf) + ${SUB_AF('var(--dst)', 'var(--src)')} + var(--zfsf) + var(--of) + 2);
 }
 
 @function --subFlags8(--dst <integer>, --src <integer>) returns <integer> {
   --res: --lowerBytes(calc(var(--dst) - var(--src) + 256), 8);
-  --_borrow_s: sign(calc(var(--src) - var(--dst) - 0.5));
-  --_borrow_m: max(0, var(--_borrow_s));
-  --cf: round(down, calc(var(--_borrow_m) + 0.5));
+  --cf: round(down, max(0, sign(calc(var(--src) - var(--dst) - 0.5))) + 0.5);
   --pf: --parity(var(--res));
-  --_xor_rd: --xor(var(--res), var(--dst));
-  --_xor_rds: --xor(var(--_xor_rd), var(--src));
-  --af: calc(--bit(var(--_xor_rds), 4) * 16);
-  --zf: if(style(--res: 0): 64; else: 0);
-  --sf: calc(--bit(var(--res), 7) * 128);
-  --_xor_ds: --xor(var(--dst), var(--src));
-  --_xor_dr: --xor(var(--dst), var(--res));
-  --_and_of: --and(var(--_xor_ds), var(--_xor_dr));
-  --of: calc(--bit(var(--_and_of), 7) * 2048);
-  result: calc(var(--cf) + var(--pf) + var(--af) + var(--zf) + var(--sf) + var(--of) + 2);
+  --zfsf: calc(if(style(--res: 0): 64; else: 0) + --bit(var(--res), 7) * 128);
+  --of: --subOF8(var(--dst), var(--src), var(--res));
+  result: calc(var(--cf) + var(--pf) + ${SUB_AF('var(--dst)', 'var(--src)')} + var(--zfsf) + var(--of) + 2);
 }
 
-/* ===== LOGIC FLAGS (AND/OR/XOR/TEST) ===== */
+/* ===== LOGIC FLAGS (3 locals) ===== */
 
 @function --logicFlags16(--res <integer>) returns <integer> {
   --pf: --parity(var(--res));
@@ -131,9 +141,7 @@ ${PARITY.map((p, i) => `    style(--low8: ${i}): ${p * 4};`).join('\n')}
   result: calc(var(--pf) + var(--zf) + var(--sf) + 2);
 }
 
-/* ===== COMPOSITE LOGIC FLAG FUNCTIONS ===== */
-/* These combine a bitwise op + flag computation in one function,
-   avoiding the nested function call limitation. */
+/* ===== COMPOSITE LOGIC FLAGS (4-5 locals) ===== */
 
 @function --orFlags16(--a <integer>, --b <integer>) returns <integer> {
   --res: --or(var(--a), var(--b));
@@ -144,8 +152,8 @@ ${PARITY.map((p, i) => `    style(--low8: ${i}): ${p * 4};`).join('\n')}
 }
 
 @function --orFlags8(--a <integer>, --b <integer>) returns <integer> {
-  --_full: --or(var(--a), var(--b));
-  --res: --lowerBytes(var(--_full), 8);
+  --full: --or(var(--a), var(--b));
+  --res: --lowerBytes(var(--full), 8);
   --pf: --parity(var(--res));
   --zf: if(style(--res: 0): 64; else: 0);
   --sf: calc(--bit(var(--res), 7) * 128);
@@ -161,8 +169,8 @@ ${PARITY.map((p, i) => `    style(--low8: ${i}): ${p * 4};`).join('\n')}
 }
 
 @function --andFlags8(--a <integer>, --b <integer>) returns <integer> {
-  --_full: --and(var(--a), var(--b));
-  --res: --lowerBytes(var(--_full), 8);
+  --full: --and(var(--a), var(--b));
+  --res: --lowerBytes(var(--full), 8);
   --pf: --parity(var(--res));
   --zf: if(style(--res: 0): 64; else: 0);
   --sf: calc(--bit(var(--res), 7) * 128);
@@ -178,119 +186,98 @@ ${PARITY.map((p, i) => `    style(--low8: ${i}): ${p * 4};`).join('\n')}
 }
 
 @function --xorFlags8(--a <integer>, --b <integer>) returns <integer> {
-  --_full: --xor(var(--a), var(--b));
-  --res: --lowerBytes(var(--_full), 8);
+  --full: --xor(var(--a), var(--b));
+  --res: --lowerBytes(var(--full), 8);
   --pf: --parity(var(--res));
   --zf: if(style(--res: 0): 64; else: 0);
   --sf: calc(--bit(var(--res), 7) * 128);
   result: calc(var(--pf) + var(--zf) + var(--sf) + 2);
 }
 
-/* ===== INC/DEC FLAGS ===== */
-/* Preserve CF from old flags. */
+/* ===== INC/DEC FLAGS (6 locals) ===== */
 
 @function --incFlags16(--dst <integer>, --res <integer>, --oldFlags <integer>) returns <integer> {
   --cf: --bit(var(--oldFlags), 0);
   --pf: --parity(var(--res));
-  --_xor_rd: --xor(var(--res), var(--dst));
-  --_xor_rd1: --xor(var(--_xor_rd), 1);
-  --af: calc(--bit(var(--_xor_rd1), 4) * 16);
+  --_nibble: mod(var(--dst), 16);
   --zf: if(style(--res: 0): 64; else: 0);
   --sf: calc(--bit(var(--res), 15) * 128);
   --of: if(style(--res: 32768): 2048; else: 0);
-  result: calc(var(--cf) + var(--pf) + var(--af) + var(--zf) + var(--sf) + var(--of) + 2);
+  result: calc(var(--cf) + var(--pf) + ${INC_AF('var(--dst)')} + var(--zf) + var(--sf) + var(--of) + 2);
 }
 
 @function --decFlags16(--dst <integer>, --res <integer>, --oldFlags <integer>) returns <integer> {
   --cf: --bit(var(--oldFlags), 0);
   --pf: --parity(var(--res));
-  --_xor_rd: --xor(var(--res), var(--dst));
-  --_xor_rd1: --xor(var(--_xor_rd), 1);
-  --af: calc(--bit(var(--_xor_rd1), 4) * 16);
+  --_nibble: mod(var(--dst), 16);
   --zf: if(style(--res: 0): 64; else: 0);
   --sf: calc(--bit(var(--res), 15) * 128);
   --of: if(style(--res: 32767): 2048; else: 0);
-  result: calc(var(--cf) + var(--pf) + var(--af) + var(--zf) + var(--sf) + var(--of) + 2);
+  result: calc(var(--cf) + var(--pf) + ${DEC_AF('var(--dst)')} + var(--zf) + var(--sf) + var(--of) + 2);
 }
 
-/* ===== ADC FLAGS ===== */
+@function --incFlags8(--dst <integer>, --res <integer>, --oldFlags <integer>) returns <integer> {
+  --cf: --bit(var(--oldFlags), 0);
+  --pf: --parity(var(--res));
+  --_nibble: mod(var(--dst), 16);
+  --zf: if(style(--res: 0): 64; else: 0);
+  --sf: calc(--bit(var(--res), 7) * 128);
+  --of: if(style(--res: 128): 2048; else: 0);
+  result: calc(var(--cf) + var(--pf) + ${INC_AF('var(--dst)')} + var(--zf) + var(--sf) + var(--of) + 2);
+}
+
+@function --decFlags8(--dst <integer>, --res <integer>, --oldFlags <integer>) returns <integer> {
+  --cf: --bit(var(--oldFlags), 0);
+  --pf: --parity(var(--res));
+  --_nibble: mod(var(--dst), 16);
+  --zf: if(style(--res: 0): 64; else: 0);
+  --sf: calc(--bit(var(--res), 7) * 128);
+  --of: if(style(--res: 127): 2048; else: 0);
+  result: calc(var(--cf) + var(--pf) + ${DEC_AF('var(--dst)')} + var(--zf) + var(--sf) + var(--of) + 2);
+}
+
+/* ===== ADC FLAGS (6 locals) ===== */
 
 @function --adcFlags16(--dst <integer>, --src <integer>, --carry <integer>) returns <integer> {
   --raw: calc(var(--dst) + var(--src) + var(--carry));
   --res: --lowerBytes(var(--raw), 16);
-  --_rs: --rightShift(var(--raw), 16);
-  --cf: min(1, var(--_rs));
+  --cf: min(1, round(down, var(--raw) / 65536));
   --pf: --parity(var(--res));
-  --_xor_rd: --xor(var(--res), var(--dst));
-  --_xor_rds: --xor(var(--_xor_rd), var(--src));
-  --af: calc(--bit(var(--_xor_rds), 4) * 16);
-  --zf: if(style(--res: 0): 64; else: 0);
-  --sf: calc(--bit(var(--res), 15) * 128);
-  --_xor_ds: --xor(var(--dst), var(--src));
-  --_xor_dsi: --xor(var(--_xor_ds), 65535);
-  --_xor_dr: --xor(var(--dst), var(--res));
-  --_and_of: --and(var(--_xor_dsi), var(--_xor_dr));
-  --of: calc(--bit(var(--_and_of), 15) * 2048);
-  result: calc(var(--cf) + var(--pf) + var(--af) + var(--zf) + var(--sf) + var(--of) + 2);
+  --zfsf: calc(if(style(--res: 0): 64; else: 0) + --bit(var(--res), 15) * 128);
+  --of: --addOF16(var(--dst), var(--src), var(--res));
+  result: calc(var(--cf) + var(--pf) + ${ADD_AF('var(--dst)', 'var(--src)')} + var(--zfsf) + var(--of) + 2);
 }
 
 @function --adcFlags8(--dst <integer>, --src <integer>, --carry <integer>) returns <integer> {
   --raw: calc(var(--dst) + var(--src) + var(--carry));
   --res: --lowerBytes(var(--raw), 8);
-  --_rs: --rightShift(var(--raw), 8);
-  --cf: min(1, var(--_rs));
+  --cf: min(1, round(down, var(--raw) / 256));
   --pf: --parity(var(--res));
-  --_xor_rd: --xor(var(--res), var(--dst));
-  --_xor_rds: --xor(var(--_xor_rd), var(--src));
-  --af: calc(--bit(var(--_xor_rds), 4) * 16);
-  --zf: if(style(--res: 0): 64; else: 0);
-  --sf: calc(--bit(var(--res), 7) * 128);
-  --_xor_ds: --xor(var(--dst), var(--src));
-  --_xor_dsi: --xor(var(--_xor_ds), 255);
-  --_xor_dr: --xor(var(--dst), var(--res));
-  --_and_of: --and(var(--_xor_dsi), var(--_xor_dr));
-  --of: calc(--bit(var(--_and_of), 7) * 2048);
-  result: calc(var(--cf) + var(--pf) + var(--af) + var(--zf) + var(--sf) + var(--of) + 2);
+  --zfsf: calc(if(style(--res: 0): 64; else: 0) + --bit(var(--res), 7) * 128);
+  --of: --addOF8(var(--dst), var(--src), var(--res));
+  result: calc(var(--cf) + var(--pf) + ${ADD_AF('var(--dst)', 'var(--src)')} + var(--zfsf) + var(--of) + 2);
 }
 
-/* ===== SBB FLAGS ===== */
+/* ===== SBB FLAGS (7 locals) ===== */
 
 @function --sbbFlags16(--dst <integer>, --src <integer>, --carry <integer>) returns <integer> {
   --total: calc(var(--src) + var(--carry));
   --res: --lowerBytes(calc(var(--dst) - var(--total) + 65536), 16);
-  --_borrow_s: sign(calc(var(--total) - var(--dst) - 0.5));
-  --_borrow_m: max(0, var(--_borrow_s));
-  --cf: round(down, calc(var(--_borrow_m) + 0.5));
+  --cf: round(down, max(0, sign(calc(var(--total) - var(--dst) - 0.5))) + 0.5);
   --pf: --parity(var(--res));
-  --_xor_rd: --xor(var(--res), var(--dst));
-  --_xor_rds: --xor(var(--_xor_rd), var(--src));
-  --af: calc(--bit(var(--_xor_rds), 4) * 16);
-  --zf: if(style(--res: 0): 64; else: 0);
-  --sf: calc(--bit(var(--res), 15) * 128);
-  --_xor_ds: --xor(var(--dst), var(--src));
-  --_xor_dr: --xor(var(--dst), var(--res));
-  --_and_of: --and(var(--_xor_ds), var(--_xor_dr));
-  --of: calc(--bit(var(--_and_of), 15) * 2048);
-  result: calc(var(--cf) + var(--pf) + var(--af) + var(--zf) + var(--sf) + var(--of) + 2);
+  --zfsf: calc(if(style(--res: 0): 64; else: 0) + --bit(var(--res), 15) * 128);
+  --of: --subOF16(var(--dst), var(--src), var(--res));
+  result: calc(var(--cf) + var(--pf) + ${SUB_AF('var(--dst)', 'var(--src)')} + var(--zfsf) + var(--of) + 2);
 }
 
 @function --sbbFlags8(--dst <integer>, --src <integer>, --carry <integer>) returns <integer> {
   --total: calc(var(--src) + var(--carry));
   --res: --lowerBytes(calc(var(--dst) - var(--total) + 256), 8);
-  --_borrow_s: sign(calc(var(--total) - var(--dst) - 0.5));
-  --_borrow_m: max(0, var(--_borrow_s));
-  --cf: round(down, calc(var(--_borrow_m) + 0.5));
+  --cf: round(down, max(0, sign(calc(var(--total) - var(--dst) - 0.5))) + 0.5);
   --pf: --parity(var(--res));
-  --_xor_rd: --xor(var(--res), var(--dst));
-  --_xor_rds: --xor(var(--_xor_rd), var(--src));
-  --af: calc(--bit(var(--_xor_rds), 4) * 16);
-  --zf: if(style(--res: 0): 64; else: 0);
-  --sf: calc(--bit(var(--res), 7) * 128);
-  --_xor_ds: --xor(var(--dst), var(--src));
-  --_xor_dr: --xor(var(--dst), var(--res));
-  --_and_of: --and(var(--_xor_ds), var(--_xor_dr));
-  --of: calc(--bit(var(--_and_of), 7) * 2048);
-  result: calc(var(--cf) + var(--pf) + var(--af) + var(--zf) + var(--sf) + var(--of) + 2);
+  --zfsf: calc(if(style(--res: 0): 64; else: 0) + --bit(var(--res), 7) * 128);
+  --of: --subOF8(var(--dst), var(--src), var(--res));
+  result: calc(var(--cf) + var(--pf) + ${SUB_AF('var(--dst)', 'var(--src)')} + var(--zfsf) + var(--of) + 2);
 }
 `;
 }

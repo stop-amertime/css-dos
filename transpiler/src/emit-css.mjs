@@ -22,7 +22,7 @@ import { emitAllALU } from './patterns/alu.mjs';
 import { emitAllControl } from './patterns/control.mjs';
 import { emitAllStack } from './patterns/stack.mjs';
 import { emitAllMisc } from './patterns/misc.mjs';
-import { emitAllGroups, emitIncDecFlags8 } from './patterns/group.mjs';
+import { emitAllGroups } from './patterns/group.mjs';
 
 /**
  * Dispatch table builder. Collects per-register entries keyed by opcode.
@@ -167,7 +167,7 @@ export function emitCSS(opts) {
 
   // 4. Flag computation @functions
   sections.push(emitFlagFunctions());
-  sections.push(emitIncDecFlags8());
+  // incFlags8/decFlags8 are now in emitFlagFunctions()
 
   // 5. readMem @function
   sections.push('/* ===== MEMORY READ ===== */');
