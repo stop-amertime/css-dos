@@ -272,6 +272,89 @@ export function emitJCXZ(dispatch) {
 }
 
 /**
+ * CALL far (0x9A): push CS, push IP+5, load CS:IP from immediate.
+ * Format: 0x9A, IP_lo, IP_hi, CS_lo, CS_hi (5 bytes)
+ */
+export function emitCALL_far(dispatch) {
+  dispatch.addEntry('SP', 0x9A, `calc(var(--__1SP) - 4)`, `CALL far (SP-=4)`);
+
+  // New IP = q1 + q2*256, new CS = q3 + q4*256
+  dispatch.addEntry('IP', 0x9A,
+    `calc(var(--q1) + var(--q2) * 256)`,
+    `CALL far load IP`);
+  dispatch.addEntry('CS', 0x9A,
+    `calc(var(--q3) + var(--q4) * 256)`,
+    `CALL far load CS`);
+
+  const ssBase = `calc(var(--__1SS) * 16)`;
+  const retIP = `calc(var(--__1IP) + 5)`;
+
+  // Push old CS at SP-2 (pushed first, higher address)
+  dispatch.addMemWrite(0x9A,
+    `calc(${ssBase} + var(--__1SP) - 2)`,
+    `--lowerBytes(var(--__1CS), 8)`,
+    `CALL far push CS lo`);
+  dispatch.addMemWrite(0x9A,
+    `calc(${ssBase} + var(--__1SP) - 1)`,
+    `--rightShift(var(--__1CS), 8)`,
+    `CALL far push CS hi`);
+  // Push return IP at SP-4 (pushed second, lower address)
+  dispatch.addMemWrite(0x9A,
+    `calc(${ssBase} + var(--__1SP) - 4)`,
+    `--lowerBytes(${retIP}, 8)`,
+    `CALL far push IP lo`);
+  dispatch.addMemWrite(0x9A,
+    `calc(${ssBase} + var(--__1SP) - 3)`,
+    `--rightShift(${retIP}, 8)`,
+    `CALL far push IP hi`);
+}
+
+/**
+ * RET far (0xCB): pop IP, pop CS.
+ */
+export function emitRET_far(dispatch) {
+  const ssBase = `calc(var(--__1SS) * 16)`;
+  dispatch.addEntry('IP', 0xCB,
+    `--read2(calc(${ssBase} + var(--__1SP)))`,
+    `RET far pop IP`);
+  dispatch.addEntry('CS', 0xCB,
+    `--read2(calc(${ssBase} + var(--__1SP) + 2))`,
+    `RET far pop CS`);
+  dispatch.addEntry('SP', 0xCB,
+    `calc(var(--__1SP) + 4)`,
+    `RET far (SP+=4)`);
+}
+
+/**
+ * RET far imm16 (0xCA): pop IP, pop CS, then SP += imm16.
+ */
+export function emitRET_far_imm(dispatch) {
+  const ssBase = `calc(var(--__1SS) * 16)`;
+  dispatch.addEntry('IP', 0xCA,
+    `--read2(calc(${ssBase} + var(--__1SP)))`,
+    `RET far imm pop IP`);
+  dispatch.addEntry('CS', 0xCA,
+    `--read2(calc(${ssBase} + var(--__1SP) + 2))`,
+    `RET far imm pop CS`);
+  dispatch.addEntry('SP', 0xCA,
+    `calc(var(--__1SP) + 4 + var(--q1) + var(--q2) * 256)`,
+    `RET far imm (SP+=4+imm16)`);
+}
+
+/**
+ * JMP far (0xEA): load CS:IP from immediate.
+ * Format: 0xEA, IP_lo, IP_hi, CS_lo, CS_hi (5 bytes)
+ */
+export function emitJMP_far(dispatch) {
+  dispatch.addEntry('IP', 0xEA,
+    `calc(var(--q1) + var(--q2) * 256)`,
+    `JMP far load IP`);
+  dispatch.addEntry('CS', 0xEA,
+    `calc(var(--q3) + var(--q4) * 256)`,
+    `JMP far load CS`);
+}
+
+/**
  * Register all control flow opcodes.
  */
 export function emitAllControl(dispatch) {
@@ -287,4 +370,8 @@ export function emitAllControl(dispatch) {
   emitLOOPE(dispatch);
   emitLOOPNE(dispatch);
   emitJCXZ(dispatch);
+  emitCALL_far(dispatch);
+  emitRET_far(dispatch);
+  emitRET_far_imm(dispatch);
+  emitJMP_far(dispatch);
 }

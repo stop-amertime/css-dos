@@ -64,21 +64,30 @@ export function emitGroup_F7(dispatch) {
   // NOT (reg=2): r/m = ~r/m, no flag change
   // TEST (reg=0): r/m & imm16, flags only
 
-  // AX: DIV writes quotient, MUL writes low product, NEG/NOT may write if rm=0
+  // IMUL helpers: signed operands
+  // signed_ax = AX - bit(AX,15) * 65536
+  // signed_rm = rmVal16 - bit(rmVal16,15) * 65536
+  const sAX16 = `calc(var(--__1AX) - --bit(var(--__1AX), 15) * 65536)`;
+  const sRM16 = `calc(var(--rmVal16) - --bit(var(--rmVal16), 15) * 65536)`;
+  const imulProd16 = `calc(${sAX16} * ${sRM16})`;
+
+  // AX: DIV writes quotient, MUL writes low product, IMUL writes low product, NEG/NOT may write if rm=0
   dispatch.addEntry('AX', 0xF7,
     `if(` +
     `style(--reg: 6): round(down, calc((var(--__1DX) * 65536 + var(--__1AX)) / max(1, var(--rmVal16)))); ` +
     `style(--reg: 4): --lowerBytes(calc(var(--__1AX) * var(--rmVal16)), 16); ` +
+    `style(--reg: 5): --lowerBytes(${imulProd16}, 16); ` +
     `style(--reg: 3) and style(--mod: 3) and style(--rm: 0): --lowerBytes(calc(0 - var(--rmVal16) + 65536), 16); ` +
     `style(--reg: 2) and style(--mod: 3) and style(--rm: 0): --not(var(--rmVal16)); ` +
     `else: var(--__1AX))`,
     `Group F7 AX`);
 
-  // DX: DIV writes remainder, MUL writes high product
+  // DX: DIV writes remainder, MUL writes high product, IMUL writes high product
   dispatch.addEntry('DX', 0xF7,
     `if(` +
     `style(--reg: 6): mod(calc(var(--__1DX) * 65536 + var(--__1AX)), max(1, var(--rmVal16))); ` +
     `style(--reg: 4): --lowerBytes(--rightShift(calc(var(--__1AX) * var(--rmVal16)), 16), 16); ` +
+    `style(--reg: 5): --lowerBytes(round(down, ${imulProd16} / 65536), 16); ` +
     `style(--reg: 3) and style(--mod: 3) and style(--rm: 2): --lowerBytes(calc(0 - var(--rmVal16) + 65536), 16); ` +
     `style(--reg: 2) and style(--mod: 3) and style(--rm: 2): --not(var(--rmVal16)); ` +
     `else: var(--__1DX))`,
@@ -106,12 +115,16 @@ export function emitGroup_F7(dispatch) {
     `if(style(--reg: 3): --rightShift(--lowerBytes(calc(0 - var(--rmVal16) + 65536), 16), 8); style(--reg: 2): --rightShift(--not(var(--rmVal16)), 8); else: 0)`,
     `Group F7 NEG/NOT → mem hi`);
 
-  // Flags
+  // Flags: MUL/IMUL set CF+OF based on upper half; DIV/IDIV undefined
+  // MUL CF=OF: DX != 0 → bit at 0 and 11
+  // IMUL CF=OF: DX:AX != sign-extend(AX) → DX != (bit(AX,15)*65535)
   dispatch.addEntry('flags', 0xF7,
     `if(` +
     `style(--reg: 0): --andFlags16(var(--rmVal16), var(--immWord)); ` +
     `style(--reg: 3): --subFlags16(0, var(--rmVal16)); ` +
     `style(--reg: 2): var(--__1flags); ` +
+    `style(--reg: 4): calc(var(--__1flags) - --bit(var(--__1flags), 0) - --bit(var(--__1flags), 11) * 2048 + min(1, --lowerBytes(--rightShift(calc(var(--__1AX) * var(--rmVal16)), 16), 16)) * 2049); ` +
+    `style(--reg: 5): calc(var(--__1flags) - --bit(var(--__1flags), 0) - --bit(var(--__1flags), 11) * 2048 + min(1, abs(--lowerBytes(round(down, ${imulProd16} / 65536), 16) - --bit(--lowerBytes(${imulProd16}, 16), 15) * 65535)) * 2049); ` +
     `else: var(--__1flags))`,
     `Group F7 flags`);
 
@@ -130,11 +143,17 @@ export function emitGroup_F7(dispatch) {
  * reg=6: DIV r/m8 (AL = AX / r/m8, AH = AX % r/m8)
  */
 export function emitGroup_F6(dispatch) {
-  // AX gets written for MUL and DIV
+  // IMUL byte helpers: signed operands
+  const sAL = `calc(var(--AL) - --bit(var(--AL), 7) * 256)`;
+  const sRM8 = `calc(var(--rmVal8) - --bit(var(--rmVal8), 7) * 256)`;
+  const imulProd8 = `calc(${sAL} * ${sRM8})`;
+
+  // AX gets written for MUL, IMUL, and DIV
   dispatch.addEntry('AX', 0xF6,
     `if(` +
     `style(--reg: 6): calc(round(down, var(--__1AX) / max(1, var(--rmVal8))) + mod(var(--__1AX), max(1, var(--rmVal8))) * 256); ` +
     `style(--reg: 4): calc(var(--AL) * var(--rmVal8)); ` +
+    `style(--reg: 5): --lowerBytes(${imulProd8}, 16); ` +
     // NEG/NOT on AL (rm=0, mod=11)
     `style(--reg: 3) and style(--mod: 3) and style(--rm: 0): --mergelow(var(--__1AX), --lowerBytes(calc(0 - var(--rmVal8) + 256), 8)); ` +
     `style(--reg: 2) and style(--mod: 3) and style(--rm: 0): --mergelow(var(--__1AX), --lowerBytes(--not(var(--rmVal8)), 8)); ` +
@@ -163,12 +182,16 @@ export function emitGroup_F6(dispatch) {
     `if(style(--reg: 3): --lowerBytes(calc(0 - var(--rmVal8) + 256), 8); style(--reg: 2): --lowerBytes(--not(var(--rmVal8)), 8); else: 0)`,
     `Group F6 NEG/NOT → mem`);
 
-  // Flags
+  // Flags: MUL/IMUL set CF+OF; others as before
+  // MUL byte: CF=OF=1 if AH (upper byte of product) != 0
+  // IMUL byte: CF=OF=1 if AH != sign-extension of AL in result
   dispatch.addEntry('flags', 0xF6,
     `if(` +
     `style(--reg: 0): --andFlags8(var(--rmVal8), var(--immByte)); ` +
     `style(--reg: 3): --subFlags8(0, var(--rmVal8)); ` +
     `style(--reg: 2): var(--__1flags); ` +
+    `style(--reg: 4): calc(var(--__1flags) - --bit(var(--__1flags), 0) - --bit(var(--__1flags), 11) * 2048 + min(1, round(down, calc(var(--AL) * var(--rmVal8)) / 256)) * 2049); ` +
+    `style(--reg: 5): calc(var(--__1flags) - --bit(var(--__1flags), 0) - --bit(var(--__1flags), 11) * 2048 + min(1, abs(--rightShift(--lowerBytes(${imulProd8}, 16), 8) - --bit(--lowerBytes(${imulProd8}, 8), 7) * 255)) * 2049); ` +
     `else: var(--__1flags))`,
     `Group F6 flags`);
 
@@ -384,6 +407,100 @@ export function emitGroup_83(dispatch) {
     `Group 83`);
 }
 
+/**
+ * Group 0xFF: word operations on r/m16
+ * reg=0: INC r/m16
+ * reg=1: DEC r/m16
+ * reg=2: CALL near indirect (IP = r/m16, push old IP)
+ * reg=4: JMP near indirect (IP = r/m16)
+ * reg=6: PUSH r/m16
+ */
+export function emitGroup_FF(dispatch) {
+  // Registers that can be INC/DEC targets (mod=11):
+  // All 8 regs. But SP also affected by CALL (push) and PUSH.
+  // Handle SP separately from others.
+
+  for (let r = 0; r < 8; r++) {
+    if (r === 4) continue; // SP handled separately
+    const regName = REG16[r];
+    dispatch.addEntry(regName, 0xFF,
+      `if(` +
+      `style(--reg: 0) and style(--mod: 3) and style(--rm: ${r}): --lowerBytes(calc(var(--rmVal16) + 1), 16); ` +
+      `style(--reg: 1) and style(--mod: 3) and style(--rm: ${r}): --lowerBytes(calc(var(--rmVal16) - 1 + 65536), 16); ` +
+      `else: var(--__1${regName}))`,
+      `Group FF INC/DEC → ${regName}`);
+  }
+
+  // SP: INC SP (reg=0,mod=3,rm=4), DEC SP (reg=1,mod=3,rm=4),
+  //     CALL indirect (reg=2, SP-=2), PUSH r/m (reg=6, SP-=2)
+  dispatch.addEntry('SP', 0xFF,
+    `if(` +
+    `style(--reg: 0) and style(--mod: 3) and style(--rm: 4): --lowerBytes(calc(var(--rmVal16) + 1), 16); ` +
+    `style(--reg: 1) and style(--mod: 3) and style(--rm: 4): --lowerBytes(calc(var(--rmVal16) - 1 + 65536), 16); ` +
+    `style(--reg: 2): calc(var(--__1SP) - 2); ` +
+    `style(--reg: 6): calc(var(--__1SP) - 2); ` +
+    `else: var(--__1SP))`,
+    `Group FF SP`);
+
+  // Memory writes:
+  // INC/DEC to memory (mod!=3): write result back
+  // CALL indirect (reg=2): push return address (2 bytes)
+  // PUSH (reg=6): push the r/m value (2 bytes)
+
+  // Slot 0: INC/DEC mem lo, or CALL/PUSH push lo
+  // For INC/DEC: write to EA when mod!=3; for CALL/PUSH: write to stack
+  dispatch.addMemWrite(0xFF,
+    `if(` +
+    `style(--mod: 3) and style(--reg: 0): -1; ` +
+    `style(--mod: 3) and style(--reg: 1): -1; ` +
+    `style(--reg: 0): var(--ea); ` +
+    `style(--reg: 1): var(--ea); ` +
+    `style(--reg: 2): calc(var(--__1SS) * 16 + var(--__1SP) - 2); ` +
+    `style(--reg: 6): calc(var(--__1SS) * 16 + var(--__1SP) - 2); ` +
+    `else: -1)`,
+    `if(` +
+    `style(--reg: 0): --lowerBytes(calc(var(--rmVal16) + 1), 8); ` +
+    `style(--reg: 1): --lowerBytes(calc(var(--rmVal16) - 1 + 65536), 8); ` +
+    `style(--reg: 2): --lowerBytes(calc(var(--__1IP) + 2 + var(--modrmExtra)), 8); ` +
+    `style(--reg: 6): --lowerBytes(var(--rmVal16), 8); ` +
+    `else: 0)`,
+    `Group FF mem/push lo`);
+
+  // Slot 1: INC/DEC mem hi, or CALL/PUSH push hi
+  dispatch.addMemWrite(0xFF,
+    `if(` +
+    `style(--mod: 3) and style(--reg: 0): -1; ` +
+    `style(--mod: 3) and style(--reg: 1): -1; ` +
+    `style(--reg: 0): calc(var(--ea) + 1); ` +
+    `style(--reg: 1): calc(var(--ea) + 1); ` +
+    `style(--reg: 2): calc(var(--__1SS) * 16 + var(--__1SP) - 1); ` +
+    `style(--reg: 6): calc(var(--__1SS) * 16 + var(--__1SP) - 1); ` +
+    `else: -1)`,
+    `if(` +
+    `style(--reg: 0): --rightShift(--lowerBytes(calc(var(--rmVal16) + 1), 16), 8); ` +
+    `style(--reg: 1): --rightShift(--lowerBytes(calc(var(--rmVal16) - 1 + 65536), 16), 8); ` +
+    `style(--reg: 2): --rightShift(calc(var(--__1IP) + 2 + var(--modrmExtra)), 8); ` +
+    `style(--reg: 6): --rightShift(var(--rmVal16), 8); ` +
+    `else: 0)`,
+    `Group FF mem/push hi`);
+
+  // Flags: INC/DEC set flags (preserving CF), others don't
+  dispatch.addEntry('flags', 0xFF,
+    `if(` +
+    `style(--reg: 0): --incFlags16(var(--rmVal16), --lowerBytes(calc(var(--rmVal16) + 1), 16), var(--__1flags)); ` +
+    `style(--reg: 1): --decFlags16(var(--rmVal16), --lowerBytes(calc(var(--rmVal16) - 1 + 65536), 16), var(--__1flags)); ` +
+    `else: var(--__1flags))`,
+    `Group FF flags`);
+
+  // IP: CALL/JMP use rmVal16 as target, others advance normally
+  dispatch.addEntry('IP', 0xFF,
+    `if(` +
+    `style(--reg: 2): var(--rmVal16); ` +
+    `style(--reg: 4): var(--rmVal16); ` +
+    `else: calc(var(--__1IP) + 2 + var(--modrmExtra)))`,
+    `Group FF IP`);
+}
+
 export function emitAllGroups(dispatch) {
   emitGroup_FE(dispatch);
   emitGroup_F7(dispatch);
@@ -391,4 +508,5 @@ export function emitAllGroups(dispatch) {
   emitGroup_80(dispatch);
   emitGroup_81(dispatch);
   emitGroup_83(dispatch);
+  emitGroup_FF(dispatch);
 }

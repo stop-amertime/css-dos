@@ -228,3 +228,33 @@ export function emitLEA(dispatch) {
   }
   dispatch.addEntry('IP', 0x8D, `calc(var(--__1IP) + 2 + var(--modrmExtra))`, `LEA`);
 }
+
+/**
+ * LES reg16, [mem] (0xC4): load pointer — reg = [EA], ES = [EA+2]
+ * LDS reg16, [mem] (0xC5): load pointer — reg = [EA], DS = [EA+2]
+ */
+export function emitLES(dispatch) {
+  const regOrder16 = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI'];
+  for (let r = 0; r < 8; r++) {
+    dispatch.addEntry(regOrder16[r], 0xC4,
+      `if(style(--reg: ${r}): --read2(var(--ea)); else: var(--__1${regOrder16[r]}))`,
+      `LES ${regOrder16[r]}, [mem]`);
+  }
+  dispatch.addEntry('ES', 0xC4,
+    `--read2(calc(var(--ea) + 2))`,
+    `LES load ES`);
+  dispatch.addEntry('IP', 0xC4, `calc(var(--__1IP) + 2 + var(--modrmExtra))`, `LES`);
+}
+
+export function emitLDS(dispatch) {
+  const regOrder16 = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI'];
+  for (let r = 0; r < 8; r++) {
+    dispatch.addEntry(regOrder16[r], 0xC5,
+      `if(style(--reg: ${r}): --read2(var(--ea)); else: var(--__1${regOrder16[r]}))`,
+      `LDS ${regOrder16[r]}, [mem]`);
+  }
+  dispatch.addEntry('DS', 0xC5,
+    `--read2(calc(var(--ea) + 2))`,
+    `LDS load DS`);
+  dispatch.addEntry('IP', 0xC5, `calc(var(--__1IP) + 2 + var(--modrmExtra))`, `LDS`);
+}
