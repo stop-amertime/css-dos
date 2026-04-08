@@ -117,21 +117,20 @@ Read `transpiler/README.md` for detailed architecture and implementation plan.
 ## Conformance testing workflow
 
 ```sh
-# 1. Generate CSS (once transpiler exists)
-python transpiler/generate.py program.bin -o program.css
+# 1. Assemble test program (if .asm)
+C:\Users\AdmT9N0CX01V65438A\AppData\Local\bin\NASM\nasm.exe -f bin -o tests/prog.com tests/prog.asm
 
-# 2. Generate reference trace
-node tools/ref-emu.mjs program.bin > ref-trace.json
+# 2. Generate CSS — NOTE: only ONE positional arg (the .com file).
+#    bios.bin is auto-loaded from the project root. Do NOT pass bios.bin as an arg.
+node transpiler/generate.mjs tests/prog.com --mem 1536 -o tests/prog.css
 
-# 3. Run through calcite
-cargo run -p calcite-cli -- program.css --trace-json > calcite-trace.json
-
-# 4. Compare
-node tools/compare.mjs program.css ref-trace.json
+# 3. Run conformance comparison — takes THREE positional args: .com, bios.bin, .css
+node tools/compare.mjs tests/prog.com bios.bin tests/prog.css --ticks=500
 ```
 
-The conformance tools find the first tick where registers diverge, which is
-how you debug instruction implementation bugs.
+The compare tool runs both the reference JS emulator and calcite, then finds the
+first tick where registers diverge. It handles REP-prefixed instructions
+(which take 1 tick in the reference but N ticks in CSS) via IP-aligned comparison.
 
 ## BIOS
 

@@ -95,6 +95,47 @@ ${emitBitwiseNot()}
 @function --read2(--at <integer>) returns <integer> {
   result: calc(--readMem(var(--at)) + --readMem(calc(var(--at) + 1)) * 256);
 }
+
+/* ===== POWER OF 2 LOOKUP ===== */
+/* Used for variable-count shifts (SHL/SHR by CL).
+   Maps 0..31 → 2^0..2^31. Values beyond 31 return 0. */
+
+@function --pow2(--n <integer>) returns <integer> {
+  result: if(
+    style(--n: 0): 1;
+    style(--n: 1): 2;
+    style(--n: 2): 4;
+    style(--n: 3): 8;
+    style(--n: 4): 16;
+    style(--n: 5): 32;
+    style(--n: 6): 64;
+    style(--n: 7): 128;
+    style(--n: 8): 256;
+    style(--n: 9): 512;
+    style(--n: 10): 1024;
+    style(--n: 11): 2048;
+    style(--n: 12): 4096;
+    style(--n: 13): 8192;
+    style(--n: 14): 16384;
+    style(--n: 15): 32768;
+    style(--n: 16): 65536;
+    style(--n: 17): 131072;
+    style(--n: 18): 262144;
+    style(--n: 19): 524288;
+    style(--n: 20): 1048576;
+    style(--n: 21): 2097152;
+    style(--n: 22): 4194304;
+    style(--n: 23): 8388608;
+    style(--n: 24): 16777216;
+    style(--n: 25): 33554432;
+    style(--n: 26): 67108864;
+    style(--n: 27): 134217728;
+    style(--n: 28): 268435456;
+    style(--n: 29): 536870912;
+    style(--n: 30): 1073741824;
+    style(--n: 31): 2147483648;
+  else: 0);
+}
 `;
 }
 

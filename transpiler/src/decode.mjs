@@ -248,6 +248,10 @@ export function emitDecodeProperties() {
   --disp8: --u2s1(var(--q2));
   --disp16: calc(var(--q2) + var(--q3) * 256);
 
+  /* Direct address segment: DS unless segment override is active.
+     Used by MOV AL/AX,[addr] and MOV [addr],AL/AX (opcodes 0xA0-0xA3). */
+  --directSeg: if(style(--hasSegOverride: 1): var(--segOverride); else: calc(var(--__1DS) * 16));
+
   /* Effective address computation.
      If a segment override prefix is active, use the override segment instead of default. */
   --eaSegDefault: --defaultSeg(var(--mod), var(--rm), var(--__1DS), var(--__1SS));
@@ -298,13 +302,22 @@ export function emitDecodeProperties() {
   --_stackWord0: --read2(var(--_stackBase));
   --_stackWord2: --read2(calc(var(--_stackBase) + 4));
 
-  /* Pre-computed signed operands for IMUL (avoids deep nesting in dispatch) */
+  /* Pre-computed signed operands for IMUL/IDIV (avoids deep nesting in dispatch) */
   --_sAX: calc(var(--__1AX) - --bit(var(--__1AX), 15) * 65536);
   --_sRM16: calc(var(--rmVal16) - --bit(var(--rmVal16), 15) * 65536);
   --_imulProd16: calc(var(--_sAX) * var(--_sRM16));
   --_sAL: calc(var(--AL) - --bit(var(--AL), 7) * 256);
   --_sRM8: calc(var(--rmVal8) - --bit(var(--rmVal8), 7) * 256);
   --_imulProd8: calc(var(--_sAL) * var(--_sRM8));
+
+  /* IDIV: signed 32-bit dividend DX:AX, and zero-safe signed divisors.
+     Safe divisor: sRM + min(1, max(0, 1 - sRM*sRM)) = sRM when non-zero, 1 when zero.
+     This avoids NaN in pre-computed properties when IDIV isn't actually executing.
+     Note: DX*65536 wraps to signed i32 automatically in Calcite's integer mode,
+     so no explicit sign correction is needed (2^32 exceeds i32 range anyway). */
+  --_sDXAX: calc(var(--__1DX) * 65536 + var(--__1AX));
+  --_safeSDivisor16: calc(var(--_sRM16) + min(1, max(0, calc(1 - var(--_sRM16) * var(--_sRM16)))));
+  --_safeSDivisor8: calc(var(--_sRM8) + min(1, max(0, calc(1 - var(--_sRM8) * var(--_sRM8)))));
 
   /* REP execution state:
      --_repActive: 1 when hasREP=1 AND CX>0 (should execute string op this tick)
@@ -323,16 +336,29 @@ export function emitDecodeProperties() {
      SCASW (0xAF=175): AX - word[ES:DI]
      --_repZF = 1 when the comparison result would be zero (ZF=1). */
   --_cmpDiff: if(
-    style(--opcode: 166): calc(--readMem(calc(var(--_strSrcSeg) + var(--__1SI))) - --readMem(calc(var(--__1ES) * 16 + var(--__1DI))));
-    style(--opcode: 167): calc(--read2(calc(var(--_strSrcSeg) + var(--__1SI))) - --read2(calc(var(--__1ES) * 16 + var(--__1DI))));
-    style(--opcode: 174): calc(var(--AL) - --readMem(calc(var(--__1ES) * 16 + var(--__1DI))));
-    style(--opcode: 175): calc(var(--__1AX) - --read2(calc(var(--__1ES) * 16 + var(--__1DI))));
+    style(--opcode: 166): calc(var(--_strSrcByte) - var(--_strDstByte));
+    style(--opcode: 167): calc(calc(var(--_strSrcByte) + var(--_strSrcHiByte) * 256) - calc(var(--_strDstByte) + var(--_strDstHiByte) * 256));
+    style(--opcode: 174): calc(var(--AL) - var(--_strDstByte));
+    style(--opcode: 175): calc(var(--__1AX) - calc(var(--_strDstByte) + var(--_strDstHiByte) * 256));
   else: 1);
   --_repZF: if(style(--_cmpDiff: 0): 1; else: 0);
 
   /* Source segment for string operations (DS:SI).
      Segment override affects the source segment but NOT the destination (ES:DI). */
   --_strSrcSeg: if(style(--hasSegOverride: 1): var(--segOverride); else: calc(var(--__1DS) * 16));
+
+  /* Pre-computed string source bytes — avoids readMem calls inside dispatch entries
+     which cause miscompilation in calcite's near-identity dispatch. */
+  --_strSrcByte: --readMem(calc(var(--_strSrcSeg) + var(--__1SI)));
+  --_strSrcHiByte: --readMem(calc(var(--_strSrcSeg) + var(--__1SI) + 1));
+  --_strDstByte: --readMem(calc(var(--__1ES) * 16 + var(--__1DI)));
+  --_strDstHiByte: --readMem(calc(var(--__1ES) * 16 + var(--__1DI) + 1));
+
+  /* Pre-computed XLAT byte — DS:BX+AL (avoids readMem inside dispatch entry) */
+  --_xlatByte: --readMem(calc(var(--__1DS) * 16 + var(--__1BX) + var(--AL)));
+
+  /* Pre-computed MOV AL,[mem] byte — directSeg + imm16 address (avoids readMem inside dispatch entry) */
+  --_movAlMemByte: --readMem(calc(var(--directSeg) + var(--q1) + var(--q2) * 256));
 
   /* Pre-computed CL shift count for D2/D3 (shift by CL) */
   --_clMasked: --lowerBytes(var(--CL), 5);

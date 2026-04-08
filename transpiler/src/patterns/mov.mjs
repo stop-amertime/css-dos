@@ -185,32 +185,32 @@ export function emitMOV_SegRM(dispatch) {
  * Direct memory addressing with 16-bit address at bytes 1-2.
  */
 export function emitMOV_AccMem(dispatch) {
-  // 0xA0: MOV AL, [addr16] — load byte from DS:addr16 into AL
+  // 0xA0: MOV AL, [addr16] — load byte from seg:addr16 into AL (default DS, overridable)
   dispatch.addEntry('AX', 0xA0,
-    `--mergelow(var(--__1AX), --readMem(calc(var(--__1DS) * 16 + var(--q1) + var(--q2) * 256)))`,
+    `--mergelow(var(--__1AX), var(--_movAlMemByte))`,
     `MOV AL, [mem]`);
   dispatch.addEntry('IP', 0xA0, `calc(var(--__1IP) + 3)`, `MOV AL, [mem]`);
 
-  // 0xA1: MOV AX, [addr16] — load word from DS:addr16 into AX
+  // 0xA1: MOV AX, [addr16] — load word from seg:addr16 into AX (default DS, overridable)
   dispatch.addEntry('AX', 0xA1,
-    `--read2(calc(var(--__1DS) * 16 + var(--q1) + var(--q2) * 256))`,
+    `--read2(calc(var(--directSeg) + var(--q1) + var(--q2) * 256))`,
     `MOV AX, [mem]`);
   dispatch.addEntry('IP', 0xA1, `calc(var(--__1IP) + 3)`, `MOV AX, [mem]`);
 
-  // 0xA2: MOV [addr16], AL — store AL to DS:addr16
+  // 0xA2: MOV [addr16], AL — store AL to seg:addr16 (default DS, overridable)
   dispatch.addMemWrite(0xA2,
-    `calc(var(--__1DS) * 16 + var(--q1) + var(--q2) * 256)`,
+    `calc(var(--directSeg) + var(--q1) + var(--q2) * 256)`,
     `var(--AL)`,
     `MOV [mem], AL`);
   dispatch.addEntry('IP', 0xA2, `calc(var(--__1IP) + 3)`, `MOV [mem], AL`);
 
-  // 0xA3: MOV [addr16], AX — store AX to DS:addr16 (word)
+  // 0xA3: MOV [addr16], AX — store AX to seg:addr16 (default DS, overridable)
   dispatch.addMemWrite(0xA3,
-    `calc(var(--__1DS) * 16 + var(--q1) + var(--q2) * 256)`,
+    `calc(var(--directSeg) + var(--q1) + var(--q2) * 256)`,
     `var(--AL)`,
     `MOV [mem], AX lo`);
   dispatch.addMemWrite(0xA3,
-    `calc(var(--__1DS) * 16 + var(--q1) + var(--q2) * 256 + 1)`,
+    `calc(var(--directSeg) + var(--q1) + var(--q2) * 256 + 1)`,
     `var(--AH)`,
     `MOV [mem], AX hi`);
   dispatch.addEntry('IP', 0xA3, `calc(var(--__1IP) + 3)`, `MOV [mem], AX`);

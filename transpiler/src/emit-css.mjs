@@ -43,7 +43,31 @@ class DispatchTable {
       // — this is an error in the emitter logic.
       throw new Error(`Duplicate dispatch entry: ${reg} opcode 0x${opcode.toString(16)} — existing: ${regMap.get(opcode).comment}, new: ${comment}`);
     }
+    // For flags: ALU flag functions build flags from scratch but must preserve
+    // IF/DF/TF (bits 8-10) from the previous tick. Instructions that DO modify
+    // these bits (STI/CLI/CLD/STD/INT/IRET/POPF) already set them explicitly.
+    // We detect "builds from scratch" by checking if the expression calls a
+    // flags function (--addFlags, --subFlags, etc.) and wrap it to preserve bits 8-10.
+    if (reg === 'flags' && /--(?:add|sub|and|or|xor|adc|sbb|inc|dec)Flags/.test(expr)) {
+      expr = `calc(${expr} + --and(var(--__1flags), 1792))`;
+    }
     regMap.set(opcode, { expr, comment });
+  }
+
+  /**
+   * Emit --unknownOp: 1 if the current opcode has no IP dispatch entry, 0 otherwise.
+   * Prefixes (0x26/0x2E/0x36/0x3E/0xF2/0xF3) are excluded — they're handled at decode level.
+   */
+  emitUnknownOpFlag() {
+    const ipEntries = this.regEntries.get('IP');
+    if (!ipEntries) return '  --unknownOp: 1;';
+    const opcodes = [...ipEntries.keys()].sort((a, b) => a - b);
+    const lines = ['  --unknownOp: if('];
+    for (const op of opcodes) {
+      lines.push(`    style(--opcode: ${op}): 0;`);
+    }
+    lines.push('  else: 1);');
+    return lines.join('\n');
   }
 
   addMemWrite(opcode, addrExpr, valExpr, comment = '') {
@@ -147,10 +171,11 @@ class DispatchTable {
  * Writes to a writable stream to avoid V8 string size limits with 1MB memory.
  */
 export function emitCSS(opts, writeStream) {
-  const { programBytes, biosBytes, memSize, embeddedData, htmlMode, programOffset } = opts;
+  const { programBytes, biosBytes, memSize, embeddedData, htmlMode, programOffset,
+          initialCS, initialIP } = opts;
 
   const memOpts = { memSize, programBytes, biosBytes, embeddedData, programOffset };
-  const templateOpts = { memSize, programOffset };
+  const templateOpts = { memSize, programOffset, initialCS, initialIP };
 
   // Build dispatch table
   const dispatch = new DispatchTable();
@@ -177,43 +202,46 @@ export function emitCSS(opts, writeStream) {
     writeStream.write(emitHTMLHeader());
   }
 
-  // 1. @property declarations
-  w('/* ===== PROPERTY DECLARATIONS ===== */');
-  w(emitPropertyDecls(templateOpts));
-  // Memory properties — emit in chunks to avoid huge strings
-  emitMemoryPropertiesStreaming(memOpts, writeStream);
-  w(emitWriteSlotProperties());
+  // =====================================================================
+  // THE INTERESTING PART — CPU logic, decode, functions, dispatch tables
+  // (Placed first so readers see the actual 8086 implementation up front,
+  //  not millions of @property declarations.)
+  // =====================================================================
 
-  // 2. Utility @functions
+  // 1. Utility @functions
+  w('/* ===== CSS-DOS: An 8086 CPU in pure CSS ===== */');
+  w('/* This file is a complete Intel 8086 processor implemented in CSS.\n' +
+    '   Every register, every flag, every instruction decode, every byte of\n' +
+    '   memory is a CSS custom property driven by calc().\n' +
+    '   Open this file in Chrome and it runs. Slowly — but it runs. */\n');
   w(emitCSSLib());
 
-  // 3. Decode @functions
+  // 2. Decode @functions
   w(emitDecodeFunction());
 
-  // 4. Flag computation @functions
+  // 3. Flag computation @functions
   w(emitFlagFunctions());
   w(emitShiftFlagFunctions());
   w(emitShiftByNFlagFunctions());
 
-  // 5. readMem @function
-  w('/* ===== MEMORY READ ===== */');
-  emitReadMemStreaming(memOpts, writeStream);
-
-  // 6. Clock and CPU base
+  // 4. Clock and CPU base
   w('/* ===== EXECUTION ENGINE ===== */');
   w(emitClockAndCpuBase({ htmlMode }));
 
-  // 7. .cpu rule body — buffer reads, aliases, decode, dispatch, write rules
-  writeStream.write('  /* Double-buffer reads */\n');
-  w(emitBufferReads(templateOpts));
-  emitMemoryBufferReadsStreaming(memOpts, writeStream);
-  writeStream.write('\n');
+  // 5. .cpu rule body — aliases, decode, dispatch, write rules
   writeStream.write('  /* Register aliases (8-bit halves) */\n');
   w(emitRegisterAliases());
   w(emitDecodeProperties());
 
-  // Per-register dispatch tables
+  // Unknown opcode detection — sets --unknownOp=1 and --haltCode=opcode
+  writeStream.write('  /* ===== UNKNOWN OPCODE FLAG ===== */\n');
+  writeStream.write(dispatch.emitUnknownOpFlag() + '\n');
+  writeStream.write('  --haltCode: calc(var(--unknownOp) * var(--opcode));\n\n');
+
+  // Per-register dispatch tables — the heart of instruction execution
   writeStream.write('  /* ===== REGISTER DISPATCH TABLES ===== */\n');
+  writeStream.write('  /* Each register\'s next value is selected by opcode via a\n');
+  writeStream.write('     giant if(style(--instId: N)) dispatch. This is the CPU. */\n');
   const regOrder = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI',
                     'CS', 'DS', 'ES', 'SS', 'IP', 'flags', 'halt'];
   for (const reg of regOrder) {
@@ -226,17 +254,45 @@ export function emitCSS(opts, writeStream) {
   writeStream.write('  /* ===== MEMORY WRITE SLOTS ===== */\n');
   writeStream.write(dispatch.emitMemoryWriteSlots() + '\n\n');
 
+  // 6. Debug display
+  w('}');
+  w(emitDebugDisplay(templateOpts));
+
+  // =====================================================================
+  // THE BULK — @property declarations, memory, buffer reads, keyframes
+  // (This is ~99% of the file by volume: one @property per memory byte,
+  //  one buffer-read per byte, one write-rule per byte, etc.)
+  // =====================================================================
+
+  w('/* ===== PROPERTY DECLARATIONS ===== */');
+  w('/* Below: ~1 million @property declarations (one per memory byte),\n' +
+    '   followed by memory read/write rules and animation keyframes.\n' +
+    '   The CPU logic above is ~0.1% of this file. The rest is memory. */\n');
+  w(emitPropertyDecls(templateOpts));
+  // Memory properties — emit in chunks to avoid huge strings
+  emitMemoryPropertiesStreaming(memOpts, writeStream);
+  w(emitWriteSlotProperties());
+
+  // readMem @function (large — one branch per memory byte)
+  w('/* ===== MEMORY READ ===== */');
+  emitReadMemStreaming(memOpts, writeStream);
+
+  // Double-buffer reads (inside .cpu rule — reopen it)
+  // We emit these as a second .cpu block; CSS merges duplicate selectors.
+  writeStream.write('.cpu {\n');
+  writeStream.write('  /* Double-buffer reads */\n');
+  w(emitBufferReads(templateOpts));
+  emitMemoryBufferReadsStreaming(memOpts, writeStream);
+  writeStream.write('\n');
+
   // Per-byte memory write rules
   writeStream.write('  /* ===== MEMORY WRITE RULES ===== */\n');
   emitMemoryWriteRulesStreaming(memOpts, writeStream);
 
-  // Close .cpu rule
+  // Close second .cpu block
   w('}');
 
-  // 8. Debug display
-  w(emitDebugDisplay(templateOpts));
-
-  // 9. Keyframes — store
+  // Keyframes — store
   const storeKf = emitStoreKeyframe(templateOpts);
   const storeKfOpen = storeKf.replace('  }\n}', '');
   writeStream.write(storeKfOpen);
@@ -278,8 +334,15 @@ function emitReadMemStreaming(opts, ws) {
   ws.write(`@function --readMem(--at <integer>) returns <integer> {\n  result: if(\n`);
   let buf = '';
   // Writable memory region
+  // Addresses 0x0500-0x0501 (1280-1281) bridge to --keyboard for BIOS INT 16h
   for (let addr = 0; addr < memSize; addr++) {
-    buf += `    style(--at: ${addr}): var(--__1m${addr});\n`;
+    if (addr === 0x0500) {
+      buf += `    style(--at: 1280): --lowerBytes(var(--__1keyboard), 8);\n`;
+    } else if (addr === 0x0501) {
+      buf += `    style(--at: 1281): --rightShift(var(--__1keyboard), 8);\n`;
+    } else {
+      buf += `    style(--at: ${addr}): var(--__1m${addr});\n`;
+    }
     if (addr % CHUNK === CHUNK - 1) { ws.write(buf); buf = ''; }
   }
   // BIOS region (read-only constants) — always included regardless of memSize

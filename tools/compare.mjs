@@ -1,10 +1,14 @@
 #!/usr/bin/env node
 // Conformance comparison: reference 8086 emulator vs calcite
 //
-// Usage: node tools/compare.mjs <program.com> <bios.bin> <fib.css> [--ticks N] [--dump-slots]
+// Usage: node tools/compare.mjs <program.com> <bios.bin> <program.css> [--ticks=N] [--dump-slots]
 //
 // Runs both emulators, finds the first tick where registers diverge,
 // and outputs a diagnostic report.
+//
+// The reference emulator executes REP-prefixed string ops as a single step
+// (CX→0 in one tick), while the CSS executes one iteration per tick.
+// The comparison aligns traces by IP to handle this difference.
 
 import { readFileSync, writeFileSync } from 'fs';
 import { resolve, dirname } from 'path';
@@ -32,6 +36,7 @@ const comPath = resolve(positional[0]);
 const biosPath = resolve(positional[1]);
 const cssPath = resolve(positional[2]);
 const maxTicks = parseInt(flags.ticks || '500');
+const calciteTicks = parseInt(flags['calcite-ticks'] || String(maxTicks * 10));
 const dumpSlots = 'dump-slots' in flags;
 
 // --- Load reference emulator ---
@@ -56,7 +61,7 @@ for (let i = 0; i < biosBin.length; i++) memory[BIOS_BASE + i] = biosBin[i];
 const BIOS_SEG = 0xF000;
 const handlers = {
   0x10: 0x0000, 0x16: 0x0155, 0x1A: 0x0190,
-  0x20: 0x0232, 0x21: 0x01A9,
+  0x20: 0x023D, 0x21: 0x01A9,
 };
 for (const [intNum, off] of Object.entries(handlers)) {
   const addr = parseInt(intNum) * 4;
@@ -87,104 +92,176 @@ function refState() {
 // --- Generate reference trace ---
 console.error(`Running reference emulator for ${maxTicks} ticks...`);
 const refTrace = [];
+let lastRefIP = -1;
 for (let t = 0; t < maxTicks; t++) {
   cpu.step();
-  refTrace.push({ tick: t, ...refState() });
+  const st = refState();
+  refTrace.push({ tick: t, ...st });
+  if (st.IP === lastRefIP) {
+    console.error(`Ref halted at tick ${t}, IP=0x${st.IP.toString(16)}`);
+    break;
+  }
+  lastRefIP = st.IP;
 }
 writeFileSync(resolve(__dirname, '..', 'ref-trace.json'), JSON.stringify(refTrace));
 console.error(`Reference trace saved (${refTrace.length} ticks)`);
 
 // --- Run calcite and capture trace ---
-console.error(`Running calcite for ${maxTicks} ticks...`);
-const calciteRoot = resolve(__dirname, '..');
+console.error(`Running calcite for ${calciteTicks} ticks...`);
 
-// Build a small Rust program that outputs JSON trace
-// Actually, let's use the existing CLI with verbose mode and parse its output
+// Find calcite binary
+const calciteBin = resolve(__dirname, '..', '..', 'calcite', 'target', 'release', 'calcite-cli.exe');
 const calciteCmd = [
-  'cargo', 'run', '--release', '-p', 'calcite-cli', '--',
+  calciteBin,
   '--input', cssPath,
-  '--ticks', String(maxTicks),
-  '--verbose',
+  '--ticks', String(calciteTicks),
+  '--trace-json',
+  '--halt', '0x2110',
 ].join(' ');
 
 let calciteOutput;
 try {
   calciteOutput = execSync(calciteCmd, {
-    cwd: calciteRoot,
     encoding: 'utf-8',
-    maxBuffer: 100 * 1024 * 1024,
-    env: { ...process.env, RUST_LOG: 'error' },
+    maxBuffer: 200 * 1024 * 1024,
   });
 } catch (e) {
   calciteOutput = e.stdout || '';
   if (e.stderr) console.error('calcite stderr:', e.stderr.slice(0, 500));
 }
 
-// Parse calcite verbose output
+// Parse calcite JSON trace (last non-empty line is the JSON array)
 const calciteTrace = [];
-for (const line of calciteOutput.split('\n')) {
-  const m = line.match(/^Tick (\d+): \d+ changes \| (.+)/);
-  if (!m) continue;
-  const tick = parseInt(m[1]);
-  const regs = {};
-  for (const pair of m[2].split(' ')) {
-    const [k, v] = pair.split('=');
-    if (k && v !== undefined) regs[k] = parseInt(v);
-  }
-  calciteTrace.push({ tick, ...regs });
+const lines = calciteOutput.trim().split('\n');
+for (let i = lines.length - 1; i >= 0; i--) {
+  try {
+    const arr = JSON.parse(lines[i]);
+    if (Array.isArray(arr)) {
+      calciteTrace.push(...arr);
+      break;
+    }
+  } catch {}
 }
 
 console.error(`Calcite trace parsed (${calciteTrace.length} ticks)`);
 
-// --- Compare ---
+// --- Compare with IP-aligned cursors ---
+// The ref emulator does REP as one tick, calcite does N ticks.
+// We compare at instruction boundaries: when ref advances to a new IP,
+// we advance calcite until it reaches the same IP (or close enough).
+
 const REG_NAMES = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI', 'IP', 'ES', 'CS', 'SS', 'DS'];
-// Skip FLAGS for now since calcite doesn't track bit 1
+
+// Normalise IP: ref uses flat (CS*16+IP), calcite uses just IP.
+// When CS != 0 (BIOS), ref IP includes the CS base. We need to handle this.
+function normaliseIP(state) {
+  // If the state has both CS and IP, calcite IP is already the offset within segment,
+  // but ref IP is CS*16+IP. For comparison, use CS and IP-within-segment.
+  // Actually, calcite stores IP as the flat address within CS:
+  // calcite's IP = offset, and CS is separate. ref IP = CS*16 + offset.
+  // So normalised IP = CS*16 + IP for calcite, and just IP for ref.
+  if (state.CS !== undefined && state.CS > 0) {
+    return state.CS * 16 + state.IP;
+  }
+  return state.IP;
+}
 
 let firstDivergence = null;
 let matchCount = 0;
+let totalCompared = 0;
+let repSkips = 0;
 
-for (let i = 0; i < Math.min(refTrace.length, calciteTrace.length); i++) {
-  const ref = refTrace[i];
-  const cal = calciteTrace[i];
+let ci = 0; // calcite cursor
+
+for (let ri = 0; ri < refTrace.length && ci < calciteTrace.length; ri++) {
+  const ref = refTrace[ri];
+  const cal = calciteTrace[ci];
+  const refIP = ref.IP;
+  const calIP = normaliseIP(cal);
+
+  // If IPs don't match, the calcite trace may be mid-REP.
+  // Advance calcite cursor until IP matches ref IP, or we run out.
+  if (refIP !== calIP) {
+    let found = false;
+    const searchLimit = ci + 500; // don't search forever
+    for (let j = ci + 1; j < calciteTrace.length && j < searchLimit; j++) {
+      const candidate = calciteTrace[j];
+      const candIP = normaliseIP(candidate);
+      if (candIP === refIP) {
+        const skipped = j - ci;
+        repSkips += skipped;
+        ci = j;
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      // Can't find matching IP — report divergence
+      firstDivergence = {
+        refTick: ri, calTick: ci,
+        diffs: [{ reg: 'IP', ref: refIP, cal: calIP }],
+        ref, cal,
+        reason: `IP mismatch: ref=0x${refIP.toString(16)} cal=0x${calIP.toString(16)} (could not resync)`,
+      };
+      break;
+    }
+  }
+
+  // Now IPs match. Compare registers.
+  const calNow = calciteTrace[ci];
   const diffs = [];
-
   for (const reg of REG_NAMES) {
-    if (ref[reg] !== cal[reg]) {
-      diffs.push({ reg, ref: ref[reg], cal: cal[reg] });
+    let rv = ref[reg], cv = calNow[reg];
+    // Normalise IP for comparison (flat vs segmented)
+    if (reg === 'IP') {
+      rv = ref.IP;
+      cv = normaliseIP(calNow);
+    }
+    if (rv !== cv) {
+      diffs.push({ reg, ref: rv, cal: cv });
     }
   }
 
   if (diffs.length > 0) {
-    firstDivergence = { tick: i, diffs, ref, cal };
+    firstDivergence = {
+      refTick: ri, calTick: ci,
+      diffs, ref, cal: calNow,
+    };
     break;
   }
   matchCount++;
+  totalCompared++;
+  ci++;
 }
 
 // --- Report ---
 console.log(`\n${'='.repeat(60)}`);
 console.log(`CONFORMANCE REPORT: ${positional[0]}`);
 console.log(`${'='.repeat(60)}`);
-console.log(`Ticks compared: ${Math.min(refTrace.length, calciteTrace.length)}`);
-console.log(`Matching ticks: ${matchCount}`);
+console.log(`Ref ticks: ${refTrace.length}  Calcite ticks: ${calciteTrace.length}`);
+console.log(`Instructions compared: ${totalCompared}`);
+console.log(`Matching: ${matchCount}`);
+if (repSkips > 0) {
+  console.log(`REP tick skips: ${repSkips} (calcite ticks for multi-iteration REP ops)`);
+}
 
 if (!firstDivergence) {
-  console.log(`\nRESULT: ALL ${matchCount} TICKS MATCH`);
+  console.log(`\nRESULT: ALL ${matchCount} INSTRUCTIONS MATCH`);
 } else {
   const d = firstDivergence;
-  console.log(`\nFIRST DIVERGENCE at tick ${d.tick}:`);
+  console.log(`\nFIRST DIVERGENCE at ref tick ${d.refTick}, calcite tick ${d.calTick}:`);
+  if (d.reason) console.log(`  ${d.reason}`);
   console.log(`${'─'.repeat(40)}`);
 
-  // Show context: 3 ticks before
-  const contextStart = Math.max(0, d.tick - 3);
-  for (let i = contextStart; i <= d.tick; i++) {
+  // Show context: 3 ref ticks before
+  const contextStart = Math.max(0, d.refTick - 3);
+  for (let i = contextStart; i <= d.refTick; i++) {
     const r = refTrace[i];
-    const c = calciteTrace[i];
-    const marker = i === d.tick ? '>>>' : '   ';
-    console.log(`${marker} Tick ${i}:`);
-    console.log(`     REF: AX=${r.AX} CX=${r.CX} DX=${r.DX} BX=${r.BX} SP=${r.SP} BP=${r.BP} SI=${r.SI} DI=${r.DI} IP=${r.IP} CS=${r.CS} DS=${r.DS}`);
-    console.log(`     CAL: AX=${c.AX} CX=${c.CX} DX=${c.DX} BX=${c.BX} SP=${c.SP} BP=${c.BP} SI=${c.SI} DI=${c.DI} IP=${c.IP} CS=${c.CS} DS=${c.DS}`);
+    const marker = i === d.refTick ? '>>>' : '   ';
+    console.log(`${marker} Ref tick ${i}:`);
+    console.log(`     REF: AX=${r.AX} CX=${r.CX} DX=${r.DX} BX=${r.BX} SP=${r.SP} BP=${r.BP} SI=${r.SI} DI=${r.DI} IP=0x${r.IP.toString(16)} CS=${r.CS} FLAGS=0x${r.FLAGS.toString(16)}`);
   }
+  console.log(`     CAL: AX=${d.cal.AX} CX=${d.cal.CX} DX=${d.cal.DX} BX=${d.cal.BX} SP=${d.cal.SP} BP=${d.cal.BP} SI=${d.cal.SI} DI=${d.cal.DI} IP=0x${normaliseIP(d.cal).toString(16)} CS=${d.cal.CS} FLAGS=0x${(d.cal.FLAGS||0).toString(16)}`);
 
   console.log(`\nDivergent registers:`);
   for (const { reg, ref: rv, cal: cv } of d.diffs) {
@@ -192,12 +269,12 @@ if (!firstDivergence) {
   }
 
   // What instruction is at the divergent IP?
-  const prevRef = d.tick > 0 ? refTrace[d.tick - 1] : null;
+  const prevRef = d.refTick > 0 ? refTrace[d.refTick - 1] : null;
   if (prevRef) {
     const ip = prevRef.IP;
     const biosOff = ip >= BIOS_BASE ? ip - BIOS_BASE : null;
     console.log(`\nInstruction context:`);
-    console.log(`  Previous IP: ${ip} (0x${ip.toString(16)})${biosOff !== null ? ` = BIOS+0x${biosOff.toString(16)}` : ''}`);
+    console.log(`  Previous IP: 0x${ip.toString(16)}${biosOff !== null ? ` = BIOS+0x${biosOff.toString(16)}` : ''}`);
     if (ip < 0x100 + comBin.length && ip >= 0x100) {
       const off = ip - 0x100;
       const bytes = Array.from(comBin.slice(off, off + 6)).map(b => b.toString(16).padStart(2, '0')).join(' ');
@@ -206,10 +283,6 @@ if (!firstDivergence) {
       const bytes = Array.from(biosBin.slice(biosOff, biosOff + 6)).map(b => b.toString(16).padStart(2, '0')).join(' ');
       console.log(`  Bytes at IP: ${bytes} (BIOS+0x${biosOff.toString(16)})`);
     }
-  }
-
-  if (dumpSlots) {
-    console.log(`\nTo dump slot values at tick ${d.tick}, run calcite with debug instrumentation.`);
   }
 }
 

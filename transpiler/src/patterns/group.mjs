@@ -52,9 +52,9 @@ export function emitGroup_FE(dispatch) {
  * reg=2: NOT r/m16
  * reg=3: NEG r/m16
  * reg=4: MUL r/m16 (unsigned: DX:AX = AX * r/m16)
+ * reg=5: IMUL r/m16 (signed: DX:AX = AX * r/m16)
  * reg=6: DIV r/m16 (unsigned: AX = DX:AX / r/m16, DX = DX:AX % r/m16)
- *
- * For fib.asm we need DIV (reg=6).
+ * reg=7: IDIV r/m16 (signed: AX = DX:AX / r/m16, DX = DX:AX % r/m16)
  */
 export function emitGroup_F7(dispatch) {
   // This is complex because different sub-ops write different registers.
@@ -67,10 +67,12 @@ export function emitGroup_F7(dispatch) {
   // IMUL uses pre-computed decode properties: --_imulProd16, --_sAX, --_sRM16
   const imulProd16 = `var(--_imulProd16)`;
 
-  // AX: DIV writes quotient, MUL writes low product, IMUL writes low product, NEG/NOT may write if rm=0
+  // AX: DIV writes quotient, MUL writes low product, IMUL writes low product,
+  // IDIV writes signed quotient, NEG/NOT may write if rm=0
   dispatch.addEntry('AX', 0xF7,
     `if(` +
     `style(--reg: 6): round(down, calc((var(--__1DX) * 65536 + var(--__1AX)) / max(1, var(--rmVal16)))); ` +
+    `style(--reg: 7): --lowerBytes(calc(round(to-zero, calc(var(--_sDXAX) / var(--_safeSDivisor16))) + 65536), 16); ` +
     `style(--reg: 4): --lowerBytes(calc(var(--__1AX) * var(--rmVal16)), 16); ` +
     `style(--reg: 5): --lowerBytes(${imulProd16}, 16); ` +
     `style(--reg: 3) and style(--mod: 3) and style(--rm: 0): --lowerBytes(calc(0 - var(--rmVal16) + 65536), 16); ` +
@@ -78,10 +80,12 @@ export function emitGroup_F7(dispatch) {
     `else: var(--__1AX))`,
     `Group F7 AX`);
 
-  // DX: DIV writes remainder, MUL writes high product, IMUL writes high product
+  // DX: DIV writes remainder, MUL writes high product, IMUL writes high product,
+  // IDIV writes signed remainder
   dispatch.addEntry('DX', 0xF7,
     `if(` +
     `style(--reg: 6): mod(calc(var(--__1DX) * 65536 + var(--__1AX)), max(1, var(--rmVal16))); ` +
+    `style(--reg: 7): --lowerBytes(calc(var(--_sDXAX) - round(to-zero, calc(var(--_sDXAX) / var(--_safeSDivisor16))) * var(--_safeSDivisor16) + 65536), 16); ` +
     `style(--reg: 4): --lowerBytes(--rightShift(calc(var(--__1AX) * var(--rmVal16)), 16), 16); ` +
     `style(--reg: 5): --lowerBytes(--rightShift(${imulProd16}, 16), 16); ` +
     `style(--reg: 3) and style(--mod: 3) and style(--rm: 2): --lowerBytes(calc(0 - var(--rmVal16) + 65536), 16); ` +
@@ -136,16 +140,19 @@ export function emitGroup_F7(dispatch) {
  * reg=2: NOT r/m8
  * reg=3: NEG r/m8
  * reg=4: MUL r/m8 (AX = AL * r/m8)
+ * reg=5: IMUL r/m8 (signed: AX = AL * r/m8)
  * reg=6: DIV r/m8 (AL = AX / r/m8, AH = AX % r/m8)
+ * reg=7: IDIV r/m8 (signed: AL = AX / r/m8, AH = AX % r/m8)
  */
 export function emitGroup_F6(dispatch) {
   // IMUL byte uses pre-computed decode property: --_imulProd8
   const imulProd8 = `var(--_imulProd8)`;
 
-  // AX gets written for MUL, IMUL, and DIV
+  // AX gets written for MUL, IMUL, DIV, and IDIV
   dispatch.addEntry('AX', 0xF6,
     `if(` +
     `style(--reg: 6): calc(round(down, var(--__1AX) / max(1, var(--rmVal8))) + mod(var(--__1AX), max(1, var(--rmVal8))) * 256); ` +
+    `style(--reg: 7): calc(--lowerBytes(calc(round(to-zero, calc(var(--_sAX) / var(--_safeSDivisor8))) + 256), 8) + --lowerBytes(calc(var(--_sAX) - round(to-zero, calc(var(--_sAX) / var(--_safeSDivisor8))) * var(--_safeSDivisor8) + 256), 8) * 256); ` +
     `style(--reg: 4): calc(var(--AL) * var(--rmVal8)); ` +
     `style(--reg: 5): --lowerBytes(${imulProd8}, 16); ` +
     // NEG/NOT on AL (rm=0, mod=11)
@@ -406,7 +413,9 @@ export function emitGroup_83(dispatch) {
  * reg=0: INC r/m16
  * reg=1: DEC r/m16
  * reg=2: CALL near indirect (IP = r/m16, push old IP)
+ * reg=3: CALL FAR indirect (push CS+IP, load CS:IP from [EA])
  * reg=4: JMP near indirect (IP = r/m16)
+ * reg=5: JMP FAR indirect (load CS:IP from [EA])
  * reg=6: PUSH r/m16
  */
 export function emitGroup_FF(dispatch) {
@@ -426,57 +435,86 @@ export function emitGroup_FF(dispatch) {
   }
 
   // SP: INC SP (reg=0,mod=3,rm=4), DEC SP (reg=1,mod=3,rm=4),
-  //     CALL indirect (reg=2, SP-=2), PUSH r/m (reg=6, SP-=2)
+  //     CALL near indirect (reg=2, SP-=2), CALL FAR indirect (reg=3, SP-=4),
+  //     PUSH r/m (reg=6, SP-=2)
   dispatch.addEntry('SP', 0xFF,
     `if(` +
     `style(--reg: 0) and style(--mod: 3) and style(--rm: 4): --lowerBytes(calc(var(--rmVal16) + 1), 16); ` +
     `style(--reg: 1) and style(--mod: 3) and style(--rm: 4): --lowerBytes(calc(var(--rmVal16) - 1 + 65536), 16); ` +
     `style(--reg: 2): calc(var(--__1SP) - 2); ` +
+    `style(--reg: 3): calc(var(--__1SP) - 4); ` +
     `style(--reg: 6): calc(var(--__1SP) - 2); ` +
     `else: var(--__1SP))`,
     `Group FF SP`);
 
-  // Memory writes:
-  // INC/DEC to memory (mod!=3): write result back
-  // CALL indirect (reg=2): push return address (2 bytes)
-  // PUSH (reg=6): push the r/m value (2 bytes)
+  // CS: only CALL FAR indirect (reg=3) and JMP FAR indirect (reg=5) change CS.
+  // New CS = word at [EA+2] = read2(ea+2)
+  dispatch.addEntry('CS', 0xFF,
+    `if(` +
+    `style(--reg: 3): --read2(calc(var(--ea) + 2)); ` +
+    `style(--reg: 5): --read2(calc(var(--ea) + 2)); ` +
+    `else: var(--__1CS))`,
+    `Group FF CS`);
 
-  // Slot 0: INC/DEC mem lo, or CALL/PUSH push lo
-  // For INC/DEC: write to EA when mod!=3; for CALL/PUSH: write to stack
+  // Memory writes:
+  // INC/DEC to memory (mod!=3): write result back (slots 0-1)
+  // CALL near indirect (reg=2): push return address (slots 0-1)
+  // CALL FAR indirect (reg=3): push CS (slots 0-1), push return IP (slots 2-3)
+  // PUSH (reg=6): push the r/m value (slots 0-1)
+
+  const ssBase = `var(--__1SS) * 16`;
+  const retIP = `calc(var(--__1IP) + 2 + var(--modrmExtra))`;
+
+  // Slot 0: INC/DEC mem lo, CALL near push lo, CALL FAR push CS lo, PUSH push lo
   dispatch.addMemWrite(0xFF,
     `if(` +
     `style(--mod: 3) and style(--reg: 0): -1; ` +
     `style(--mod: 3) and style(--reg: 1): -1; ` +
     `style(--reg: 0): var(--ea); ` +
     `style(--reg: 1): var(--ea); ` +
-    `style(--reg: 2): calc(var(--__1SS) * 16 + var(--__1SP) - 2); ` +
-    `style(--reg: 6): calc(var(--__1SS) * 16 + var(--__1SP) - 2); ` +
+    `style(--reg: 2): calc(${ssBase} + var(--__1SP) - 2); ` +
+    `style(--reg: 3): calc(${ssBase} + var(--__1SP) - 2); ` +
+    `style(--reg: 6): calc(${ssBase} + var(--__1SP) - 2); ` +
     `else: -1)`,
     `if(` +
     `style(--reg: 0): --lowerBytes(calc(var(--rmVal16) + 1), 8); ` +
     `style(--reg: 1): --lowerBytes(calc(var(--rmVal16) - 1 + 65536), 8); ` +
-    `style(--reg: 2): --lowerBytes(calc(var(--__1IP) + 2 + var(--modrmExtra)), 8); ` +
+    `style(--reg: 2): --lowerBytes(${retIP}, 8); ` +
+    `style(--reg: 3): --lowerBytes(var(--__1CS), 8); ` +
     `style(--reg: 6): --lowerBytes(var(--rmVal16), 8); ` +
     `else: 0)`,
     `Group FF mem/push lo`);
 
-  // Slot 1: INC/DEC mem hi, or CALL/PUSH push hi
+  // Slot 1: INC/DEC mem hi, CALL near push hi, CALL FAR push CS hi, PUSH push hi
   dispatch.addMemWrite(0xFF,
     `if(` +
     `style(--mod: 3) and style(--reg: 0): -1; ` +
     `style(--mod: 3) and style(--reg: 1): -1; ` +
     `style(--reg: 0): calc(var(--ea) + 1); ` +
     `style(--reg: 1): calc(var(--ea) + 1); ` +
-    `style(--reg: 2): calc(var(--__1SS) * 16 + var(--__1SP) - 1); ` +
-    `style(--reg: 6): calc(var(--__1SS) * 16 + var(--__1SP) - 1); ` +
+    `style(--reg: 2): calc(${ssBase} + var(--__1SP) - 1); ` +
+    `style(--reg: 3): calc(${ssBase} + var(--__1SP) - 1); ` +
+    `style(--reg: 6): calc(${ssBase} + var(--__1SP) - 1); ` +
     `else: -1)`,
     `if(` +
     `style(--reg: 0): --rightShift(--lowerBytes(calc(var(--rmVal16) + 1), 16), 8); ` +
     `style(--reg: 1): --rightShift(--lowerBytes(calc(var(--rmVal16) - 1 + 65536), 16), 8); ` +
-    `style(--reg: 2): --rightShift(calc(var(--__1IP) + 2 + var(--modrmExtra)), 8); ` +
+    `style(--reg: 2): --rightShift(${retIP}, 8); ` +
+    `style(--reg: 3): --rightShift(var(--__1CS), 8); ` +
     `style(--reg: 6): --rightShift(var(--rmVal16), 8); ` +
     `else: 0)`,
     `Group FF mem/push hi`);
+
+  // Slots 2-3: CALL FAR indirect push return IP (only reg=3 uses these)
+  dispatch.addMemWrite(0xFF,
+    `if(style(--reg: 3): calc(${ssBase} + var(--__1SP) - 4); else: -1)`,
+    `if(style(--reg: 3): --lowerBytes(${retIP}, 8); else: 0)`,
+    `Group FF CALL FAR push IP lo`);
+
+  dispatch.addMemWrite(0xFF,
+    `if(style(--reg: 3): calc(${ssBase} + var(--__1SP) - 3); else: -1)`,
+    `if(style(--reg: 3): --rightShift(${retIP}, 8); else: 0)`,
+    `Group FF CALL FAR push IP hi`);
 
   // Flags: INC/DEC set flags (preserving CF), others don't
   dispatch.addEntry('flags', 0xFF,
@@ -486,11 +524,14 @@ export function emitGroup_FF(dispatch) {
     `else: var(--__1flags))`,
     `Group FF flags`);
 
-  // IP: CALL/JMP use rmVal16 as target, others advance normally
+  // IP: CALL near/JMP near use rmVal16, CALL FAR/JMP FAR also use rmVal16
+  // (rmVal16 reads the word at [EA] which is the new IP for FAR variants too)
   dispatch.addEntry('IP', 0xFF,
     `if(` +
     `style(--reg: 2): var(--rmVal16); ` +
+    `style(--reg: 3): var(--rmVal16); ` +
     `style(--reg: 4): var(--rmVal16); ` +
+    `style(--reg: 5): var(--rmVal16); ` +
     `else: calc(var(--__1IP) + 2 + var(--modrmExtra)))`,
     `Group FF IP`);
 }

@@ -59,7 +59,7 @@ const handlers = {
   0x10: 0x0000,  // INT 10h - Video
   0x16: 0x0155,  // INT 16h - Keyboard
   0x1A: 0x0190,  // INT 1Ah - Timer
-  0x20: 0x0232,  // INT 20h - Program terminate
+  0x20: 0x023D,  // INT 20h - Program terminate
   0x21: 0x01A9,  // INT 21h - DOS
 };
 

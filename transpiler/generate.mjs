@@ -4,7 +4,7 @@
 //
 // Usage: node transpiler/generate.mjs program.com -o program.css [--mem SIZE] [--html]
 
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, createWriteStream, statSync } from 'fs';
 import { resolve, dirname, extname, basename } from 'path';
 import { fileURLToPath } from 'url';
 import { emitCSS } from './src/emit-css.mjs';
@@ -20,7 +20,7 @@ if (args.length === 0) {
 
 let inputFile = null;
 let outputFile = null;
-let memSize = 0x600; // 1536 bytes default
+let memSize = 0x100000; // 1MB — full 8086 address space
 let htmlMode = false;
 const embeddedData = []; // [{addr, bytes}]
 
@@ -66,15 +66,20 @@ if (!outputFile) {
   outputFile = base + (htmlMode ? '.html' : '.css');
 }
 
-// Generate CSS
-const css = emitCSS({
+// Generate CSS — stream to file to handle 1MB memory output
+const outPath = resolve(outputFile);
+const ws = createWriteStream(outPath, { encoding: 'utf-8' });
+
+emitCSS({
   programBytes,
   biosBytes,
   memSize,
   embeddedData,
   htmlMode,
   programOffset: 0x100, // .COM files load at offset 0x100
-});
+}, ws);
 
-writeFileSync(resolve(outputFile), css, 'utf-8');
-console.log(`Generated ${outputFile} (${(css.length / 1024).toFixed(1)} KB)`);
+ws.end(() => {
+  const size = statSync(outPath).size;
+  console.log(`Generated ${outputFile} (${(size / 1024 / 1024).toFixed(1)} MB)`);
+});

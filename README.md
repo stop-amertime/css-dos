@@ -2,7 +2,7 @@
 
 An Intel 8086 PC implemented entirely in CSS custom properties and `calc()`.
 The CSS runs in Chrome — no JavaScript, no WebAssembly, just a stylesheet
-executing machine code. The goal: boot FreeDOS from a CSS file.
+executing machine code. The goal: boot DOS from a CSS file.
 
 [Calcite](https://github.com/stop-amertime/calcite) is a JIT compiler that
 makes the CSS fast enough to actually use (~200K+ ticks/sec vs Chrome's
@@ -36,7 +36,7 @@ What's next:
 - Build the JS→CSS transpiler (`transpiler/`)
 - Conformance test until simple programs match tick-for-tick
 - Add BIOS extensions for disk I/O (INT 13h)
-- Boot FreeDOS
+- Boot DOS
 
 ## Quick start
 

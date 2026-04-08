@@ -161,10 +161,11 @@ is a flat dispatch on address:
 }
 ```
 
-Memory size is configurable at generation time (default 0x600 = 1,536 bytes of
-writable memory). Embedded data (program binary, BIOS) is baked as constants
-into the read dispatch -- those bytes never change so they don't need
-corresponding write properties.
+Memory size is configurable at generation time (default 1MB = full 8086 address
+space). Every writable byte is a CSS custom property. Embedded data (program
+binary, BIOS) within the writable range is baked as initial values into the
+corresponding properties; bytes outside the range are inlined as constants in
+the read dispatch.
 
 **Note for Calcite:** `--readMem` is the single hottest function in the system.
 It is called 2-6 times per tick (opcode fetch, ModR/M byte, immediates,
@@ -192,8 +193,8 @@ flag helpers, execution engine) and the memory image (program binary, BIOS,
 IVT, initial register values). Internally the generator separates these
 concerns but they ship as one file.
 
-Flags inherited from the legacy:
-- `--mem SIZE` — writable memory bytes (default 0x600)
+Flags:
+- `--mem SIZE` — writable memory bytes (default 0x100000 = 1MB)
 - `--data ADDR FILE` — embed binary at address (repeatable)
 - `--html` — wrap in HTML template with visualization
 

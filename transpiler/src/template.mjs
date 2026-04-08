@@ -154,15 +154,18 @@ export function emitDebugDisplay(opts) {
 /**
  * Emit the HTML wrapper with JS clock driver for testing.
  */
-export function emitHTML(cssContent) {
+export function emitHTMLHeader() {
   return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
 <title>i8086-css</title>
 <style>
-${cssContent}
-</style>
+`;
+}
+
+export function emitHTMLFooter() {
+  return `</style>
 </head>
 <body>
 <div class="clock" style="container-type:inline-size">
@@ -209,11 +212,14 @@ if (!window.__noAutoStart) requestAnimationFrame(animate);
 
 function getAllVars(opts) {
   const regs = REGISTERS.map(r => ({ ...r }));
-  // Set SP initial value based on memory size
+  // Set SP initial value based on memory size (must match reference emulator)
   const spReg = regs.find(r => r.name === 'SP');
   spReg.init = (opts.memSize || 0x600) - 0x8;
-  // Set IP to program entry
+  // Set IP to program entry (or BIOS init for DOS boot)
   const ipReg = regs.find(r => r.name === 'IP');
-  ipReg.init = opts.programOffset || 0x100;
+  ipReg.init = opts.initialIP != null ? opts.initialIP : (opts.programOffset || 0x100);
+  // Set CS (0 for .COM, 0xF000 for DOS BIOS boot)
+  const csReg = regs.find(r => r.name === 'CS');
+  if (opts.initialCS != null) csReg.init = opts.initialCS;
   return [...regs, ...STATE_VARS];
 }

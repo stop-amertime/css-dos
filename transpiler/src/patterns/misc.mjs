@@ -77,7 +77,7 @@ export function emitNOP(dispatch) {
 export function emitLODS(dispatch) {
   // LODSB: AL = mem[DS:SI], SI += (DF ? -1 : 1)
   dispatch.addEntry('AX', 0xAC,
-    repGuardReg(`--mergelow(var(--__1AX), --readMem(calc(var(--_strSrcSeg) + var(--__1SI))))`, `var(--__1AX)`),
+    repGuardReg(`--mergelow(var(--__1AX), var(--_strSrcByte))`, `var(--__1AX)`),
     `LODSB`);
   dispatch.addEntry('SI', 0xAC,
     repGuardReg(`--lowerBytes(calc(var(--__1SI) + 1 - --bit(var(--__1flags), 10) * 2), 16)`, `var(--__1SI)`),
@@ -87,7 +87,7 @@ export function emitLODS(dispatch) {
 
   // LODSW: AX = mem[DS:SI], SI += (DF ? -2 : 2)
   dispatch.addEntry('AX', 0xAD,
-    repGuardReg(`--read2(calc(var(--_strSrcSeg) + var(--__1SI)))`, `var(--__1AX)`),
+    repGuardReg(`calc(var(--_strSrcByte) + var(--_strSrcHiByte) * 256)`, `var(--__1AX)`),
     `LODSW`);
   dispatch.addEntry('SI', 0xAD,
     repGuardReg(`--lowerBytes(calc(var(--__1SI) + 2 - --bit(var(--__1flags), 10) * 4), 16)`, `var(--__1SI)`),
@@ -115,14 +115,14 @@ export function emitMOV_RMimm(dispatch) {
       `if(style(--mod: 3) and style(--rm: ${r}): var(--immWord); else: var(--__1${REG16[r]}))`,
       `MOV r/m16, imm16 → ${REG16[r]}`);
   }
-  // Memory write
+  // Memory write — use immByte/immWord (already decoded) instead of separate readMem
   dispatch.addMemWrite(0xC7,
     `if(style(--mod: 3): -1; else: var(--ea))`,
     `var(--immByte)`,
     `MOV r/m16, imm16 → mem lo`);
   dispatch.addMemWrite(0xC7,
     `if(style(--mod: 3): -1; else: calc(var(--ea) + 1))`,
-    `--readMem(calc(var(--ipAddr) + var(--immOff) + 1))`,
+    `--rightShift(var(--immWord), 8)`,
     `MOV r/m16, imm16 → mem hi`);
   dispatch.addEntry('IP', 0xC7,
     `calc(var(--__1IP) + 2 + var(--modrmExtra) + 2)`,
@@ -266,7 +266,7 @@ export function emitMOVS(dispatch) {
   // MOVSB: mem[ES:DI] = mem[DS:SI], SI += (DF?-1:1), DI += (DF?-1:1)
   dispatch.addMemWrite(0xA4,
     repGuardAddr(`calc(var(--__1ES) * 16 + var(--__1DI))`),
-    `--readMem(calc(var(--_strSrcSeg) + var(--__1SI)))`,
+    `var(--_strSrcByte)`,
     `MOVSB`);
   dispatch.addEntry('SI', 0xA4,
     repGuardReg(`--lowerBytes(calc(var(--__1SI) + 1 - --bit(var(--__1flags), 10) * 2), 16)`, `var(--__1SI)`),
@@ -280,11 +280,11 @@ export function emitMOVS(dispatch) {
   // MOVSW: copy word (2 bytes)
   dispatch.addMemWrite(0xA5,
     repGuardAddr(`calc(var(--__1ES) * 16 + var(--__1DI))`),
-    `--readMem(calc(var(--_strSrcSeg) + var(--__1SI)))`,
+    `var(--_strSrcByte)`,
     `MOVSW lo`);
   dispatch.addMemWrite(0xA5,
     repGuardAddr(`calc(var(--__1ES) * 16 + var(--__1DI) + 1)`),
-    `--readMem(calc(var(--_strSrcSeg) + var(--__1SI) + 1))`,
+    `var(--_strSrcHiByte)`,
     `MOVSW hi`);
   dispatch.addEntry('SI', 0xA5,
     repGuardReg(`--lowerBytes(calc(var(--__1SI) + 2 - --bit(var(--__1flags), 10) * 4), 16)`, `var(--__1SI)`),
@@ -303,7 +303,7 @@ export function emitMOVS(dispatch) {
 export function emitCMPS(dispatch) {
   // CMPSB: flags = sub(mem[DS:SI], mem[ES:DI])
   dispatch.addEntry('flags', 0xA6,
-    repGuardReg(`--subFlags8(--readMem(calc(var(--_strSrcSeg) + var(--__1SI))), --readMem(calc(var(--__1ES) * 16 + var(--__1DI))))`, `var(--__1flags)`),
+    repGuardReg(`--subFlags8(var(--_strSrcByte), var(--_strDstByte))`, `var(--__1flags)`),
     `CMPSB flags`);
   dispatch.addEntry('SI', 0xA6,
     repGuardReg(`--lowerBytes(calc(var(--__1SI) + 1 - --bit(var(--__1flags), 10) * 2), 16)`, `var(--__1SI)`),
@@ -316,7 +316,7 @@ export function emitCMPS(dispatch) {
 
   // CMPSW: compare words
   dispatch.addEntry('flags', 0xA7,
-    repGuardReg(`--subFlags16(--read2(calc(var(--_strSrcSeg) + var(--__1SI))), --read2(calc(var(--__1ES) * 16 + var(--__1DI))))`, `var(--__1flags)`),
+    repGuardReg(`--subFlags16(calc(var(--_strSrcByte) + var(--_strSrcHiByte) * 256), calc(var(--_strDstByte) + var(--_strDstHiByte) * 256))`, `var(--__1flags)`),
     `CMPSW flags`);
   dispatch.addEntry('SI', 0xA7,
     repGuardReg(`--lowerBytes(calc(var(--__1SI) + 2 - --bit(var(--__1flags), 10) * 4), 16)`, `var(--__1SI)`),
@@ -334,7 +334,7 @@ export function emitCMPS(dispatch) {
  */
 export function emitSCAS(dispatch) {
   dispatch.addEntry('flags', 0xAE,
-    repGuardReg(`--subFlags8(var(--AL), --readMem(calc(var(--__1ES) * 16 + var(--__1DI))))`, `var(--__1flags)`),
+    repGuardReg(`--subFlags8(var(--AL), var(--_strDstByte))`, `var(--__1flags)`),
     `SCASB flags`);
   dispatch.addEntry('DI', 0xAE,
     repGuardReg(`--lowerBytes(calc(var(--__1DI) + 1 - --bit(var(--__1flags), 10) * 2), 16)`, `var(--__1DI)`),
@@ -471,30 +471,50 @@ export function emitLAHF_SAHF(dispatch) {
 
 /**
  * I/O port instructions: IN and OUT.
- * We have no I/O hardware to emulate, so these are no-ops that just advance IP.
  *
- * IN AL, imm8  (0xE4): 2-byte encoding, no register changes.
- * IN AX, imm8  (0xE5): 2-byte encoding, no register changes.
- * OUT imm8, AL (0xE6): 2-byte encoding, no register changes.
- * OUT imm8, AX (0xE7): 2-byte encoding, no register changes.
- * IN AL, DX   (0xEC): 1-byte encoding, no register changes.
- * IN AX, DX   (0xED): 1-byte encoding, no register changes.
- * OUT DX, AL  (0xEE): 1-byte encoding, no register changes.
- * OUT DX, AX  (0xEF): 1-byte encoding, no register changes.
+ * Most ports have no hardware — IN returns 0 and OUT is a no-op.
+ * Exception: port 0x60 (keyboard scancode) reads the low byte of --keyboard
+ * (the scancode), enabling games that poll the keyboard controller directly.
+ *
+ * IN AL, imm8  (0xE4): 2-byte, port in q1. Returns scancode if port=0x60.
+ * IN AX, imm8  (0xE5): 2-byte, port in q1. Returns keyboard word if port=0x60.
+ * OUT imm8, AL (0xE6): 2-byte, no-op.
+ * OUT imm8, AX (0xE7): 2-byte, no-op.
+ * IN AL, DX   (0xEC): 1-byte, port in DX. Returns scancode if DX=0x60.
+ * IN AX, DX   (0xED): 1-byte, port in DX. Returns keyboard word if DX=0x60.
+ * OUT DX, AL  (0xEE): 1-byte, no-op.
+ * OUT DX, AX  (0xEF): 1-byte, no-op.
  */
 export function emitIO(dispatch) {
-  // IN: set AL/AX to 0 (no I/O hardware — all ports read as 0)
-  dispatch.addEntry('AX', 0xE4, `--mergelow(var(--__1AX), 0)`, `IN AL, imm8`);
+  // IN AL, imm8 (0xE4): port number is q1 (byte after opcode)
+  // Port 0x60 → scancode = rightShift(keyboard, 8)
+  dispatch.addEntry('AX', 0xE4,
+    `--mergelow(var(--__1AX), if(style(--q1: 96): --rightShift(var(--__1keyboard), 8); else: 0))`,
+    `IN AL, imm8 (port 0x60=scancode)`);
   dispatch.addEntry('IP', 0xE4, `calc(var(--__1IP) + 2)`, `IN AL, imm8`);
-  dispatch.addEntry('AX', 0xE5, `0`, `IN AX, imm8`);
+
+  // IN AX, imm8 (0xE5): port 0x60 → full keyboard word
+  dispatch.addEntry('AX', 0xE5,
+    `if(style(--q1: 96): var(--__1keyboard); else: 0)`,
+    `IN AX, imm8 (port 0x60=keyboard)`);
   dispatch.addEntry('IP', 0xE5, `calc(var(--__1IP) + 2)`, `IN AX, imm8`);
+
   dispatch.addEntry('IP', 0xE6, `calc(var(--__1IP) + 2)`, `OUT imm8, AL`);
   dispatch.addEntry('IP', 0xE7, `calc(var(--__1IP) + 2)`, `OUT imm8, AX`);
 
-  dispatch.addEntry('AX', 0xEC, `--mergelow(var(--__1AX), 0)`, `IN AL, DX`);
+  // IN AL, DX (0xEC): port number is in DX register
+  // DX=0x60 (96 decimal) → scancode = rightShift(keyboard, 8)
+  dispatch.addEntry('AX', 0xEC,
+    `--mergelow(var(--__1AX), if(style(--__1DX: 96): --rightShift(var(--__1keyboard), 8); else: 0))`,
+    `IN AL, DX (port 0x60=scancode)`);
   dispatch.addEntry('IP', 0xEC, `calc(var(--__1IP) + 1)`, `IN AL, DX`);
-  dispatch.addEntry('AX', 0xED, `0`, `IN AX, DX`);
+
+  // IN AX, DX (0xED): port 0x60 → full keyboard word
+  dispatch.addEntry('AX', 0xED,
+    `if(style(--__1DX: 96): var(--__1keyboard); else: 0)`,
+    `IN AX, DX (port 0x60=keyboard)`);
   dispatch.addEntry('IP', 0xED, `calc(var(--__1IP) + 1)`, `IN AX, DX`);
+
   dispatch.addEntry('IP', 0xEE, `calc(var(--__1IP) + 1)`, `OUT DX, AL`);
   dispatch.addEntry('IP', 0xEF, `calc(var(--__1IP) + 1)`, `OUT DX, AX`);
 }
@@ -504,7 +524,7 @@ export function emitIO(dispatch) {
  */
 export function emitXLAT(dispatch) {
   dispatch.addEntry('AX', 0xD7,
-    `--mergelow(var(--__1AX), --readMem(calc(var(--__1DS) * 16 + var(--__1BX) + var(--AL))))`,
+    `--mergelow(var(--__1AX), var(--_xlatByte))`,
     `XLAT`);
   dispatch.addEntry('IP', 0xD7, `calc(var(--__1IP) + 1)`, `XLAT`);
 }
@@ -668,11 +688,150 @@ export function emitBCD(dispatch) {
     `AAD flags`);
   dispatch.addEntry('IP', 0xD5, `calc(var(--__1IP) + 2)`, `AAD`);
 
-  // ---- Stubs: advance IP only ----
-  dispatch.addEntry('IP', 0x27, `calc(var(--__1IP) + 1)`, `DAA (stub)`);
-  dispatch.addEntry('IP', 0x2F, `calc(var(--__1IP) + 1)`, `DAS (stub)`);
-  dispatch.addEntry('IP', 0x37, `calc(var(--__1IP) + 1)`, `AAA (stub)`);
-  dispatch.addEntry('IP', 0x3F, `calc(var(--__1IP) + 1)`, `AAS (stub)`);
+  // ---- BCD helpers (all pure CSS math — no @function nesting) ----
+  // CF = bit 0 of flags = mod(flags, 2)
+  // AF = bit 4 of flags = mod(round(down, flags / 16), 2)
+  // lowerBytes(x, 8) = mod(x + 256, 256) — the +256 guards against negative
+  // mergelow(old, new) = round(down, old / 256) * 256 + new
+
+  // ---- AAA (0x37): ASCII Adjust after Addition ----
+  // If low nibble of AL > 9 or AF: AL += 6, AH += 1, CF=AF=1. Then AL &= 0x0F.
+  dispatch.addEntry('AX', 0x37, (() => {
+    const lowNib = `mod(var(--AL), 16)`;
+    const nibGt9 = `round(down, ${lowNib} / 10)`;
+    const af = `mod(round(down, var(--__1flags) / 16), 2)`;
+    const adj = `min(1, calc(${nibGt9} + ${af}))`;
+    const newAL = `mod(calc(var(--AL) + ${adj} * 6), 16)`;
+    const newAH = `mod(calc(var(--AH) + ${adj} + 256), 256)`;
+    return `calc(${newAH} * 256 + ${newAL})`;
+  })(), `AAA`);
+  dispatch.addEntry('flags', 0x37, (() => {
+    const lowNib = `mod(var(--AL), 16)`;
+    const nibGt9 = `round(down, ${lowNib} / 10)`;
+    const af = `mod(round(down, var(--__1flags) / 16), 2)`;
+    const adj = `min(1, calc(${nibGt9} + ${af}))`;
+    const newAL = `mod(calc(var(--AL) + ${adj} * 6), 16)`;
+    return `calc(--logicFlags8(${newAL}) + ${adj} + ${adj} * 16)`;
+  })(), `AAA flags`);
+  dispatch.addEntry('IP', 0x37, `calc(var(--__1IP) + 1)`, `AAA`);
+
+  // ---- AAS (0x3F): ASCII Adjust after Subtraction ----
+  dispatch.addEntry('AX', 0x3F, (() => {
+    const lowNib = `mod(var(--AL), 16)`;
+    const nibGt9 = `round(down, ${lowNib} / 10)`;
+    const af = `mod(round(down, var(--__1flags) / 16), 2)`;
+    const adj = `min(1, calc(${nibGt9} + ${af}))`;
+    const newAL = `mod(calc(var(--AL) - ${adj} * 6 + 16), 16)`;
+    const newAH = `mod(calc(var(--AH) - ${adj} + 256), 256)`;
+    return `calc(${newAH} * 256 + ${newAL})`;
+  })(), `AAS`);
+  dispatch.addEntry('flags', 0x3F, (() => {
+    const lowNib = `mod(var(--AL), 16)`;
+    const nibGt9 = `round(down, ${lowNib} / 10)`;
+    const af = `mod(round(down, var(--__1flags) / 16), 2)`;
+    const adj = `min(1, calc(${nibGt9} + ${af}))`;
+    const newAL = `mod(calc(var(--AL) - ${adj} * 6 + 16), 16)`;
+    return `calc(--logicFlags8(${newAL}) + ${adj} + ${adj} * 16)`;
+  })(), `AAS flags`);
+  dispatch.addEntry('IP', 0x3F, `calc(var(--__1IP) + 1)`, `AAS`);
+
+  // ---- DAA (0x27): Decimal Adjust after Addition ----
+  // Phase 1: if (AL & 0xF) > 9 or AF: AL += 6
+  // Phase 2: if oldAL > 0x99 or oldCF: AL += 0x60
+  // newAL = (oldAL + adj1 + adj2) & 0xFF
+  dispatch.addEntry('AX', 0x27, (() => {
+    const oldAL = `var(--AL)`;
+    const lowNib = `mod(${oldAL}, 16)`;
+    const nibGt9 = `round(down, ${lowNib} / 10)`;
+    const af = `mod(round(down, var(--__1flags) / 16), 2)`;
+    const cond1 = `min(1, calc(${nibGt9} + ${af}))`;
+    const adj1 = `calc(${cond1} * 6)`;
+
+    const oldCF = `mod(var(--__1flags), 2)`;
+    const gt99 = `round(down, ${oldAL} / 154)`;
+    const cond2 = `min(1, calc(${gt99} + ${oldCF}))`;
+    const adj2 = `calc(${cond2} * 96)`;
+
+    // newAL = mod(oldAL + adj1 + adj2, 256), merge into AX preserving AH
+    const newAL = `mod(calc(${oldAL} + ${adj1} + ${adj2}), 256)`;
+    return `calc(round(down, var(--__1AX) / 256) * 256 + ${newAL})`;
+  })(), `DAA`);
+  dispatch.addEntry('flags', 0x27, (() => {
+    const oldAL = `var(--AL)`;
+    const lowNib = `mod(${oldAL}, 16)`;
+    const nibGt9 = `round(down, ${lowNib} / 10)`;
+    const af = `mod(round(down, var(--__1flags) / 16), 2)`;
+    const cond1 = `min(1, calc(${nibGt9} + ${af}))`;
+    const adj1 = `calc(${cond1} * 6)`;
+
+    const oldCF = `mod(var(--__1flags), 2)`;
+    const gt99 = `round(down, ${oldAL} / 154)`;
+    const cond2 = `min(1, calc(${gt99} + ${oldCF}))`;
+    const adj2 = `calc(${cond2} * 96)`;
+
+    const newAL = `mod(calc(${oldAL} + ${adj1} + ${adj2}), 256)`;
+    return `calc(--logicFlags8(${newAL}) + ${cond2} + ${cond1} * 16)`;
+  })(), `DAA flags`);
+  dispatch.addEntry('IP', 0x27, `calc(var(--__1IP) + 1)`, `DAA`);
+
+  // ---- DAS (0x2F): Decimal Adjust after Subtraction ----
+  // Phase 1: if (AL & 0xF) > 9 or AF: AL -= 6
+  // Phase 2: if oldAL > 0x99 or oldCF: AL -= 0x60
+  dispatch.addEntry('AX', 0x2F, (() => {
+    const oldAL = `var(--AL)`;
+    const lowNib = `mod(${oldAL}, 16)`;
+    const nibGt9 = `round(down, ${lowNib} / 10)`;
+    const af = `mod(round(down, var(--__1flags) / 16), 2)`;
+    const cond1 = `min(1, calc(${nibGt9} + ${af}))`;
+    const adj1 = `calc(${cond1} * 6)`;
+
+    const oldCF = `mod(var(--__1flags), 2)`;
+    const gt99 = `round(down, ${oldAL} / 154)`;
+    const cond2 = `min(1, calc(${gt99} + ${oldCF}))`;
+    const adj2 = `calc(${cond2} * 96)`;
+
+    // +256 to avoid negative before mod
+    const newAL = `mod(calc(${oldAL} - ${adj1} - ${adj2} + 256), 256)`;
+    return `calc(round(down, var(--__1AX) / 256) * 256 + ${newAL})`;
+  })(), `DAS`);
+  dispatch.addEntry('flags', 0x2F, (() => {
+    const oldAL = `var(--AL)`;
+    const lowNib = `mod(${oldAL}, 16)`;
+    const nibGt9 = `round(down, ${lowNib} / 10)`;
+    const af = `mod(round(down, var(--__1flags) / 16), 2)`;
+    const cond1 = `min(1, calc(${nibGt9} + ${af}))`;
+    const adj1 = `calc(${cond1} * 6)`;
+
+    const oldCF = `mod(var(--__1flags), 2)`;
+    const gt99 = `round(down, ${oldAL} / 154)`;
+    const cond2 = `min(1, calc(${gt99} + ${oldCF}))`;
+    const adj2 = `calc(${cond2} * 96)`;
+
+    const newAL = `mod(calc(${oldAL} - ${adj1} - ${adj2} + 256), 256)`;
+    return `calc(--logicFlags8(${newAL}) + ${cond2} + ${cond1} * 16)`;
+  })(), `DAS flags`);
+  dispatch.addEntry('IP', 0x2F, `calc(var(--__1IP) + 1)`, `DAS`);
+}
+
+/**
+ * WAIT (0x9B), ESC (0xD8-0xDF), LOCK (0xF0): no-op stubs.
+ * WAIT: FPU sync — no FPU, so just advance IP.
+ * ESC: FPU escape — needs ModR/M decode (skip operand bytes), no operation.
+ * LOCK: bus lock prefix — meaningless in single-threaded CSS, advance IP.
+ */
+export function emitNopStubs(dispatch) {
+  // WAIT (0x9B): 1-byte, no-op
+  dispatch.addEntry('IP', 0x9B, `calc(var(--__1IP) + 1)`, `WAIT`);
+
+  // LOCK (0xF0): 1-byte prefix, treated as no-op
+  dispatch.addEntry('IP', 0xF0, `calc(var(--__1IP) + 1)`, `LOCK`);
+
+  // ESC 0-7 (0xD8-0xDF): has ModR/M byte, so IP += 2 + modrmExtra
+  for (let i = 0; i < 8; i++) {
+    dispatch.addEntry('IP', 0xD8 + i,
+      `calc(var(--__1IP) + 2 + var(--modrmExtra))`,
+      `ESC ${i}`);
+  }
 }
 
 /**
@@ -698,4 +857,5 @@ export function emitAllMisc(dispatch) {
   emitINT3(dispatch);
   emitINTO(dispatch);
   emitBCD(dispatch);
+  emitNopStubs(dispatch);
 }

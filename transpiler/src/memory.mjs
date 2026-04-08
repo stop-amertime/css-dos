@@ -2,17 +2,6 @@
 // memory layout with embedded program binary, BIOS, and IVT.
 
 const BIOS_LINEAR = 0xF0000; // F000:0000
-const BIOS_SEG = 0xF000;
-
-// IVT handler offsets within the BIOS segment (must match bios.asm)
-// IVT handler offsets — must match ref-emu.mjs and bios.lst
-const IVT_HANDLERS = {
-  0x10: 0x0000, // INT 10h - Video
-  0x16: 0x0155, // INT 16h - Keyboard
-  0x1A: 0x0190, // INT 1Ah - Timer
-  0x20: 0x0232, // INT 20h - Program terminate
-  0x21: 0x01A9, // INT 21h - DOS services
-};
 
 /**
  * Emit the --readMem @function.
@@ -26,8 +15,18 @@ export function emitReadMem(opts) {
   lines.push(`  result: if(`);
 
   // Writable memory region: read from --__1mN (previous tick's value)
+  // Addresses 0x0500-0x0501 (1280-1281) are bridged to --keyboard for BIOS INT 16h:
+  //   0x0500 = low byte of keyboard (ASCII), 0x0501 = high byte (scancode)
   for (let addr = 0; addr < memSize; addr++) {
-    lines.push(`    style(--at: ${addr}): var(--__1m${addr});`);
+    if (addr === 0x0500) {
+      // Keyboard low byte: ASCII code = keyboard & 0xFF
+      lines.push(`    style(--at: 1280): --lowerBytes(var(--__1keyboard), 8);`);
+    } else if (addr === 0x0501) {
+      // Keyboard high byte: scancode = keyboard >> 8
+      lines.push(`    style(--at: 1281): --rightShift(var(--__1keyboard), 8);`);
+    } else {
+      lines.push(`    style(--at: ${addr}): var(--__1m${addr});`);
+    }
   }
 
   // BIOS region (read-only constants) — always included regardless of memSize
@@ -52,18 +51,7 @@ export function buildInitialMemory(opts) {
   const { memSize, programBytes, programOffset, biosBytes, embeddedData } = opts;
   const initMem = new Map();
 
-  // IVT entries (addresses 0x0000-0x03FF)
-  for (const [intNum, handlerOff] of Object.entries(IVT_HANDLERS)) {
-    const addr = Number(intNum) * 4;
-    const lo = handlerOff & 0xFF;
-    const hi = (handlerOff >> 8) & 0xFF;
-    const csLo = BIOS_SEG & 0xFF;
-    const csHi = (BIOS_SEG >> 8) & 0xFF;
-    if (lo && addr < memSize) initMem.set(addr, lo);
-    if (hi && addr + 1 < memSize) initMem.set(addr + 1, hi);
-    if (csLo && addr + 2 < memSize) initMem.set(addr + 2, csLo);
-    if (csHi && addr + 3 < memSize) initMem.set(addr + 3, csHi);
-  }
+  // IVT is initialized at runtime by bios-dos.asm — not pre-populated here.
 
   // Program binary
   for (let i = 0; i < programBytes.length; i++) {
