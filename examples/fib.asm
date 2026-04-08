@@ -4,8 +4,6 @@
 
 org 0x100
 
-section .text
-
 start:
     ; Print header
     mov si, header
@@ -93,7 +91,5 @@ print_string:
     ret
 
 ; --- data ---
-section .data
-
 header: db 'Fibonacci: ', 0
 count:  db 0

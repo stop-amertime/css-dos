@@ -11,6 +11,8 @@
   initial-value: "";
 }
 
+/* Cursor position and scrolling are handled by the BIOS code (bios.asm).
+   No CSS-level cursor tracking needed. */
 VARS_1
 
 
@@ -303,7 +305,11 @@ VARS_1
 
 
 @function --getMoveStack() returns <integer> {
-  result: if(INST_MOVESTACK1;else:0);
+  result: if(
+    /* INT pushes FLAGS+CS+IP = 6 bytes onto stack */
+    style(--instId:212):-6;
+    style(--instId:213):-6;
+    INST_MOVESTACK1;else:0);
 }
 
 /* Side channel: SI delta for string instructions (MOVSB/MOVSW/CMPSB/CMPSW) */
@@ -353,6 +359,9 @@ VARS_1
     style(--instId:257):--read2(calc(var(--__1IP) + 3));
     style(--instId:293):0;
     style(--instId:295):0;
+    /* INT: CS from IVT. Uses precomputed --intVectorCS. */
+    style(--instId:212):var(--intVectorCS);
+    style(--instId:213):var(--intVectorCS);
   else:var(--__1CS));
 }
 
@@ -374,6 +383,9 @@ VARS_1
     style(--instId:265) and style(--__1CX:0):calc(var(--__1IP) + 2);
     style(--instId:265) and style(--__1CX:1):calc(var(--__1IP) + 2);
     style(--instId:265):var(--__1IP);
+    /* INT: jump to handler via IVT. Uses precomputed --intVectorFlat. */
+    style(--instId:212):var(--intVectorFlat);
+    style(--instId:213):var(--intVectorFlat);
   else:-1);
 }
 
@@ -403,7 +415,28 @@ VARS_1
     (1 - max(0, sign(--u2s2(var(--addrValA))))) * 128
   );
 
-  --baseFlags: calc(var(--zeroFlag) + var(--signFlag));
+  /* Carry flag (bit 0): set on unsigned overflow/borrow.
+     SUB/CMP: result < 0 means borrow (CF=1)
+     ADD:     result > max means carry (CF=1)
+     The raw result in --addrValA is the unmasked mathematical result.
+     Operand width from instArg1Type: types 2,5,8,17-24 are 8-bit, rest are 16-bit. */
+  --is8bit: if(
+    style(--instArg1Type:2):1;
+    style(--instArg1Type:5):1;
+    style(--instArg1Type:8):1;
+    style(--instArg1Type:17):1;style(--instArg1Type:18):1;
+    style(--instArg1Type:19):1;style(--instArg1Type:20):1;
+    style(--instArg1Type:21):1;style(--instArg1Type:22):1;
+    style(--instArg1Type:23):1;style(--instArg1Type:24):1;
+    else:0);
+  --carryMax: if(style(--is8bit:1):255;else:65535);
+  /* CF=1 if result < 0 (borrow) or result > max (carry) */
+  --carryFlag: clamp(0,
+    max(0 - sign(var(--addrValA)),
+        sign(var(--addrValA) - var(--carryMax)) ),
+    1);
+
+  --baseFlags: calc(var(--zeroFlag) + var(--signFlag) + var(--carryFlag));
   /*result: if(INST_FLAGFUN1;else:var(--baseFlags));*/
   result: var(--baseFlags);
 }
@@ -440,7 +473,15 @@ VARS_1
     style(--argType:6): --read2(var(--_modRm_addr2));
     style(--argType:2):--readMem(var(--_modRm_addr1));
     style(--argType:16) and style(--instArg2Type:16):--read2(var(--_modRm_addr2));
-    style(--argType:4)  and style(--instArg1Type:16):--read2(var(--_modRm_addr2));
+    /* MOV Sw, Ew: source (Ew) is in rm field; addr1 is overridden by seg, so use rm directly */
+    style(--argType:4) and style(--instArg1Type:16) and style(--modRm_mod:3) and style(--modRm_rm:0):var(--__1AX);
+    style(--argType:4) and style(--instArg1Type:16) and style(--modRm_mod:3) and style(--modRm_rm:1):var(--__1CX);
+    style(--argType:4) and style(--instArg1Type:16) and style(--modRm_mod:3) and style(--modRm_rm:2):var(--__1DX);
+    style(--argType:4) and style(--instArg1Type:16) and style(--modRm_mod:3) and style(--modRm_rm:3):var(--__1BX);
+    style(--argType:4) and style(--instArg1Type:16) and style(--modRm_mod:3) and style(--modRm_rm:4):var(--__1SP);
+    style(--argType:4) and style(--instArg1Type:16) and style(--modRm_mod:3) and style(--modRm_rm:5):var(--__1BP);
+    style(--argType:4) and style(--instArg1Type:16) and style(--modRm_mod:3) and style(--modRm_rm:6):var(--__1SI);
+    style(--argType:4) and style(--instArg1Type:16) and style(--modRm_mod:3) and style(--modRm_rm:7):var(--__1DI);
     style(--argType:3) or style(--argType:4) or style(--argType:13) or style(--argType:16):--read2(var(--_modRm_addr1));
     style(--argType:14):--readMem(calc(var(--__1DS) * 16 + var(--_arg2)));
     style(--argType:15):--read2(calc(var(--__1DS) * 16 + var(--_arg2)));
@@ -1046,110 +1087,30 @@ SUB, ADD
   );
 }
 
-/* INT dispatch: handle DOS services, skip unsupported interrupts.
-   INT 3: no-op (breakpoint, just advance IP)
-   INT 21h (instArg1=33):
-     Slot A (w=0): writes return value to dest register
-     Slot B (w=1): writes flags (CF cleared) for file ops
-   Console I/O:
-     AH=01h (1):  Read char with echo → AL = keyboard input
-     AH=06h (6):  Direct console I/O: DL=FF reads → AL, else writes DL
-     AH=07h (7):  Direct char input, no echo → AL = keyboard input
-     AH=08h (8):  Read char without echo → AL = keyboard input
-     AH=0Ah (10): Buffered input → no-op (needs keyboard buffer)
-   Disk/system:
-     AH=0Dh (13): Disk reset → no-op
-     AH=0Eh (14): Select disk → AL = 1 (one drive)
-     AH=19h (25): Get current disk → AL = 0 (drive A:)
-     AH=2Ch (44): Get time → CX:DX = 0
-     AH=30h (48): Get DOS version → AX = 5
-   File handle I/O (data pre-loaded in CSS memory):
-     AH=3Ch (60): Create file → AX = handle 5, CF=0
-     AH=3Dh (61): Open file → AX = handle 5, CF=0
-     AH=3Eh (62): Close file → CF=0
-     AH=3Fh (63): Read file → AX = CX (bytes "read"), CF=0
-     AH=41h (65): Delete file → CF=0
-     AH=42h (66): Seek → AX:DX = file position (slot B → DX)
-                   AL=2 (from end): returns file size FILE_SIZE_AX:FILE_SIZE_DX
-                   AL=0 (from start): returns 0
-   Misc:
-     AH=05h (5):  Printer output → no-op
-     AH=4Ch (76): Exit → halt (IP = IP)
-   Text output (AH=02h, 06h, 09h) is handled by --textBuffer below.
-   All others: no-op (advance IP normally) */
+/* INT instruction: real IVT-based dispatch.
+   Pushes flags/CS/IP onto stack, jumps through Interrupt Vector Table.
+   INT 3 (opcode CC, instId 212): interrupt number 3, return IP = IP+1
+   INT imm8 (opcode CD, instId 213): interrupt number from instArg1, return IP = IP+2
+   Slot A (w=0): push return IP offset to [SS:SP-6]
+   Slot B (w=1): push CS to [SS:SP-4]
+   Slot C (w=2): push FLAGS to [SS:SP-2]
+   moveStack = -6, addrJump reads IVT, jumpCS reads IVT+2 */
 @function --D-INT(--w <integer>) returns <integer> {
   result: if(
-    /* Slot A (w=0): destination register for return value */
-    style(--w:0) and style(--instArg1:33) and style(--AH:1):-31;
-    style(--w:0) and style(--instArg1:33) and style(--AH:6):-31;
-    style(--w:0) and style(--instArg1:33) and style(--AH:7):-31;
-    style(--w:0) and style(--instArg1:33) and style(--AH:8):-31;
-    style(--w:0) and style(--instArg1:33) and style(--AH:14):-31;
-    style(--w:0) and style(--instArg1:33) and style(--AH:25):-31;
-    style(--w:0) and style(--instArg1:33) and style(--AH:44):-2;
-    style(--w:0) and style(--instArg1:33) and style(--AH:48):-1;
-    style(--w:0) and style(--instArg1:33) and style(--AH:60):-1;
-    style(--w:0) and style(--instArg1:33) and style(--AH:61):-1;
-    style(--w:0) and style(--instArg1:33) and style(--AH:63):-1;
-    style(--w:0) and style(--instArg1:33) and style(--AH:66):-1;
-    style(--w:0) and style(--instArg1:33) and style(--AH:76):-9;
-    /* INT 1Ah (26): BIOS timer — AH=0 returns tick count in CX:DX */
-    style(--w:0) and style(--instArg1:26) and style(--AH:0):-3;
-    /* INT 16h (22): Keyboard — AH=0 reads key, AH=1 checks key status */
-    style(--w:0) and style(--instArg1:22) and style(--AH:0):-1;
-    style(--w:0) and style(--instArg1:22) and style(--AH:1):-1;
-    /* Slot B (w=1): write flags register for file ops (clear CF) */
-    style(--w:1) and style(--instArg1:33) and style(--AH:60):-14;
-    style(--w:1) and style(--instArg1:33) and style(--AH:61):-14;
-    style(--w:1) and style(--instArg1:33) and style(--AH:62):-14;
-    style(--w:1) and style(--instArg1:33) and style(--AH:63):-14;
-    style(--w:1) and style(--instArg1:33) and style(--AH:65):-14;
-    /* Slot B for seek: write DX (high word of position) */
-    style(--w:1) and style(--instArg1:33) and style(--AH:66):-3;
-    /* INT 1Ah slot B: CX = high word of tick count (always 0) */
-    style(--w:1) and style(--instArg1:26) and style(--AH:0):-2;
-    /* INT 16h AH=1 slot B: flags — set ZF if no key available */
-    style(--w:1) and style(--instArg1:22) and style(--AH:1):-14;
+    style(--w:0):calc(var(--__1SS) * 16 + --lowerBytes(var(--__1SP) - 6, 16));
+    style(--w:1):calc(var(--__1SS) * 16 + --lowerBytes(var(--__1SP) - 4, 16));
+    style(--w:2):calc(var(--__1SS) * 16 + --lowerBytes(var(--__1SP) - 2, 16));
   else:-100);
 }
 
 @function --V-INT(--w <integer>) returns <integer> {
   result: if(
-    /* Slot A (w=0): return values */
-    style(--w:0) and style(--instArg1:33) and style(--AH:1):var(--keyboard, 0);
-    style(--w:0) and style(--instArg1:33) and style(--AH:6):var(--keyboard, 0);
-    style(--w:0) and style(--instArg1:33) and style(--AH:7):var(--keyboard, 0);
-    style(--w:0) and style(--instArg1:33) and style(--AH:8):var(--keyboard, 0);
-    style(--w:0) and style(--instArg1:33) and style(--AH:14):1;
-    style(--w:0) and style(--instArg1:33) and style(--AH:25):0;
-    style(--w:0) and style(--instArg1:33) and style(--AH:44):0;
-    style(--w:0) and style(--instArg1:33) and style(--AH:48):5;
-    style(--w:0) and style(--instArg1:33) and style(--AH:60):5;
-    style(--w:0) and style(--instArg1:33) and style(--AH:61):5;
-    style(--w:0) and style(--instArg1:33) and style(--AH:63):var(--__1CX);
-    style(--w:0) and style(--instArg1:33) and style(--AH:66) and style(--AL:2):FILE_SIZE_AX;
-    style(--w:0) and style(--instArg1:33) and style(--AH:66):0;
-    style(--w:0) and style(--instArg1:33) and style(--AH:76):var(--__1IP);
-    /* Slot B (w=1): flags with CF cleared for file ops */
-    style(--w:1) and style(--instArg1:33) and style(--AH:60):calc(var(--__1flags) - --bit(var(--__1flags), 0));
-    style(--w:1) and style(--instArg1:33) and style(--AH:61):calc(var(--__1flags) - --bit(var(--__1flags), 0));
-    style(--w:1) and style(--instArg1:33) and style(--AH:62):calc(var(--__1flags) - --bit(var(--__1flags), 0));
-    style(--w:1) and style(--instArg1:33) and style(--AH:63):calc(var(--__1flags) - --bit(var(--__1flags), 0));
-    style(--w:1) and style(--instArg1:33) and style(--AH:65):calc(var(--__1flags) - --bit(var(--__1flags), 0));
-    /* Slot B for seek: DX = high word of file position */
-    /* AL=2 (from end) returns file size high word; AL=0 returns 0 */
-    style(--w:1) and style(--instArg1:33) and style(--AH:66) and style(--AL:2):FILE_SIZE_DX;
-    style(--w:1) and style(--instArg1:33) and style(--AH:66):0;
-    /* INT 1Ah AH=0: DX = low word of tick count (frame counter) */
-    style(--w:0) and style(--instArg1:26) and style(--AH:0):var(--__1frame-count);
-    /* INT 1Ah AH=0: CX = high word of tick count (always 0) */
-    style(--w:1) and style(--instArg1:26) and style(--AH:0):0;
-    /* INT 16h AH=0: AX = keyboard scancode (key in AL) */
-    style(--w:0) and style(--instArg1:22) and style(--AH:0):var(--keyboard, 0);
-    /* INT 16h AH=1: AX = keyboard scancode (key in AL, 0 if none) */
-    style(--w:0) and style(--instArg1:22) and style(--AH:1):var(--keyboard, 0);
-    /* INT 16h AH=1: flags — ZF=1 if no key, ZF=0 if key available */
-    style(--w:1) and style(--instArg1:22) and style(--AH:1):if(style(--keyboard:0):calc(var(--__1flags) - --bit(var(--__1flags), 6) + 64);else:calc(var(--__1flags) - --bit(var(--__1flags), 6)));
+    /* Slot A: return IP offset = (IP + instLen) - CS*16 */
+    style(--w:0):calc(var(--__1IP) + var(--instLen) - var(--__1CS) * 16);
+    /* Slot B: current CS */
+    style(--w:1):var(--__1CS);
+    /* Slot C: current FLAGS */
+    style(--w:2):var(--__1flags);
   else:0);
 }
 
@@ -1701,6 +1662,10 @@ SUB, ADD
     style(--addrDestSign:-1): 0;
     style(--instArg1Type:1) or style(--instArg1Type:3) or style(--instArg1Type:4) or style(--instArg1Type:6) or style(--instArg1Type:9) or style(--instArg1Type:10) or style(--instArg1Type:12) or style(--instArg1Type:13) or style(--instArg1Type:15) or style(--instArg1Type:16):1;
     style(--moveStack:-2):1;
+    /* Word string instructions: MOVSW, STOSW, and REP variants */
+    style(--instId:177) or style(--instId:183):1;
+    style(--instId:265) and style(--nextOp:165):1;
+    style(--instId:265) and style(--nextOp:171):1;
   else:0);
 }
 
@@ -1748,7 +1713,7 @@ SUB, ADD
     style(--modRm_mod:2) and style(--modRm_rm:6):calc(var(--__1SS) * 16);
   else:calc(var(--__1DS) * 16));
   --modRm_addr1: calc(--getModRmAddr1() + var(--segBase1));
-  --modRm_addr2: calc(--getModRmAddr2() + var(--segBase1));
+  --modRm_addr2: --getModRmAddr2();
 
   --isModRm: if(INST_MODRM1;else:0);
   --modRmLen: calc(--getModRmLen() * var(--isModRm));
@@ -1762,71 +1727,63 @@ SUB, ADD
   --instArgDest1: --getInstArgDest(var(--instArg1Type), calc(var(--__1IP) + 1));
   --instArgDest2: --getInstArgDest(var(--instArg2Type), calc(var(--__1IP) + 1 + var(--instArg1Size)));
 
+  /* IVT lookup for INT instruction.
+     Precompute the interrupt number's IVT entry here so dispatch tables
+     can reference the result without nested function calls.
+     INT 3 (instId 212) uses vector 3, INT imm8 (instId 213) uses instArg1. */
+  --intNum: if(style(--instId:212):3;else:var(--instArg1));
+  --ivtAddr: calc(var(--intNum) * 4);
+  --intVectorIP: --read2(var(--ivtAddr));
+  --intVectorCS: --read2(calc(var(--ivtAddr) + 2));
+  --intVectorFlatCS16: calc(var(--intVectorCS) * 16);
+  --intVectorFlat: calc(var(--intVectorFlatCS16) + var(--intVectorIP));
+
+  /* Side channels */
   --moveStack: --getMoveStack();
   --moveSI: --getMoveSI();
   --moveDI: --getMoveDI();
   --jumpCS: --getJumpCS();
 
+  /* Dest slots */
   --addrDestA: --getDest(0);
   --addrDestB: --getDest(1);
+  --addrDestC: --getDest(2);
 
+  /* Word write */
   --isWordWrite: --getIsWordWrite();
 
-/*  --addrValASize: --getValSize(0);*/
+  /* Values */
   --addrValA: --getVal(0);
-/*  --addrValA: 0;*/
-/*  --addrValA1: --lowerBytes(var(--addrValA), 8);*/
-/*  --addrValA2: --rightShift(var(--addrValA), 8);*/
   --addrValA1: mod(var(--addrValA), 256);
   --addrValA2: round(down, var(--addrValA) / 256);
 
   --addrValB: --getVal(1);
+  --addrValC: --getVal(2);
 
+  /* Flags */
   --instSetFlags: --getInstSetFlags();
-  --newFlags: if(style(--instId:215):--read2(calc(var(--__1SS) * 16 + var(--__1SP) + 4));style(--instSetFlags:0):var(--__1flags);else:--getFlags());
-
-  /*
-  --addrValA1: if(style(--destIsMem:1):--lowerBytes(var(--addrValA), 8);else:var(--addrValA));
-  --addrValA2: if(style(--destIsMem:1):--rightShift(var(--addrValA), 8);else:-100);
-  --addrValB1: if(style(--destIsMem:1):--lowerBytes(var(--addrValB), 8);else:var(--addrValB));
-  --addrValB2: if(style(--destIsMem:1):--rightShift(var(--addrValB), 8);else:-100);
-  */
-
-
-/*  --destIsMem: --dest-is-mem();*/
+  --_computedFlags: --getFlags();
+  /* Preserve old CF (bit 0) when instSetFlags bit 0 is clear (e.g. INC/DEC) */
+  --_oldCF: --bit(var(--__1flags), 0);
+  --_setCF: --bit(var(--instSetFlags), 0);
+  --_newCF: --bit(var(--_computedFlags), 0);
+  --_mergedFlags: if(
+    style(--_setCF:1):var(--_computedFlags);
+    else:calc(var(--_computedFlags) - var(--_newCF) + var(--_oldCF)));
+  --newFlags: if(
+    style(--instId:215):--read2(calc(var(--__1SS) * 16 + var(--__1SP) + 4));
+    style(--instSetFlags:0):var(--__1flags);
+    else:var(--_mergedFlags));
 
   --addrJump: --getAddrJump();
-/*
-  --addrDest: --getDest();
-
-  --addrValTmp: --getVal();
-  --destIsMem: --dest-is-mem();
-
-  --addrVal: if(style(--destIsMem:1):--lowerBytes(var(--addrValTmp), 8);else:var(--addrValTmp));
-  --addrVal2: --rightShift(var(--addrValTmp), 8);
-  --addrDest2: if(style(--destIsMem:1):var(--addrDest);else:-100);
-
-  --addrJump: --getJump();
-*/
-
   VARS_2b
 
   --strPointer: --read2(calc(var(--__1SP) + 2));
+
+  /* textBuffer: legacy text output for programs using writeChar external functions */
   --textBuffer: if(
-      /* Custom I/O stubs (CALL-based) */
       style(--__1IP:#writeChar1):var(--__1textBuffer) --i2char(--readMem(calc(var(--__1SP) + 2)));
-/*      style(--__1IP:#writeChar4):var(--__1textBuffer) --i2char(--readMem(calc(var(--__1SP) + 2))) --i2char(--readMem(calc(var(--__1SP) + 4))) --i2char(--readMem(calc(var(--__1SP) + 6))) --i2char(--readMem(calc(var(--__1SP) + 8)));*/
       style(--__1IP:#writeChar4):var(--__1textBuffer) --i2char(--readMem(var(--strPointer))) --i2char(--readMem(calc(var(--strPointer) + 1))) --i2char(--readMem(calc(var(--strPointer) + 2))) --i2char(--readMem(calc(var(--strPointer) + 3)));
-      style(--__1IP:#writeChar8):var(--__1textBuffer) --i2char(--readMem(var(--strPointer))) --i2char(--readMem(calc(var(--strPointer) + 1))) --i2char(--readMem(calc(var(--strPointer) + 2))) --i2char(--readMem(calc(var(--strPointer) + 3))) --i2char(--readMem(calc(var(--strPointer) + 4))) --i2char(--readMem(calc(var(--strPointer) + 5))) --i2char(--readMem(calc(var(--strPointer) + 6))) --i2char(--readMem(calc(var(--strPointer) + 7)));
-/*      style(--__1IP:#writeStr):var(--__1textBuffer) --readString(--read2(calc(var(--__1SP) + 2)));*/
-      /* DOS INT 21h AH=02h: write character in DL */
-      style(--instId:213) and style(--instArg1:33) and style(--AH:2):var(--__1textBuffer) --i2char(var(--DL));
-      /* DOS INT 21h AH=06h: direct console output (DL != 0xFF) */
-      style(--instId:213) and style(--instArg1:33) and style(--AH:6):var(--__1textBuffer) --i2char(var(--DL));
-      /* DOS INT 21h AH=09h: write string at DS:DX (first 8 chars per tick) */
-      style(--instId:213) and style(--instArg1:33) and style(--AH:9):var(--__1textBuffer) --readString(calc(var(--__1DS) * 16 + var(--__1DX)));
-      /* DOS INT 21h AH=01h: echo keyboard input */
-      style(--instId:213) and style(--instArg1:33) and style(--AH:1):var(--__1textBuffer) --i2char(var(--keyboard, 0));
       else:var(--__1textBuffer)
     );
   --clock2: --int(calc(var(--clock)));

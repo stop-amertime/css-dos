@@ -1,139 +1,84 @@
-# i8086-css
+# CSS-DOS
 
-A static binary translator for the Intel 8086. Takes 8086 machine code and
-produces CSS custom properties and `@function` definitions that, when evaluated,
-reproduce the CPU's behavior — either in a browser or via
-[calcite](https://github.com/stop-amertime/calcite), a JIT compiler for
-computational CSS.
+An Intel 8086 PC implemented entirely in CSS custom properties and `calc()`.
+The CSS runs in Chrome — no JavaScript, no WebAssembly, just a stylesheet
+executing machine code. The goal: boot FreeDOS from a CSS file.
 
-Forked from [rebane2001/x86css](https://github.com/rebane2001/x86css) with
-significant extensions: multi-write instructions, full 8086 ISA coverage,
-segmented memory, and DOS service stubs.
+[Calcite](https://github.com/stop-amertime/calcite) is a JIT compiler that
+makes the CSS fast enough to actually use (~200K+ ticks/sec vs Chrome's
+~1 tick/sec).
 
-## What it does
+## How it works
 
-1. Reads an 8086 binary (`.com` file or raw machine code)
-2. Decodes every instruction (opcode, ModR/M, immediates)
-3. Emits CSS that encodes the entire CPU as custom properties
-4. Each "tick" of CSS evaluation executes one instruction
+A transpiler converts a reference JavaScript 8086 emulator into equivalent CSS.
+Every register, flag, and memory byte is a CSS custom property. Every instruction
+is a CSS expression. Each "tick" of CSS evaluation executes one instruction.
 
-The output is a self-contained HTML file with embedded CSS that runs the
-original program. Think of it as [Rosetta](https://en.wikipedia.org/wiki/Rosetta_(software))
-but the target architecture is CSS.
+The output is a self-contained `.css` file (or `.html` with visualization) that
+can be:
+- Opened in Chrome (works, but slowly — one frame per year)
+- Run through calcite for real-time execution
 
-## 8086 ISA — complete
+## Status
 
-All 106 8086 instructions are implemented:
+**Architecture pivot in progress.** The transpiler is not yet built.
+See [issue #49](https://github.com/stop-amertime/calcite/issues/49) for the
+full roadmap.
 
-| Category | Instructions |
-|----------|-------------|
-| Arithmetic | ADD, ADC, SUB, SBB, INC, DEC, NEG, MUL, IMUL, DIV, IDIV, CBW, CWD |
-| Logic | AND, OR, XOR, NOT, TEST, SHL, SHR, SAR, ROL, ROR, RCL, RCR |
-| Data movement | MOV, XCHG, LEA, LES, LDS, XLAT, PUSH, POP |
-| String ops | MOVSB/W, STOSB/W, LODSB/W, CMPSB/W, SCASB/W |
-| Control flow | JMP, CALL, RET, RETF, IRET, INT, INTO, LOOP, LOOPZ, LOOPNZ, JCXZ |
-| Conditional jumps | JZ, JNZ, JB, JNB, JBE, JA, JS, JNS, JL, JGE, JLE, JG, JO, JNO, JPE, JPO |
-| Flags | CLC, STC, CMC, CLD, STD, CLI, STI, PUSHF, POPF, SAHF, LAHF |
-| Prefixes | REP/REPZ, REPNZ, LOCK, segment overrides (ES:, CS:, SS:, DS:) |
-| BCD | DAA, DAS, AAA, AAS, AAM, AAD |
-| Far calls | CALL FAR, JMP FAR, RETF, IRET |
-| I/O | IN, OUT, HLT, WAIT, NOP |
+What exists today:
+- Reference 8086 emulator (`tools/js8086.js`) — the source of truth
+- Conformance testing tools (`tools/`) — tick-by-tick comparison infrastructure
+- Minimal BIOS (`bios.asm`) — INT 10h/16h/1Ah/20h/21h handlers
+- Test programs (`examples/fib.asm`)
+- Legacy v1 transpiler (`legacy/`) — works but has synchronization bugs
 
-## Segmented memory
+What's next:
+- Build the JS→CSS transpiler (`transpiler/`)
+- Conformance test until simple programs match tick-for-tick
+- Add BIOS extensions for disk I/O (INT 13h)
+- Boot FreeDOS
 
-- ModR/M address calculation applies `segment * 16 + offset` with correct
-  default segment selection (SS for BP-based, DS for others)
-- String instructions use `DS:SI` and `ES:DI` per the 8086 spec
-- LES/LDS load far pointers (offset + segment)
-- Far CALL/JMP/RETF/IRET push/pop CS correctly
+## Quick start
 
-## Multi-write support
-
-The original x86css could only write one value per tick. i8086-css supports
-two write slots per tick (`addrDestA`/`addrDestB`), enabling instructions that
-modify multiple destinations (e.g., XCHG, MUL/DIV writing DX:AX, string ops
-updating both data and index registers).
-
-Side channels handle additional implicit writes (SI/DI deltas for string ops,
-SP for PUSH/POP, flags).
-
-## DOS services (INT 21h)
-
-Currently stubbed:
-
-| AH | Function | Status |
-|----|----------|--------|
-| 30h | Get DOS version | Returns DOS 5.0 |
-| 4Ch | Exit program | Halts (IP = IP) |
-
-All other INT 21h functions return no-op.
-
-## Building
-
-### From assembly
-
-Place your 8086 binary in `program.bin` and the `_start` offset in
-`program.start` (as a decimal number). Then:
+The transpiler doesn't exist yet. To run existing test programs using the
+legacy approach:
 
 ```sh
-python3 build_css.py
-# Output: x86css.html
+# Build CSS from a binary (legacy approach)
+cd legacy && python build_css.py ../examples/fib.com --mem 0x600
+
+# Run with calcite
+cargo run -p calcite-cli -- fib.css --ticks 10000
+
+# Generate reference trace for conformance testing
+node tools/ref-emu.mjs examples/fib.com > ref-trace.json
 ```
 
-### From C
+## Project layout
 
-Requires [gcc-ia16](https://gitlab.com/tkchia/build-ia16):
-
-```sh
-python3 build_c.py
-python3 build_css.py
+```
+transpiler/     JS→CSS transpiler (not yet built — the main work item)
+tools/          Conformance testing (reference emulator + comparison)
+bios.asm        Minimal BIOS/DOS stub (NASM source)
+examples/       Test programs (.asm, .com)
+legacy/         v1 approach (JSON database → parallel dispatch CSS)
 ```
 
-### Configuration
+See `CLAUDE.md` for detailed architecture and contributor guide.
 
-Edit the top of `build_css.py`:
+## 8086 ISA
 
-```python
-MEM_SIZE = 0x600       # Memory size in bytes (default 1.5KB)
-PROG_OFFSET = 0x100    # Program load address (.COM convention)
-```
-
-Increase `MEM_SIZE` for larger programs. Each byte becomes a CSS custom
-property, so large memory = large CSS output.
-
-### Custom I/O
-
-| Address | Function |
-|---------|----------|
-| 0x2000 | writeChar1 — write single byte to screen |
-| 0x2002 | writeChar4 — write 4 bytes to screen |
-| 0x2004 | writeChar8 — write 8 bytes to screen |
-| 0x2006 | readInput — read keyboard input |
-| 0x2100 | SHOW_KEYBOARD — toggle on-screen keyboard (0=off, 1=numeric, 2=alpha) |
-
-## Running with calcite
-
-The generated CSS can be executed directly by calcite for much higher
-throughput than browser rendering:
-
-```sh
-cargo run -p calcite-cli -- path/to/x86css.html --ticks 1000000
-```
-
-calcite compiles the CSS expressions to bytecode, achieving ~230K ticks/sec
-with pattern recognition for dispatch tables, broadcast writes, and bitwise
-operations.
+The reference emulator (`tools/js8086.js`) implements the full 8086 instruction
+set. The transpiler will convert all ~200 opcode cases to CSS.
 
 ## Credits
 
-- [rebane2001](https://github.com/rebane2001) for the original x86css
-- Jane Ori for the original [CPU Hack](https://dev.to/janeori/expert-css-the-cpu-hack-4ddj)
-- Soo-Young Lee for the [8086 instruction set reference](https://www.eng.auburn.edu/~sylee/ee2220/8086_instruction_set.html)
-- mlsite.net for the [8086 opcode map](http://www.mlsite.net/8086/)
-- crtc-demos && tkchia for [gcc-ia16](https://gitlab.com/tkchia/build-ia16)
+- [rebane2001](https://github.com/rebane2001) for the original
+  [x86css](https://github.com/rebane2001/x86css)
+- Jane Ori for the
+  [CPU Hack](https://dev.to/janeori/expert-css-the-cpu-hack-4ddj)
+- [emu8](https://github.com/nicknisi/emu8) for the reference 8086 emulator
 
 ## License
 
 GNU GPLv3
-
-_Originally Feb 2026 by rebane2001. Multi-write fork Apr 2026._

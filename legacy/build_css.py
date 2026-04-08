@@ -37,6 +37,36 @@ if args.data:
         embedded_data.append((addr, filepath, file_bytes))
         print(f"Embedding {filepath} ({len(file_bytes)} bytes) at 0x{addr:X}")
 
+# Auto-detect bios.bin next to this script
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+BIOS_SEG = 0xF000
+BIOS_ADDR = BIOS_SEG * 16  # 0xF0000
+BIOS_FILE = os.path.join(SCRIPT_DIR, "bios.bin")
+bios_loaded = False
+if os.path.exists(BIOS_FILE):
+    with open(BIOS_FILE, 'rb') as bf:
+        bios_bytes = bf.read()
+    # Only add if not already specified via --data
+    already_embedded = any(addr == BIOS_ADDR for addr, _, _ in embedded_data)
+    if not already_embedded:
+        embedded_data.append((BIOS_ADDR, BIOS_FILE, bios_bytes))
+        print(f"BIOS: {len(bios_bytes)} bytes at 0x{BIOS_ADDR:X}")
+    # Add himem region for BIOS if not already specified
+    if not args.himem or not any(int(h[0], 0) == BIOS_SEG for h in args.himem):
+        if args.himem is None:
+            args.himem = []
+        bios_himem_size = max(0x1000, ((len(bios_bytes) + 0xFFF) // 0x1000) * 0x1000)
+        args.himem.append((hex(BIOS_SEG), hex(bios_himem_size)))
+    bios_loaded = True
+
+# VGA text-mode memory at B800:0000 (linear 0xB8000)
+# 80x25 chars * 2 bytes (char + attr) = 4000 bytes, round up to 0x1000
+VGA_SEG = 0xB800
+if args.himem is None:
+    args.himem = []
+if not any(int(h[0], 0) == VGA_SEG for h in args.himem):
+    args.himem.append((hex(VGA_SEG), hex(0x1000)))
+
 epic_charset = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" + \
 ' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~' + \
 'X'*141
@@ -70,19 +100,19 @@ variables = [
 ]
 
 def createChosenMemoryInt(name,i,render,chosen):
-  return [f"{name}", f"if(style(--addrDestA:{i}):var(--addrValA1);"+ (f"style(--addrDestA:{i-1}) and style(--isWordWrite:1):var(--addrValA2);" if i > 0 else "") + f"style(--addrDestB:{i}):var(--addrValB);else:var(--__1{name}))", str(chosen), render];
+  return [f"{name}", f"if(style(--addrDestA:{i}):var(--addrValA1);"+ (f"style(--addrDestA:{i-1}) and style(--isWordWrite:1):var(--addrValA2);" if i > 0 else "") + f"style(--addrDestB:{i}):var(--addrValB);style(--addrDestC:{i}):var(--addrValC);else:var(--__1{name}))", str(chosen), render];
 def createEmptyInt(name,i,render):
-  return [f"{name}", f"if(style(--addrDestA:{i}):var(--addrValA);style(--addrDestB:{i}):var(--addrValB);else:var(--__1{name}))", "0", render];
+  return [f"{name}", f"if(style(--addrDestA:{i}):var(--addrValA);style(--addrDestB:{i}):var(--addrValB);style(--addrDestC:{i}):var(--addrValC);else:var(--__1{name}))", "0", render];
 def createSplitRegister(name,i,render):
   return [f"{name}", f"if(" +\
   (f"style(--__1IP:{0x2006}):var(--keyboard, 0);" if name == "AX" else "") +\
-  f"style(--addrDestA:{i}):var(--addrValA);style(--addrDestB:{i}):var(--addrValB);"
+  f"style(--addrDestA:{i}):var(--addrValA);style(--addrDestB:{i}):var(--addrValB);style(--addrDestC:{i}):var(--addrValC);"
   f"style(--addrDestA:{i-20}):calc(var(--addrValA) * 256 + --lowerBytes(var(--__1{name}), 8));"
   f"style(--addrDestB:{i-20}):calc(var(--addrValB) * 256 + --lowerBytes(var(--__1{name}), 8));"
+  f"style(--addrDestC:{i-20}):calc(var(--addrValC) * 256 + --lowerBytes(var(--__1{name}), 8));"
   f"style(--addrDestA:{i-30}):calc(round(down, var(--__1{name}) / 256) * 256 + --lowerBytes(var(--addrValA), 8));"
   f"style(--addrDestB:{i-30}):calc(round(down, var(--__1{name}) / 256) * 256 + --lowerBytes(var(--addrValB), 8));"
-  #f"style(--addrDestA:{i-30}):calc(--leftShift(--rightShift(var(--__1{name}), 8), 8) + --lowerBytes(var(--addrValA), 8));"
-  #f"style(--addrDestB:{i-30}):calc(--leftShift(--rightShift(var(--__1{name}), 8), 8) + --lowerBytes(var(--addrValB), 8));"
+  f"style(--addrDestC:{i-30}):calc(round(down, var(--__1{name}) / 256) * 256 + --lowerBytes(var(--addrValC), 8));"
   f"else:var(--__1{name}))", "0", render];
 """
 
@@ -119,31 +149,53 @@ variables.append(createSplitRegister(f"CX", -2, True))
 variables.append(createSplitRegister(f"DX", -3, True))
 variables.append(createSplitRegister(f"BX", -4, True))
 
-variables.append([f"SP", f"if(style(--addrDestA:-5):var(--addrValA);style(--addrDestB:-5):var(--addrValB);else:calc(var(--__1SP) + var(--moveStack)))", str(MEM_SIZE-0x8), True])
+variables.append([f"SP", f"if(style(--addrDestA:-5):var(--addrValA);style(--addrDestB:-5):var(--addrValB);style(--addrDestC:-5):var(--addrValC);else:calc(var(--__1SP) + var(--moveStack)))", str(MEM_SIZE-0x8), True])
 variables.append(createEmptyInt(f"BP", -6, True))
-variables.append([f"SI", f"if(style(--addrDestA:-7):var(--addrValA);style(--addrDestB:-7):var(--addrValB);else:calc(var(--__1SI) + var(--moveSI)))", "0", True])
-variables.append([f"DI", f"if(style(--addrDestA:-8):var(--addrValA);style(--addrDestB:-8):var(--addrValB);else:calc(var(--__1DI) + var(--moveDI)))", "0", True])
-#variables.append(createEmptyInt(f"SP", -8, True))
+variables.append([f"SI", f"if(style(--addrDestA:-7):var(--addrValA);style(--addrDestB:-7):var(--addrValB);style(--addrDestC:-7):var(--addrValC);else:calc(var(--__1SI) + var(--moveSI)))", "0", True])
+variables.append([f"DI", f"if(style(--addrDestA:-8):var(--addrValA);style(--addrDestB:-8):var(--addrValB);style(--addrDestC:-8):var(--addrValC);else:calc(var(--__1DI) + var(--moveDI)))", "0", True])
 
-variables.append([f"IP", f"if(style(--addrDestA:-9):var(--addrValA);style(--addrDestB:-9):var(--addrValB);style(--addrJump:-1):calc(var(--__1IP) + var(--instLen));else:var(--addrJump))", str(CODE_START), True])
+variables.append([f"IP", f"if(style(--addrDestA:-9):var(--addrValA);style(--addrDestB:-9):var(--addrValB);style(--addrDestC:-9):var(--addrValC);style(--addrJump:-1):calc(var(--__1IP) + var(--instLen));else:var(--addrJump))", str(CODE_START), True])
 
 variables.append(createEmptyInt(f"ES", -10, True))
-variables.append([f"CS", f"if(style(--addrDestA:-11):var(--addrValA);style(--addrDestB:-11):var(--addrValB);else:var(--jumpCS))", "0", True])
+variables.append([f"CS", f"if(style(--addrDestA:-11):var(--addrValA);style(--addrDestB:-11):var(--addrValB);style(--addrDestC:-11):var(--addrValC);else:var(--jumpCS))", "0", True])
 variables.append(createEmptyInt(f"SS", -12, True))
 variables.append(createEmptyInt(f"DS", -13, True))
 
-#variables.append(createEmptyInt(f"flags", -14, True))
-variables.append([f"flags", f"if(style(--addrDestA:-14):var(--addrValA);style(--addrDestB:-14):var(--addrValB);else:var(--newFlags))", "0", True])
+variables.append([f"flags", f"if(style(--addrDestA:-14):var(--addrValA);style(--addrDestB:-14):var(--addrValB);style(--addrDestC:-14):var(--addrValC);else:var(--newFlags))", "0", True])
 
-# did you know! i was originally planning on making this for moxie instead of x86
-#variables.append(createEmptyInt(f"fp", -1, True))
-#variables.append([f"sp", f"if(style(--addrDest:-2):var(--addrVal);else:var(--__1sp))", "5000", True])
+# File I/O state: multi-tick byte copy for INT 21h AH=3Fh (Read File)
+# Use addresses in high memory that won't conflict with program data.
+FILE_REMAIN_ADDR = 0xFFFF0
+FILE_POS_ADDR = 0xFFFF1
+variables.append(createEmptyInt("fileRemain", FILE_REMAIN_ADDR, True))
+variables.append(createEmptyInt("filePos", FILE_POS_ADDR, True))
 
 var_offset = len(variables)
 
+# IVT initialization: pre-populate interrupt vector table entries
+# Each IVT entry is 4 bytes at INT_NUM * 4: IP_lo, IP_hi, CS_lo, CS_hi
+ivt_bytes = {}
+if bios_loaded:
+    # Handler offsets within bios.bin (from bios.lst)
+    ivt_entries = {
+        0x10: 0x0000,  # INT 10h — Video Services
+        0x16: 0x0155,  # INT 16h — Keyboard
+        0x1A: 0x0190,  # INT 1Ah — Timer
+        0x20: 0x023D,  # INT 20h — Program Terminate
+        0x21: 0x01A9,  # INT 21h — DOS Services
+    }
+    for int_num, handler_offset in ivt_entries.items():
+        base = int_num * 4
+        ivt_bytes[base]     = handler_offset & 0xFF
+        ivt_bytes[base + 1] = (handler_offset >> 8) & 0xFF
+        ivt_bytes[base + 2] = BIOS_SEG & 0xFF
+        ivt_bytes[base + 3] = (BIOS_SEG >> 8) & 0xFF
+    print(f"IVT: {len(ivt_entries)} interrupt vectors initialized")
+
 for i in range(MEM_SIZE):
-  # PSP: addresses 0-255. Byte 0 = 0xCD (INT 20h), byte 128 = command line length (0 = empty)
-  if i == 0:
+  if i in ivt_bytes:
+    init_val = ivt_bytes[i]
+  elif i == 0:
     init_val = 0xCD
   elif i == 1:
     init_val = 0x20
@@ -226,24 +278,28 @@ if args.himem:
         size = int(size_str, 0)
         base_addr = seg * 16
         himem_ranges.append((base_addr, size))
-        # Check if any embedded data file overlaps with this himem region
-        # and pre-load matching data
+        # Pre-load from embedded data that overlaps this himem region
         himem_data = bytearray(size)
+        loaded = False
         for embed_base, embed_path, embed_bytes in embedded_data:
-            # If embedded data can serve as initial content for himem,
-            # copy the first 'size' bytes from the first embedded file
-            if len(embed_bytes) > 0:
-                copy_len = min(size, len(embed_bytes))
-                himem_data[:copy_len] = embed_bytes[:copy_len]
-                print(f"High memory: segment 0x{seg:04X} -> {base_addr}-{base_addr+size-1} ({size} bytes, pre-loaded {copy_len} from embedded data)")
-                break
-        else:
+            embed_end = embed_base + len(embed_bytes)
+            himem_end = base_addr + size
+            if embed_base < himem_end and embed_end > base_addr:
+                # Compute overlap
+                src_start = max(0, base_addr - embed_base)
+                dst_start = max(0, embed_base - base_addr)
+                copy_len = min(len(embed_bytes) - src_start, size - dst_start)
+                if copy_len > 0:
+                    himem_data[dst_start:dst_start+copy_len] = embed_bytes[src_start:src_start+copy_len]
+                    print(f"High memory: segment 0x{seg:04X} -> {base_addr}-{himem_end-1} ({size} bytes, pre-loaded {copy_len} from embedded data)")
+                    loaded = True
+                    break
+        if not loaded:
             print(f"High memory: segment 0x{seg:04X} -> addresses {base_addr}-{base_addr+size-1} ({size} bytes)")
         for i in range(size):
             addr = base_addr + i
             variables.append(createChosenMemoryInt(f"m{addr}", addr, True, himem_data[i]))
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 if args.html:
   with open(os.path.join(SCRIPT_DIR, "base_template.html"), "r") as f:
     TEMPL = f.read()
@@ -348,6 +404,9 @@ style(--at:-31):var(--AL);
 style(--at:-32):var(--CL);
 style(--at:-33):var(--DL);
 style(--at:-34):var(--BL);"""
+    # File I/O state readMem entries
+    readmem_1 += f"\nstyle(--at:{FILE_REMAIN_ADDR}):var(--__1fileRemain);"
+    readmem_1 += f"style(--at:{FILE_POS_ADDR}):var(--__1filePos);"
     #readmem_1 += ";" + ";".join(f"style(--at:{-3-i}):var(--__1r{i})" for i in range(14))
     readmem_1 += ";".join(f"style(--at:{i}):var(--__1m{i})" for i in range(MEM_SIZE))
     readmem_1 += ";" + ";".join(f"style(--at:{i}):var(--__1m{i})" for i in range(EXTERNAL_FUNCTIONS_START,EXTERNAL_FUNCTIONS_END))
@@ -454,4 +513,7 @@ style(--at:-34):var(--BL);"""
 .replace("SCREEN_CC", screen_cc)\
 .replace("SCREEN_RAM_POS", str(SCREEN_RAM_POS))\
 .replace("FILE_SIZE_DX", str(sum(len(fb) for _,_,fb in embedded_data) >> 16))\
-.replace("FILE_SIZE_AX", str(sum(len(fb) for _,_,fb in embedded_data) & 0xFFFF)));
+.replace("FILE_SIZE_AX", str(sum(len(fb) for _,_,fb in embedded_data) & 0xFFFF))\
+.replace("FILE_DATA_BASE", str(embedded_data[0][0] if embedded_data else 0))\
+.replace("FILE_REMAIN_ADDR", str(FILE_REMAIN_ADDR))\
+.replace("FILE_POS_ADDR", str(FILE_POS_ADDR)));
