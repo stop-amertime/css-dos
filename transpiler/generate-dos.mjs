@@ -16,6 +16,7 @@ import { resolve, dirname, extname, basename } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import { emitCSS } from './src/emit-css.mjs';
+import { dosMemoryZones } from './src/memory.mjs';
 import { createWriteStream, statSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -45,7 +46,7 @@ if (args.length === 0) {
 let inputFile = null;
 let outputFile = null;
 let htmlMode = false;
-let memSize = 0x100000; // 1MB — full 8086 address space
+let memOverride = null;
 const dataFiles = []; // [{name, path}] — companion files to include on disk
 
 for (let i = 0; i < args.length; i++) {
@@ -54,7 +55,7 @@ for (let i = 0; i < args.length; i++) {
   } else if (args[i] === '--html') {
     htmlMode = true;
   } else if (args[i] === '--mem' && i + 1 < args.length) {
-    memSize = parseInt(args[++i]);
+    memOverride = parseInt(args[++i]);
   } else if (args[i] === '--data' && i + 2 < args.length) {
     const name = args[++i];
     const path = args[++i];
@@ -144,18 +145,17 @@ if (!outputFile) {
 // --- Step 6: Generate CSS ---
 console.log('Generating CSS...');
 
-// The transpiler needs:
-// - programBytes at programOffset (kernel at 0x600)
-// - biosBytes at 0xF0000
-// - embeddedData: disk image at 0xD0000
-// - Initial IP = bios_init offset (within BIOS segment)
-// - Initial CS = 0xF000
-//
-// We repurpose the existing transpiler infrastructure:
-// - programBytes = kernelBytes, programOffset = 0x600
-// - biosBytes = biosBytes (loaded at 0xF0000)
-// - embeddedData includes the disk image
-// - We need to set CS and IP differently
+// DOS needs more conventional memory than a simple .COM — the kernel uses
+// heap, FCBs, MCBs etc. Default to 64KB (0x10000) which covers most DOS programs.
+const defaultMem = 0x10000;
+const memBytes = memOverride != null ? memOverride : defaultMem;
+
+const embData = [{ addr: DISK_LINEAR, bytes: diskBytes }];
+const memoryZones = dosMemoryZones(kernelBytes, KERNEL_LINEAR, memBytes, embData);
+
+const totalAddresses = memoryZones.reduce((sum, [s, e]) => sum + (e - s), 0);
+console.log(`Memory zones: ${memoryZones.map(([s,e]) => `0x${s.toString(16)}-0x${e.toString(16)} (${e-s})`).join(', ')}`);
+console.log(`Total addresses: ${totalAddresses} (${(totalAddresses / 1024).toFixed(1)} KB)`);
 
 const outPath = resolve(outputFile);
 const ws = createWriteStream(outPath, { encoding: 'utf-8' });
@@ -163,13 +163,10 @@ const ws = createWriteStream(outPath, { encoding: 'utf-8' });
 emitCSS({
   programBytes: kernelBytes,
   biosBytes,
-  memSize,
-  embeddedData: [
-    { addr: DISK_LINEAR, bytes: diskBytes },
-  ],
+  memoryZones,
+  embeddedData: embData,
   htmlMode,
   programOffset: KERNEL_LINEAR,  // kernel loaded at 0x600
-  // DOS boot: CS=F000, IP=bios_init offset
   initialCS: 0xF000,
   initialIP: biosInitOffset,
 }, ws);

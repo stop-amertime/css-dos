@@ -9,7 +9,7 @@ import {
   emitStoreKeyframe, emitExecuteKeyframe, emitClockKeyframes,
   emitClockAndCpuBase, emitDebugDisplay, emitHTMLHeader, emitHTMLFooter,
 } from './template.mjs';
-import { emitWriteSlotProperties, buildInitialMemory } from './memory.mjs';
+import { emitWriteSlotProperties, buildInitialMemory, buildAddressSet } from './memory.mjs';
 import { emitFlagFunctions } from './patterns/flags.mjs';
 
 // Opcode emitters
@@ -44,13 +44,12 @@ class DispatchTable {
       throw new Error(`Duplicate dispatch entry: ${reg} opcode 0x${opcode.toString(16)} — existing: ${regMap.get(opcode).comment}, new: ${comment}`);
     }
     // For flags: ALU flag functions build flags from scratch but must preserve
-    // IF/DF/TF (bits 8-10) from the previous tick. Instructions that DO modify
+    // TF/IF/DF (bits 8-10) from the previous tick. Instructions that DO modify
     // these bits (STI/CLI/CLD/STD/INT/IRET/POPF) already set them explicitly.
-    // We detect "builds from scratch" by checking if the expression calls a
-    // flags function (--addFlags, --subFlags, etc.) and wrap it to preserve bits 8-10.
-    if (reg === 'flags' && /--(?:add|sub|and|or|xor|adc|sbb|inc|dec)Flags/.test(expr)) {
-      expr = `calc(${expr} + --and(var(--__1flags), 1792))`;
-    }
+    // AF (bit 4) is computed by the flag functions themselves for ADD/SUB/etc.
+    // TF|IF|DF (bits 8-10) preservation is handled at each call site or inside the
+    // flag functions themselves (inc/dec). No automatic wrapper — it breaks mixed
+    // dispatches that have both flag-computing and passthrough branches.
     regMap.set(opcode, { expr, comment });
   }
 
@@ -91,32 +90,33 @@ class DispatchTable {
       return `  --${reg}: ${defaultExpr};`;
     }
 
-    const lines = [];
-
-    // For IP, wrap dispatch in calc(... + prefixLen) so every instruction
-    // automatically advances past any prefix bytes.
+    // Build the normal instruction dispatch
     const wrapIP = (reg === 'IP');
-
-    if (wrapIP) {
-      lines.push(`  --${reg}: calc(if(`);
-    } else {
-      lines.push(`  --${reg}: if(`);
-    }
-
-    // Sort by opcode for readability
+    const dispatchLines = [];
     const sorted = [...entries.entries()].sort(([a], [b]) => a - b);
     for (const [opcode, { expr, comment }] of sorted) {
-      const hex = '0x' + opcode.toString(16).toUpperCase().padStart(2, '0');
       const commentStr = comment ? ` /* ${comment} */` : '';
-      lines.push(`    style(--opcode: ${opcode}): ${expr};${commentStr}`);
+      dispatchLines.push(`    style(--opcode: ${opcode}): ${expr};${commentStr}`);
     }
 
+    let normalExpr;
     if (wrapIP) {
-      lines.push(`  else: ${defaultExpr}) + var(--prefixLen));`);
+      normalExpr = `calc(if(\n${dispatchLines.join('\n')}\n  else: ${defaultExpr}) + var(--prefixLen))`;
     } else {
-      lines.push(`  else: ${defaultExpr});`);
+      normalExpr = `if(\n${dispatchLines.join('\n')}\n  else: ${defaultExpr})`;
     }
-    return lines.join('\n');
+
+    // TF (Trap Flag) override: when previous FLAGS had TF=1, fire INT 1 instead
+    // of the normal instruction. INT 1: push FLAGS/CS/IP, clear TF+IF, jump to IVT[1].
+    const TF_OVERRIDES = {
+      'IP':    'var(--_tfIP)',
+      'CS':    'var(--_tfCS)',
+      'SP':    'calc(var(--__1SP) - 6)',
+      'flags': '--and(var(--__1flags), 64767)',  // & 0xFCFF = clear TF+IF
+    };
+
+    const tfExpr = TF_OVERRIDES[reg] || `var(--__1${reg})`;
+    return `  --${reg}: if(style(--_tf: 1): ${tfExpr}; else: ${normalExpr});`;
   }
 
   /**
@@ -137,27 +137,49 @@ class DispatchTable {
       }
     }
 
+    // TF trap INT 1 memory writes: push FLAGS/CS/IP to stack
+    const ssBase = 'calc(var(--__1SS) * 16)';
+    const tfAddr = [
+      `calc(${ssBase} + var(--__1SP) - 2)`,   // slot 0: FLAGS lo
+      `calc(${ssBase} + var(--__1SP) - 1)`,   // slot 1: FLAGS hi
+      `calc(${ssBase} + var(--__1SP) - 4)`,   // slot 2: CS lo
+      `calc(${ssBase} + var(--__1SP) - 3)`,   // slot 3: CS hi
+      `calc(${ssBase} + var(--__1SP) - 6)`,   // slot 4: IP lo
+      `calc(${ssBase} + var(--__1SP) - 5)`,   // slot 5: IP hi
+    ];
+    // Push FLAGS as-is (including TF) — matches real 8086 behavior
+    const tfFlagsPush = `var(--__1flags)`;
+    const tfVal = [
+      `--lowerBytes(${tfFlagsPush}, 8)`,       // FLAGS lo (TF cleared)
+      `--rightShift(${tfFlagsPush}, 8)`,        // FLAGS hi (TF cleared)
+      `--lowerBytes(var(--__1CS), 8)`,          // CS lo
+      `--rightShift(var(--__1CS), 8)`,          // CS hi
+      `--lowerBytes(var(--__1IP), 8)`,          // IP lo (current IP, not IP+2)
+      `--rightShift(var(--__1IP), 8)`,          // IP hi
+    ];
+
     const lines = [];
     for (let slot = 0; slot < NUM_SLOTS; slot++) {
       if (slots[slot].length === 0) {
-        lines.push(`  --memAddr${slot}: -1;`);
-        lines.push(`  --memVal${slot}: 0;`);
+        // Even empty slots need TF override
+        lines.push(`  --memAddr${slot}: if(style(--_tf: 1): ${tfAddr[slot]}; else: -1);`);
+        lines.push(`  --memVal${slot}: if(style(--_tf: 1): ${tfVal[slot]}; else: 0);`);
         continue;
       }
 
-      // Address dispatch
+      // Address dispatch with TF override
       lines.push(`  --memAddr${slot}: if(`);
+      lines.push(`    style(--_tf: 1): ${tfAddr[slot]};`);
       for (const { opcode, addrExpr, comment } of slots[slot]) {
-        const hex = '0x' + opcode.toString(16).toUpperCase().padStart(2, '0');
-        lines.push(`    style(--opcode: ${opcode}): ${addrExpr}; /* ${comment || hex} */`);
+        lines.push(`    style(--opcode: ${opcode}): ${addrExpr}; /* ${comment || ''} */`);
       }
       lines.push(`  else: -1);`);
 
-      // Value dispatch
+      // Value dispatch with TF override
       lines.push(`  --memVal${slot}: if(`);
+      lines.push(`    style(--_tf: 1): ${tfVal[slot]};`);
       for (const { opcode, valExpr, comment } of slots[slot]) {
-        const hex = '0x' + opcode.toString(16).toUpperCase().padStart(2, '0');
-        lines.push(`    style(--opcode: ${opcode}): ${valExpr}; /* ${comment || hex} */`);
+        lines.push(`    style(--opcode: ${opcode}): ${valExpr}; /* ${comment || ''} */`);
       }
       lines.push(`  else: 0);`);
     }
@@ -169,13 +191,29 @@ class DispatchTable {
 /**
  * Main CSS generation entry point.
  * Writes to a writable stream to avoid V8 string size limits with 1MB memory.
+ *
+ * opts.memoryZones: array of [start, end) ranges specifying which addresses to emit.
+ * opts.memSize: (legacy) if memoryZones is not provided, emits 0..memSize contiguously.
  */
 export function emitCSS(opts, writeStream) {
-  const { programBytes, biosBytes, memSize, embeddedData, htmlMode, programOffset,
+  const { programBytes, biosBytes, memoryZones, embeddedData, htmlMode, programOffset,
           initialCS, initialIP } = opts;
 
-  const memOpts = { memSize, programBytes, biosBytes, embeddedData, programOffset };
-  const templateOpts = { memSize, programOffset, initialCS, initialIP };
+  // Build sorted address array from zones (or fall back to legacy contiguous range)
+  let addresses;
+  if (memoryZones) {
+    addresses = buildAddressSet(memoryZones);
+  } else {
+    const memSize = opts.memSize || 0x10000;
+    addresses = [];
+    for (let i = 0; i < memSize; i++) addresses.push(i);
+  }
+
+  const memOpts = { addresses, programBytes, biosBytes, embeddedData, programOffset };
+  // templateOpts.memSize is used for SP init — derive from the top of the lowest zone
+  // (conventional memory area, which is always zones[0] by convention)
+  const convEnd = memoryZones ? memoryZones[0][1] : (opts.memSize || 0x10000);
+  const templateOpts = { memSize: convEnd, programOffset, initialCS, initialIP };
 
   // Build dispatch table
   const dispatch = new DispatchTable();
@@ -265,9 +303,9 @@ export function emitCSS(opts, writeStream) {
   // =====================================================================
 
   w('/* ===== PROPERTY DECLARATIONS ===== */');
-  w('/* Below: ~1 million @property declarations (one per memory byte),\n' +
+  w(`/* Below: ${addresses.length} @property declarations (one per memory byte),\n` +
     '   followed by memory read/write rules and animation keyframes.\n' +
-    '   The CPU logic above is ~0.1% of this file. The rest is memory. */\n');
+    '   The CPU logic above is a small fraction of this file. The rest is memory. */\n');
   w(emitPropertyDecls(templateOpts));
   // Memory properties — emit in chunks to avoid huge strings
   emitMemoryPropertiesStreaming(memOpts, writeStream);
@@ -318,24 +356,26 @@ export function emitCSS(opts, writeStream) {
 const CHUNK = 8192; // lines per write() call
 
 function emitMemoryPropertiesStreaming(opts, ws) {
-  const { memSize } = opts;
+  const { addresses } = opts;
   const initMem = buildInitialMemory(opts);
   let buf = '';
-  for (let addr = 0; addr < memSize; addr++) {
+  let count = 0;
+  for (const addr of addresses) {
     const init = initMem.get(addr) || 0;
     buf += `@property --m${addr} {\n  syntax: '<integer>';\n  inherits: true;\n  initial-value: ${init};\n}\n\n`;
-    if (addr % CHUNK === CHUNK - 1) { ws.write(buf); buf = ''; }
+    if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
   }
   if (buf) ws.write(buf);
 }
 
 function emitReadMemStreaming(opts, ws) {
-  const { memSize, biosBytes } = opts;
+  const { addresses, biosBytes } = opts;
   ws.write(`@function --readMem(--at <integer>) returns <integer> {\n  result: if(\n`);
   let buf = '';
+  let count = 0;
   // Writable memory region
   // Addresses 0x0500-0x0501 (1280-1281) bridge to --keyboard for BIOS INT 16h
-  for (let addr = 0; addr < memSize; addr++) {
+  for (const addr of addresses) {
     if (addr === 0x0500) {
       buf += `    style(--at: 1280): --lowerBytes(var(--__1keyboard), 8);\n`;
     } else if (addr === 0x0501) {
@@ -343,9 +383,9 @@ function emitReadMemStreaming(opts, ws) {
     } else {
       buf += `    style(--at: ${addr}): var(--__1m${addr});\n`;
     }
-    if (addr % CHUNK === CHUNK - 1) { ws.write(buf); buf = ''; }
+    if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
   }
-  // BIOS region (read-only constants) — always included regardless of memSize
+  // BIOS region (read-only constants) — always included
   if (biosBytes && biosBytes.length > 0) {
     for (let i = 0; i < biosBytes.length; i++) {
       if (biosBytes[i] !== 0) {
@@ -359,21 +399,23 @@ function emitReadMemStreaming(opts, ws) {
 }
 
 function emitMemoryBufferReadsStreaming(opts, ws) {
-  const { memSize } = opts;
+  const { addresses } = opts;
   const initMem = buildInitialMemory(opts);
   let buf = '';
-  for (let addr = 0; addr < memSize; addr++) {
+  let count = 0;
+  for (const addr of addresses) {
     const init = initMem.get(addr) || 0;
     buf += `  --__1m${addr}: var(--__2m${addr}, ${init});\n`;
-    if (addr % CHUNK === CHUNK - 1) { ws.write(buf); buf = ''; }
+    if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
   }
   if (buf) ws.write(buf);
 }
 
 function emitMemoryWriteRulesStreaming(opts, ws) {
-  const { memSize } = opts;
+  const { addresses } = opts;
   let buf = '';
-  for (let addr = 0; addr < memSize; addr++) {
+  let count = 0;
+  for (const addr of addresses) {
     buf += `  --m${addr}: if(
     style(--memAddr0: ${addr}): var(--memVal0);
     style(--memAddr1: ${addr}): var(--memVal1);
@@ -382,29 +424,31 @@ function emitMemoryWriteRulesStreaming(opts, ws) {
     style(--memAddr4: ${addr}): var(--memVal4);
     style(--memAddr5: ${addr}): var(--memVal5);
   else: var(--__1m${addr}));\n`;
-    if (addr % CHUNK === CHUNK - 1) { ws.write(buf); buf = ''; }
+    if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
   }
   if (buf) ws.write(buf);
 }
 
 function emitMemoryStoreKeyframeStreaming(opts, ws) {
-  const { memSize } = opts;
+  const { addresses } = opts;
   const initMem = buildInitialMemory(opts);
   let buf = '';
-  for (let addr = 0; addr < memSize; addr++) {
+  let count = 0;
+  for (const addr of addresses) {
     const init = initMem.get(addr) || 0;
     buf += `    --__2m${addr}: var(--__0m${addr}, ${init});\n`;
-    if (addr % CHUNK === CHUNK - 1) { ws.write(buf); buf = ''; }
+    if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
   }
   if (buf) ws.write(buf);
 }
 
 function emitMemoryExecuteKeyframeStreaming(opts, ws) {
-  const { memSize } = opts;
+  const { addresses } = opts;
   let buf = '';
-  for (let addr = 0; addr < memSize; addr++) {
+  let count = 0;
+  for (const addr of addresses) {
     buf += `    --__0m${addr}: var(--m${addr});\n`;
-    if (addr % CHUNK === CHUNK - 1) { ws.write(buf); buf = ''; }
+    if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
   }
   if (buf) ws.write(buf);
 }

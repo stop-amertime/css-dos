@@ -1,35 +1,105 @@
 // Memory infrastructure: --readMem dispatch, per-byte write properties,
 // memory layout with embedded program binary, BIOS, and IVT.
+//
+// Memory is sparse: only addresses in the provided address set are emitted.
+// Reads to unmapped addresses return 0; writes are silently dropped.
 
 const BIOS_LINEAR = 0xF0000; // F000:0000
+const BIOS_SEG = 0xF000;
+
+// Standard IVT entries for bios.asm (must match handler offsets in bios.lst / ref-emu.mjs)
+const BIOS_IVT_HANDLERS = {
+  0x10: 0x0000,  // INT 10h - Video services
+  0x16: 0x0155,  // INT 16h - Keyboard
+  0x1A: 0x0190,  // INT 1Ah - Timer
+  0x20: 0x023D,  // INT 20h - Program terminate
+  0x21: 0x01A9,  // INT 21h - DOS services
+};
+
+/**
+ * Build IVT (Interrupt Vector Table) bytes for the standard BIOS handlers.
+ * Returns {addr, bytes} suitable for embeddedData.
+ * Each IVT entry is 4 bytes: IP_lo, IP_hi, CS_lo, CS_hi.
+ */
+export function buildIVTData() {
+  const ivt = new Array(0x400).fill(0);
+  for (const [intNum, handlerOff] of Object.entries(BIOS_IVT_HANDLERS)) {
+    const addr = parseInt(intNum) * 4;
+    ivt[addr]     = handlerOff & 0xFF;         // IP low
+    ivt[addr + 1] = (handlerOff >> 8) & 0xFF;  // IP high
+    ivt[addr + 2] = BIOS_SEG & 0xFF;           // CS low
+    ivt[addr + 3] = (BIOS_SEG >> 8) & 0xFF;    // CS high
+  }
+  return { addr: 0, bytes: ivt };
+}
+
+/**
+ * Build a sorted array of addresses to emit from a list of [start, end) ranges.
+ * Deduplicates and sorts ascending.
+ */
+export function buildAddressSet(zones) {
+  const set = new Set();
+  for (const [start, end] of zones) {
+    for (let addr = start; addr < end; addr++) {
+      set.add(addr);
+    }
+  }
+  return [...set].sort((a, b) => a - b);
+}
+
+/**
+ * Standard memory zones for .COM programs.
+ * --mem controls the conventional memory size (program + stack area).
+ */
+export function comMemoryZones(programBytes, programOffset, memBytes) {
+  // memBytes = size of conventional memory area starting at 0
+  // (includes IVT + BDA + program + stack)
+  return [
+    [0x0000, memBytes],                // IVT + BDA + program + stack (contiguous)
+    [0xB8000, 0xB8FA0],               // VGA text mode (80x25x2 = 4000 bytes)
+  ];
+}
+
+/**
+ * Standard memory zones for DOS boot mode.
+ * --mem controls the conventional memory area size.
+ */
+export function dosMemoryZones(programBytes, programOffset, memBytes, embeddedData) {
+  const zones = [
+    [0x0000, memBytes],                // IVT + BDA + kernel + conventional memory
+    [0xB8000, 0xB8FA0],               // VGA text mode
+  ];
+  // Include embedded data regions (e.g., disk image at 0xD0000)
+  for (const { addr, bytes } of (embeddedData || [])) {
+    zones.push([addr, addr + bytes.length]);
+  }
+  return zones;
+}
 
 /**
  * Emit the --readMem @function.
- * All memory bytes are writable CSS properties, read from var(--__1mN).
+ * Only addresses in the address set get writable property branches.
+ * BIOS region is always included as read-only constants.
  */
 export function emitReadMem(opts) {
-  const { memSize, biosBytes } = opts;
+  const { addresses, biosBytes } = opts;
 
   const lines = [];
   lines.push(`@function --readMem(--at <integer>) returns <integer> {`);
   lines.push(`  result: if(`);
 
   // Writable memory region: read from --__1mN (previous tick's value)
-  // Addresses 0x0500-0x0501 (1280-1281) are bridged to --keyboard for BIOS INT 16h:
-  //   0x0500 = low byte of keyboard (ASCII), 0x0501 = high byte (scancode)
-  for (let addr = 0; addr < memSize; addr++) {
+  for (const addr of addresses) {
     if (addr === 0x0500) {
-      // Keyboard low byte: ASCII code = keyboard & 0xFF
       lines.push(`    style(--at: 1280): --lowerBytes(var(--__1keyboard), 8);`);
     } else if (addr === 0x0501) {
-      // Keyboard high byte: scancode = keyboard >> 8
       lines.push(`    style(--at: 1281): --rightShift(var(--__1keyboard), 8);`);
     } else {
       lines.push(`    style(--at: ${addr}): var(--__1m${addr});`);
     }
   }
 
-  // BIOS region (read-only constants) — always included regardless of memSize
+  // BIOS region (read-only constants) — always included
   if (biosBytes && biosBytes.length > 0) {
     for (let i = 0; i < biosBytes.length; i++) {
       if (biosBytes[i] !== 0) {
@@ -46,25 +116,26 @@ export function emitReadMem(opts) {
 /**
  * Build the initial memory image for all writable bytes.
  * Returns a Map<address, byte> for non-zero initial values.
+ * Only considers addresses in the address set.
  */
 export function buildInitialMemory(opts) {
-  const { memSize, programBytes, programOffset, biosBytes, embeddedData } = opts;
+  const { addresses, programBytes, programOffset, biosBytes, embeddedData } = opts;
+  const addrSet = new Set(addresses);
   const initMem = new Map();
-
-  // IVT is initialized at runtime by bios-dos.asm — not pre-populated here.
 
   // Program binary
   for (let i = 0; i < programBytes.length; i++) {
     const addr = programOffset + i;
-    if (addr < memSize && programBytes[i] !== 0) {
+    if (addrSet.has(addr) && programBytes[i] !== 0) {
       initMem.set(addr, programBytes[i]);
     }
   }
 
-  // BIOS at F000:0000 (linear 0xF0000)
+  // BIOS at F000:0000 — only if those addresses are in the writable set
+  // (usually they're not — BIOS is read-only constants in readMem)
   for (let i = 0; i < biosBytes.length; i++) {
     const addr = BIOS_LINEAR + i;
-    if (addr < memSize && biosBytes[i] !== 0) {
+    if (addrSet.has(addr) && biosBytes[i] !== 0) {
       initMem.set(addr, biosBytes[i]);
     }
   }
@@ -73,7 +144,7 @@ export function buildInitialMemory(opts) {
   for (const { addr: base, bytes } of (embeddedData || [])) {
     for (let i = 0; i < bytes.length; i++) {
       const addr = base + i;
-      if (addr < memSize && bytes[i] !== 0) {
+      if (addrSet.has(addr) && bytes[i] !== 0) {
         initMem.set(addr, bytes[i]);
       }
     }
@@ -83,14 +154,14 @@ export function buildInitialMemory(opts) {
 }
 
 /**
- * Emit @property declarations and write rules for writable memory bytes.
+ * Emit @property declarations for writable memory bytes.
  */
 export function emitMemoryProperties(opts) {
-  const { memSize } = opts;
+  const { addresses } = opts;
   const initMem = buildInitialMemory(opts);
   const lines = [];
 
-  for (let addr = 0; addr < memSize; addr++) {
+  for (const addr of addresses) {
     const init = initMem.get(addr) || 0;
     lines.push(`@property --m${addr} {
   syntax: '<integer>';
@@ -107,9 +178,9 @@ export function emitMemoryProperties(opts) {
  * Each byte checks all 6 memory write slots (INT needs 6: 3 word pushes).
  */
 export function emitMemoryWriteRules(opts) {
-  const { memSize } = opts;
+  const { addresses } = opts;
   const lines = [];
-  for (let addr = 0; addr < memSize; addr++) {
+  for (const addr of addresses) {
     lines.push(`  --m${addr}: if(
     style(--memAddr0: ${addr}): var(--memVal0);
     style(--memAddr1: ${addr}): var(--memVal1);
@@ -126,10 +197,10 @@ export function emitMemoryWriteRules(opts) {
  * Emit buffer reads for memory bytes (--__1mN: var(--__2mN, init))
  */
 export function emitMemoryBufferReads(opts) {
-  const { memSize } = opts;
+  const { addresses } = opts;
   const initMem = buildInitialMemory(opts);
   const lines = [];
-  for (let addr = 0; addr < memSize; addr++) {
+  for (const addr of addresses) {
     const init = initMem.get(addr) || 0;
     lines.push(`  --__1m${addr}: var(--__2m${addr}, ${init});`);
   }
@@ -140,10 +211,10 @@ export function emitMemoryBufferReads(opts) {
  * Emit store keyframe entries for memory bytes (--__2mN: var(--__0mN, init))
  */
 export function emitMemoryStoreKeyframe(opts) {
-  const { memSize } = opts;
+  const { addresses } = opts;
   const initMem = buildInitialMemory(opts);
   const lines = [];
-  for (let addr = 0; addr < memSize; addr++) {
+  for (const addr of addresses) {
     const init = initMem.get(addr) || 0;
     lines.push(`    --__2m${addr}: var(--__0m${addr}, ${init});`);
   }
@@ -154,9 +225,9 @@ export function emitMemoryStoreKeyframe(opts) {
  * Emit execute keyframe entries for memory bytes (--__0mN: var(--mN))
  */
 export function emitMemoryExecuteKeyframe(opts) {
-  const { memSize } = opts;
+  const { addresses } = opts;
   const lines = [];
-  for (let addr = 0; addr < memSize; addr++) {
+  for (const addr of addresses) {
     lines.push(`    --__0m${addr}: var(--m${addr});`);
   }
   return lines.join('\n');
