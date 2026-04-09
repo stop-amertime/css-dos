@@ -303,7 +303,7 @@ export function emitMOVS(dispatch) {
 export function emitCMPS(dispatch) {
   // CMPSB: flags = sub(mem[DS:SI], mem[ES:DI])
   dispatch.addEntry('flags', 0xA6,
-    repGuardReg(`--subFlags8(var(--_strSrcByte), var(--_strDstByte))`, `var(--__1flags)`),
+    repGuardReg(`calc(--subFlags8(var(--_strSrcByte), var(--_strDstByte)) + --and(var(--__1flags), 1792))`, `var(--__1flags)`),
     `CMPSB flags`);
   dispatch.addEntry('SI', 0xA6,
     repGuardReg(`--lowerBytes(calc(var(--__1SI) + 1 - --bit(var(--__1flags), 10) * 2), 16)`, `var(--__1SI)`),
@@ -316,7 +316,7 @@ export function emitCMPS(dispatch) {
 
   // CMPSW: compare words
   dispatch.addEntry('flags', 0xA7,
-    repGuardReg(`--subFlags16(calc(var(--_strSrcByte) + var(--_strSrcHiByte) * 256), calc(var(--_strDstByte) + var(--_strDstHiByte) * 256))`, `var(--__1flags)`),
+    repGuardReg(`calc(--subFlags16(calc(var(--_strSrcByte) + var(--_strSrcHiByte) * 256), calc(var(--_strDstByte) + var(--_strDstHiByte) * 256)) + --and(var(--__1flags), 1792))`, `var(--__1flags)`),
     `CMPSW flags`);
   dispatch.addEntry('SI', 0xA7,
     repGuardReg(`--lowerBytes(calc(var(--__1SI) + 2 - --bit(var(--__1flags), 10) * 4), 16)`, `var(--__1SI)`),
@@ -334,7 +334,7 @@ export function emitCMPS(dispatch) {
  */
 export function emitSCAS(dispatch) {
   dispatch.addEntry('flags', 0xAE,
-    repGuardReg(`--subFlags8(var(--AL), var(--_strDstByte))`, `var(--__1flags)`),
+    repGuardReg(`calc(--subFlags8(var(--AL), var(--_strDstByte)) + --and(var(--__1flags), 1792))`, `var(--__1flags)`),
     `SCASB flags`);
   dispatch.addEntry('DI', 0xAE,
     repGuardReg(`--lowerBytes(calc(var(--__1DI) + 1 - --bit(var(--__1flags), 10) * 2), 16)`, `var(--__1DI)`),
@@ -343,7 +343,7 @@ export function emitSCAS(dispatch) {
   dispatch.addEntry('IP', 0xAE, repCondIP(), `SCASB`);
 
   dispatch.addEntry('flags', 0xAF,
-    repGuardReg(`--subFlags16(var(--__1AX), --read2(calc(var(--__1ES) * 16 + var(--__1DI))))`, `var(--__1flags)`),
+    repGuardReg(`calc(--subFlags16(var(--__1AX), --read2(calc(var(--__1ES) * 16 + var(--__1DI)))) + --and(var(--__1flags), 1792))`, `var(--__1flags)`),
     `SCASW flags`);
   dispatch.addEntry('DI', 0xAF,
     repGuardReg(`--lowerBytes(calc(var(--__1DI) + 2 - --bit(var(--__1flags), 10) * 4), 16)`, `var(--__1DI)`),
@@ -397,6 +397,12 @@ export function emitXCHG_RM(dispatch) {
   // 0x86: XCHG reg8, r/m8
   for (const { reg: regName, lowIdx, highIdx } of SPLIT_REGS) {
     const branches = [];
+    // Special case: both reg and rm select halves of the SAME register (e.g., XCHG AL,AH)
+    // Both halves must change simultaneously — a full byte swap.
+    // XCHG low,high (reg=low,rm=high): new_low=rmVal8(=high), new_high=regVal8(=low)
+    branches.push(`style(--mod: 3) and style(--reg: ${lowIdx}) and style(--rm: ${highIdx}): calc(var(--rmVal8) + var(--regVal8) * 256)`);
+    // XCHG high,low (reg=high,rm=low): new_low=regVal8(=high), new_high=rmVal8(=low)
+    branches.push(`style(--mod: 3) and style(--reg: ${highIdx}) and style(--rm: ${lowIdx}): calc(var(--regVal8) + var(--rmVal8) * 256)`);
     // reg field selects this register's low byte
     branches.push(`style(--reg: ${lowIdx}): --mergelow(var(--__1${regName}), var(--rmVal8))`);
     // reg field selects this register's high byte
@@ -672,7 +678,7 @@ export function emitBCD(dispatch) {
   // Flags from new AL. mod() is a CSS math function (not a CSS @function), so it is
   // safe to pass inline as the argument to --logicFlags8.
   dispatch.addEntry('flags', 0xD4,
-    `--logicFlags8(mod(var(--AL), max(1, var(--q1))))`,
+    `calc(--logicFlags8(mod(var(--AL), max(1, var(--q1)))) + --and(var(--__1flags), 1808))`,
     `AAM flags`);
   dispatch.addEntry('IP', 0xD4, `calc(var(--__1IP) + 2)`, `AAM`);
 
@@ -684,7 +690,7 @@ export function emitBCD(dispatch) {
     `AAD`);
   // Flags from new AL (same mod expression — pure CSS math, safe as argument).
   dispatch.addEntry('flags', 0xD5,
-    `--logicFlags8(mod(calc(var(--AH) * var(--q1) + var(--AL)), 256))`,
+    `calc(--logicFlags8(mod(calc(var(--AH) * var(--q1) + var(--AL)), 256)) + --and(var(--__1flags), 1808))`,
     `AAD flags`);
   dispatch.addEntry('IP', 0xD5, `calc(var(--__1IP) + 2)`, `AAD`);
 
@@ -711,7 +717,7 @@ export function emitBCD(dispatch) {
     const af = `mod(round(down, var(--__1flags) / 16), 2)`;
     const adj = `min(1, calc(${nibGt9} + ${af}))`;
     const newAL = `mod(calc(var(--AL) + ${adj} * 6), 16)`;
-    return `calc(--logicFlags8(${newAL}) + ${adj} + ${adj} * 16)`;
+    return `calc(--logicFlags8(${newAL}) + ${adj} + ${adj} * 16 + --and(var(--__1flags), 1792))`;
   })(), `AAA flags`);
   dispatch.addEntry('IP', 0x37, `calc(var(--__1IP) + 1)`, `AAA`);
 
@@ -731,7 +737,7 @@ export function emitBCD(dispatch) {
     const af = `mod(round(down, var(--__1flags) / 16), 2)`;
     const adj = `min(1, calc(${nibGt9} + ${af}))`;
     const newAL = `mod(calc(var(--AL) - ${adj} * 6 + 16), 16)`;
-    return `calc(--logicFlags8(${newAL}) + ${adj} + ${adj} * 16)`;
+    return `calc(--logicFlags8(${newAL}) + ${adj} + ${adj} * 16 + --and(var(--__1flags), 1792))`;
   })(), `AAS flags`);
   dispatch.addEntry('IP', 0x3F, `calc(var(--__1IP) + 1)`, `AAS`);
 
@@ -770,7 +776,7 @@ export function emitBCD(dispatch) {
     const adj2 = `calc(${cond2} * 96)`;
 
     const newAL = `mod(calc(${oldAL} + ${adj1} + ${adj2}), 256)`;
-    return `calc(--logicFlags8(${newAL}) + ${cond2} + ${cond1} * 16)`;
+    return `calc(--logicFlags8(${newAL}) + ${cond2} + ${cond1} * 16 + --and(var(--__1flags), 1792))`;
   })(), `DAA flags`);
   dispatch.addEntry('IP', 0x27, `calc(var(--__1IP) + 1)`, `DAA`);
 
@@ -808,7 +814,7 @@ export function emitBCD(dispatch) {
     const adj2 = `calc(${cond2} * 96)`;
 
     const newAL = `mod(calc(${oldAL} - ${adj1} - ${adj2} + 256), 256)`;
-    return `calc(--logicFlags8(${newAL}) + ${cond2} + ${cond1} * 16)`;
+    return `calc(--logicFlags8(${newAL}) + ${cond2} + ${cond1} * 16 + --and(var(--__1flags), 1792))`;
   })(), `DAS flags`);
   dispatch.addEntry('IP', 0x2F, `calc(var(--__1IP) + 1)`, `DAS`);
 }

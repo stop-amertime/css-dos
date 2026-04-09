@@ -206,7 +206,8 @@ ${PARITY.map((p, i) => `    style(--low8: ${i}): ${p * 4};`).join('\n')}
   --zf: if(style(--res: 0): 64; else: 0);
   --sf: calc(--bit(var(--res), 15) * 128);
   --of: if(style(--res: 32768): 2048; else: 0);
-  result: calc(var(--cf) + var(--pf) + ${INC_AF('var(--dst)')} + var(--zf) + var(--sf) + var(--of) + 2);
+  --keep: --and(var(--oldFlags), 1792);
+  result: calc(var(--cf) + var(--pf) + ${INC_AF('var(--dst)')} + var(--zf) + var(--sf) + var(--of) + var(--keep) + 2);
 }
 
 @function --decFlags16(--dst <integer>, --res <integer>, --oldFlags <integer>) returns <integer> {
@@ -216,7 +217,8 @@ ${PARITY.map((p, i) => `    style(--low8: ${i}): ${p * 4};`).join('\n')}
   --zf: if(style(--res: 0): 64; else: 0);
   --sf: calc(--bit(var(--res), 15) * 128);
   --of: if(style(--res: 32767): 2048; else: 0);
-  result: calc(var(--cf) + var(--pf) + ${DEC_AF('var(--dst)')} + var(--zf) + var(--sf) + var(--of) + 2);
+  --keep: --and(var(--oldFlags), 1792);
+  result: calc(var(--cf) + var(--pf) + ${DEC_AF('var(--dst)')} + var(--zf) + var(--sf) + var(--of) + var(--keep) + 2);
 }
 
 @function --incFlags8(--dst <integer>, --res <integer>, --oldFlags <integer>) returns <integer> {
@@ -226,7 +228,8 @@ ${PARITY.map((p, i) => `    style(--low8: ${i}): ${p * 4};`).join('\n')}
   --zf: if(style(--res: 0): 64; else: 0);
   --sf: calc(--bit(var(--res), 7) * 128);
   --of: if(style(--res: 128): 2048; else: 0);
-  result: calc(var(--cf) + var(--pf) + ${INC_AF('var(--dst)')} + var(--zf) + var(--sf) + var(--of) + 2);
+  --keep: --and(var(--oldFlags), 1792);
+  result: calc(var(--cf) + var(--pf) + ${INC_AF('var(--dst)')} + var(--zf) + var(--sf) + var(--of) + var(--keep) + 2);
 }
 
 @function --decFlags8(--dst <integer>, --res <integer>, --oldFlags <integer>) returns <integer> {
@@ -236,7 +239,8 @@ ${PARITY.map((p, i) => `    style(--low8: ${i}): ${p * 4};`).join('\n')}
   --zf: if(style(--res: 0): 64; else: 0);
   --sf: calc(--bit(var(--res), 7) * 128);
   --of: if(style(--res: 127): 2048; else: 0);
-  result: calc(var(--cf) + var(--pf) + ${DEC_AF('var(--dst)')} + var(--zf) + var(--sf) + var(--of) + 2);
+  --keep: --and(var(--oldFlags), 1792);
+  result: calc(var(--cf) + var(--pf) + ${DEC_AF('var(--dst)')} + var(--zf) + var(--sf) + var(--of) + var(--keep) + 2);
 }
 
 /* ===== ADC FLAGS (6 locals) ===== */

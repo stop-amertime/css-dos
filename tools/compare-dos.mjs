@@ -95,8 +95,8 @@ console.error(`Reference: ${refTrace.length} ticks`);
 // --- Run Calcite ---
 console.error(`Running Calcite...`);
 const calciteBin = resolve(projectRoot, '..', 'calcite', 'target', 'release', 'calcite-cli.exe');
-// Run enough ticks to cover REP expansions (10x ref ticks, capped at 200K)
-const calciteTicks = Math.min(maxTicks * 10, 200000);
+// Run enough ticks to cover REP expansions (10x ref ticks, capped at 1M)
+const calciteTicks = Math.min(maxTicks * 10, 1000000);
 const calciteCmd = `"${calciteBin}" --input "${cssPath}" --ticks ${calciteTicks} --trace-json --halt 0x0504`;
 
 let calciteOutput;

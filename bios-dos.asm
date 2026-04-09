@@ -427,7 +427,7 @@ int13h_handler:
     cmp ah, 0x00
     je .disk_reset
     cmp ah, 0x02
-    je .disk_read
+    je .disk_read_v2
     cmp ah, 0x08
     je .disk_params
     cmp ah, 0x15
@@ -463,69 +463,6 @@ int13h_handler:
     mov ah, 0x01
     clc
     iret
-
-; --- AH=02h: Read sectors ---
-; Input:  AL=sectors to read, CH=cylinder, CL=sector (1-based),
-;         DH=head, DL=drive, ES:BX=buffer
-; Output: AH=0 on success, AL=sectors read, CF=0
-.disk_read:
-    push si
-    push di
-    push dx
-    push cx
-    push bx
-    push ds
-
-    ; Save sector count
-    xor ah, ah
-    push ax                ; save count on stack
-
-    ; Compute LBA = (CH * 2 + DH) * 18 + (CL - 1)
-    ; CH = cylinder, DH = head, CL = sector (1-based)
-    mov al, ch             ; AL = cylinder
-    shl ax, 1              ; AX = cylinder * 2
-    xor bh, bh
-    mov bl, dh             ; BX = head
-    add ax, bx             ; AX = cylinder * 2 + head
-    mov bl, DISK_SPT
-    push dx                ; save DX
-    mul bl                 ; AX = (cyl*2+head)*18
-    pop dx                 ; restore DX
-    xor ch, ch
-    mov cl, cl             ; CL = sector (keep as is)
-    dec cl                 ; CL = sector - 1
-    add ax, cx             ; AX = LBA
-
-    ; Byte offset in disk image = LBA * 512
-    ; Since we work in segments, offset in DISK_SEG = LBA * 512
-    ; We need to compute DISK_SEG + (LBA*512)/16 as the source segment
-    ; and (LBA*512) % 16 = 0 as the offset (always aligned)
-    ;
-    ; LBA * 512 = LBA * 32 * 16, so segment offset = LBA * 32
-    mov bx, ax             ; BX = LBA
-    mov cl, 5
-    shl bx, cl             ; BX = LBA * 32 (paragraph offset)
-    mov ax, DISK_SEG
-    add ax, bx             ; AX = source segment
-    mov ds, ax             ; DS = source segment
-    xor si, si             ; SI = 0 (source offset)
-
-    ; Restore destination from stack setup
-    ; ES:BX was the destination buffer (BX was saved, ES unchanged)
-    pop bx                 ; restore original BX (ES:BX = dest buffer, but BX was pushed)
-    ; Wait — BX was pushed from the function entry. Let me reconsider the stack.
-    ; Stack state: [DS] [BX_orig] [CX_orig] [DX_orig] [DI] [SI] ... [count]
-    ; Actually let me restructure this.
-
-    ; Ugh, this is getting messy with the stack. Let me restart the read logic cleanly.
-    pop ds                 ; undo the pushes so far
-    pop bx
-    pop cx
-    pop dx
-    pop di
-    pop si
-    pop ax                 ; pop count
-    jmp .disk_read_v2
 
 .disk_read_v2:
     ; AH=02h: Read sectors
@@ -676,12 +613,18 @@ int1ah_handler:
     cmp ah, 0x00
     jne .timer_set
     ; AH=00h: Get tick count
+    ; Auto-increment on each read since we have no hardware timer.
+    ; This ensures timeout loops that compare consecutive INT 1Ah
+    ; results will eventually expire.
     push ds
     push bx
     xor bx, bx
     mov ds, bx
-    mov dx, [0x0502]       ; low word of tick count
-    mov cx, [0x0504]       ; high word of tick count
+    mov dx, [0x046C]       ; low word of tick count (BDA 40:6C)
+    mov cx, [0x046E]       ; high word of tick count (BDA 40:6E)
+    ; Increment tick counter
+    add word [0x046C], 1
+    adc word [0x046E], 0
     xor al, al             ; midnight flag
     pop bx
     pop ds
@@ -694,8 +637,8 @@ int1ah_handler:
     push bx
     xor bx, bx
     mov ds, bx
-    mov [0x0502], dx
-    mov [0x0504], cx
+    mov [0x046C], dx
+    mov [0x046E], cx
     pop bx
     pop ds
     iret
@@ -726,7 +669,57 @@ int20h_handler:
     jmp int20h_handler
 
 ; ============================================================
+; INT 15h — Extended Services
+; ============================================================
+int15h_handler:
+    cmp ah, 0x88
+    je .ext_mem_size
+    cmp ah, 0xC0
+    je .sys_config
+    ; Unknown function — return CF set
+    push bp
+    mov bp, sp
+    or word [bp+6], 0x0001
+    pop bp
+    mov ah, 0x86           ; function not supported
+    iret
+
+.ext_mem_size:
+    ; AH=88h: Get extended memory size (above 1MB)
+    ; We have no extended memory
+    xor ax, ax
+    ; Clear CF
+    push bp
+    mov bp, sp
+    and word [bp+6], 0xFFFE
+    pop bp
+    iret
+
+.sys_config:
+    ; AH=C0h: Get system configuration
+    ; Return CF set — not supported
+    push bp
+    mov bp, sp
+    or word [bp+6], 0x0001
+    pop bp
+    mov ah, 0x86
+    iret
+
+; ============================================================
 ; Default handler — catch-all for unhandled INTs
+; INT 1 — Single-step trap handler
+; Clears TF from stacked FLAGS so execution resumes normally.
+; Without this, TF stays set and triggers infinite INT 1 loop.
+; ============================================================
+int01h_handler:
+    push bp
+    mov bp, sp
+    and word [bp+6], 0xFEFF    ; clear TF (bit 8) in stacked FLAGS
+    pop bp
+    iret
+
+; ============================================================
+; Default handler for unimplemented INTs
 ; Returns with carry flag set (function not supported) and IRETs.
 ; ============================================================
 default_handler:
@@ -762,6 +755,10 @@ bios_init:
     mov ds, ax
 
     ; --- Set up IVT ---
+    ; INT 01h — Single-step trap (clears TF)
+    mov word [0x01*4], int01h_handler
+    mov word [0x01*4+2], 0xF000
+
     ; INT 10h — Video
     mov word [0x10*4], int10h_handler
     mov word [0x10*4+2], 0xF000
@@ -777,6 +774,10 @@ bios_init:
     ; INT 13h — Disk
     mov word [0x13*4], int13h_handler
     mov word [0x13*4+2], 0xF000
+
+    ; INT 15h — Extended services
+    mov word [0x15*4], int15h_handler
+    mov word [0x15*4+2], 0xF000
 
     ; INT 16h — Keyboard
     mov word [0x16*4], int16h_handler
@@ -817,11 +818,25 @@ bios_init:
     ; --- Initialize BDA ---
     mov ax, BDA_SEG
     mov ds, ax
+    mov word [0x0010], 0x0021   ; equipment flags: floppy + 80x25 color
+    mov word [0x0013], 640      ; memory size in KB
+    mov word [0x001A], 0x001E   ; keyboard buffer head offset
+    mov word [0x001C], 0x001E   ; keyboard buffer tail offset (empty)
     mov byte [0x0049], 0x03     ; video mode = 3 (80x25 text)
     mov word [0x004A], 80       ; columns per row
-    mov byte [0x0050], 0        ; cursor col
-    mov byte [0x0051], 0        ; cursor row
-    mov word [0x0013], 640      ; memory size in KB (also at 40:13)
+    mov word [0x004C], 0x1000   ; regen buffer size (4096 for 80x25)
+    mov word [0x004E], 0x0000   ; current video page offset
+    mov byte [0x0050], 0        ; cursor col page 0
+    mov byte [0x0051], 0        ; cursor row page 0
+    mov byte [0x0060], 0x07     ; cursor end scan line
+    mov byte [0x0061], 0x06     ; cursor start scan line
+    mov byte [0x0062], 0x00     ; active display page
+    mov word [0x0063], 0x03D4   ; CRT controller base port (color)
+    mov byte [0x0065], 0x29     ; CRT mode control register
+    mov word [0x0080], 0x001E   ; keyboard buffer start offset
+    mov word [0x0082], 0x003E   ; keyboard buffer end offset
+    mov byte [0x0084], 24       ; screen rows - 1
+    mov word [0x0085], 16       ; character matrix height (points)
 
     ; --- BIOS splash screen ---
     ; Write directly to VGA memory at B800:0000

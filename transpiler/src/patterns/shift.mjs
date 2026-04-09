@@ -67,9 +67,9 @@ export function emitShift_D1(dispatch) {
   // RCL/RCR: only CF changes (new CF = shifted-out bit); leave PF/ZF/SF unchanged
   dispatch.addEntry('flags', 0xD1,
     `if(` +
-    `style(--reg: 4): --shlFlags16(var(--rmVal16)); ` +
-    `style(--reg: 5): --shrFlags16(var(--rmVal16)); ` +
-    `style(--reg: 7): --sarFlags16(var(--rmVal16)); ` +
+    `style(--reg: 4): calc(--shlFlags16(var(--rmVal16)) + --and(var(--__1flags), 3856)); ` +
+    `style(--reg: 5): calc(--shrFlags16(var(--rmVal16)) + --and(var(--__1flags), 3856)); ` +
+    `style(--reg: 7): calc(--sarFlags16(var(--rmVal16)) + --and(var(--__1flags), 3856)); ` +
     `style(--reg: 2): calc(var(--__1flags) - --bit(var(--__1flags), 0) + --bit(var(--rmVal16), 15)); ` +  // RCL: new CF = old bit 15
     `style(--reg: 3): calc(var(--__1flags) - --bit(var(--__1flags), 0) + --bit(var(--rmVal16), 0)); ` +   // RCR: new CF = old bit 0
     `else: var(--__1flags))`,
@@ -114,9 +114,9 @@ export function emitShift_D0(dispatch) {
   // RCL/RCR: only CF changes; leave PF/ZF/SF unchanged
   dispatch.addEntry('flags', 0xD0,
     `if(` +
-    `style(--reg: 4): --shlFlags8(var(--rmVal8)); ` +
-    `style(--reg: 5): --shrFlags8(var(--rmVal8)); ` +
-    `style(--reg: 7): --sarFlags8(var(--rmVal8)); ` +
+    `style(--reg: 4): calc(--shlFlags8(var(--rmVal8)) + --and(var(--__1flags), 3856)); ` +
+    `style(--reg: 5): calc(--shrFlags8(var(--rmVal8)) + --and(var(--__1flags), 3856)); ` +
+    `style(--reg: 7): calc(--sarFlags8(var(--rmVal8)) + --and(var(--__1flags), 3856)); ` +
     `style(--reg: 2): calc(var(--__1flags) - --bit(var(--__1flags), 0) + --bit(var(--rmVal8), 7)); ` +  // RCL: new CF = old bit 7
     `style(--reg: 3): calc(var(--__1flags) - --bit(var(--__1flags), 0) + --bit(var(--rmVal8), 0)); ` +  // RCR: new CF = old bit 0
     `else: var(--__1flags))`,
@@ -265,9 +265,9 @@ export function emitShift_D3(dispatch) {
   // CF for ROL: bit 0 of result. CF for ROR: bit 15 of result.
   dispatch.addEntry('flags', 0xD3,
     `if(style(--_clMasked: 0): var(--__1flags); ` +
-    `style(--reg: 4): --shlFlagsN16(var(--rmVal16), var(--_clMasked)); ` +
-    `style(--reg: 5): --shrFlagsN16(var(--rmVal16), var(--_clMasked)); ` +
-    `style(--reg: 7): --sarFlagsN16(var(--rmVal16), var(--_clMasked)); ` +
+    `style(--reg: 4): calc(--shlFlagsN16(var(--rmVal16), var(--_clMasked)) + --and(var(--__1flags), 3856)); ` +
+    `style(--reg: 5): calc(--shrFlagsN16(var(--rmVal16), var(--_clMasked)) + --and(var(--__1flags), 3856)); ` +
+    `style(--reg: 7): calc(--sarFlagsN16(var(--rmVal16), var(--_clMasked)) + --and(var(--__1flags), 3856)); ` +
     `style(--reg: 0): calc(var(--__1flags) - var(--_cf) + --bit(${rol16}, 0)); ` +
     `style(--reg: 1): calc(var(--__1flags) - var(--_cf) + --bit(${ror16}, 15)); ` +
     `else: var(--__1flags))`,
@@ -319,9 +319,9 @@ export function emitShift_D2(dispatch) {
   // Flags
   dispatch.addEntry('flags', 0xD2,
     `if(style(--_clMasked: 0): var(--__1flags); ` +
-    `style(--reg: 4): --shlFlagsN8(var(--rmVal8), var(--_clMasked)); ` +
-    `style(--reg: 5): --shrFlagsN8(var(--rmVal8), var(--_clMasked)); ` +
-    `style(--reg: 7): --sarFlagsN8(var(--rmVal8), var(--_clMasked)); ` +
+    `style(--reg: 4): calc(--shlFlagsN8(var(--rmVal8), var(--_clMasked)) + --and(var(--__1flags), 3856)); ` +
+    `style(--reg: 5): calc(--shrFlagsN8(var(--rmVal8), var(--_clMasked)) + --and(var(--__1flags), 3856)); ` +
+    `style(--reg: 7): calc(--sarFlagsN8(var(--rmVal8), var(--_clMasked)) + --and(var(--__1flags), 3856)); ` +
     `style(--reg: 0): calc(var(--__1flags) - var(--_cf) + --bit(${rol8}, 0)); ` +
     `style(--reg: 1): calc(var(--__1flags) - var(--_cf) + --bit(${ror8}, 7)); ` +
     `else: var(--__1flags))`,

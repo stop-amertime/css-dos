@@ -1,6 +1,11 @@
 // Group opcode emitters: 0xFE, 0xFF, 0xF6, 0xF7, 0x80-0x83
 // These use the reg field of ModR/M to select the sub-operation.
 
+// Wrap logic flag expressions to preserve AF (bit 4) from previous tick.
+// On 8086, AF is undefined for AND/OR/XOR — real hardware preserves it.
+// Wrap logic flag expressions to preserve AF+TF+IF+DF from previous tick.
+const pKeep = (flagExpr, mask = 1808) => `calc(${flagExpr} + --and(var(--__1flags), ${mask}))`;
+
 const REG16 = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI'];
 const SPLIT_REGS = [
   { reg: 'AX', lowIdx: 0, highIdx: 4 },
@@ -120,8 +125,8 @@ export function emitGroup_F7(dispatch) {
   // IMUL CF=OF: DX:AX != sign-extend(AX) → DX != (bit(AX,15)*65535)
   dispatch.addEntry('flags', 0xF7,
     `if(` +
-    `style(--reg: 0): --andFlags16(var(--rmVal16), var(--immWord)); ` +
-    `style(--reg: 3): --subFlags16(0, var(--rmVal16)); ` +
+    `style(--reg: 0): ${pKeep('--andFlags16(var(--rmVal16), var(--immWord))')}; ` +
+    `style(--reg: 3): ${pKeep('--subFlags16(0, var(--rmVal16))', 1792)}; ` +
     `style(--reg: 2): var(--__1flags); ` +
     `style(--reg: 4): calc(var(--__1flags) - --bit(var(--__1flags), 0) - --bit(var(--__1flags), 11) * 2048 + min(1, --lowerBytes(--rightShift(calc(var(--__1AX) * var(--rmVal16)), 16), 16)) * 2049); ` +
     `style(--reg: 5): calc(var(--__1flags) - --bit(var(--__1flags), 0) - --bit(var(--__1flags), 11) * 2048 + min(1, abs(--lowerBytes(round(down, ${imulProd16} / 65536), 16) - --bit(--lowerBytes(${imulProd16}, 16), 15) * 65535)) * 2049); ` +
@@ -188,8 +193,8 @@ export function emitGroup_F6(dispatch) {
   // IMUL byte: CF=OF=1 if AH != sign-extension of AL in result
   dispatch.addEntry('flags', 0xF6,
     `if(` +
-    `style(--reg: 0): --andFlags8(var(--rmVal8), var(--immByte)); ` +
-    `style(--reg: 3): --subFlags8(0, var(--rmVal8)); ` +
+    `style(--reg: 0): ${pKeep('--andFlags8(var(--rmVal8), var(--immByte))')}; ` +
+    `style(--reg: 3): ${pKeep('--subFlags8(0, var(--rmVal8))', 1792)}; ` +
     `style(--reg: 2): var(--__1flags); ` +
     `style(--reg: 4): calc(var(--__1flags) - --bit(var(--__1flags), 0) - --bit(var(--__1flags), 11) * 2048 + min(1, round(down, calc(var(--AL) * var(--rmVal8)) / 256)) * 2049); ` +
     `style(--reg: 5): calc(var(--__1flags) - --bit(var(--__1flags), 0) - --bit(var(--__1flags), 11) * 2048 + min(1, abs(--rightShift(--lowerBytes(${imulProd8}, 16), 8) - --bit(--lowerBytes(${imulProd8}, 8), 7) * 255)) * 2049); ` +
@@ -248,14 +253,14 @@ export function emitGroup_80(dispatch) {
   // Result expressions for each sub-operation (8-bit)
   // All read rmVal8 as dst, immByte as src
   const subOps = [
-    { reg: 0, name: 'ADD', result: `--lowerBytes(calc(var(--rmVal8) + var(--immByte)), 8)`, flags: `--addFlags8(var(--rmVal8), var(--immByte))`, writes: true },
-    { reg: 1, name: 'OR',  result: `--or8(var(--rmVal8), var(--immByte))`, flags: `--orFlags8(var(--rmVal8), var(--immByte))`, writes: true },
-    { reg: 2, name: 'ADC', result: `--lowerBytes(calc(var(--rmVal8) + var(--immByte) + var(--_cf)), 8)`, flags: `--adcFlags8(var(--rmVal8), var(--immByte), var(--_cf))`, writes: true },
-    { reg: 3, name: 'SBB', result: `--lowerBytes(calc(var(--rmVal8) - var(--immByte) - var(--_cf) + 256), 8)`, flags: `--sbbFlags8(var(--rmVal8), var(--immByte), var(--_cf))`, writes: true },
-    { reg: 4, name: 'AND', result: `--and8(var(--rmVal8), var(--immByte))`, flags: `--andFlags8(var(--rmVal8), var(--immByte))`, writes: true },
-    { reg: 5, name: 'SUB', result: `--lowerBytes(calc(var(--rmVal8) - var(--immByte) + 256), 8)`, flags: `--subFlags8(var(--rmVal8), var(--immByte))`, writes: true },
-    { reg: 6, name: 'XOR', result: `--xor8(var(--rmVal8), var(--immByte))`, flags: `--xorFlags8(var(--rmVal8), var(--immByte))`, writes: true },
-    { reg: 7, name: 'CMP', result: null, flags: `--subFlags8(var(--rmVal8), var(--immByte))`, writes: false },
+    { reg: 0, name: 'ADD', result: `--lowerBytes(calc(var(--rmVal8) + var(--immByte)), 8)`, flags: pKeep(`--addFlags8(var(--rmVal8), var(--immByte))`, 1792), writes: true },
+    { reg: 1, name: 'OR',  result: `--or8(var(--rmVal8), var(--immByte))`, flags: pKeep(`--orFlags8(var(--rmVal8), var(--immByte))`), writes: true },
+    { reg: 2, name: 'ADC', result: `--lowerBytes(calc(var(--rmVal8) + var(--immByte) + var(--_cf)), 8)`, flags: pKeep(`--adcFlags8(var(--rmVal8), var(--immByte), var(--_cf))`, 1792), writes: true },
+    { reg: 3, name: 'SBB', result: `--lowerBytes(calc(var(--rmVal8) - var(--immByte) - var(--_cf) + 256), 8)`, flags: pKeep(`--sbbFlags8(var(--rmVal8), var(--immByte), var(--_cf))`, 1792), writes: true },
+    { reg: 4, name: 'AND', result: `--and8(var(--rmVal8), var(--immByte))`, flags: pKeep(`--andFlags8(var(--rmVal8), var(--immByte))`), writes: true },
+    { reg: 5, name: 'SUB', result: `--lowerBytes(calc(var(--rmVal8) - var(--immByte) + 256), 8)`, flags: pKeep(`--subFlags8(var(--rmVal8), var(--immByte))`, 1792), writes: true },
+    { reg: 6, name: 'XOR', result: `--xor8(var(--rmVal8), var(--immByte))`, flags: pKeep(`--xorFlags8(var(--rmVal8), var(--immByte))`), writes: true },
+    { reg: 7, name: 'CMP', result: null, flags: pKeep(`--subFlags8(var(--rmVal8), var(--immByte))`, 1792), writes: false },
   ];
 
   // For opcodes 0x80 and 0x82 (same behavior)
@@ -303,14 +308,14 @@ export function emitGroup_80(dispatch) {
  */
 export function emitGroup_81(dispatch) {
   const subOps = [
-    { reg: 0, name: 'ADD', result: `--lowerBytes(calc(var(--rmVal16) + var(--immWord)), 16)`, flags: `--addFlags16(var(--rmVal16), var(--immWord))`, writes: true },
-    { reg: 1, name: 'OR',  result: `--or(var(--rmVal16), var(--immWord))`, flags: `--orFlags16(var(--rmVal16), var(--immWord))`, writes: true },
-    { reg: 2, name: 'ADC', result: `--lowerBytes(calc(var(--rmVal16) + var(--immWord) + var(--_cf)), 16)`, flags: `--adcFlags16(var(--rmVal16), var(--immWord), var(--_cf))`, writes: true },
-    { reg: 3, name: 'SBB', result: `--lowerBytes(calc(var(--rmVal16) - var(--immWord) - var(--_cf) + 65536), 16)`, flags: `--sbbFlags16(var(--rmVal16), var(--immWord), var(--_cf))`, writes: true },
-    { reg: 4, name: 'AND', result: `--and(var(--rmVal16), var(--immWord))`, flags: `--andFlags16(var(--rmVal16), var(--immWord))`, writes: true },
-    { reg: 5, name: 'SUB', result: `--lowerBytes(calc(var(--rmVal16) - var(--immWord) + 65536), 16)`, flags: `--subFlags16(var(--rmVal16), var(--immWord))`, writes: true },
-    { reg: 6, name: 'XOR', result: `--xor(var(--rmVal16), var(--immWord))`, flags: `--xorFlags16(var(--rmVal16), var(--immWord))`, writes: true },
-    { reg: 7, name: 'CMP', result: null, flags: `--subFlags16(var(--rmVal16), var(--immWord))`, writes: false },
+    { reg: 0, name: 'ADD', result: `--lowerBytes(calc(var(--rmVal16) + var(--immWord)), 16)`, flags: pKeep(`--addFlags16(var(--rmVal16), var(--immWord))`, 1792), writes: true },
+    { reg: 1, name: 'OR',  result: `--or(var(--rmVal16), var(--immWord))`, flags: pKeep(`--orFlags16(var(--rmVal16), var(--immWord))`), writes: true },
+    { reg: 2, name: 'ADC', result: `--lowerBytes(calc(var(--rmVal16) + var(--immWord) + var(--_cf)), 16)`, flags: pKeep(`--adcFlags16(var(--rmVal16), var(--immWord), var(--_cf))`, 1792), writes: true },
+    { reg: 3, name: 'SBB', result: `--lowerBytes(calc(var(--rmVal16) - var(--immWord) - var(--_cf) + 65536), 16)`, flags: pKeep(`--sbbFlags16(var(--rmVal16), var(--immWord), var(--_cf))`, 1792), writes: true },
+    { reg: 4, name: 'AND', result: `--and(var(--rmVal16), var(--immWord))`, flags: pKeep(`--andFlags16(var(--rmVal16), var(--immWord))`), writes: true },
+    { reg: 5, name: 'SUB', result: `--lowerBytes(calc(var(--rmVal16) - var(--immWord) + 65536), 16)`, flags: pKeep(`--subFlags16(var(--rmVal16), var(--immWord))`, 1792), writes: true },
+    { reg: 6, name: 'XOR', result: `--xor(var(--rmVal16), var(--immWord))`, flags: pKeep(`--xorFlags16(var(--rmVal16), var(--immWord))`), writes: true },
+    { reg: 7, name: 'CMP', result: null, flags: pKeep(`--subFlags16(var(--rmVal16), var(--immWord))`, 1792), writes: false },
   ];
 
   for (let r = 0; r < 8; r++) {
@@ -361,14 +366,14 @@ export function emitGroup_83(dispatch) {
   const sext = `calc(var(--immByte) + --bit(var(--immByte), 7) * 65280)`;
 
   const subOps = [
-    { reg: 0, name: 'ADD', result: `--lowerBytes(calc(var(--rmVal16) + ${sext}), 16)`, flags: `--addFlags16(var(--rmVal16), ${sext})`, writes: true },
-    { reg: 1, name: 'OR',  result: `--or(var(--rmVal16), ${sext})`, flags: `--orFlags16(var(--rmVal16), ${sext})`, writes: true },
-    { reg: 2, name: 'ADC', result: `--lowerBytes(calc(var(--rmVal16) + ${sext} + var(--_cf)), 16)`, flags: `--adcFlags16(var(--rmVal16), ${sext}, var(--_cf))`, writes: true },
-    { reg: 3, name: 'SBB', result: `--lowerBytes(calc(var(--rmVal16) - ${sext} - var(--_cf) + 65536), 16)`, flags: `--sbbFlags16(var(--rmVal16), ${sext}, var(--_cf))`, writes: true },
-    { reg: 4, name: 'AND', result: `--and(var(--rmVal16), ${sext})`, flags: `--andFlags16(var(--rmVal16), ${sext})`, writes: true },
-    { reg: 5, name: 'SUB', result: `--lowerBytes(calc(var(--rmVal16) - ${sext} + 65536), 16)`, flags: `--subFlags16(var(--rmVal16), ${sext})`, writes: true },
-    { reg: 6, name: 'XOR', result: `--xor(var(--rmVal16), ${sext})`, flags: `--xorFlags16(var(--rmVal16), ${sext})`, writes: true },
-    { reg: 7, name: 'CMP', result: null, flags: `--subFlags16(var(--rmVal16), ${sext})`, writes: false },
+    { reg: 0, name: 'ADD', result: `--lowerBytes(calc(var(--rmVal16) + ${sext}), 16)`, flags: pKeep(`--addFlags16(var(--rmVal16), ${sext})`, 1792), writes: true },
+    { reg: 1, name: 'OR',  result: `--or(var(--rmVal16), ${sext})`, flags: pKeep(`--orFlags16(var(--rmVal16), ${sext})`), writes: true },
+    { reg: 2, name: 'ADC', result: `--lowerBytes(calc(var(--rmVal16) + ${sext} + var(--_cf)), 16)`, flags: pKeep(`--adcFlags16(var(--rmVal16), ${sext}, var(--_cf))`, 1792), writes: true },
+    { reg: 3, name: 'SBB', result: `--lowerBytes(calc(var(--rmVal16) - ${sext} - var(--_cf) + 65536), 16)`, flags: pKeep(`--sbbFlags16(var(--rmVal16), ${sext}, var(--_cf))`, 1792), writes: true },
+    { reg: 4, name: 'AND', result: `--and(var(--rmVal16), ${sext})`, flags: pKeep(`--andFlags16(var(--rmVal16), ${sext})`), writes: true },
+    { reg: 5, name: 'SUB', result: `--lowerBytes(calc(var(--rmVal16) - ${sext} + 65536), 16)`, flags: pKeep(`--subFlags16(var(--rmVal16), ${sext})`, 1792), writes: true },
+    { reg: 6, name: 'XOR', result: `--xor(var(--rmVal16), ${sext})`, flags: pKeep(`--xorFlags16(var(--rmVal16), ${sext})`), writes: true },
+    { reg: 7, name: 'CMP', result: null, flags: pKeep(`--subFlags16(var(--rmVal16), ${sext})`, 1792), writes: false },
   ];
 
   for (let r = 0; r < 8; r++) {
@@ -463,7 +468,7 @@ export function emitGroup_FF(dispatch) {
   // PUSH (reg=6): push the r/m value (slots 0-1)
 
   const ssBase = `var(--__1SS) * 16`;
-  const retIP = `calc(var(--__1IP) + 2 + var(--modrmExtra))`;
+  const retIP = `calc(var(--__1IP) + var(--prefixLen) + 2 + var(--modrmExtra))`;
 
   // Slot 0: INC/DEC mem lo, CALL near push lo, CALL FAR push CS lo, PUSH push lo
   dispatch.addMemWrite(0xFF,
@@ -524,14 +529,15 @@ export function emitGroup_FF(dispatch) {
     `else: var(--__1flags))`,
     `Group FF flags`);
 
-  // IP: CALL near/JMP near use rmVal16, CALL FAR/JMP FAR also use rmVal16
-  // (rmVal16 reads the word at [EA] which is the new IP for FAR variants too)
+  // IP: CALL near/JMP near use rmVal16, CALL FAR/JMP FAR also use rmVal16.
+  // rmVal16 is an absolute address — subtract prefixLen to cancel the
+  // automatic calc(... + prefixLen) wrapper that emitRegisterDispatch adds.
   dispatch.addEntry('IP', 0xFF,
     `if(` +
-    `style(--reg: 2): var(--rmVal16); ` +
-    `style(--reg: 3): var(--rmVal16); ` +
-    `style(--reg: 4): var(--rmVal16); ` +
-    `style(--reg: 5): var(--rmVal16); ` +
+    `style(--reg: 2): calc(var(--rmVal16) - var(--prefixLen)); ` +
+    `style(--reg: 3): calc(var(--rmVal16) - var(--prefixLen)); ` +
+    `style(--reg: 4): calc(var(--rmVal16) - var(--prefixLen)); ` +
+    `style(--reg: 5): calc(var(--rmVal16) - var(--prefixLen)); ` +
     `else: calc(var(--__1IP) + 2 + var(--modrmExtra)))`,
     `Group FF IP`);
 }

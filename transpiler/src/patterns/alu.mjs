@@ -26,64 +26,66 @@ const ALU_OPS = {
     base: 0x00,
     resultExpr16: (dst, src) => `--lowerBytes(calc(${dst} + ${src}), 16)`,
     resultExpr8:  (dst, src) => `--lowerBytes(calc(${dst} + ${src}), 8)`,
-    flagsFn16: (dst, src) => `--addFlags16(${dst}, ${src})`,
-    flagsFn8:  (dst, src) => `--addFlags8(${dst}, ${src})`,
+    // 1792 = 0x700 = TF|IF|DF preserved from previous tick
+    flagsFn16: (dst, src) => `calc(--addFlags16(${dst}, ${src}) + --and(var(--__1flags), 1792))`,
+    flagsFn8:  (dst, src) => `calc(--addFlags8(${dst}, ${src}) + --and(var(--__1flags), 1792))`,
     writesResult: true,
   },
   OR: {
     base: 0x08,
     resultExpr16: (dst, src) => `--or(${dst}, ${src})`,
     resultExpr8:  (dst, src) => `--or8(${dst}, ${src})`,
-    flagsFn16: (dst, src) => `--orFlags16(${dst}, ${src})`,
-    flagsFn8:  (dst, src) => `--orFlags8(${dst}, ${src})`,
+    // 1808 = 0x710 = TF|IF|DF|AF preserved (AF undefined for logic ops)
+    flagsFn16: (dst, src) => `calc(--orFlags16(${dst}, ${src}) + --and(var(--__1flags), 1808))`,
+    flagsFn8:  (dst, src) => `calc(--orFlags8(${dst}, ${src}) + --and(var(--__1flags), 1808))`,
     writesResult: true,
   },
   ADC: {
     base: 0x10,
     resultExpr16: (dst, src) => `--lowerBytes(calc(${dst} + ${src} + var(--_cf)), 16)`,
     resultExpr8:  (dst, src) => `--lowerBytes(calc(${dst} + ${src} + var(--_cf)), 8)`,
-    flagsFn16: (dst, src) => `--adcFlags16(${dst}, ${src}, var(--_cf))`,
-    flagsFn8:  (dst, src) => `--adcFlags8(${dst}, ${src}, var(--_cf))`,
+    flagsFn16: (dst, src) => `calc(--adcFlags16(${dst}, ${src}, var(--_cf)) + --and(var(--__1flags), 1792))`,
+    flagsFn8:  (dst, src) => `calc(--adcFlags8(${dst}, ${src}, var(--_cf)) + --and(var(--__1flags), 1792))`,
     writesResult: true,
   },
   SBB: {
     base: 0x18,
     resultExpr16: (dst, src) => `--lowerBytes(calc(${dst} - ${src} - var(--_cf) + 65536), 16)`,
     resultExpr8:  (dst, src) => `--lowerBytes(calc(${dst} - ${src} - var(--_cf) + 256), 8)`,
-    flagsFn16: (dst, src) => `--sbbFlags16(${dst}, ${src}, var(--_cf))`,
-    flagsFn8:  (dst, src) => `--sbbFlags8(${dst}, ${src}, var(--_cf))`,
+    flagsFn16: (dst, src) => `calc(--sbbFlags16(${dst}, ${src}, var(--_cf)) + --and(var(--__1flags), 1792))`,
+    flagsFn8:  (dst, src) => `calc(--sbbFlags8(${dst}, ${src}, var(--_cf)) + --and(var(--__1flags), 1792))`,
     writesResult: true,
   },
   AND: {
     base: 0x20,
     resultExpr16: (dst, src) => `--and(${dst}, ${src})`,
     resultExpr8:  (dst, src) => `--and8(${dst}, ${src})`,
-    flagsFn16: (dst, src) => `--andFlags16(${dst}, ${src})`,
-    flagsFn8:  (dst, src) => `--andFlags8(${dst}, ${src})`,
+    flagsFn16: (dst, src) => `calc(--andFlags16(${dst}, ${src}) + --and(var(--__1flags), 1808))`,
+    flagsFn8:  (dst, src) => `calc(--andFlags8(${dst}, ${src}) + --and(var(--__1flags), 1808))`,
     writesResult: true,
   },
   SUB: {
     base: 0x28,
     resultExpr16: (dst, src) => `--lowerBytes(calc(${dst} - ${src} + 65536), 16)`,
     resultExpr8:  (dst, src) => `--lowerBytes(calc(${dst} - ${src} + 256), 8)`,
-    flagsFn16: (dst, src) => `--subFlags16(${dst}, ${src})`,
-    flagsFn8:  (dst, src) => `--subFlags8(${dst}, ${src})`,
+    flagsFn16: (dst, src) => `calc(--subFlags16(${dst}, ${src}) + --and(var(--__1flags), 1792))`,
+    flagsFn8:  (dst, src) => `calc(--subFlags8(${dst}, ${src}) + --and(var(--__1flags), 1792))`,
     writesResult: true,
   },
   XOR: {
     base: 0x30,
     resultExpr16: (dst, src) => `--xor(${dst}, ${src})`,
     resultExpr8:  (dst, src) => `--xor8(${dst}, ${src})`,
-    flagsFn16: (dst, src) => `--xorFlags16(${dst}, ${src})`,
-    flagsFn8:  (dst, src) => `--xorFlags8(${dst}, ${src})`,
+    flagsFn16: (dst, src) => `calc(--xorFlags16(${dst}, ${src}) + --and(var(--__1flags), 1808))`,
+    flagsFn8:  (dst, src) => `calc(--xorFlags8(${dst}, ${src}) + --and(var(--__1flags), 1808))`,
     writesResult: true,
   },
   CMP: {
     base: 0x38,
     resultExpr16: null, // no writeback
     resultExpr8: null,
-    flagsFn16: (dst, src) => `--subFlags16(${dst}, ${src})`,
-    flagsFn8:  (dst, src) => `--subFlags8(${dst}, ${src})`,
+    flagsFn16: (dst, src) => `calc(--subFlags16(${dst}, ${src}) + --and(var(--__1flags), 1792))`,
+    flagsFn8:  (dst, src) => `calc(--subFlags8(${dst}, ${src}) + --and(var(--__1flags), 1792))`,
     writesResult: false,
   },
 };
@@ -194,11 +196,11 @@ function emitALU(dispatch, op) {
 function emitTEST_rm_reg(dispatch) {
   // 0x85: TEST r/m16, reg16
   dispatch.addEntry('IP', 0x85, `calc(var(--__1IP) + 2 + var(--modrmExtra))`, `TEST r/m16, reg16`);
-  dispatch.addEntry('flags', 0x85, `--andFlags16(var(--rmVal16), var(--regVal16))`, `TEST r/m16, reg16`);
+  dispatch.addEntry('flags', 0x85, `calc(--andFlags16(var(--rmVal16), var(--regVal16)) + --and(var(--__1flags), 1808))`, `TEST r/m16, reg16`);
 
   // 0x84: TEST r/m8, reg8
   dispatch.addEntry('IP', 0x84, `calc(var(--__1IP) + 2 + var(--modrmExtra))`, `TEST r/m8, reg8`);
-  dispatch.addEntry('flags', 0x84, `--andFlags8(var(--rmVal8), var(--regVal8))`, `TEST r/m8, reg8`);
+  dispatch.addEntry('flags', 0x84, `calc(--andFlags8(var(--rmVal8), var(--regVal8)) + --and(var(--__1flags), 1808))`, `TEST r/m8, reg8`);
 }
 
 /**
@@ -207,11 +209,11 @@ function emitTEST_rm_reg(dispatch) {
 function emitTEST_acc_imm(dispatch) {
   // 0xA9: TEST AX, imm16
   dispatch.addEntry('IP', 0xA9, `calc(var(--__1IP) + 3)`, `TEST AX, imm16`);
-  dispatch.addEntry('flags', 0xA9, `--andFlags16(var(--__1AX), var(--imm16))`, `TEST AX, imm16`);
+  dispatch.addEntry('flags', 0xA9, `calc(--andFlags16(var(--__1AX), var(--imm16)) + --and(var(--__1flags), 1808))`, `TEST AX, imm16`);
 
   // 0xA8: TEST AL, imm8
   dispatch.addEntry('IP', 0xA8, `calc(var(--__1IP) + 2)`, `TEST AL, imm8`);
-  dispatch.addEntry('flags', 0xA8, `--andFlags8(var(--AL), var(--imm8))`, `TEST AL, imm8`);
+  dispatch.addEntry('flags', 0xA8, `calc(--andFlags8(var(--AL), var(--imm8)) + --and(var(--__1flags), 1808))`, `TEST AL, imm8`);
 }
 
 /**
