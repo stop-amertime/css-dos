@@ -1,4 +1,13 @@
 #!/usr/bin/env node
+// TEST HARNESS SHORTCUT — not a machine model.
+//
+// This file bypasses the normal PC boot sequence (BIOS init, IVT setup via
+// bios_init) and sets up the emulator state directly from outside. It loads
+// the .COM at 0x100, reads handler offsets from gossamer.lst (the NASM
+// listing), pre-populates the IVT, and starts the CPU at CS:IP=0000:0100.
+// This is enough for conformance testing but does NOT replicate what a real
+// PC does at power-on.
+//
 // Reference 8086 emulator for conformance testing against calcite.
 // Uses emu8's js8086.js CPU core.
 //
