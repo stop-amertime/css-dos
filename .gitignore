@@ -31,6 +31,7 @@ Thumbs.db
 
 # Third-party source
 examples/Zork_I_-_The_Great_Underground_Empire_1980/
+references/
 
 # Playwright debug artifacts
 .playwright-mcp/
