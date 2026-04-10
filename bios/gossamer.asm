@@ -142,9 +142,15 @@ int10h_handler:
     iret
 
 .get_mode:
-    mov al, 0x03
-    mov ah, 80
-    mov bh, 0
+    push ds
+    push bx
+    mov bx, 0x0040
+    mov ds, bx
+    mov al, [0x0049]        ; video_mode from BDA
+    mov ah, [0x004A]        ; video_columns (byte) from BDA
+    mov bh, [0x0062]        ; active video page from BDA
+    pop bx
+    pop ds
     iret
 
 .set_mode:
@@ -152,7 +158,7 @@ int10h_handler:
     push di
     push cx
     push ax
-    ; Clear cursor (always — both text and graphics modes reset it)
+    ; Clear cursor and store mode in BDA
     mov ax, 0x0040
     mov ds, ax
     mov byte [0x0050], 0
@@ -161,6 +167,7 @@ int10h_handler:
     ; everything else treated as text mode (80x25).
     pop ax                 ; AL = original mode byte
     push ax                ; save it again for the final pop
+    mov [0x0049], al       ; store video_mode in BDA
     cmp al, 0x13
     je .set_mode_13h
     ; --- Text mode clear: 2000 words of space+attr at 0xB8000 ---

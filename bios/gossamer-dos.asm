@@ -204,6 +204,8 @@ int10h_handler:
     jne .not_write_char_only
     jmp .write_char_only
 .not_write_char_only:
+    cmp ah, 0x1A
+    je .get_display_combo
     pop bp
     pop es
     pop ds
@@ -231,36 +233,30 @@ int10h_handler:
     iret
 
 .get_mode:
-    push bx
     mov bx, BDA_SEG
     mov ds, bx
     mov al, [video_mode]
     mov ah, [video_columns]
     mov bh, [video_page]
-    ; BH is return value, but we pushed original BX
-    ; Need to fix this: pop old BX but keep BH
-    mov bl, bh              ; save page in BL
-    pop bx                  ; restore original BX
-    mov bh, bl              ; but no, that clobbers... let's just not push BX
-    ; Actually simpler approach: just return hardcoded for mode 3
     pop bp
     pop es
     pop ds
-    mov al, 0x03
-    mov ah, 80
-    mov bh, 0
     iret
 
 .set_mode:
     push di
     push cx
     push ax
-    mov ax, BDA_SEG
-    mov ds, ax
+    ; Store requested mode in BDA and reset cursor
+    mov cx, BDA_SEG
+    mov ds, cx
     mov byte [video_cur_pos], 0
     mov byte [video_cur_pos+1], 0
-    mov byte [video_mode], 0x03
-    ; Clear screen
+    mov [video_mode], al        ; store actual requested mode, not hardcoded 0x03
+    ; Branch on mode: AL=0x13 → Mode 13h graphics, else text
+    cmp al, 0x13
+    je .set_mode_13h
+    ; --- Text mode: clear 80x25 text buffer at 0xB8000 ---
     mov ax, VGA_SEG
     mov ds, ax
     xor di, di
@@ -271,8 +267,22 @@ int10h_handler:
     add di, 2
     dec cx
     jnz .clr_loop
+    jmp short .set_mode_done
+.set_mode_13h:
+    ; --- Mode 13h: clear 320x200 framebuffer at 0xA0000 ---
+    mov ax, 0xA000
+    mov ds, ax
+    xor di, di
+    mov cx, 32000
+    xor ax, ax
+.clr13_loop:
+    mov [di], ax
+    add di, 2
+    dec cx
+    jnz .clr13_loop
+.set_mode_done:
     pop ax
-    mov al, 0x30           ; return prior mode info
+    mov al, 0x30           ; return prior mode info (AL bit 7 = don't clear flag, we ignore)
     pop cx
     pop di
     pop bp
@@ -444,6 +454,37 @@ int10h_handler:
     pop bp
     pop es
     pop ds
+    iret
+
+.get_display_combo:
+    ; AH=1Ah: Get/Set Display Combination Code
+    ; BL=00h → Get: return active display in BL, inactive in BH
+    ; Programs use this to detect VGA. We return based on current video_mode:
+    ;   text mode → BL=08h (VGA color), BH=00h (no inactive adapter)
+    ;   Mode 13h  → BL=08h (VGA color), BH=00h
+    ; AL=1Ah on return confirms this sub-function is supported.
+    cmp bl, 0
+    jne .dcc_set
+    ; BL=00h: Get DCC
+    push bx
+    mov bx, BDA_SEG
+    mov ds, bx
+    mov al, [video_mode]
+    pop bx
+    ; Always report VGA color (0x08) regardless of mode
+    mov bl, 0x08            ; active display: VGA color
+    mov bh, 0x00            ; inactive: none
+    pop bp
+    pop es
+    pop ds
+    mov al, 0x1A            ; confirm supported
+    iret
+.dcc_set:
+    ; BL != 00h: Set DCC — we accept but ignore (can't change the CSS adapter)
+    pop bp
+    pop es
+    pop ds
+    mov al, 0x1A
     iret
 
 ; ============================================================
