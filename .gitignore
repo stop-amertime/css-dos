@@ -8,7 +8,6 @@
 *.bin
 *.start
 *.o
-*.com
 
 # Build outputs — binaries are small and needed, track them; listings are regenerable
 !build/*.bin
