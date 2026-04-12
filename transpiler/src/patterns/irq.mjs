@@ -113,7 +113,7 @@ export function emitIRQSentinel(dispatch) {
 export function emitPicVectorProperties() {
   return [
     // _irqEffective: unmasked pending IRQs (for trigger decision + acknowledge)
-    `  --_irqEffective: --and(var(--__1picPending), --not(var(--__1picMask)));`,
+    `  --_irqEffective: if(style(--__1picInService: 0): --and(var(--__1picPending), --not(var(--__1picMask))); else: 0);`,
     // _irqNum: lowest set bit of _irqEffective (for acknowledge — which bit to move)
     `  --_irqNum: --lowestBit(var(--_irqEffective));`,
     // _irqBit: bitmask for the IRQ being acknowledged
