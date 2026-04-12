@@ -25,6 +25,7 @@ import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import { loadIvtHandlers, writeIvtTo } from './lib/bios-symbols.mjs';
 import { PIC, PIT, KeyboardController } from './peripherals.mjs';
+import { createBiosHandlers } from './lib/bios-handlers.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -49,6 +50,15 @@ const cssPath = resolve(positional[2]);
 const maxTicks = parseInt(flags.ticks || '500');
 const calciteTicks = parseInt(flags['calcite-ticks'] || String(maxTicks * 10));
 const dumpSlots = 'dump-slots' in flags;
+
+// Parse key events: --key-events=100:0x1E61,150:0
+const keyEvents = [];
+if (flags['key-events']) {
+  for (const part of flags['key-events'].split(',')) {
+    const [cycleStr, keyStr] = part.split(':');
+    keyEvents.push({ cycle: parseInt(cycleStr), key: parseInt(keyStr) });
+  }
+}
 
 // --- Load reference emulator ---
 const js8086Source = readFileSync(resolve(__dirname, 'js8086.js'), 'utf-8');
@@ -78,14 +88,23 @@ const pic = new PIC();
 const pit = new PIT(pic);
 const kbd = new KeyboardController(pic);
 
+let int_handler = null;
+
 const cpu = Intel8086(
   (addr, val) => { memory[addr & 0xFFFFF] = val & 0xFF; },
   (addr) => memory[addr & 0xFFFFF],
   pic,
   pit,
+  (type) => int_handler ? int_handler(type) : false,
 );
 cpu.reset();
 cpu.setRegs({ cs: 0, ip: 0x0100, ss: 0, sp: 0x05F8, ds: 0, es: 0 });
+
+int_handler = createBiosHandlers(
+  memory, pic, kbd,
+  () => cpu.getRegs(),
+  (regs) => cpu.setRegs(regs),
+);
 
 function refState() {
   const r = cpu.getRegs();
@@ -98,11 +117,26 @@ function refState() {
   };
 }
 
+// Initialize BDA keyboard buffer pointers (empty buffer)
+memory[0x041A] = 0x1E;  // head lo
+memory[0x041B] = 0x00;  // head hi
+memory[0x041C] = 0x1E;  // tail lo
+memory[0x041D] = 0x00;  // tail hi
+// BDA video mode defaults
+memory[0x0449] = 0x03;  // video mode 3 (80x25 color text)
+memory[0x044A] = 80;    // columns
+
 // --- Generate reference trace ---
 console.error(`Running reference emulator for ${maxTicks} ticks...`);
 const refTrace = [];
 let lastRefIP = -1;
 for (let t = 0; t < maxTicks; t++) {
+  // Inject key events at the right cycle
+  for (const ev of keyEvents) {
+    if (ev.cycle === t) {
+      kbd.feedKey(ev.key);
+    }
+  }
   cpu.step();
   const st = refState();
   refTrace.push({ tick: t, ...st });

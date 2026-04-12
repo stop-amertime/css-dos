@@ -219,8 +219,11 @@ export function createBiosHandlers(memory, pic, kbd, getRegs, setRegs) {
   }
 
   function int20h() {
-    memory[0x2110] = 1;
-    return true;
+    // Let the IVT handler run — gossamer's INT 20h does jmp-to-self (infinite loop)
+    // which is what the halt detector (same-IP check) needs to see.
+    // We just need the side effect of memory[0x2110]=1 to be visible, but the
+    // BIOS handler already does that. Return false to use the normal IVT path.
+    return false;
   }
 
   return function int_handler(type) {
