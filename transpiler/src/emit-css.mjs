@@ -365,8 +365,13 @@ export function emitCSS(opts, writeStream) {
   writeStream.write('  /* ===== IRQ ACTIVE ===== */\n');
   writeStream.write('  /* Checked in order: first match wins. */\n');
   writeStream.write(`  --irqActive: if(\n`);
-  writeStream.write(`    style(--opcode: 241) and style(--__1uOp: 5): 0; /* sentinel retirement */\n`);
-  writeStream.write(`    style(--opcode: 241): var(--__1irqActive); /* sentinel mid-sequence: hold */\n`);
+  writeStream.write(`    style(--opcode: 241) and style(--__1uOp: 5): 0; /* IRQ sentinel retirement */\n`);
+  writeStream.write(`    style(--opcode: 241): var(--__1irqActive); /* IRQ sentinel mid-sequence: hold */\n`);
+  writeStream.write(`    style(--opcode: 214) and style(--__1uOp: 0): if(\n`);
+  writeStream.write(`      style(--_irqEffective: 0): 0;\n`);
+  writeStream.write(`      style(--_ifFlag: 0): 0;\n`);
+  writeStream.write(`    else: 1); /* BIOS handler μop 0 hold: allow IRQ if pending+IF=1 */\n`);
+  writeStream.write(`    style(--opcode: 214): 0; /* BIOS handler mid-sequence: no IRQ */\n`);
   writeStream.write(`    style(--_irqEffective: 0): 0; /* no unmasked pending IRQ */\n`);
   writeStream.write(`    style(--_ifFlag: 0): 0; /* IF=0: interrupts disabled */\n`);
   writeStream.write(`    style(--__1uOp: 0): 1; /* instruction boundary + IF=1 + IRQ pending */\n`);
