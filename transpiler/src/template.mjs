@@ -24,6 +24,15 @@ export const REGISTERS = [
 export const STATE_VARS = [
   { name: 'halt', init: 0, debug: true },
   { name: 'uOp', init: 0, debug: true },
+  { name: 'cycleCount', init: 0, debug: false },
+  { name: 'picMask', init: 0xFF, debug: false },
+  { name: 'picPending', init: 0, debug: false },
+  { name: 'picInService', init: 0, debug: false },
+  { name: 'irqActive', init: 0, debug: false },
+  { name: 'pitCounter', init: 0, debug: false },
+  { name: 'pitReload', init: 0, debug: false },
+  { name: 'pitMode', init: 0, debug: false },
+  { name: 'pitWriteState', init: 0, debug: false },
 ];
 
 /**

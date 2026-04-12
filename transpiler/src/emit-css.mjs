@@ -20,6 +20,9 @@ import { emitAllStack } from './patterns/stack.mjs';
 import { emitAllMisc } from './patterns/misc.mjs';
 import { emitAllGroups } from './patterns/group.mjs';
 import { emitAllShifts, emitShiftFlagFunctions, emitShiftByNFlagFunctions } from './patterns/shift.mjs';
+import { emitCycleCounts } from './cycle-counts.mjs';
+import { emitIRQSentinel, emitPicVectorProperties, emitIRQFunctions } from './patterns/irq.mjs';
+import { emitPitProperties } from './patterns/pit.mjs';
 
 /**
  * Dispatch table builder. Collects per-register entries keyed by opcode.
@@ -118,17 +121,28 @@ class DispatchTable {
         const commentStr = comment ? ` /* ${comment} */` : '';
         dispatchLines.push(`    style(--opcode: ${opcode}): ${expr};${commentStr}`);
       } else {
-        // Multi-cycle opcode: nested dispatch on --__1uOp.
-        // Even if this register only has uOp 0 entries, we must nest to
-        // prevent the expression from firing on other μops (where the
-        // register should hold its value via the default).
-        const innerLines = [];
+        // Multi-cycle opcode: flat entries with 'and' composition.
+        // style(--opcode: N) and style(--__1uOp: M): expr
+        // When no uOp matches, the outer else (hold) fires — no inner else needed.
+        const maxU = this.maxUop.get(opcode) || 0;
         const sortedUops = [...uOpMap.entries()].sort(([a], [b]) => a - b);
+        const uOpSet = new Set(sortedUops.map(([u]) => u));
         for (const [uOp, { expr, comment }] of sortedUops) {
           const commentStr = comment ? ` /* ${comment} */` : '';
-          innerLines.push(`      style(--__1uOp: ${uOp}): ${expr};${commentStr}`);
+          dispatchLines.push(`    style(--opcode: ${opcode}) and style(--__1uOp: ${uOp}): ${expr};${commentStr}`);
         }
-        dispatchLines.push(`    style(--opcode: ${opcode}): if(\n${innerLines.join('\n')}\n    else: ${defaultExpr});`);
+        // For IP: emit explicit hold entries for uOps without an IP expression.
+        // The IP wrapper adds + var(--prefixLen) to the entire dispatch, so the
+        // default fallthrough (var(--__1IP)) becomes IP + prefixLen — wrong for
+        // mid-instruction holds on prefixed instructions (e.g., REP STOSW).
+        // Emitting calc(var(--__1IP) - var(--prefixLen)) cancels the wrapper.
+        if (wrapIP) {
+          for (let u = 0; u <= maxU; u++) {
+            if (!uOpSet.has(u)) {
+              dispatchLines.push(`    style(--opcode: ${opcode}) and style(--__1uOp: ${u}): calc(var(--__1IP) - var(--prefixLen)); /* hold */`);
+            }
+          }
+        }
       }
     }
 
@@ -161,16 +175,12 @@ class DispatchTable {
         addrLines.push(`    style(--opcode: ${opcode}): ${addrExpr}; /* ${comment || ''} */`);
         valLines.push(`    style(--opcode: ${opcode}): ${valExpr}; /* ${comment || ''} */`);
       } else {
-        // Multi-uOp: nested dispatch on --__1uOp
-        const innerAddr = [];
-        const innerVal = [];
+        // Multi-uOp: flat entries with 'and' composition
         const sortedUops = [...uOpMap.entries()].sort(([a], [b]) => a - b);
         for (const [uOp, { addrExpr, valExpr, comment }] of sortedUops) {
-          innerAddr.push(`      style(--__1uOp: ${uOp}): ${addrExpr}; /* ${comment || ''} */`);
-          innerVal.push(`      style(--__1uOp: ${uOp}): ${valExpr}; /* ${comment || ''} */`);
+          addrLines.push(`    style(--opcode: ${opcode}) and style(--__1uOp: ${uOp}): ${addrExpr}; /* ${comment || ''} */`);
+          valLines.push(`    style(--opcode: ${opcode}) and style(--__1uOp: ${uOp}): ${valExpr}; /* ${comment || ''} */`);
         }
-        addrLines.push(`    style(--opcode: ${opcode}): if(\n${innerAddr.join('\n')}\n    else: -1);`);
-        valLines.push(`    style(--opcode: ${opcode}): if(\n${innerVal.join('\n')}\n    else: 0);`);
       }
     }
 
@@ -213,12 +223,10 @@ class DispatchTable {
         lines.push(`    style(--opcode: ${opcode}): ${this.customUopAdvance.get(opcode)};`);
       } else {
         // Auto-generated advance chain: 0→1→...→N→0
-        const innerLines = [];
         for (let u = 0; u < maxU; u++) {
-          innerLines.push(`      style(--__1uOp: ${u}): ${u + 1};`);
+          lines.push(`    style(--opcode: ${opcode}) and style(--__1uOp: ${u}): ${u + 1};`);
         }
-        innerLines.push(`      style(--__1uOp: ${maxU}): 0;`);
-        lines.push(`    style(--opcode: ${opcode}): if(\n${innerLines.join('\n')}\n    else: 0);`);
+        lines.push(`    style(--opcode: ${opcode}) and style(--__1uOp: ${maxU}): 0;`);
       }
     }
     lines.push('  else: 0);');
@@ -272,6 +280,8 @@ export function emitCSS(opts, writeStream) {
   emitAllMisc(dispatch);      // HLT/NOP/LODSB/STOSB/MOV r/m imm/flag manip/CBW/CWD/XCHG
   emitAllGroups(dispatch);    // Group FE/F7/F6/80-83
   emitAllShifts(dispatch);    // SHL/SHR/SAR/ROL/ROR (D0-D1)
+  emitCycleCounts(dispatch);  // Per-instruction 8086 cycle costs
+  emitIRQSentinel(dispatch);  // Sentinel opcode 0xF1 for hardware IRQ delivery
 
   const w = (s) => writeStream.write(s + '\n\n');
 
@@ -301,6 +311,9 @@ export function emitCSS(opts, writeStream) {
   w(emitShiftFlagFunctions());
   w(emitShiftByNFlagFunctions());
 
+  // 3b. IRQ helper @functions
+  w(emitIRQFunctions());
+
   // 4. Clock and CPU base
   w('/* ===== EXECUTION ENGINE ===== */');
   w(emitClockAndCpuBase({ htmlMode }));
@@ -309,6 +322,10 @@ export function emitCSS(opts, writeStream) {
   writeStream.write('  /* Register aliases (8-bit halves) */\n');
   w(emitRegisterAliases());
   w(emitDecodeProperties());
+
+  // PIC vector computation (IRQ number → interrupt vector)
+  writeStream.write('  /* ===== PIC / IRQ STATE ===== */\n');
+  writeStream.write(emitPicVectorProperties() + '\n\n');
 
   // Unknown opcode detection — sets --unknownOp=1 and --haltCode=opcode
   writeStream.write('  /* ===== UNKNOWN OPCODE FLAG ===== */\n');
@@ -320,12 +337,34 @@ export function emitCSS(opts, writeStream) {
   writeStream.write('  /* Each register\'s next value is selected by opcode via a\n');
   writeStream.write('     giant if(style(--instId: N)) dispatch. This is the CPU. */\n');
   const regOrder = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI',
-                    'CS', 'DS', 'ES', 'SS', 'IP', 'flags', 'halt'];
+                    'CS', 'DS', 'ES', 'SS', 'IP', 'flags', 'halt', 'cycleCount',
+                    'picMask', 'picPending', 'picInService'];
   for (const reg of regOrder) {
-    const defaultExpr = `var(--__1${reg})`;
+    // picPending default: OR in PIT IRQ (bit 0) when PIT counter crosses zero.
+    // --_pitFired is 0 or 1 (computed by PIT properties below).
+    const defaultExpr = reg === 'picPending'
+      ? `--or(var(--__1picPending), var(--_pitFired))`
+      : `var(--__1${reg})`;
     writeStream.write(dispatch.emitRegisterDispatch(reg, defaultExpr) + '\n');
   }
   writeStream.write('\n');
+
+  // irqActive — standalone computed property (not dispatch-driven)
+  // Set to 1 at instruction boundaries when IF=1 and PIC has unmasked pending IRQ.
+  // Stays 1 during sentinel μop sequence, resets to 0 on sentinel retirement.
+  writeStream.write('  /* ===== IRQ ACTIVE ===== */\n');
+  writeStream.write('  /* Checked in order: first match wins. */\n');
+  writeStream.write(`  --irqActive: if(\n`);
+  writeStream.write(`    style(--opcode: 241) and style(--__1uOp: 5): 0; /* sentinel retirement */\n`);
+  writeStream.write(`    style(--opcode: 241): var(--__1irqActive); /* sentinel mid-sequence: hold */\n`);
+  writeStream.write(`    style(--_irqEffective: 0): 0; /* no unmasked pending IRQ */\n`);
+  writeStream.write(`    style(--_ifFlag: 0): 0; /* IF=0: interrupts disabled */\n`);
+  writeStream.write(`    style(--__1uOp: 0): 1; /* instruction boundary + IF=1 + IRQ pending */\n`);
+  writeStream.write(`  else: 0); /* mid-instruction */\n\n`);
+
+  // PIT (i8253) state — standalone computed properties
+  writeStream.write('  /* ===== PIT TIMER ===== */\n');
+  writeStream.write(emitPitProperties() + '\n\n');
 
   // μop advance dispatch
   writeStream.write('  /* ===== μOP ADVANCE ===== */\n');

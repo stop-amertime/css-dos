@@ -24,6 +24,7 @@ import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import { loadIvtHandlers, writeIvtTo } from './lib/bios-symbols.mjs';
+import { PIC, PIT, KeyboardController } from './peripherals.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -73,9 +74,15 @@ const BIOS_SEG = 0xF000;
 const handlers = loadIvtHandlers(biosPath.replace(/\.bin$/, '.lst'));
 writeIvtTo(memory, handlers, BIOS_SEG);
 
+const pic = new PIC();
+const pit = new PIT(pic);
+const kbd = new KeyboardController(pic);
+
 const cpu = Intel8086(
   (addr, val) => { memory[addr & 0xFFFFF] = val & 0xFF; },
   (addr) => memory[addr & 0xFFFFF],
+  pic,
+  pit,
 );
 cpu.reset();
 cpu.setRegs({ cs: 0, ip: 0x0100, ss: 0, sp: 0x05F8, ds: 0, es: 0 });
@@ -119,7 +126,7 @@ const calciteCmd = [
   '--input', cssPath,
   '--ticks', String(calciteTicks),
   '--trace-json',
-  '--halt', '0x2110',
+  '--halt=-15',
 ].join(' ');
 
 let calciteOutput;
@@ -148,77 +155,85 @@ for (let i = lines.length - 1; i >= 0; i--) {
 
 console.error(`Calcite trace parsed (${calciteTrace.length} ticks)`);
 
-// --- Compare with IP-aligned cursors ---
-// The ref emulator does REP as one tick, calcite does N ticks.
-// We compare at instruction boundaries: when ref advances to a new IP,
-// we advance calcite until it reaches the same IP (or close enough).
+// --- Compare at instruction retirement boundaries ---
+// v3 CSS executes one μop per tick. An instruction retires when --uOp returns
+// to 0 after being non-zero, or when it was always 0 (single-cycle instruction).
+// The reference emulator retires one instruction per tick.
+//
+// Alignment: for each ref tick, advance the Calcite cursor to the next
+// retirement tick (uOp === 0), then compare. This handles multi-cycle
+// instructions (PUSH, INT, CALL, REP string ops) uniformly.
 
 const REG_NAMES = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI', 'IP', 'ES', 'CS', 'SS', 'DS'];
 
-// Normalise IP: ref uses flat (CS*16+IP), calcite uses just IP.
-// When CS != 0 (BIOS), ref IP includes the CS base. We need to handle this.
+// Normalise IP: ref uses flat (CS*16+IP), calcite stores IP as segment offset.
 function normaliseIP(state) {
-  // If the state has both CS and IP, calcite IP is already the offset within segment,
-  // but ref IP is CS*16+IP. For comparison, use CS and IP-within-segment.
-  // Actually, calcite stores IP as the flat address within CS:
-  // calcite's IP = offset, and CS is separate. ref IP = CS*16 + offset.
-  // So normalised IP = CS*16 + IP for calcite, and just IP for ref.
   if (state.CS !== undefined && state.CS > 0) {
     return state.CS * 16 + state.IP;
   }
   return state.IP;
 }
 
+// Advance Calcite cursor to match the ref emulator's post-instruction state.
+// This handles both multi-μop instructions (PUSH, INT — uOp > 0 during mid-
+// instruction ticks) and multi-iteration REP (uOp stays 0 but IP doesn't
+// advance until all iterations complete).
+// Strategy: advance until calcite's IP matches the target IP.
+function advanceToIP(trace, cursor, targetIP, limit = 500) {
+  let j = cursor;
+  const end = Math.min(trace.length, cursor + limit);
+  while (j < end) {
+    const calIP = trace[j].CS > 0
+      ? trace[j].CS * 16 + trace[j].IP
+      : trace[j].IP;
+    if (calIP === targetIP && trace[j].uOp === 0) {
+      return j;
+    }
+    j++;
+  }
+  return -1; // couldn't find matching IP
+}
+
 let firstDivergence = null;
 let matchCount = 0;
 let totalCompared = 0;
-let repSkips = 0;
+let multiCycleSkips = 0;
 
 let ci = 0; // calcite cursor
 
 for (let ri = 0; ri < refTrace.length && ci < calciteTrace.length; ri++) {
   const ref = refTrace[ri];
-  const cal = calciteTrace[ci];
-  const refIP = ref.IP;
-  const calIP = normaliseIP(cal);
 
-  // If IPs don't match, the calcite trace may be mid-REP.
-  // Advance calcite cursor until IP matches ref IP, or we run out.
-  if (refIP !== calIP) {
-    let found = false;
-    const searchLimit = ci + 500; // don't search forever
-    for (let j = ci + 1; j < calciteTrace.length && j < searchLimit; j++) {
-      const candidate = calciteTrace[j];
-      const candIP = normaliseIP(candidate);
-      if (candIP === refIP) {
-        const skipped = j - ci;
-        repSkips += skipped;
-        ci = j;
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
-      // Can't find matching IP — report divergence
-      firstDivergence = {
-        refTick: ri, calTick: ci,
-        diffs: [{ reg: 'IP', ref: refIP, cal: calIP }],
-        ref, cal,
-        reason: `IP mismatch: ref=0x${refIP.toString(16)} cal=0x${calIP.toString(16)} (could not resync)`,
-      };
-      break;
-    }
+  // Advance Calcite to match ref's post-instruction IP.
+  const refIP = ref.IP;
+  const retireTick = advanceToIP(calciteTrace, ci, refIP);
+  if (retireTick < 0) {
+    firstDivergence = {
+      refTick: ri, calTick: ci,
+      diffs: [{ reg: 'IP', ref: refIP, cal: normaliseIP(calciteTrace[ci]) }],
+      ref, cal: calciteTrace[ci],
+      reason: `Could not find calcite tick matching ref IP=0x${refIP.toString(16)} (searched from tick ${ci})`,
+    };
+    break;
   }
 
-  // Now IPs match. Compare registers.
+  const skipped = retireTick - ci;
+  multiCycleSkips += skipped;
+  ci = retireTick;
+
   const calNow = calciteTrace[ci];
+
+  // Compare registers at retirement.
   const diffs = [];
   for (const reg of REG_NAMES) {
     let rv = ref[reg], cv = calNow[reg];
-    // Normalise IP for comparison (flat vs segmented)
     if (reg === 'IP') {
       rv = ref.IP;
       cv = normaliseIP(calNow);
+    }
+    if (reg === 'FLAGS') {
+      rv = ref.FLAGS;
+      cv = calNow.flags;
     }
     if (rv !== cv) {
       diffs.push({ reg, ref: rv, cal: cv });
@@ -234,7 +249,7 @@ for (let ri = 0; ri < refTrace.length && ci < calciteTrace.length; ri++) {
   }
   matchCount++;
   totalCompared++;
-  ci++;
+  ci++; // advance past this retirement tick
 }
 
 // --- Report ---
@@ -244,8 +259,8 @@ console.log(`${'='.repeat(60)}`);
 console.log(`Ref ticks: ${refTrace.length}  Calcite ticks: ${calciteTrace.length}`);
 console.log(`Instructions compared: ${totalCompared}`);
 console.log(`Matching: ${matchCount}`);
-if (repSkips > 0) {
-  console.log(`REP tick skips: ${repSkips} (calcite ticks for multi-iteration REP ops)`);
+if (multiCycleSkips > 0) {
+  console.log(`Multi-cycle ticks skipped: ${multiCycleSkips} (mid-instruction μop ticks)`);
 }
 
 if (!firstDivergence) {

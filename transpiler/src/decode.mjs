@@ -228,8 +228,9 @@ export function emitDecodeProperties() {
   --q4: if(style(--prefixLen: 0): var(--raw4); style(--prefixLen: 1): var(--raw5); else: var(--raw6));
   --q5: if(style(--prefixLen: 0): var(--raw5); style(--prefixLen: 1): var(--raw6); else: var(--raw7));
 
-  /* Opcode (first non-prefix byte) */
-  --opcode: var(--q0);
+  /* Opcode (first non-prefix byte).
+     When irqActive=1, override to sentinel 0xF1 for IRQ acknowledge sequence. */
+  --opcode: if(style(--__1irqActive: 1): 241; else: var(--q0));
 
   /* d and w bits from opcode */
   --dBit: --rightShift(--and(var(--opcode), 2), 1);

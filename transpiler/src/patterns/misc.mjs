@@ -497,51 +497,113 @@ export function emitLAHF_SAHF(dispatch) {
 /**
  * I/O port instructions: IN and OUT.
  *
- * Most ports have no hardware — IN returns 0 and OUT is a no-op.
- * Exception: port 0x60 (keyboard scancode) reads the low byte of --keyboard
- * (the scancode), enabling games that poll the keyboard controller directly.
+ * Ports handled:
+ *   0x20 — PIC command (OUT: non-specific EOI clears lowest in-service bit)
+ *   0x21 — PIC data (IN: read mask, OUT: write mask)
+ *   0x60 — Keyboard scancode (IN: read scancode from --keyboard)
  *
- * IN AL, imm8  (0xE4): 2-byte, port in q1. Returns scancode if port=0x60.
- * IN AX, imm8  (0xE5): 2-byte, port in q1. Returns keyboard word if port=0x60.
- * OUT imm8, AL (0xE6): 2-byte, no-op.
- * OUT imm8, AX (0xE7): 2-byte, no-op.
- * IN AL, DX   (0xEC): 1-byte, port in DX. Returns scancode if DX=0x60.
- * IN AX, DX   (0xED): 1-byte, port in DX. Returns keyboard word if DX=0x60.
- * OUT DX, AL  (0xEE): 1-byte, no-op.
- * OUT DX, AX  (0xEF): 1-byte, no-op.
+ * IN AL, imm8  (0xE4): 2-byte, port in q1.
+ * IN AX, imm8  (0xE5): 2-byte, port in q1.
+ * OUT imm8, AL (0xE6): 2-byte, port in q1, value in AL.
+ * OUT imm8, AX (0xE7): 2-byte, port in q1, value in AX.
+ * IN AL, DX   (0xEC): 1-byte, port in DX.
+ * IN AX, DX   (0xED): 1-byte, port in DX.
+ * OUT DX, AL  (0xEE): 1-byte, port in DX, value in AL.
+ * OUT DX, AX  (0xEF): 1-byte, port in DX, value in AX.
  */
 export function emitIO(dispatch) {
+  // === IN instructions ===
+
   // IN AL, imm8 (0xE4): port number is q1 (byte after opcode)
-  // Port 0x60 → scancode = rightShift(keyboard, 8)
+  // Port 0x40 (64) → PIT counter lo, Port 0x21 (33) → picMask, Port 0x60 (96) → scancode
   dispatch.addEntry('AX', 0xE4,
-    `--mergelow(var(--__1AX), if(style(--q1: 96): --rightShift(var(--__1keyboard), 8); else: 0))`,
-    `IN AL, imm8 (port 0x60=scancode)`);
+    `--mergelow(var(--__1AX), if(` +
+    `style(--q1: 64): --lowerBytes(var(--__1pitCounter), 8); ` +
+    `style(--q1: 33): var(--__1picMask); ` +
+    `style(--q1: 96): --rightShift(var(--__1keyboard), 8); ` +
+    `else: 0))`,
+    `IN AL, imm8`);
   dispatch.addEntry('IP', 0xE4, `calc(var(--__1IP) + 2)`, `IN AL, imm8`);
 
-  // IN AX, imm8 (0xE5): port 0x60 → full keyboard word
+  // IN AX, imm8 (0xE5): word read
   dispatch.addEntry('AX', 0xE5,
-    `if(style(--q1: 96): var(--__1keyboard); else: 0)`,
-    `IN AX, imm8 (port 0x60=keyboard)`);
+    `if(style(--q1: 64): var(--__1pitCounter); ` +
+    `style(--q1: 33): var(--__1picMask); ` +
+    `style(--q1: 96): var(--__1keyboard); ` +
+    `else: 0)`,
+    `IN AX, imm8`);
   dispatch.addEntry('IP', 0xE5, `calc(var(--__1IP) + 2)`, `IN AX, imm8`);
+
+  // IN AL, DX (0xEC): port number is in DX register
+  dispatch.addEntry('AX', 0xEC,
+    `--mergelow(var(--__1AX), if(` +
+    `style(--__1DX: 64): --lowerBytes(var(--__1pitCounter), 8); ` +
+    `style(--__1DX: 33): var(--__1picMask); ` +
+    `style(--__1DX: 96): --rightShift(var(--__1keyboard), 8); ` +
+    `else: 0))`,
+    `IN AL, DX`);
+  dispatch.addEntry('IP', 0xEC, `calc(var(--__1IP) + 1)`, `IN AL, DX`);
+
+  // IN AX, DX (0xED): word read
+  dispatch.addEntry('AX', 0xED,
+    `if(style(--__1DX: 64): var(--__1pitCounter); ` +
+    `style(--__1DX: 33): var(--__1picMask); ` +
+    `style(--__1DX: 96): var(--__1keyboard); ` +
+    `else: 0)`,
+    `IN AX, DX`);
+  dispatch.addEntry('IP', 0xED, `calc(var(--__1IP) + 1)`, `IN AX, DX`);
+
+  // === OUT instructions (imm8 port) ===
 
   dispatch.addEntry('IP', 0xE6, `calc(var(--__1IP) + 2)`, `OUT imm8, AL`);
   dispatch.addEntry('IP', 0xE7, `calc(var(--__1IP) + 2)`, `OUT imm8, AX`);
 
-  // IN AL, DX (0xEC): port number is in DX register
-  // DX=0x60 (96 decimal) → scancode = rightShift(keyboard, 8)
-  dispatch.addEntry('AX', 0xEC,
-    `--mergelow(var(--__1AX), if(style(--__1DX: 96): --rightShift(var(--__1keyboard), 8); else: 0))`,
-    `IN AL, DX (port 0x60=scancode)`);
-  dispatch.addEntry('IP', 0xEC, `calc(var(--__1IP) + 1)`, `IN AL, DX`);
+  // OUT imm8, AL (0xE6): port in q1, value is AL (low byte of AX)
+  // Port 0x20 (32): EOI — clear lowest set bit of picInService
+  // Port 0x21 (33): set picMask = AL
+  dispatch.addEntry('picInService', 0xE6,
+    `if(style(--q1: 32): --and(var(--__1picInService), calc(var(--__1picInService) - 1)); ` +
+    `else: var(--__1picInService))`,
+    `OUT imm8: port 0x20 EOI`);
+  dispatch.addEntry('picMask', 0xE6,
+    `if(style(--q1: 33): --lowerBytes(var(--__1AX), 8); ` +
+    `else: var(--__1picMask))`,
+    `OUT imm8: port 0x21 mask`);
 
-  // IN AX, DX (0xED): port 0x60 → full keyboard word
-  dispatch.addEntry('AX', 0xED,
-    `if(style(--__1DX: 96): var(--__1keyboard); else: 0)`,
-    `IN AX, DX (port 0x60=keyboard)`);
-  dispatch.addEntry('IP', 0xED, `calc(var(--__1IP) + 1)`, `IN AX, DX`);
+  // OUT imm8, AX (0xE7): same ports, value is AX (but only low byte matters for PIC)
+  dispatch.addEntry('picInService', 0xE7,
+    `if(style(--q1: 32): --and(var(--__1picInService), calc(var(--__1picInService) - 1)); ` +
+    `else: var(--__1picInService))`,
+    `OUT imm8 AX: port 0x20 EOI`);
+  dispatch.addEntry('picMask', 0xE7,
+    `if(style(--q1: 33): --lowerBytes(var(--__1AX), 8); ` +
+    `else: var(--__1picMask))`,
+    `OUT imm8 AX: port 0x21 mask`);
+
+  // === OUT instructions (DX port) ===
 
   dispatch.addEntry('IP', 0xEE, `calc(var(--__1IP) + 1)`, `OUT DX, AL`);
   dispatch.addEntry('IP', 0xEF, `calc(var(--__1IP) + 1)`, `OUT DX, AX`);
+
+  // OUT DX, AL (0xEE): port in DX, value is AL
+  dispatch.addEntry('picInService', 0xEE,
+    `if(style(--__1DX: 32): --and(var(--__1picInService), calc(var(--__1picInService) - 1)); ` +
+    `else: var(--__1picInService))`,
+    `OUT DX AL: port 0x20 EOI`);
+  dispatch.addEntry('picMask', 0xEE,
+    `if(style(--__1DX: 33): --lowerBytes(var(--__1AX), 8); ` +
+    `else: var(--__1picMask))`,
+    `OUT DX AL: port 0x21 mask`);
+
+  // OUT DX, AX (0xEF): port in DX, value is AX
+  dispatch.addEntry('picInService', 0xEF,
+    `if(style(--__1DX: 32): --and(var(--__1picInService), calc(var(--__1picInService) - 1)); ` +
+    `else: var(--__1picInService))`,
+    `OUT DX AX: port 0x20 EOI`);
+  dispatch.addEntry('picMask', 0xEF,
+    `if(style(--__1DX: 33): --lowerBytes(var(--__1AX), 8); ` +
+    `else: var(--__1picMask))`,
+    `OUT DX AX: port 0x21 mask`);
 }
 
 /**

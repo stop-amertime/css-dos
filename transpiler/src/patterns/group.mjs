@@ -561,10 +561,11 @@ export function emitGroup_FF(dispatch) {
     `else: var(--__1IP))`,
     `Group FF IP μop0`, 0);
 
-  // μop 1 IP: retire for INC/DEC mem, CALL near, PUSH
+  // μop 1 IP: retire for INC/DEC mem, CALL near, PUSH; hold for CALL FAR
   dispatch.addEntry('IP', 0xFF,
     `if(` +
     `style(--reg: 2): calc(var(--rmVal16) - var(--prefixLen)); ` +
+    `style(--reg: 3): var(--__1IP); ` +
     `style(--reg: 6): calc(var(--__1IP) + 2 + var(--modrmExtra)); ` +
     `else: calc(var(--__1IP) + 2 + var(--modrmExtra)))`,
     `Group FF IP μop1`, 1);
