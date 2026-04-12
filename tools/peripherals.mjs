@@ -221,37 +221,39 @@ export class PIT {
 export class KeyboardController {
   constructor(pic) {
     this.pic = pic;
-    this.queue = [];      // scancode queue
-    this.current = 0;     // last scancode read from port 0x60
+    this.queue = [];        // key word queue: (scancode<<8)|ascii
+    this.currentWord = 0;   // last key word dequeued
   }
 
   isConnected(port) {
     return port === 0x60 || port === 0x61;
   }
 
-  feedKey(scancode) {
-    this.queue.push(scancode & 0xFF);
+  /**
+   * Queue a key event. keyWord is (scancode<<8)|ascii for press, 0 for release.
+   */
+  feedKey(keyWord) {
+    this.queue.push(keyWord & 0xFFFF);
     this.pic.raiseIRQ(1);
   }
 
   portIn(w, port) {
     if (port === 0x60) {
       if (this.queue.length > 0) {
-        this.current = this.queue.shift();
+        this.currentWord = this.queue.shift();
       }
-      return this.current;
+      // Port 0x60 returns scancode (high byte), matching real hardware
+      return (this.currentWord >> 8) & 0xFF;
     }
     if (port === 0x61) {
-      return 0; // Control port, mostly ignored
+      return 0;
     }
     return 0;
   }
 
   portOut(w, port, val) {
-    // Port 0x61 writes (speaker control, keyboard acknowledge) — ignored
+    // Port 0x61 writes ignored
   }
 
-  tick() {
-    // No periodic behavior
-  }
+  tick() {}
 }
