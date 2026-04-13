@@ -330,8 +330,9 @@ export function emitCSS(opts, writeStream) {
   //    (the handler may have modified AX, but the subfunction hasn't changed)
   // 2. Normal instruction boundary (uOp=0, not a BIOS hold): latch fresh from __1AX
   // 3. Mid-instruction (uOp>0): keep previous biosAH
-  writeStream.write('  /* ===== BIOS AH LATCH ===== */\n');
-  writeStream.write('  --biosAH: if(style(--opcode: 214) and style(--__1uOp: 0): var(--__1biosAH); style(--__1uOp: 0): --rightShift(var(--__1AX), 8); else: var(--__1biosAH));\n\n');
+  writeStream.write('  /* ===== BIOS AH/AL LATCH ===== */\n');
+  writeStream.write('  --biosAH: if(style(--opcode: 214) and style(--__1uOp: 0): var(--__1biosAH); style(--__1uOp: 0): --rightShift(var(--__1AX), 8); else: var(--__1biosAH));\n');
+  writeStream.write('  --biosAL: if(style(--opcode: 214) and style(--__1uOp: 0): var(--__1biosAL); style(--__1uOp: 0): --lowerBytes(var(--__1AX), 8); else: var(--__1biosAL));\n\n');
 
   // Unknown opcode detection — sets --unknownOp=1 and --haltCode=opcode
   writeStream.write('  /* ===== UNKNOWN OPCODE FLAG ===== */\n');

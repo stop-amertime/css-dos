@@ -14,9 +14,9 @@
 //   --no-gfx        Omit the VGA Mode 13h framebuffer (0xA0000-0xAFA00).
 //   --no-text-vga   Omit the VGA text buffer (0xB8000-0xB8FA0).
 //
-// BIOS handlers are microcode (transpiler/src/patterns/bios.mjs), not
-// gossamer-dos.asm. The generator does the work of bios_init: populating
-// the IVT, initializing the BDA, and booting the kernel directly.
+// BIOS handlers are microcode (transpiler/src/patterns/bios.mjs).
+// The init stub (bios/init.asm) runs as real x86 at F000:0000 to set up
+// the IVT, BDA, and splash screen, then jumps to the DOS kernel.
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve, dirname, extname, basename } from 'path';
@@ -25,7 +25,7 @@ import { execSync } from 'child_process';
 import { emitCSS } from './src/emit-css.mjs';
 import { dosMemoryZones } from './src/memory.mjs';
 import { createWriteStream, statSync } from 'fs';
-import { buildBiosRom, IVT_ENTRIES, BIOS_OPCODE } from './src/patterns/bios.mjs';
+import { buildBiosRom } from './src/patterns/bios.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, '..');
@@ -42,6 +42,8 @@ const BIOS_LINEAR = 0xF0000;     // F000:0000 — BIOS ROM
 const BIOS_SEG = 0xF000;
 const BDA_SEG = 0x0040;
 const BDA_BASE = 0x0400;
+
+const NASM = resolve('C:\\Users\\AdmT9N0CX01V65438A\\AppData\\Local\\bin\\NASM\\nasm.exe');
 
 // --- CLI argument parsing ---
 const args = process.argv.slice(2);
@@ -85,24 +87,25 @@ if (!inputFile) {
 const programName = basename(inputFile).toUpperCase();
 const programName83 = programName.length <= 12 ? programName : programName.substring(0, 12);
 
-// --- Step 1: Build microcode BIOS ROM ---
-console.log('Building microcode BIOS ROM...');
-const { handlers: biosRomHandlers, romBytes: biosRomBytes } = buildBiosRom();
+// --- Step 1: Build BIOS ROM (init stub + microcode stubs) ---
+console.log('Building BIOS ROM...');
+const { romBytes: biosRomBytes } = buildBiosRom();
 
-// The BIOS ROM is just the microcode stubs. We also need an IRET byte (0xCF)
-// for the dummy/default handler vectors. The buildBiosRom stubs already end
-// with 0xCF, so we can point dummy vectors at any stub's IRET byte.
-// We'll add a single IRET byte at the start of the ROM for dummy vectors.
-const biosBytes = [0xCF, ...biosRomBytes]; // byte 0 = IRET for dummy handler
-const dummyHandlerOffset = 0; // offset 0 in BIOS ROM = the IRET byte
-const romStubBase = 1; // stubs shifted by 1 because of the leading IRET
-
-// Adjust handler offsets to account for the leading IRET byte
-for (const intNum of Object.keys(biosRomHandlers)) {
-  biosRomHandlers[intNum] += romStubBase;
+// Assemble the init stub from bios/init.asm
+const initAsmPath = resolve(projectRoot, 'bios', 'init.asm');
+const initBinPath = resolve(projectRoot, 'bios', 'init.bin');
+try {
+  execSync(`"${NASM}" -f bin -o "${initBinPath}" "${initAsmPath}"`, { stdio: 'pipe' });
+} catch (e) {
+  console.error('NASM assembly of init.asm failed:', e.stderr?.toString());
+  process.exit(1);
 }
+const initBytes = [...readFileSync(initBinPath)];
+console.log(`  Init stub: ${initBytes.length} bytes`);
 
-console.log(`  BIOS ROM: ${biosBytes.length} bytes (microcode stubs)`);
+// Concatenate: init stub + D6 microcode stubs = complete BIOS ROM
+const biosBytes = [...initBytes, ...biosRomBytes];
+console.log(`  BIOS ROM: ${biosBytes.length} bytes (${initBytes.length} init + ${biosRomBytes.length} microcode stubs)`);
 
 // --- Step 2: Build disk image ---
 console.log('Building FAT12 disk image...');
@@ -141,78 +144,12 @@ console.log(`  Disk image: ${diskBytes.length} bytes`);
 const kernelBytes = [...readFileSync(KERNEL_SYS)];
 console.log(`  Kernel: ${kernelBytes.length} bytes`);
 
-// --- Step 4: Build IVT and BDA as embedded data ---
-console.log('Building IVT and BDA...');
+// --- Step 4: Embedded data (disk only — IVT/BDA/splash done by init stub) ---
 const embData = [];
-
-// Disk image at 0xD0000
 embData.push({ addr: DISK_LINEAR, bytes: diskBytes });
 
-// IVT: 256 entries, each 4 bytes (offset:segment).
-// Default all to the dummy IRET handler, then override with microcode stubs.
-const ivt = new Uint8Array(256 * 4);
-for (let i = 0; i < 256; i++) {
-  // Point at the IRET byte at offset 0 in BIOS ROM
-  ivt[i * 4 + 0] = dummyHandlerOffset & 0xFF;
-  ivt[i * 4 + 1] = (dummyHandlerOffset >> 8) & 0xFF;
-  ivt[i * 4 + 2] = BIOS_SEG & 0xFF;
-  ivt[i * 4 + 3] = (BIOS_SEG >> 8) & 0xFF;
-}
-// Override with microcode handler stubs
-for (const [intNum, stubOffset] of Object.entries(biosRomHandlers)) {
-  const idx = parseInt(intNum);
-  ivt[idx * 4 + 0] = stubOffset & 0xFF;
-  ivt[idx * 4 + 1] = (stubOffset >> 8) & 0xFF;
-  ivt[idx * 4 + 2] = BIOS_SEG & 0xFF;
-  ivt[idx * 4 + 3] = (BIOS_SEG >> 8) & 0xFF;
-}
-embData.push({ addr: 0, bytes: [...ivt] });
-
-// BDA: initialize fields that the kernel and BIOS handlers depend on.
-// Matches gossamer-dos.asm bios_init exactly.
-const bda = new Uint8Array(256); // BDA is 0x400-0x4FF (256 bytes)
-
-// Equipment list: floppy present + 80x25 color = 0x0021
-bda[0x10] = 0x21; bda[0x11] = 0x00;
-
-// Memory size: 640 KiB
-bda[0x13] = 640 & 0xFF; bda[0x14] = (640 >> 8) & 0xFF;
-
-// Keyboard buffer
-bda[0x1A] = 0x1E; bda[0x1B] = 0x00;  // head = 0x001E
-bda[0x1C] = 0x1E; bda[0x1D] = 0x00;  // tail = 0x001E (empty)
-bda[0x80] = 0x1E; bda[0x81] = 0x00;  // buffer start = 0x001E
-bda[0x82] = 0x3E; bda[0x83] = 0x00;  // buffer end = 0x003E
-
-// Keyboard flags
-bda[0x17] = 0; bda[0x18] = 0; bda[0x19] = 0;
-
-// Video mode and parameters
-bda[0x49] = 0x03;  // mode 3 = 80x25 text
-bda[0x4A] = 80; bda[0x4B] = 0;  // columns
-bda[0x4C] = 0x00; bda[0x4D] = 0x10;  // page size = 0x1000
-bda[0x4E] = 0x00; bda[0x4F] = 0x00;  // page offset = 0
-bda[0x50] = 0; bda[0x51] = 0;  // cursor pos page 0 (col, row)
-bda[0x52] = 0; bda[0x53] = 0;  // cursor pos page 1
-bda[0x54] = 0; bda[0x55] = 0;  // cursor pos page 2
-bda[0x56] = 0; bda[0x57] = 0;  // cursor pos page 3
-bda[0x60] = 0x07; bda[0x61] = 0x06;  // cursor shape (start=6, end=7)
-bda[0x62] = 0;  // active page 0
-bda[0x63] = 0xD4; bda[0x64] = 0x03;  // CRT port = 0x03D4
-bda[0x84] = 24;  // rows minus 1
-bda[0x85] = 16; bda[0x86] = 0;  // char height
-
-// Timer
-bda[0x6C] = 0; bda[0x6D] = 0; bda[0x6E] = 0; bda[0x6F] = 0;
-bda[0x70] = 0;
-
-// Floppy state
-bda[0x3E] = 0; bda[0x3F] = 0; bda[0x40] = 0; bda[0x41] = 0;
-
-// Warm boot flag
-bda[0x72] = 0; bda[0x73] = 0;
-
-embData.push({ addr: BDA_BASE, bytes: [...bda] });
+const defaultMem = 0xA0000;
+const memBytes = memOverride != null ? memOverride : defaultMem;
 
 // --- Step 5: Derive output filename ---
 if (!outputFile) {
@@ -222,9 +159,6 @@ if (!outputFile) {
 
 // --- Step 6: Generate CSS ---
 console.log('Generating CSS...');
-
-const defaultMem = 0xA0000;
-const memBytes = memOverride != null ? memOverride : defaultMem;
 
 const memoryZones = dosMemoryZones(kernelBytes, KERNEL_LINEAR, memBytes, embData, prune);
 if (prune.gfx)     console.log('  Pruned: VGA Mode 13h framebuffer (0xA0000-0xAFA00)');
@@ -239,19 +173,14 @@ const ws = createWriteStream(outPath, { encoding: 'utf-8' });
 
 emitCSS({
   programBytes: kernelBytes,
-  biosBytes: [...biosBytes],
+  biosBytes,
   memoryZones,
   embeddedData: embData,
   htmlMode,
   programOffset: KERNEL_LINEAR,  // kernel loaded at 0x600
-  initialCS: 0x0060,             // kernel segment
-  initialIP: 0x0000,             // kernel entry point
-  initialRegs: {
-    DS: 0,                       // bios_init left DS=0 after IVT setup
-    BX: 0,                       // BL=0 = boot drive A:
-    SS: 0x0030,                  // bios_init set SS:SP = 0030:0100
-    SP: 0x0100,                  // (linear 0x0400, just below BDA)
-  },
+  initialCS: 0xF000,             // start at BIOS init stub
+  initialIP: 0x0000,
+  initialRegs: {},               // hardware reset state — init stub sets everything
 }, ws);
 
 ws.end(() => {

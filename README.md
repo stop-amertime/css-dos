@@ -12,7 +12,7 @@ makes the CSS fast enough to actually use (~200K+ ticks/sec vs Chrome's
 
 A transpiler converts a reference JavaScript 8086 emulator into equivalent CSS.
 Every register, flag, and memory byte is a CSS custom property. Every instruction
-is a CSS expression. Each "tick" of CSS evaluation executes one instruction.
+is a CSS expression. Each "tick" of CSS evaluation executes one cycle.
 
 The output is a self-contained `.css` file (or `.html` with visualization) that
 can be:
@@ -21,55 +21,35 @@ can be:
 
 ## Status
 
-**Architecture pivot in progress.** The transpiler is not yet built.
-See [issue #49](https://github.com/stop-amertime/calcite/issues/49) for the
-full roadmap.
+**V3 microcode execution model** — cycle-accurate CSS with micro-operation
+sequences. BIOS handlers are microcode, not assembly. 3740 instructions
+conformant on the DOS boot path.
 
-What exists today:
-- Reference 8086 emulator (`tools/js8086.js`) — the source of truth
-- Conformance testing tools (`tools/`) — tick-by-tick comparison infrastructure
-- Gossamer BIOS (`gossamer.asm`) — INT 10h/16h/1Ah/20h/21h handlers
-- Test programs (`examples/fib.asm`)
-- Legacy v1 transpiler (`legacy/`) — works but has synchronization bugs
+What works:
+- Full 8086 ISA transpiled to CSS
+- BIOS microcode handlers (INT 08h-20h)
+- PIT timer, PIC interrupt controller, keyboard input
+- Conformance testing infrastructure (reference emulator + tick-by-tick comparison)
+- DOS kernel boot (partial — blocked on a decode bug)
 
 What's next:
-- Build the JS→CSS transpiler (`transpiler/`)
-- Conformance test until simple programs match tick-for-tick
-- Add BIOS extensions for disk I/O (INT 13h)
-- Boot DOS
-
-## Quick start
-
-The transpiler doesn't exist yet. To run existing test programs using the
-legacy approach:
-
-```sh
-# Build CSS from a binary (legacy approach)
-cd legacy && python build_css.py ../examples/fib.com --mem 0x600
-
-# Run with calcite
-cargo run -p calcite-cli -- fib.css --ticks 10000
-
-# Generate reference trace for conformance testing
-node tools/ref-emu.mjs examples/fib.com > ref-trace.json
-```
+- Fix segment override decode bug (current blocker)
+- Complete DOS boot to COMMAND.COM prompt
+- ROM disk plan for large programs (Doom8088, Wolfenstein 3D)
 
 ## Project layout
 
 ```
-transpiler/     JS→CSS transpiler (not yet built — the main work item)
+transpiler/     JS->CSS transpiler (v3 microcode model)
 tools/          Conformance testing (reference emulator + comparison)
-gossamer.asm    Gossamer BIOS (NASM source)
-examples/       Test programs (.asm, .com)
-legacy/         v1 approach (JSON database → parallel dispatch CSS)
+bios/           BIOS init stub (real x86 assembly)
+tests/          Test programs (.asm, .com)
+dos/            DOS kernel and system files
+legacy/         Retired code (v1 JSON approach + old BIOS assembly)
+docs/           Documentation (start at docs/INDEX.md)
 ```
 
 See `CLAUDE.md` for detailed architecture and contributor guide.
-
-## 8086 ISA
-
-The reference emulator (`tools/js8086.js`) implements the full 8086 instruction
-set. The transpiler will convert all ~200 opcode cases to CSS.
 
 ## Credits
 

@@ -84,7 +84,12 @@ export function createBiosHandlers(memory, pic, kbd, getRegs, setRegs) {
       }
       return true;
     }
-    return false;
+    if (regs.ah === 0x02) {
+      // AH=02h: get shift flags from BDA 0x0417
+      setRegs({ al: memory[BDA_BASE + 0x17] });
+      return true;
+    }
+    return true;  // swallow unhandled subfunctions
   }
 
   function int10h() {
@@ -209,24 +214,37 @@ export function createBiosHandlers(memory, pic, kbd, getRegs, setRegs) {
       }
       return true;
     }
-    return false;
+    return true;  // swallow unhandled subfunctions
   }
 
   function int1ah() {
     const regs = getRegs();
     if (regs.ah === 0x00) {
-      setRegs({ cx: 0, dx: 0, al: 0 });
+      // Get tick count from BDA 0x046C (lo word) and 0x046E (hi word)
+      const ticksLo = memory[0x046C] | (memory[0x046D] << 8);
+      const ticksHi = memory[0x046E] | (memory[0x046F] << 8);
+      setRegs({ cx: ticksHi, dx: ticksLo, al: 0 });
       return true;
     }
-    return false;
+    if (regs.ah === 0x02) {
+      // Get RTC time — return 00:00:00, CF clear
+      setRegs({ ch: 0, cl: 0, dh: 0, dl: 0, flags: regs.flags & ~1 });
+      return true;
+    }
+    if (regs.ah === 0x04) {
+      // Get RTC date — return 2025-01-01, CF clear
+      setRegs({ ch: 0x20, cl: 0x25, dh: 0x01, dl: 0x01, flags: regs.flags & ~1 });
+      return true;
+    }
+    return true;  // swallow unhandled subfunctions (can't fall through to D6 ROM stubs)
   }
 
   function int20h() {
-    // Let the IVT handler run — gossamer's INT 20h does jmp-to-self (infinite loop)
-    // which is what the halt detector (same-IP check) needs to see.
-    // We just need the side effect of memory[0x2110]=1 to be visible, but the
-    // BIOS handler already does that. Return false to use the normal IVT path.
-    return false;
+    // Set halt flag and rewind IP to re-execute INT 20h forever (stuck detection)
+    memory[0x0504] = 1;
+    const regs = getRegs();
+    setRegs({ ip: regs.ip - 2 });
+    return true;
   }
 
   // --- DOS-path handlers (INT 08h, 11h, 12h, 13h, 15h, 19h) ---
@@ -265,6 +283,28 @@ export function createBiosHandlers(memory, pic, kbd, getRegs, setRegs) {
 
   function int13h() {
     const regs = getRegs();
+    const dl = regs.dl !== undefined ? regs.dl : (regs.dx & 0xFF);
+
+    // Hard disk (DL >= 0x80): we are a floppy-only machine (see issue #17).
+    // Return clean "no hard disk" responses so the kernel doesn't corrupt its
+    // DDSC chain trying to enumerate drives that don't exist.
+    if (dl >= 0x80) {
+      if (regs.ah === 0x41) {
+        // LBA extensions check: not supported
+        setRegs({ ah: 0x01, flags: regs.flags | 0x0001 }); // CF=1
+        return true;
+      }
+      if (regs.ah === 0x08) {
+        // Get drive parameters: DL=0 means no hard drives present
+        setRegs({ ah: 0x00, dl: 0, flags: regs.flags | 0x0001 }); // CF=1, DL=0
+        return true;
+      }
+      // All other hard disk calls: not present
+      setRegs({ ah: 0x01, flags: regs.flags | 0x0001 }); // CF=1
+      return true;
+    }
+
+    // Floppy (DL < 0x80):
     if (regs.ah === 0x00) {
       // Disk reset: AH=0, CF=0
       setRegs({ ah: 0, flags: regs.flags & ~0x0001 });
@@ -286,11 +326,11 @@ export function createBiosHandlers(memory, pic, kbd, getRegs, setRegs) {
       return true;
     }
     if (regs.ah === 0x08) {
-      // Get drive parameters (1.44MB floppy)
+      // Get drive parameters: 1.44MB floppy, 1 drive
       setRegs({
         ah: 0, bl: 0x04,     // drive type 1.44MB
         ch: 79, cl: 18,      // max cyl, max sector
-        dh: 1, dl: 1,        // max head, num drives
+        dh: 1, dl: 1,        // max head, num floppy drives
         flags: regs.flags & ~0x0001,
       });
       return true;
@@ -300,7 +340,12 @@ export function createBiosHandlers(memory, pic, kbd, getRegs, setRegs) {
       setRegs({ ah: 0x01, flags: regs.flags & ~0x0001 });
       return true;
     }
-    // Unknown: AH=01 (invalid function), CF=1
+    if (regs.ah === 0x16) {
+      // Disk change status: AH=0, CF=0 (not changed)
+      setRegs({ ah: 0, flags: regs.flags & ~0x0001 });
+      return true;
+    }
+    // Unknown floppy call: CF=1
     setRegs({ ah: 0x01, flags: regs.flags | 0x0001 });
     return true;
   }
@@ -334,7 +379,10 @@ export function createBiosHandlers(memory, pic, kbd, getRegs, setRegs) {
 
   function int19h() {
     // Bootstrap halt — same as INT 20h
-    return false;  // let IVT handler run
+    memory[0x0504] = 1;
+    const regs = getRegs();
+    setRegs({ ip: regs.ip - 2 });
+    return true;
   }
 
   return function int_handler(type) {
@@ -350,7 +398,7 @@ export function createBiosHandlers(memory, pic, kbd, getRegs, setRegs) {
       case 0x19: return int19h();
       case 0x1A: return int1ah();
       case 0x20: return int20h();
-      default: return false;
+      default: return true;  // swallow — ROM stubs contain D6 which js8086 can't execute
     }
   };
 }

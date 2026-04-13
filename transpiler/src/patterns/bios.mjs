@@ -207,21 +207,30 @@ function int16hEntries() {
   const popFlagsNormal = `calc(--and(${stackedFlags}, 4053) + 2)`;
   const popFlagsZF = `calc(--and(${stackedFlags}, 3989) + 2 + ${zfBit})`;
 
+  // AH=02h: shift flags byte from BDA 0x0417
+  const BDA_SHIFT_FLAGS = 0x0417;
+  const shiftFlags = `--readMem(${BDA_SHIFT_FLAGS})`;
+  // AH=02h AX result: keep AH (biosAH << 8), set AL = shift flags
+  // Since biosAH=2, AX = 2*256 + shiftFlags = 512 + shiftFlags
+  const axAH02 = `calc(var(--AH) * 256 + ${shiftFlags})`;
+
   return {
     regEntries: [
-      // μop 0: STI + set AX (both subfunctions)
+      // μop 0: STI + set AX (all subfunctions)
       { reg: 'flags', uOp: 0, expr: `--or(var(--__1flags), 512)`, comment: 'INT 16h: STI' },
-      { reg: 'AX', uOp: 0, expr: axExpr, comment: 'INT 16h: AX=key if non-empty' },
+      { reg: 'AX', uOp: 0,
+        expr: `if(style(${AH}: 2): ${axAH02}; else: ${axExpr})`,
+        comment: 'INT 16h: AX=key/shiftflags' },
 
-      // μop 1: AH=01h IRET (retirement); AH=00h writes memory (no reg change)
-      { reg: 'IP', uOp: 1, expr: `if(style(${AH}: 1): ${popIP}; else: var(--__1IP))`,
-        comment: 'INT 16h AH=01h: IRET pop IP' },
-      { reg: 'CS', uOp: 1, expr: `if(style(${AH}: 1): ${popCS}; else: var(--__1CS))`,
-        comment: 'INT 16h AH=01h: IRET pop CS' },
-      { reg: 'flags', uOp: 1, expr: `if(style(${AH}: 1): ${popFlagsZF}; else: var(--__1flags))`,
-        comment: 'INT 16h AH=01h: IRET pop FLAGS+ZF' },
-      { reg: 'SP', uOp: 1, expr: `if(style(${AH}: 1): calc(var(--__1SP) + 6); else: var(--__1SP))`,
-        comment: 'INT 16h AH=01h: IRET SP+=6' },
+      // μop 1: AH=01h/02h IRET (retirement); AH=00h writes memory (no reg change)
+      { reg: 'IP', uOp: 1, expr: `if(style(${AH}: 1): ${popIP}; style(${AH}: 2): ${popIP}; else: var(--__1IP))`,
+        comment: 'INT 16h AH=01h/02h: IRET pop IP' },
+      { reg: 'CS', uOp: 1, expr: `if(style(${AH}: 1): ${popCS}; style(${AH}: 2): ${popCS}; else: var(--__1CS))`,
+        comment: 'INT 16h AH=01h/02h: IRET pop CS' },
+      { reg: 'flags', uOp: 1, expr: `if(style(${AH}: 1): ${popFlagsZF}; style(${AH}: 2): ${popFlagsNormal}; else: var(--__1flags))`,
+        comment: 'INT 16h AH=01h/02h: IRET pop FLAGS' },
+      { reg: 'SP', uOp: 1, expr: `if(style(${AH}: 1): calc(var(--__1SP) + 6); style(${AH}: 2): calc(var(--__1SP) + 6); else: var(--__1SP))`,
+        comment: 'INT 16h AH=01h/02h: IRET SP+=6' },
 
       // μop 3: AH=00h IRET (retirement)
       { reg: 'IP', uOp: 3, expr: `if(style(${AH}: 0): ${popIP}; else: var(--__1IP))`,
@@ -253,6 +262,10 @@ function int16hEntries() {
         `style(--__1uOp: 0): 1; ` +
         `style(--__1uOp: 1): 0; ` +
       `else: 0); ` +
+      `style(${AH}: 2): if(` +
+        `style(--__1uOp: 0): 1; ` +
+        `style(--__1uOp: 1): 0; ` +
+      `else: 0); ` +
     `else: 0)`,
     q1,
   };
@@ -275,10 +288,16 @@ function int16hEntries() {
  *   μop 0: DX = (row << 8) | col from BDA, CX = 0
  *   μop 1: Folded IRET — pop IP+CS+FLAGS, SP += 6, retire
  *
- * AH=0Eh (teletype output — printable chars only):
+ * AH=0Eh (teletype output):
+ *   Handles control chars via --biosAL dispatch:
+ *     CR (13): col=0, no VGA write
+ *     LF (10): row+1 (clamped 24), no VGA write
+ *     BS  (8): col-1 (clamped 0), no VGA write
+ *     BEL (7): no-op, no VGA write
+ *     Other: write char+attr to VGA, advance cursor
  *   μop 0: (implicit cursor read via expressions)
- *   μop 1: Write char (AL) to VGA text buffer
- *   μop 2: Write attribute 0x07 to VGA text buffer
+ *   μop 1: Write char (AL) to VGA text buffer (suppressed for ctrl chars)
+ *   μop 2: Write attribute 0x07 to VGA text buffer (suppressed for ctrl chars)
  *   μop 3: Write new cursor col to BDA 0x0450
  *   μop 4: Write new cursor row to BDA 0x0451
  *   μop 5: Folded IRET — pop IP+CS+FLAGS, SP += 6, retire
@@ -286,6 +305,15 @@ function int16hEntries() {
  * AH=0Fh (get video mode):
  *   μop 0: AX = (cols << 8) | mode, BX = BX & 0x00FF (clear BH)
  *   μop 1: Folded IRET — pop IP+CS+FLAGS, SP += 6, retire
+ *
+ * AH=00h (set video mode):
+ *   μop 0: Write mode (AL) to BDA 0x0449
+ *   μop 1: Write cols to BDA 0x044A (80 for text, 40 for mode 13h)
+ *   μop 2: Write cursor col=0 to BDA 0x0450
+ *   μop 3: Write cursor row=0 to BDA 0x0451
+ *   μop 4: Folded IRET — pop IP+CS+FLAGS, SP += 6, retire
+ *   Note: screen clearing is omitted — the init stub already clears the screen,
+ *   and a full clear would require thousands of μops (one per byte).
  */
 function int10hEntries() {
   const q1 = ROUTINE_IDS.INT_10H;
@@ -313,18 +341,43 @@ function int10hEntries() {
   // VGA address for current cursor position: VGA_BASE + (row * 80 + col) * 2
   const vgaAddr = `calc(${VGA_TEXT_BASE} + (${cursorRow} * 80 + ${cursorCol}) * 2)`;
 
-  // Cursor advance: newCol = (col + 1) mod 80
-  const newCol = `mod(calc(${cursorCol} + 1), 80)`;
-  // Row increment: 1 when newCol wraps to 0, else 0
-  const rowIncrement = `calc(1 - min(1, ${newCol}))`;
-  // New row: clamped to 24
-  const newRow = `min(24, calc(${cursorRow} + ${rowIncrement}))`;
+  // --- AH=0Eh cursor advance ---
+  // Printable chars: advance col, wrap to next row at col 80
+  const printCol = `mod(calc(${cursorCol} + 1), 80)`;
+  const printRowInc = `calc(1 - min(1, ${printCol}))`;
+  const printRow = `min(24, calc(${cursorRow} + ${printRowInc}))`;
+  // Control chars (dispatched via --biosAL):
+  //   CR (13): col=0, row unchanged
+  //   LF (10): col unchanged, row=min(24, row+1)
+  //   BS  (8): col=max(0, col-1), row unchanged
+  //   BEL (7): col unchanged, row unchanged
+  const newCol = `if(style(--biosAL: 13): 0; style(--biosAL: 10): ${cursorCol}; style(--biosAL: 8): max(0, calc(${cursorCol} - 1)); style(--biosAL: 7): ${cursorCol}; else: ${printCol})`;
+  const newRow = `if(style(--biosAL: 13): ${cursorRow}; style(--biosAL: 10): min(24, calc(${cursorRow} + 1)); style(--biosAL: 8): ${cursorRow}; style(--biosAL: 7): ${cursorRow}; else: ${printRow})`;
+  // VGA write address: only for printable chars, -1 suppresses write for control chars
+  const vgaAddrOrSkip = `if(style(--biosAL: 13): -1; style(--biosAL: 10): -1; style(--biosAL: 8): -1; style(--biosAL: 7): -1; else: ${vgaAddr})`;
 
   // AH=0Eh teletype: 6 μops (0-5), IRET at μop 5
   // AH=02h set cursor: 3 μops (0-2), IRET at μop 2
   // AH=03h get cursor: 2 μops (0-1), IRET at μop 1
   // AH=0Fh get mode:   2 μops (0-1), IRET at μop 1
+  // AH=00h set mode:   5 μops (0-4), IRET at μop 4
   // Maximum μop across all subfunctions = 5 (AH=0Eh)
+
+  // AH=00h: cols = 80 for text modes, 40 for mode 13h
+  // Mode 13h = 0x13 = 19 decimal. cols = if(AL==19): 40; else: 80
+  const modeAL = `--lowerBytes(var(--__1AX), 8)`;
+  // cols: 40 when mode==19, 80 otherwise
+  // Using: 80 - 40 * (1 when mode==19, 0 otherwise)
+  // sign(max(0, calc(19 - modeAL))) + sign(max(0, calc(modeAL - 19))) gives 0 when equal, 1 otherwise
+  // Simpler: if we had style() for AL... but we don't have a --biosAL.
+  // Use arithmetic: isMode13h = 1 - min(1, abs(modeAL - 19))
+  // abs(x) = max(x, -x) but CSS doesn't have abs for integers directly.
+  // Use: isMode13h = 1 - sign(max(calc(${modeAL} - 19), calc(19 - ${modeAL})))
+  // Actually sign(max(a-b, b-a)) = 1 when a!=b, 0 when a==b. But sign(0)=0, so:
+  // isNotMode13h = sign(max(calc(${modeAL} - 19), calc(19 - ${modeAL})))
+  // cols = 80 - 40 * (1 - isNotMode13h) = 40 + 40 * isNotMode13h
+  const isNotMode13h = `sign(max(calc(${modeAL} - 19), calc(19 - ${modeAL})))`;
+  const modeCols = `calc(40 + 40 * ${isNotMode13h})`;
 
   return {
     regEntries: [
@@ -372,44 +425,44 @@ function int10hEntries() {
         expr: `if(style(--biosAH: 2): calc(var(--__1SP) + 6); else: var(--__1SP))`,
         comment: 'INT 10h AH=02h: IRET SP+=6' },
 
-      // --- AH=0Eh IRET at μop 5 ---
+      // --- AH=00h/0Eh IRET at μop 5 ---
       { reg: 'IP', uOp: 5,
-        expr: `if(style(--biosAH: 14): ${popIP}; else: var(--__1IP))`,
-        comment: 'INT 10h AH=0Eh: IRET pop IP' },
+        expr: `if(style(--biosAH: 0): ${popIP}; style(--biosAH: 14): ${popIP}; else: var(--__1IP))`,
+        comment: 'INT 10h AH=00h/0Eh: IRET pop IP' },
       { reg: 'CS', uOp: 5,
-        expr: `if(style(--biosAH: 14): ${popCS}; else: var(--__1CS))`,
-        comment: 'INT 10h AH=0Eh: IRET pop CS' },
+        expr: `if(style(--biosAH: 0): ${popCS}; style(--biosAH: 14): ${popCS}; else: var(--__1CS))`,
+        comment: 'INT 10h AH=00h/0Eh: IRET pop CS' },
       { reg: 'flags', uOp: 5,
-        expr: `if(style(--biosAH: 14): ${popFlagsNormal}; else: var(--__1flags))`,
-        comment: 'INT 10h AH=0Eh: IRET pop FLAGS' },
+        expr: `if(style(--biosAH: 0): ${popFlagsNormal}; style(--biosAH: 14): ${popFlagsNormal}; else: var(--__1flags))`,
+        comment: 'INT 10h AH=00h/0Eh: IRET pop FLAGS' },
       { reg: 'SP', uOp: 5,
-        expr: `if(style(--biosAH: 14): calc(var(--__1SP) + 6); else: var(--__1SP))`,
-        comment: 'INT 10h AH=0Eh: IRET SP+=6' },
+        expr: `if(style(--biosAH: 0): calc(var(--__1SP) + 6); style(--biosAH: 14): calc(var(--__1SP) + 6); else: var(--__1SP))`,
+        comment: 'INT 10h AH=00h/0Eh: IRET SP+=6' },
     ],
     memWrites: [
-      // --- AH=02h: set cursor position ---
+      // --- AH=02h: set cursor position / AH=00h: write mode to BDA ---
       { uOp: 0,
-        addr: `if(style(--biosAH: 2): ${BDA_CURSOR_COL}; else: -1)`,
-        val: `var(--DL)`,
-        comment: 'INT 10h AH=02h: col to BDA' },
+        addr: `if(style(--biosAH: 2): ${BDA_CURSOR_COL}; style(--biosAH: 0): ${BDA_VIDEO_MODE}; else: -1)`,
+        val: `if(style(--biosAH: 2): var(--DL); style(--biosAH: 0): ${modeAL}; else: 0)`,
+        comment: 'INT 10h AH=02h: col to BDA | AH=00h: mode to BDA' },
       { uOp: 1,
-        addr: `if(style(--biosAH: 2): ${BDA_CURSOR_ROW}; else: -1)`,
-        val: `var(--DH)`,
-        comment: 'INT 10h AH=02h: row to BDA' },
+        addr: `if(style(--biosAH: 2): ${BDA_CURSOR_ROW}; style(--biosAH: 0): ${BDA_NUM_COLS}; else: -1)`,
+        val: `if(style(--biosAH: 2): var(--DH); style(--biosAH: 0): ${modeCols}; else: 0)`,
+        comment: 'INT 10h AH=02h: row to BDA | AH=00h: cols to BDA' },
 
-      // --- AH=0Eh: teletype output ---
+      // --- AH=0Eh: teletype output (skips VGA write for control chars) ---
       { uOp: 1,
-        addr: `if(style(--biosAH: 14): ${vgaAddr}; else: -1)`,
+        addr: `if(style(--biosAH: 14): ${vgaAddrOrSkip}; else: -1)`,
         val: `var(--AL)`,
-        comment: 'INT 10h AH=0Eh: char to VGA' },
+        comment: 'INT 10h AH=0Eh: char to VGA (ctrl chars suppressed)' },
       { uOp: 2,
-        addr: `if(style(--biosAH: 14): calc(${vgaAddr} + 1); else: -1)`,
-        val: `7`,
-        comment: 'INT 10h AH=0Eh: attr to VGA' },
+        addr: `if(style(--biosAH: 14): if(style(--biosAL: 13): -1; style(--biosAL: 10): -1; style(--biosAL: 8): -1; style(--biosAL: 7): -1; else: calc(${vgaAddr} + 1)); style(--biosAH: 0): ${BDA_CURSOR_COL}; else: -1)`,
+        val: `if(style(--biosAH: 14): 7; style(--biosAH: 0): 0; else: 0)`,
+        comment: 'INT 10h AH=0Eh: attr to VGA (ctrl chars suppressed) | AH=00h: cursor col=0' },
       { uOp: 3,
-        addr: `if(style(--biosAH: 14): ${BDA_CURSOR_COL}; else: -1)`,
-        val: newCol,
-        comment: 'INT 10h AH=0Eh: new col to BDA' },
+        addr: `if(style(--biosAH: 14): ${BDA_CURSOR_COL}; style(--biosAH: 0): ${BDA_CURSOR_ROW}; else: -1)`,
+        val: `if(style(--biosAH: 14): ${newCol}; style(--biosAH: 0): 0; else: 0)`,
+        comment: 'INT 10h AH=0Eh: new col to BDA | AH=00h: cursor row=0' },
       { uOp: 4,
         addr: `if(style(--biosAH: 14): ${BDA_CURSOR_ROW}; else: -1)`,
         val: newRow,
@@ -418,12 +471,21 @@ function int10hEntries() {
     maxUop: 5,
     ipEntries: [],
     // uOp advance per AH subfunction:
+    //   AH=00h: 0→1→2→3→4→5→0
     //   AH=02h: 0→1→2→0
     //   AH=03h: 0→1→0
     //   AH=0Eh: 0→1→2→3→4→5→0
     //   AH=0Fh: 0→1→0
     //   default: 0 (no-op, single μop retire)
     uopAdvance: `if(` +
+      `style(--biosAH: 0): if(` +
+        `style(--__1uOp: 0): 1; ` +
+        `style(--__1uOp: 1): 2; ` +
+        `style(--__1uOp: 2): 3; ` +
+        `style(--__1uOp: 3): 4; ` +
+        `style(--__1uOp: 4): 5; ` +
+        `style(--__1uOp: 5): 0; ` +
+      `else: 0); ` +
       `style(--biosAH: 2): if(` +
         `style(--__1uOp: 0): 1; ` +
         `style(--__1uOp: 1): 2; ` +
@@ -451,14 +513,17 @@ function int10hEntries() {
 }
 
 /**
- * INT 1Ah (Timer): simplified handler returning tick count = 0.
+ * INT 1Ah (Time of Day): dispatches on biosAH.
  *
- * AH=00h: CX=0, DX=0 (tick count high/low), AL=0 (midnight flag)
- * μop 0: Set CX=0, DX=0, AX = (AH << 8) | 0 (clear AL)
- * μop 1: Folded IRET — pop IP+CS+FLAGS, SP += 6, retire
+ * AH=00h: Get tick count → CX=BDA ticks high, DX=BDA ticks low, AL=0 (midnight flag)
+ * AH=02h: Get RTC time → CH=0, CL=0, DH=0, DL=0, CF=0 (00:00:00)
+ * AH=04h: Get RTC date → CH=0x20, CL=0x25, DH=0x01, DL=0x01, CF=0 (2025-01-01)
+ *
+ * All subfunctions: μop 0 = set registers, μop 1 = IRET.
  */
 function int1ahEntries() {
   const q1 = ROUTINE_IDS.INT_1AH;
+  const AH = '--biosAH';
 
   // Stack base for folded IRET
   const ssBase = `calc(var(--__1SS) * 16)`;
@@ -466,19 +531,31 @@ function int1ahEntries() {
   const popCS = `--read2(calc(${ssBase} + var(--__1SP) + 2))`;
   const stackedFlags = `--read2(calc(${ssBase} + var(--__1SP) + 4))`;
   const popFlagsNormal = `calc(--and(${stackedFlags}, 4053) + 2)`;
+  const popFlagsClearCF = `calc(--and(${stackedFlags}, 4052) + 2)`;
 
   return {
     regEntries: [
-      // μop 0: CX=0 (tick count high), DX=0 (tick count low), AL=0 (midnight flag)
-      { reg: 'CX', uOp: 0, expr: '0', comment: 'INT 1Ah: CX=0 tick high' },
-      { reg: 'DX', uOp: 0, expr: '0', comment: 'INT 1Ah: DX=0 tick low' },
-      // Clear AL (midnight flag), keep AH: AX = AH * 256
-      { reg: 'AX', uOp: 0, expr: 'calc(var(--AH) * 256)', comment: 'INT 1Ah: AL=0 midnight' },
+      // μop 0: set return registers based on AH
+      // CX: AH=00h → BDA ticks high (0x046E), AH=02h → 0 (CH=0,CL=0), AH=04h → 0x2025 (CH=0x20,CL=0x25)
+      { reg: 'CX', uOp: 0,
+        expr: `if(style(${AH}: 0): --read2(${BDA_BASE + 0x6E}); style(${AH}: 2): 0; style(${AH}: 4): 8229; else: var(--__1CX))`,
+        comment: 'INT 1Ah: CX result' },
+      // DX: AH=00h → BDA ticks low (0x046C), AH=02h → 0 (DH=0,DL=0), AH=04h → 0x0101 (DH=01,DL=01)
+      { reg: 'DX', uOp: 0,
+        expr: `if(style(${AH}: 0): --read2(${BDA_BASE + 0x6C}); style(${AH}: 2): 0; style(${AH}: 4): 257; else: var(--__1DX))`,
+        comment: 'INT 1Ah: DX result' },
+      // AX: AH=00h → AL=0 (midnight), AH=02h/04h → keep AX unchanged
+      { reg: 'AX', uOp: 0,
+        expr: `if(style(${AH}: 0): calc(var(--AH) * 256); else: var(--__1AX))`,
+        comment: 'INT 1Ah AH=00h: AL=0 midnight' },
 
       // μop 1: IRET — pop IP+CS+FLAGS, SP+=6 (retirement)
       { reg: 'IP', uOp: 1, expr: popIP, comment: 'INT 1Ah: IRET pop IP' },
       { reg: 'CS', uOp: 1, expr: popCS, comment: 'INT 1Ah: IRET pop CS' },
-      { reg: 'flags', uOp: 1, expr: popFlagsNormal, comment: 'INT 1Ah: IRET pop FLAGS' },
+      // FLAGS: AH=00h uses normal (no CF change), AH=02h/04h clear CF
+      { reg: 'flags', uOp: 1,
+        expr: `if(style(${AH}: 0): ${popFlagsNormal}; style(${AH}: 2): ${popFlagsClearCF}; style(${AH}: 4): ${popFlagsClearCF}; else: ${popFlagsNormal})`,
+        comment: 'INT 1Ah: IRET pop FLAGS' },
       { reg: 'SP', uOp: 1, expr: 'calc(var(--__1SP) + 6)', comment: 'INT 1Ah: IRET SP+=6' },
     ],
     memWrites: [],
@@ -600,18 +677,31 @@ function int12hEntries() {
 }
 
 /**
- * INT 13h (Disk Services): multi-subfunction handler.
+ * INT 13h (Disk Services): multi-subfunction handler with hard disk guard.
  *
- * AH=00h (reset): no-op, return AH=0 CF=0
- * AH=02h (read sectors): copy from embedded disk image to ES:BX
- *   μop 0: Compute LBA, set biosSrc, biosDst, biosCnt = AL*512, clear AH
- *   μop 1: Copy one byte: mem[biosDst] = readMem(biosSrc), advance ptrs, dec cnt
- *          Loops back to μop 1 while biosCnt > 0
- *   μop 2: IRET (AH already 0, CF already clear from flags manipulation)
- * AH=08h (get params): return floppy geometry
- * AH=15h (get type): return AH=01 (floppy without change detection)
+ * DL dispatch: DL >= 128 (0x80) = hard disk, DL < 128 = floppy.
+ * Hard disk calls always return CF=1 (no hard disk present).
  *
- * For AH=00h/08h/15h: single μop work + IRET
+ * Floppy subfunctions:
+ *   AH=00h (reset): no-op, return AH=0 CF=0
+ *   AH=02h (read sectors): copy from embedded disk image to ES:BX
+ *     μop 0: Compute LBA, set biosSrc, biosDst, biosCnt = AL*512, clear AH
+ *     μop 1: Copy one byte: mem[biosDst] = readMem(biosSrc), advance ptrs, dec cnt
+ *            Loops back to μop 1 while biosCnt > 0
+ *     μop 2: IRET (AH already 0, CF already clear from flags manipulation)
+ *   AH=08h (get params): return floppy geometry
+ *   AH=15h (get type): return AH=01 (floppy without change detection)
+ *   AH=16h (disk change status): return AH=0 CF=0 (not changed)
+ *
+ * Hard disk subfunctions (all return CF=1):
+ *   AH=41h (LBA extensions check): AH=01h, CF=1
+ *   AH=48h (extended drive params): CF=1
+ *   AH=08h (get params): AH=00h, DL=0, CF=1
+ *   AH=15h (get type): AH=01h, CF=1
+ *   AH=00h (reset): CF=1
+ *   All others: AH=01h, CF=1
+ *
+ * For AH=00h/08h/15h/16h/41h/48h: single μop work + IRET
  */
 function int13hEntries() {
   const q1 = ROUTINE_IDS.INT_13H;
@@ -622,6 +712,14 @@ function int13hEntries() {
   const stackedFlags = `--read2(calc(${ssBase} + var(--__1SP) + 4))`;
   // Clear CF (bit 0) in stacked flags
   const popFlagsClearCF = `calc(--and(${stackedFlags}, 4052) + 2)`;
+  // Set CF (bit 0) in stacked flags
+  const popFlagsSetCF = `calc(--or(--and(${stackedFlags}, 4052), 1) + 2)`;
+
+  // isHardDisk: 1 when DL >= 128, 0 otherwise
+  // DL = low byte of DX
+  const DL = `--lowerBytes(var(--__1DX), 8)`;
+  const isHardDisk = `sign(max(0, calc(${DL} - 127)))`;
+  const isFloppy = `calc(1 - ${isHardDisk})`;
 
   // Disk geometry constants (1.44MB floppy)
   const DISK_SPT = 18;
@@ -643,41 +741,56 @@ function int13hEntries() {
   const sectorCount = `--lowerBytes(var(--__1AX), 8)`;
   const byteCount = `calc(${sectorCount} * 512)`;
 
-  // AH=08h return values
+  // AH=08h return values (floppy)
   const maxCyl = 79;   // 0-based
   const maxSec = 18;   // 1-based max
   const maxHead = 1;   // 0-based
 
   return {
     regEntries: [
-      // --- AH=00h (reset): AX = 0 (AH=0 success) ---
-      // --- AH=02h (read): set up copy, AX = sectorCount (AH=0, AL=sectors read) ---
-      // --- AH=08h (get params): set geometry registers ---
-      // --- AH=15h (get type): AH=01 ---
+      // --- μop 0: set return registers based on AH and isHardDisk ---
+      //
+      // AX result:
+      //   Floppy AH=00h: AX=0 (reset OK)
+      //   Floppy AH=02h: AX=sectorCount (AH=0, AL=sectors read)
+      //   Floppy AH=08h: AX=0 (AH=0 success)
+      //   Floppy AH=15h: AX=256 (AH=01 floppy type)
+      //   Floppy AH=16h: AX=0 (AH=0 disk not changed) — but keep AL, so AX = AL
+      //   Hard disk AH=41h: AX=256 (AH=01 not supported)
+      //   Hard disk AH=48h: AX=256 (AH=01 not supported)
+      //   Hard disk AH=08h: AX=0 (AH=00)
+      //   Hard disk AH=00h/15h/other: AX=256 (AH=01)
+      //
+      // We use isHardDisk to select between floppy and hard disk paths:
+      //   result = floppy_result * isFloppy + hardDisk_result * isHardDisk
       { reg: 'AX', uOp: 0,
-        expr: `if(style(${AH}: 0): 0; ` +
+        expr: `if(style(${AH}: 0): calc(0 * ${isFloppy} + 256 * ${isHardDisk}); ` +
               `style(${AH}: 2): ${sectorCount}; ` +
-              `style(${AH}: 8): 0; ` +
-              `style(${AH}: 21): 256; ` +  // AH=01, AL=0
-              `else: var(--__1AX))`,
+              `style(${AH}: 8): calc(0 * ${isFloppy} + 0 * ${isHardDisk}); ` +
+              `style(${AH}: 21): 256; ` +  // AH=01 for both floppy and hard disk
+              `style(${AH}: 22): --lowerBytes(var(--__1AX), 8); ` +  // AH=16h floppy: AH=0, keep AL
+              `style(${AH}: 65): 256; ` +  // AH=41h hard disk: AH=01
+              `style(${AH}: 72): 256; ` +  // AH=48h hard disk: AH=01
+              `else: calc(var(--__1AX) * ${isFloppy} + 256 * ${isHardDisk}))`,
         comment: 'INT 13h: AX result' },
 
-      // AH=08h: BX = drive type (04h = 1.44MB)
+      // AH=08h floppy: BX = drive type (04h = 1.44MB); hard disk: no change
       { reg: 'BX', uOp: 0,
-        expr: `if(style(${AH}: 8): 4; else: var(--__1BX))`,
-        comment: 'INT 13h AH=08h: BX=drive type' },
+        expr: `if(style(${AH}: 8): calc(4 * ${isFloppy} + var(--__1BX) * ${isHardDisk}); else: var(--__1BX))`,
+        comment: 'INT 13h AH=08h: BX=drive type (floppy only)' },
 
-      // AH=08h: CX = (maxCyl << 8) | maxSec
+      // AH=08h floppy: CX = (maxCyl << 8) | maxSec; hard disk: no change
       { reg: 'CX', uOp: 0,
-        expr: `if(style(${AH}: 8): calc(${maxCyl} * 256 + ${maxSec}); else: var(--__1CX))`,
-        comment: 'INT 13h AH=08h: CX=cyl:sec' },
+        expr: `if(style(${AH}: 8): calc(calc(${maxCyl} * 256 + ${maxSec}) * ${isFloppy} + var(--__1CX) * ${isHardDisk}); else: var(--__1CX))`,
+        comment: 'INT 13h AH=08h: CX=cyl:sec (floppy only)' },
 
-      // AH=08h: DX = (maxHead << 8) | 1 (1 floppy drive)
+      // AH=08h floppy: DX = (maxHead << 8) | 1; hard disk: DL=0 (no hard drives)
+      // DX for hard disk AH=08h: DL=0, DH unchanged → just clear low byte
       { reg: 'DX', uOp: 0,
-        expr: `if(style(${AH}: 8): calc(${maxHead} * 256 + 1); else: var(--__1DX))`,
+        expr: `if(style(${AH}: 8): calc(calc(${maxHead} * 256 + 1) * ${isFloppy} + --and(var(--__1DX), 65280) * ${isHardDisk}); else: var(--__1DX))`,
         comment: 'INT 13h AH=08h: DX=head:drives' },
 
-      // AH=02h: set up copy registers
+      // AH=02h: set up copy registers (floppy only, AH=02h is never called for hard disk)
       { reg: 'biosSrc', uOp: 0,
         expr: `if(style(${AH}: 2): ${srcAddr}; else: var(--__1biosSrc))`,
         comment: 'INT 13h AH=02h: biosSrc=disk addr' },
@@ -699,32 +812,47 @@ function int13hEntries() {
         expr: `if(style(${AH}: 2): calc(var(--__1biosCnt) - 1); else: var(--__1biosCnt))`,
         comment: 'INT 13h: biosCnt--' },
 
-      // IRET μop: AH=00h/08h/15h at μop 1, AH=02h at μop 2
-      // For AH=00h/08h/15h:
+      // IRET at μop 1 for: AH=00h, 08h, 15h, 16h, 41h, 48h, and unknown hard disk calls
+      // FLAGS: CF=0 for floppy success, CF=1 for hard disk or errors
       { reg: 'IP', uOp: 1,
         expr: `if(style(${AH}: 0): ${popIP}; ` +
               `style(${AH}: 8): ${popIP}; ` +
               `style(${AH}: 21): ${popIP}; ` +
+              `style(${AH}: 22): ${popIP}; ` +
+              `style(${AH}: 65): ${popIP}; ` +
+              `style(${AH}: 72): ${popIP}; ` +
               `else: var(--__1IP))`,
-        comment: 'INT 13h AH=00h/08h/15h: IRET pop IP' },
+        comment: 'INT 13h AH=00h/08h/15h/16h/41h/48h: IRET pop IP' },
       { reg: 'CS', uOp: 1,
         expr: `if(style(${AH}: 0): ${popCS}; ` +
               `style(${AH}: 8): ${popCS}; ` +
               `style(${AH}: 21): ${popCS}; ` +
+              `style(${AH}: 22): ${popCS}; ` +
+              `style(${AH}: 65): ${popCS}; ` +
+              `style(${AH}: 72): ${popCS}; ` +
               `else: var(--__1CS))`,
-        comment: 'INT 13h AH=00h/08h/15h: IRET pop CS' },
+        comment: 'INT 13h AH=00h/08h/15h/16h/41h/48h: IRET pop CS' },
       { reg: 'flags', uOp: 1,
-        expr: `if(style(${AH}: 0): ${popFlagsClearCF}; ` +
-              `style(${AH}: 8): ${popFlagsClearCF}; ` +
-              `style(${AH}: 21): ${popFlagsClearCF}; ` +
+        expr: `if(` +
+              // Floppy calls: CF=0
+              `style(${AH}: 0): calc(${popFlagsClearCF} * ${isFloppy} + ${popFlagsSetCF} * ${isHardDisk}); ` +
+              `style(${AH}: 8): calc(${popFlagsClearCF} * ${isFloppy} + ${popFlagsSetCF} * ${isHardDisk}); ` +
+              `style(${AH}: 21): calc(${popFlagsClearCF} * ${isFloppy} + ${popFlagsSetCF} * ${isHardDisk}); ` +
+              `style(${AH}: 22): ${popFlagsClearCF}; ` +  // AH=16h: floppy only, CF=0
+              // Hard disk only calls: always CF=1
+              `style(${AH}: 65): ${popFlagsSetCF}; ` +  // AH=41h: CF=1
+              `style(${AH}: 72): ${popFlagsSetCF}; ` +  // AH=48h: CF=1
               `else: var(--__1flags))`,
-        comment: 'INT 13h AH=00h/08h/15h: IRET pop FLAGS (CF=0)' },
+        comment: 'INT 13h: IRET pop FLAGS (CF depends on disk type)' },
       { reg: 'SP', uOp: 1,
         expr: `if(style(${AH}: 0): calc(var(--__1SP) + 6); ` +
               `style(${AH}: 8): calc(var(--__1SP) + 6); ` +
               `style(${AH}: 21): calc(var(--__1SP) + 6); ` +
+              `style(${AH}: 22): calc(var(--__1SP) + 6); ` +
+              `style(${AH}: 65): calc(var(--__1SP) + 6); ` +
+              `style(${AH}: 72): calc(var(--__1SP) + 6); ` +
               `else: var(--__1SP))`,
-        comment: 'INT 13h AH=00h/08h/15h: IRET SP+=6' },
+        comment: 'INT 13h: IRET SP+=6' },
 
       // AH=02h IRET at μop 2
       { reg: 'IP', uOp: 2, expr: `if(style(${AH}: 2): ${popIP}; else: var(--__1IP))`,
@@ -750,6 +878,9 @@ function int13hEntries() {
     //   AH=02h: 0→1→(1 while cnt>0)→2→0
     //   AH=08h: 0→1→0 (get params: single work μop + IRET)
     //   AH=15h: 0→1→0 (get type: single work μop + IRET)
+    //   AH=16h: 0→1→0 (disk change: single work μop + IRET)
+    //   AH=41h: 0→1→0 (LBA check: single work μop + IRET)
+    //   AH=48h: 0→1→0 (ext params: single work μop + IRET)
     uopAdvance: `if(` +
       `style(${AH}: 0): if(style(--__1uOp: 0): 1; style(--__1uOp: 1): 0; else: 0); ` +
       `style(${AH}: 2): if(` +
@@ -759,6 +890,9 @@ function int13hEntries() {
       `else: 0); ` +
       `style(${AH}: 8): if(style(--__1uOp: 0): 1; style(--__1uOp: 1): 0; else: 0); ` +
       `style(${AH}: 21): if(style(--__1uOp: 0): 1; style(--__1uOp: 1): 0; else: 0); ` +
+      `style(${AH}: 22): if(style(--__1uOp: 0): 1; style(--__1uOp: 1): 0; else: 0); ` +
+      `style(${AH}: 65): if(style(--__1uOp: 0): 1; style(--__1uOp: 1): 0; else: 0); ` +
+      `style(${AH}: 72): if(style(--__1uOp: 0): 1; style(--__1uOp: 1): 0; else: 0); ` +
     `else: 0)`,
     q1,
   };

@@ -1,0 +1,100 @@
+# Known Bugs & Findings
+
+Bugs that have been found and fixed, plus patterns to watch for. These are
+detailed enough that a future agent hitting a similar bug can recognize it.
+
+## Fixed bugs
+
+### Segment override prefix decode / IP advancement (2026-04-13)
+
+**Symptom:** `DS: PUSH word [BP+0x1E]` (3E FF 76 1E) advanced IP by 5 instead of 4.
+
+**Root cause:** `emitRegisterDispatch` wrapped the entire IP dispatch in
+`calc(... + var(--prefixLen))`. For multi-uOp instructions with inner conditional
+holds (`else: var(--__1IP)`), the wrapper made IP drift by prefixLen during
+mid-instruction cycles.
+
+**Fix:** Removed the wrapper. Each emitter now explicitly includes
+`+ var(--prefixLen)` in its advance expressions. Changed all 126 IP entries.
+
+**Pattern to watch for:** Any "outer wrapper" that adds something to every
+branch of an IP dispatch will break multi-uOp instructions that hold IP.
+
+### REP MOVSB rewind off-by-one (2026-04-13)
+
+**Symptom:** REP MOVSB executed only 1 iteration. IP rewound to one byte
+before the prefix instead of to the prefix byte itself.
+
+**Root cause:** `repIP()` used `calc(var(--__1IP) - var(--prefixLen))` for
+rewind. After removing the outer wrapper (above), this became `IP - prefixLen`
+instead of `IP`.
+
+**Fix:** Changed rewind to `var(--__1IP)`.
+
+### SHR/SHL/SAR OF flag for shift-by-CL (2026-04-13)
+
+**Symptom:** SHR AX, CL with AX=0x8008 CL=4 produced OF=0, reference had OF=1.
+
+**Root cause:** Shift-by-CL flag functions didn't compute OF. The preserve
+mask (3856) included OF from previous flags, which was stale.
+
+**Fix:** Added OF computation. Changed preserve mask to 1808 to exclude OF.
+
+### Folded IRET decode pipeline corruption (2026-04-13)
+
+**Symptom:** After INT 16h returned correctly, execution resumed at
+CS=0xF000 (BIOS ROM) instead of CS=0 (the program's segment).
+
+**Root cause:** Multi-uOp IRET sequence (pop IP -> pop CS -> pop FLAGS)
+corrupted the decode pipeline because popping IP changed `--__1IP` on the
+next tick, causing `--opcode` to fetch from the wrong address.
+
+**Fix:** Collapsed all IRET pops into a single retirement uOp. IRET is
+read-only (stack pops via `--read2`), so all pops fit in one uOp.
+
+**Pattern to watch for:** Any multi-uOp sequence that modifies IP or CS
+mid-instruction will corrupt the decode pipeline on subsequent uOps.
+
+### Calcite slot aliasing in branching code (2026-04-13)
+
+**Symptom:** `--readMem(1052)` returned 0 instead of 30 when called from
+inside a branching `if(style())` expression.
+
+**Root cause:** Slot compactor (`compact_sub_ops`) aliased a `LoadMem`
+destination slot with a `Dispatch` destination slot inside nested dispatch
+tables. The `compute_liveness_into` function didn't examine slots referenced
+by nested dispatch tables' `fallback_ops`.
+
+**Fix:** Changed `compile_near_identity_dispatch` to inline exception checks
+as a `BranchIfZero/Jump` chain instead of creating nested Dispatch tables.
+
+**Pattern to watch for:** Any calcite compilation involving nested dispatches
+inside branching code (compound `and` conditions in `if(style())`).
+
+### Memory gap in conventional RAM (2026-04-13)
+
+**Symptom:** Kernel crashed after relocating itself to ~0x60440.
+
+**Root cause:** `dosMemoryZones` split conventional memory into two zones
+(0-0x30000 and 0x86000-0xA0000) with an unmapped gap. The kernel's relocated
+code spanned both zones.
+
+**Fix:** Single contiguous 0-0xA0000 zone.
+
+## Active bug
+
+### Seg-override memory write address (instruction 3740)
+
+**Symptom:** `CS: POP [0x8633]` (2E 8F 06 33 86) — high byte of POP'd word
+written with 0xF0 instead of 0x00.
+
+**Status:** Not yet investigated. Likely same class as the prefixLen wrapper
+bug but in memory write address computation rather than IP.
+
+**How to reproduce:**
+```sh
+node transpiler/generate-dos.mjs ../calcite/programs/bootle.com -o ../calcite/output/bootle.css
+cd ../calcite
+target/release/calcite-debugger.exe -i output/bootle.css &
+node tools/fulldiff.mjs --ticks=5000
+```

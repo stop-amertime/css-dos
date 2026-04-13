@@ -35,6 +35,7 @@ export const STATE_VARS = [
   { name: 'pitWriteState', init: 0, debug: false },
   { name: 'kbdLast', init: 0, debug: false },
   { name: 'biosAH', init: 0, debug: false },
+  { name: 'biosAL', init: 0, debug: false },
   { name: 'biosSrc', init: 0, debug: false },  // INT 13h: source linear address
   { name: 'biosDst', init: 0, debug: false },  // INT 13h: destination linear address
   { name: 'biosCnt', init: 0, debug: false },  // INT 13h: bytes remaining

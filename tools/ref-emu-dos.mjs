@@ -3,14 +3,18 @@
 // Loads the same memory layout as generate-dos.mjs:
 //   - KERNEL.SYS at 0060:0000 (linear 0x600)
 //   - Disk image at D000:0000 (linear 0xD0000)
-//   - BIOS at F000:0000 (linear 0xF0000)
-//   - CS:IP starts at F000:bios_init
+//   - BIOS at F000:0000 (linear 0xF0000) = init stub + D6 microcode stubs
+//   - CS:IP starts at F000:0000 (init stub sets up IVT, BDA, splash, then jumps to kernel)
 //
 // Usage: node tools/ref-emu-dos.mjs <ticks> [--json]
 
 import { readFileSync } from 'fs';
+import { execSync } from 'child_process';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { PIC, PIT, KeyboardController } from './peripherals.mjs';
+import { createBiosHandlers } from './lib/bios-handlers.mjs';
+import { buildBiosRom } from '../transpiler/src/patterns/bios.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, '..');
@@ -26,31 +30,27 @@ const args = process.argv.slice(2);
 const maxTicks = parseInt(args[0]) || 10000;
 const jsonMode = args.includes('--json');
 
+// --- Constants (must match generate-dos.mjs) ---
+const KERNEL_LINEAR = 0x600;
+const DISK_LINEAR   = 0xD0000;
+const BIOS_LINEAR   = 0xF0000;
+
+// --- Assemble init stub ---
+const NASM = resolve('C:\\Users\\AdmT9N0CX01V65438A\\AppData\\Local\\bin\\NASM\\nasm.exe');
+const initAsmPath = resolve(projectRoot, 'bios', 'init.asm');
+const initBinPath = resolve(projectRoot, 'bios', 'init.bin');
+execSync(`"${NASM}" -f bin -o "${initBinPath}" "${initAsmPath}"`, { stdio: 'pipe' });
+
 // --- Load binaries ---
-const biosPath = resolve(projectRoot, 'build', 'gossamer-dos.bin');
-const kernelPath = resolve(projectRoot, 'dos', 'bin', 'kernel.sys');
-const diskPath = resolve(projectRoot, 'dos', 'disk.img');
+const initBin = readFileSync(initBinPath);
+const kernelBin = readFileSync(resolve(projectRoot, 'dos', 'bin', 'kernel.sys'));
+const diskBin = readFileSync(resolve(projectRoot, 'dos', 'disk.img'));
 
-const biosBin = readFileSync(biosPath);
-const kernelBin = readFileSync(kernelPath);
-const diskBin = readFileSync(diskPath);
+// Build BIOS ROM: init stub + D6 microcode stubs
+const { romBytes: biosRomBytes } = buildBiosRom();
+const biosBytes = [...initBin, ...biosRomBytes];
 
-// Get bios_init offset from listing
-const lstPath = resolve(projectRoot, 'build', 'gossamer-dos.lst');
-let biosInitOffset = 0x37C; // default
-try {
-  const lst = readFileSync(lstPath, 'utf-8');
-  const lines = lst.split('\n');
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].includes('bios_init:')) {
-      const m = lines[i + 1]?.match(/([0-9A-Fa-f]{8})/);
-      if (m) biosInitOffset = parseInt(m[1], 16);
-      break;
-    }
-  }
-} catch {}
-
-console.error(`BIOS: ${biosBin.length} bytes, init at 0x${biosInitOffset.toString(16)}`);
+console.error(`BIOS: ${biosBytes.length} bytes (init stub: ${initBin.length}, microcode stubs: ${biosRomBytes.length})`);
 console.error(`Kernel: ${kernelBin.length} bytes`);
 console.error(`Disk: ${diskBin.length} bytes`);
 
@@ -59,37 +59,39 @@ const memory = new Uint8Array(1024 * 1024);
 
 // KERNEL.SYS at 0060:0000 (linear 0x600)
 for (let i = 0; i < kernelBin.length; i++) {
-  memory[0x600 + i] = kernelBin[i];
+  memory[KERNEL_LINEAR + i] = kernelBin[i];
 }
 
 // Disk image at D000:0000 (linear 0xD0000)
-for (let i = 0; i < diskBin.length && 0xD0000 + i < memory.length; i++) {
-  memory[0xD0000 + i] = diskBin[i];
+for (let i = 0; i < diskBin.length && DISK_LINEAR + i < memory.length; i++) {
+  memory[DISK_LINEAR + i] = diskBin[i];
 }
 
-// BIOS at F000:0000 (linear 0xF0000)
-for (let i = 0; i < biosBin.length; i++) {
-  memory[0xF0000 + i] = biosBin[i];
+// BIOS ROM at F000:0000 (init stub + D6 stubs)
+for (let i = 0; i < biosBytes.length; i++) {
+  memory[BIOS_LINEAR + i] = biosBytes[i];
 }
 
-// IVT is NOT pre-populated — the BIOS init code sets it up at runtime
+// IVT is NOT pre-populated — the init stub sets it up at runtime
 
-// Memory callbacks
-function m_read(addr) {
-  return memory[addr & 0xFFFFF];
-}
-function m_write(addr, val) {
-  memory[addr & 0xFFFFF] = val & 0xFF;
-}
+// --- Peripherals ---
+const pic = new PIC();
+const pit = new PIT(pic);
+const kbd = new KeyboardController(pic);
+let int_handler = null;
 
-// Create CPU
-const cpu = Intel8086(m_write, m_read);
+// Create CPU with peripheral and int_handler support
+const cpu = Intel8086(
+  (addr, val) => { memory[addr & 0xFFFFF] = val & 0xFF; },
+  (addr) => memory[addr & 0xFFFFF],
+  pic, pit, (type) => int_handler ? int_handler(type) : false,
+);
 cpu.reset();
 cpu.setRegs({
   cs: 0xF000,
-  ip: biosInitOffset,
+  ip: 0x0000,   // start at init stub entry point
   ss: 0,
-  sp: 0xFFF8,  // matches CSS (memSize=0x100000, SP = memSize - 8 mod 65536)
+  sp: 0xFFF8,
   ds: 0,
   es: 0,
   ah: 0, al: 0,
@@ -97,6 +99,9 @@ cpu.setRegs({
   ch: 0, cl: 0,
   dh: 0, dl: 0,
 });
+
+// Wire up BIOS handlers (D6 opcode dispatch)
+int_handler = createBiosHandlers(memory, pic, kbd, () => cpu.getRegs(), (regs) => cpu.setRegs(regs));
 
 // Helper: get register state
 function getState() {
