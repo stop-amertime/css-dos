@@ -20,14 +20,18 @@ Search the web or download a reference before guessing at how something works.
 
 ## Current status
 
-**Architecture pivot in progress.** We are replacing the v1 JSON instruction
-database approach with a JS→CSS transpiler. See GitHub issue #49 for the full
-plan.
+**V3 microcode execution model.** The transpiler generates cycle-accurate CSS
+with μop sequences for multi-byte-write instructions. BIOS handlers are
+microcode (transpiler/src/patterns/bios.mjs), not gossamer assembly.
+See `V3-PLAN-1.md` for the full architecture.
 
-- `legacy/` — the old approach (preserved for reference, not actively developed)
-- `transpiler/` — the new approach
+**Conformance: 3740 instructions on DOS boot.** See `docs/v3-conformance-progress.md`
+for the current state, bugs fixed, and next bug to investigate.
+
+- `transpiler/` — JS→CSS transpiler (the active codebase)
 - `tools/` — conformance testing infrastructure (reference emulator + comparison tools)
-- `bios/` — Gossamer BIOS source (gossamer.asm, gossamer-dos.asm)
+- `legacy/` — old JSON instruction database approach (not actively developed)
+- `bios/` — Gossamer BIOS source (retired, replaced by microcode in transpiler)
 - `build/` — compiled BIOS binaries and listings (generated from bios/)
 - `tests/` — test assembly sources (.asm) and compiled binaries (.com)
 
