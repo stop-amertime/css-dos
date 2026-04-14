@@ -15,7 +15,7 @@ export function emitMOV_RegImm16(dispatch) {
     dispatch.addEntry(reg, opcode, `calc(var(--q1) + var(--q2) * 256)`,
       `MOV ${reg}, imm16`);
     // IP advances by 3
-    dispatch.addEntry('IP', opcode, `calc(var(--__1IP) + 3 + var(--prefixLen))`,
+    dispatch.addEntry('IP', opcode, `calc(var(--__1IP) + 3)`,
       `MOV ${reg}, imm16`);
   }
 }
@@ -50,7 +50,7 @@ export function emitMOV_RegImm8(dispatch) {
         `MOV ${name}, imm8`);
     }
     // IP advances by 2
-    dispatch.addEntry('IP', opcode, `calc(var(--__1IP) + 2 + var(--prefixLen))`, `MOV ${name}, imm8`);
+    dispatch.addEntry('IP', opcode, `calc(var(--__1IP) + 2)`, `MOV ${name}, imm8`);
   }
 }
 
@@ -82,7 +82,7 @@ export function emitMOV_RegRM(dispatch) {
       `MOV ${regOrder16[r]}, r/m16 (if reg=${r})`);
   }
   // IP: 2 + modrmExtra
-  dispatch.addEntry('IP', 0x8B, `calc(var(--__1IP) + 2 + var(--modrmExtra) + var(--prefixLen))`, `MOV reg16, r/m16`);
+  dispatch.addEntry('IP', 0x8B, `calc(var(--__1IP) + 2 + var(--modrmExtra))`, `MOV reg16, r/m16`);
 
   // 0x8A: MOV reg8, r/m8 — reg field selects destination 8-bit register
   // Each 16-bit register (AX,BX,CX,DX) can be written by two 8-bit regs (low+high),
@@ -102,36 +102,26 @@ export function emitMOV_RegRM(dispatch) {
       `else: var(--__1${reg}))`,
       `MOV ${reg}(lo/hi), r/m8`);
   }
-  dispatch.addEntry('IP', 0x8A, `calc(var(--__1IP) + 2 + var(--modrmExtra) + var(--prefixLen))`, `MOV reg8, r/m8`);
+  dispatch.addEntry('IP', 0x8A, `calc(var(--__1IP) + 2 + var(--modrmExtra))`, `MOV reg8, r/m8`);
 
   // 0x89: MOV r/m16, reg16 (d=0) — destination is r/m
-  // If mod=3 (register): single-cycle. If mod!=3 (memory): 2 μops.
-  // Register destination (mod=3): rm field selects register
+  // If mod=11, r/m is a register. If mod!=11, it's a memory write.
+  // For register destination (mod=11): rm field selects register
   for (let r = 0; r < 8; r++) {
     dispatch.addEntry(regOrder16[r], 0x89,
       `if(style(--mod: 3) and style(--rm: ${r}): var(--regVal16); else: var(--__1${regOrder16[r]}))`,
       `MOV r/m16(reg), reg16 (if rm=${r})`);
   }
-  // μop 0: write low byte to memory (addr is -1 if mod=3, so no write)
+  // Memory write: if mod!=3, write regVal16 to ea
   dispatch.addMemWrite(0x89,
     `if(style(--mod: 3): -1; else: var(--ea))`,
     `--lowerBytes(var(--regVal16), 8)`,
-    `MOV r/m16(mem), reg16 lo`, 0);
-  // μop 1: write high byte to memory
+    `MOV r/m16(mem), reg16 low byte`);
   dispatch.addMemWrite(0x89,
     `if(style(--mod: 3): -1; else: calc(var(--ea) + 1))`,
     `--rightShift(var(--regVal16), 8)`,
-    `MOV r/m16(mem), reg16 hi`, 1);
-  // IP: on μop 0 only advance if mod=3 (reg, single-cycle); on μop 1 always advance (mem retire)
-  dispatch.addEntry('IP', 0x89,
-    `if(style(--mod: 3): calc(var(--__1IP) + 2 + var(--modrmExtra) + var(--prefixLen)); else: var(--__1IP))`,
-    `MOV r/m16, reg16 IP`, 0);
-  dispatch.addEntry('IP', 0x89,
-    `calc(var(--__1IP) + 2 + var(--modrmExtra) + var(--prefixLen))`,
-    `MOV r/m16, reg16 retire`, 1);
-  // Custom uOp advance: mod=3 → always 0 (single-cycle); mod!=3 → 0→1→0
-  dispatch.setUopAdvance(0x89,
-    `if(style(--mod: 3): 0; style(--__1uOp: 0): 1; else: 0)`);
+    `MOV r/m16(mem), reg16 high byte`);
+  dispatch.addEntry('IP', 0x89, `calc(var(--__1IP) + 2 + var(--modrmExtra))`, `MOV r/m16, reg16`);
 
   // 0x88: MOV r/m8, reg8 (d=0, w=0) — destination is r/m (byte)
   // When mod=11, rm selects a register. Combine lo/hi into one entry per 16-bit reg.
@@ -147,7 +137,7 @@ export function emitMOV_RegRM(dispatch) {
     `if(style(--mod: 3): -1; else: var(--ea))`,
     `var(--regVal8)`,
     `MOV r/m8(mem), reg8`);
-  dispatch.addEntry('IP', 0x88, `calc(var(--__1IP) + 2 + var(--modrmExtra) + var(--prefixLen))`, `MOV r/m8, reg8`);
+  dispatch.addEntry('IP', 0x88, `calc(var(--__1IP) + 2 + var(--modrmExtra))`, `MOV r/m8, reg8`);
 }
 
 /**
@@ -164,7 +154,7 @@ export function emitMOV_SegRM(dispatch) {
       `if(style(--reg: ${s}): var(--rmVal16); else: var(--__1${segs[s]}))`,
       `MOV ${segs[s]}, r/m16`);
   }
-  dispatch.addEntry('IP', 0x8E, `calc(var(--__1IP) + 2 + var(--modrmExtra) + var(--prefixLen))`, `MOV segreg, r/m16`);
+  dispatch.addEntry('IP', 0x8E, `calc(var(--__1IP) + 2 + var(--modrmExtra))`, `MOV segreg, r/m16`);
 
   // 0x8C: MOV r/m16, segreg — destination is r/m, source is segreg
   const regOrder16 = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI'];
@@ -177,23 +167,17 @@ export function emitMOV_SegRM(dispatch) {
       `if(${branches.join('; ')}; else: var(--__1${regOrder16[r]}))`,
       `MOV r/m16(${regOrder16[r]}), segreg`);
   }
-  // Memory write: if mod!=3, write segreg value to EA (2 μops)
+  // Memory write: if mod!=3, write segreg value to EA
+  // Uses precomputed --segRegVal from decode.mjs
   dispatch.addMemWrite(0x8C,
     `if(style(--mod: 3): -1; else: var(--ea))`,
     `--lowerBytes(var(--segRegVal), 8)`,
-    `MOV r/m16, segreg → mem lo`, 0);
+    `MOV r/m16, segreg → mem lo`);
   dispatch.addMemWrite(0x8C,
     `if(style(--mod: 3): -1; else: calc(var(--ea) + 1))`,
     `--rightShift(var(--segRegVal), 8)`,
-    `MOV r/m16, segreg → mem hi`, 1);
-  dispatch.addEntry('IP', 0x8C,
-    `if(style(--mod: 3): calc(var(--__1IP) + 2 + var(--modrmExtra) + var(--prefixLen)); else: var(--__1IP))`,
-    `MOV r/m16, segreg IP`, 0);
-  dispatch.addEntry('IP', 0x8C,
-    `calc(var(--__1IP) + 2 + var(--modrmExtra) + var(--prefixLen))`,
-    `MOV r/m16, segreg retire`, 1);
-  dispatch.setUopAdvance(0x8C,
-    `if(style(--mod: 3): 0; style(--__1uOp: 0): 1; else: 0)`);
+    `MOV r/m16, segreg → mem hi`);
+  dispatch.addEntry('IP', 0x8C, `calc(var(--__1IP) + 2 + var(--modrmExtra))`, `MOV r/m16, segreg`);
 }
 
 /**
@@ -205,31 +189,31 @@ export function emitMOV_AccMem(dispatch) {
   dispatch.addEntry('AX', 0xA0,
     `--mergelow(var(--__1AX), var(--_movAlMemByte))`,
     `MOV AL, [mem]`);
-  dispatch.addEntry('IP', 0xA0, `calc(var(--__1IP) + 3 + var(--prefixLen))`, `MOV AL, [mem]`);
+  dispatch.addEntry('IP', 0xA0, `calc(var(--__1IP) + 3)`, `MOV AL, [mem]`);
 
   // 0xA1: MOV AX, [addr16] — load word from seg:addr16 into AX (default DS, overridable)
   dispatch.addEntry('AX', 0xA1,
     `--read2(calc(var(--directSeg) + var(--q1) + var(--q2) * 256))`,
     `MOV AX, [mem]`);
-  dispatch.addEntry('IP', 0xA1, `calc(var(--__1IP) + 3 + var(--prefixLen))`, `MOV AX, [mem]`);
+  dispatch.addEntry('IP', 0xA1, `calc(var(--__1IP) + 3)`, `MOV AX, [mem]`);
 
   // 0xA2: MOV [addr16], AL — store AL to seg:addr16 (default DS, overridable)
   dispatch.addMemWrite(0xA2,
     `calc(var(--directSeg) + var(--q1) + var(--q2) * 256)`,
     `var(--AL)`,
     `MOV [mem], AL`);
-  dispatch.addEntry('IP', 0xA2, `calc(var(--__1IP) + 3 + var(--prefixLen))`, `MOV [mem], AL`);
+  dispatch.addEntry('IP', 0xA2, `calc(var(--__1IP) + 3)`, `MOV [mem], AL`);
 
-  // 0xA3: MOV [addr16], AX — store AX to seg:addr16 (2 μops, always memory)
+  // 0xA3: MOV [addr16], AX — store AX to seg:addr16 (default DS, overridable)
   dispatch.addMemWrite(0xA3,
     `calc(var(--directSeg) + var(--q1) + var(--q2) * 256)`,
     `var(--AL)`,
-    `MOV [mem], AX lo`, 0);
+    `MOV [mem], AX lo`);
   dispatch.addMemWrite(0xA3,
     `calc(var(--directSeg) + var(--q1) + var(--q2) * 256 + 1)`,
     `var(--AH)`,
-    `MOV [mem], AX hi`, 1);
-  dispatch.addEntry('IP', 0xA3, `calc(var(--__1IP) + 3 + var(--prefixLen))`, `MOV [mem], AX`, 1);
+    `MOV [mem], AX hi`);
+  dispatch.addEntry('IP', 0xA3, `calc(var(--__1IP) + 3)`, `MOV [mem], AX`);
 }
 
 /**
@@ -242,7 +226,7 @@ export function emitLEA(dispatch) {
       `if(style(--reg: ${r}): var(--eaOff); else: var(--__1${regOrder16[r]}))`,
       `LEA ${regOrder16[r]}, [mem]`);
   }
-  dispatch.addEntry('IP', 0x8D, `calc(var(--__1IP) + 2 + var(--modrmExtra) + var(--prefixLen))`, `LEA`);
+  dispatch.addEntry('IP', 0x8D, `calc(var(--__1IP) + 2 + var(--modrmExtra))`, `LEA`);
 }
 
 /**
@@ -259,7 +243,7 @@ export function emitLES(dispatch) {
   dispatch.addEntry('ES', 0xC4,
     `--read2(calc(var(--ea) + 2))`,
     `LES load ES`);
-  dispatch.addEntry('IP', 0xC4, `calc(var(--__1IP) + 2 + var(--modrmExtra) + var(--prefixLen))`, `LES`);
+  dispatch.addEntry('IP', 0xC4, `calc(var(--__1IP) + 2 + var(--modrmExtra))`, `LES`);
 }
 
 export function emitLDS(dispatch) {
@@ -272,5 +256,5 @@ export function emitLDS(dispatch) {
   dispatch.addEntry('DS', 0xC5,
     `--read2(calc(var(--ea) + 2))`,
     `LDS load DS`);
-  dispatch.addEntry('IP', 0xC5, `calc(var(--__1IP) + 2 + var(--modrmExtra) + var(--prefixLen))`, `LDS`);
+  dispatch.addEntry('IP', 0xC5, `calc(var(--__1IP) + 2 + var(--modrmExtra))`, `LDS`);
 }

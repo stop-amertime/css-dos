@@ -10,7 +10,7 @@ import {
   emitClockAndCpuBase, emitDebugDisplay, emitHTMLHeader, emitHTMLFooter,
   emitKeyboardRules,
 } from './template.mjs';
-import { emitWriteSlotProperties, buildInitialMemory, buildAddressSet } from './memory.mjs';
+import { emitWriteSlotProperties, buildInitialMemory, buildAddressSet, NUM_WRITE_SLOTS } from './memory.mjs';
 import { emitFlagFunctions } from './patterns/flags.mjs';
 
 // Opcode emitters
@@ -22,41 +22,37 @@ import { emitAllMisc } from './patterns/misc.mjs';
 import { emitAllGroups } from './patterns/group.mjs';
 import { emitAllShifts, emitShiftFlagFunctions, emitShiftByNFlagFunctions } from './patterns/shift.mjs';
 import { emitCycleCounts } from './cycle-counts.mjs';
-import { emitIRQSentinel, emitPicVectorProperties, emitIRQFunctions } from './patterns/irq.mjs';
-import { emitPitProperties } from './patterns/pit.mjs';
-import { emitAllBiosHandlers } from './patterns/bios.mjs';
 
 /**
  * Dispatch table builder. Collects per-register entries keyed by opcode.
  */
 class DispatchTable {
   constructor() {
-    // regEntries: Map<regName, Map<opcode, Map<uOp, {expr, comment}>>>
+    // regEntries: Map<regName, Map<opcode, {expr, comment}>>
     this.regEntries = new Map();
-    // memWrites: Map<opcode, Map<uOp, {addrExpr, valExpr, comment}>>
-    this.memWritesByOpcode = new Map();
-    // Track max uOp per opcode for the advance table
-    this.maxUop = new Map(); // opcode → max uOp index
-    // Custom uOp advance expressions (opcode → CSS expression)
-    // When set, overrides the auto-generated advance for that opcode.
-    this.customUopAdvance = new Map();
+    // memWrites: [{opcode, addrExpr, valExpr, comment}]
+    // Each opcode can contribute to up to 3 write slots.
+    this.memWritesByOpcode = new Map(); // opcode → [{addrExpr, valExpr, comment}]
   }
 
-  addEntry(reg, opcode, expr, comment = '', uOp = 0) {
+  addEntry(reg, opcode, expr, comment = '') {
     if (!this.regEntries.has(reg)) {
       this.regEntries.set(reg, new Map());
     }
     const regMap = this.regEntries.get(reg);
-    if (!regMap.has(opcode)) {
-      regMap.set(opcode, new Map());
+    if (regMap.has(opcode)) {
+      // Multiple emitters writing the same register for same opcode
+      // — this is an error in the emitter logic.
+      throw new Error(`Duplicate dispatch entry: ${reg} opcode 0x${opcode.toString(16)} — existing: ${regMap.get(opcode).comment}, new: ${comment}`);
     }
-    const uOpMap = regMap.get(opcode);
-    if (uOpMap.has(uOp)) {
-      throw new Error(`Duplicate dispatch entry: ${reg} opcode 0x${opcode.toString(16)} uOp ${uOp} — existing: ${uOpMap.get(uOp).comment}, new: ${comment}`);
-    }
-    uOpMap.set(uOp, { expr, comment });
-    // Track max uOp
-    this.maxUop.set(opcode, Math.max(this.maxUop.get(opcode) || 0, uOp));
+    // For flags: ALU flag functions build flags from scratch but must preserve
+    // TF/IF/DF (bits 8-10) from the previous tick. Instructions that DO modify
+    // these bits (STI/CLI/CLD/STD/INT/IRET/POPF) already set them explicitly.
+    // AF (bit 4) is computed by the flag functions themselves for ADD/SUB/etc.
+    // TF|IF|DF (bits 8-10) preservation is handled at each call site or inside the
+    // flag functions themselves (inc/dec). No automatic wrapper — it breaks mixed
+    // dispatches that have both flag-computing and passthrough branches.
+    regMap.set(opcode, { expr, comment });
   }
 
   /**
@@ -66,7 +62,6 @@ class DispatchTable {
   emitUnknownOpFlag() {
     const ipEntries = this.regEntries.get('IP');
     if (!ipEntries) return '  --unknownOp: 1;';
-    // Only check opcodes, not uOps — if the opcode has any IP entry, it's known
     const opcodes = [...ipEntries.keys()].sort((a, b) => a - b);
     const lines = ['  --unknownOp: if('];
     for (const op of opcodes) {
@@ -76,35 +71,20 @@ class DispatchTable {
     return lines.join('\n');
   }
 
-  /**
-   * Set a custom uOp advance expression for an opcode.
-   * Used for instructions with conditional multi-cycle behavior (e.g., mod=3 vs memory).
-   */
-  setUopAdvance(opcode, expr) {
-    this.customUopAdvance.set(opcode, expr);
-  }
-
-  addMemWrite(opcode, addrExpr, valExpr, comment = '', uOp = 0) {
+  addMemWrite(opcode, addrExpr, valExpr, comment = '') {
     if (!this.memWritesByOpcode.has(opcode)) {
-      this.memWritesByOpcode.set(opcode, new Map());
+      this.memWritesByOpcode.set(opcode, []);
     }
-    const uOpMap = this.memWritesByOpcode.get(opcode);
-    if (uOpMap.has(uOp)) {
-      throw new Error(`Duplicate memWrite: opcode 0x${opcode.toString(16)} uOp ${uOp} — existing: ${uOpMap.get(uOp).comment}, new: ${comment}`);
-    }
-    uOpMap.set(uOp, { addrExpr, valExpr, comment });
-    // Track max uOp
-    this.maxUop.set(opcode, Math.max(this.maxUop.get(opcode) || 0, uOp));
+    this.memWritesByOpcode.get(opcode).push({ addrExpr, valExpr, comment });
   }
 
   /**
    * Emit the dispatch table for one register as a CSS if() expression.
    * Returns the full property declaration for inside .cpu.
    *
-   * IP has no special wrapper — each emitter is responsible for including
-   * + var(--prefixLen) in its own advance expression. This avoids a leaky
-   * abstraction where inner hold branches inside multi-μop dispatches would
-   * be incorrectly shifted by a global wrapper.
+   * For IP: wraps the entire dispatch in calc(... + var(--prefixLen)) so that
+   * all instruction IP calculations automatically account for prefix bytes
+   * (segment overrides, REP) without changing each individual emitter.
    */
   emitRegisterDispatch(reg, defaultExpr) {
     const entries = this.regEntries.get(reg);
@@ -112,107 +92,110 @@ class DispatchTable {
       return `  --${reg}: ${defaultExpr};`;
     }
 
-    // Build the instruction dispatch, with nested uOp dispatch for multi-cycle opcodes
+    // Build the normal instruction dispatch
+    const wrapIP = (reg === 'IP');
     const dispatchLines = [];
     const sorted = [...entries.entries()].sort(([a], [b]) => a - b);
-    for (const [opcode, uOpMap] of sorted) {
-      const isMultiCycle = (this.maxUop.get(opcode) || 0) > 0;
-      if (!isMultiCycle && uOpMap.size === 1 && uOpMap.has(0)) {
-        // Single-cycle opcode: flat entry (same as v2)
-        const { expr, comment } = uOpMap.get(0);
-        const commentStr = comment ? ` /* ${comment} */` : '';
-        dispatchLines.push(`    style(--opcode: ${opcode}): ${expr};${commentStr}`);
-      } else {
-        // Multi-cycle opcode: flat entries with 'and' composition.
-        // style(--opcode: N) and style(--__1uOp: M): expr
-        // When no uOp matches, the outer else (hold) fires — no inner else needed.
-        const sortedUops = [...uOpMap.entries()].sort(([a], [b]) => a - b);
-        for (const [uOp, { expr, comment }] of sortedUops) {
-          const commentStr = comment ? ` /* ${comment} */` : '';
-          dispatchLines.push(`    style(--opcode: ${opcode}) and style(--__1uOp: ${uOp}): ${expr};${commentStr}`);
-        }
-      }
+    for (const [opcode, { expr, comment }] of sorted) {
+      const commentStr = comment ? ` /* ${comment} */` : '';
+      dispatchLines.push(`    style(--opcode: ${opcode}): ${expr};${commentStr}`);
     }
 
-    const normalExpr = `if(\n${dispatchLines.join('\n')}\n  else: ${defaultExpr})`;
+    let normalExpr;
+    if (wrapIP) {
+      normalExpr = `calc(if(\n${dispatchLines.join('\n')}\n  else: ${defaultExpr}) + var(--prefixLen))`;
+    } else {
+      normalExpr = `if(\n${dispatchLines.join('\n')}\n  else: ${defaultExpr})`;
+    }
 
-    return `  --${reg}: ${normalExpr};`;
+    // TF (Trap Flag) override: when previous FLAGS had TF=1, fire INT 1 instead
+    // of the normal instruction. INT 1: push FLAGS/CS/IP, clear TF+IF, jump to IVT[1].
+    const TF_OVERRIDES = {
+      'IP':    'var(--_tfIP)',
+      'CS':    'var(--_tfCS)',
+      'SP':    'calc(var(--__1SP) - 6)',
+      'flags': '--and(var(--__1flags), 64767)',  // & 0xFCFF = clear TF+IF
+    };
+
+    const tfExpr = TF_OVERRIDES[reg] || `var(--__1${reg})`;
+    return `  --${reg}: if(style(--_tf: 1): ${tfExpr}; else: ${normalExpr});`;
   }
 
   /**
-   * Emit the single memory write slot (--memAddr, --memVal).
-   * v3: one write per cycle, dispatched on (opcode, uOp).
+   * Emit the 6 memory write slot properties (--memAddr0/Val0 through --memAddr5/Val5).
+   * Each slot aggregates across all opcodes that use it.
+   * 6 slots needed: INT pushes 3 words = 6 byte writes.
    */
   emitMemoryWriteSlots() {
-    const lines = [];
+    const slots = Array.from({ length: NUM_WRITE_SLOTS }, () => []);
 
-    // Collect all (opcode, uOp) → {addrExpr, valExpr} entries
-    const addrLines = [];
-    const valLines = [];
-    const sortedOpcodes = [...this.memWritesByOpcode.entries()].sort(([a], [b]) => a - b);
-
-    for (const [opcode, uOpMap] of sortedOpcodes) {
-      if (uOpMap.size === 1 && uOpMap.has(0)) {
-        // Single uOp: flat dispatch
-        const { addrExpr, valExpr, comment } = uOpMap.get(0);
-        addrLines.push(`    style(--opcode: ${opcode}): ${addrExpr}; /* ${comment || ''} */`);
-        valLines.push(`    style(--opcode: ${opcode}): ${valExpr}; /* ${comment || ''} */`);
-      } else {
-        // Multi-uOp: flat entries with 'and' composition
-        const sortedUops = [...uOpMap.entries()].sort(([a], [b]) => a - b);
-        for (const [uOp, { addrExpr, valExpr, comment }] of sortedUops) {
-          addrLines.push(`    style(--opcode: ${opcode}) and style(--__1uOp: ${uOp}): ${addrExpr}; /* ${comment || ''} */`);
-          valLines.push(`    style(--opcode: ${opcode}) and style(--__1uOp: ${uOp}): ${valExpr}; /* ${comment || ''} */`);
-        }
+    for (const [opcode, writes] of this.memWritesByOpcode) {
+      if (writes.length > NUM_WRITE_SLOTS) {
+        throw new Error(`Opcode 0x${opcode.toString(16)} uses ${writes.length} memory write slots (max ${NUM_WRITE_SLOTS})`);
+      }
+      for (let i = 0; i < writes.length; i++) {
+        slots[i].push({ opcode, ...writes[i] });
       }
     }
 
-    lines.push(`  --memAddr: if(`);
-    lines.push(addrLines.join('\n'));
-    lines.push(`  else: -1);`);
-    lines.push(`  --memVal: if(`);
-    lines.push(valLines.join('\n'));
-    lines.push(`  else: 0);`);
+    // TF trap INT 1 memory writes: push FLAGS/CS/IP to stack (slots 0-5)
+    const ssBase = 'calc(var(--__1SS) * 16)';
+    const tfAddr = [
+      `calc(${ssBase} + var(--__1SP) - 2)`,   // slot 0: FLAGS lo
+      `calc(${ssBase} + var(--__1SP) - 1)`,   // slot 1: FLAGS hi
+      `calc(${ssBase} + var(--__1SP) - 4)`,   // slot 2: CS lo
+      `calc(${ssBase} + var(--__1SP) - 3)`,   // slot 3: CS hi
+      `calc(${ssBase} + var(--__1SP) - 6)`,   // slot 4: IP lo
+      `calc(${ssBase} + var(--__1SP) - 5)`,   // slot 5: IP hi
+    ];
+    const tfFlagsPush = `var(--__1flags)`;
+    const tfVal = [
+      `--lowerBytes(${tfFlagsPush}, 8)`,       // FLAGS lo
+      `--rightShift(${tfFlagsPush}, 8)`,        // FLAGS hi
+      `--lowerBytes(var(--__1CS), 8)`,          // CS lo
+      `--rightShift(var(--__1CS), 8)`,          // CS hi
+      `--lowerBytes(var(--__1IP), 8)`,          // IP lo
+      `--rightShift(var(--__1IP), 8)`,          // IP hi
+    ];
 
-    return lines.join('\n');
-  }
-
-  /**
-   * Emit the --uOp advance dispatch table.
-   * For single-cycle instructions (maxUop=0): no entry needed (default is 0).
-   * For multi-cycle: uOp N → N+1, last uOp → 0 (retire).
-   */
-  emitUopAdvance() {
     const lines = [];
-    // Collect all opcodes that have either multi-uOp or custom advance
-    const multiCycleOpcodes = new Map();
-    for (const [opcode, max] of this.maxUop) {
-      if (max > 0) multiCycleOpcodes.set(opcode, max);
-    }
-    for (const [opcode] of this.customUopAdvance) {
-      if (!multiCycleOpcodes.has(opcode)) multiCycleOpcodes.set(opcode, 0);
-    }
+    for (let slot = 0; slot < NUM_WRITE_SLOTS; slot++) {
+      const hasTF = slot < 6;  // TF only uses slots 0-5
 
-    if (multiCycleOpcodes.size === 0) {
-      return '  --uOp: 0;';
-    }
-
-    const sorted = [...multiCycleOpcodes.entries()].sort(([a], [b]) => a - b);
-
-    lines.push('  --uOp: if(');
-    for (const [opcode, maxU] of sorted) {
-      if (this.customUopAdvance.has(opcode)) {
-        // Custom advance expression (e.g., conditional on --mod)
-        lines.push(`    style(--opcode: ${opcode}): ${this.customUopAdvance.get(opcode)};`);
-      } else {
-        // Auto-generated advance chain: 0→1→...→N→0
-        for (let u = 0; u < maxU; u++) {
-          lines.push(`    style(--opcode: ${opcode}) and style(--__1uOp: ${u}): ${u + 1};`);
-        }
-        lines.push(`    style(--opcode: ${opcode}) and style(--__1uOp: ${maxU}): 0;`);
+      if (slots[slot].length === 0 && !hasTF) {
+        // Unused slot — always inactive
+        lines.push(`  --memAddr${slot}: -1;`);
+        lines.push(`  --memVal${slot}: 0;`);
+        continue;
       }
+
+      if (slots[slot].length === 0) {
+        // TF-only slot
+        lines.push(`  --memAddr${slot}: if(style(--_tf: 1): ${tfAddr[slot]}; else: -1);`);
+        lines.push(`  --memVal${slot}: if(style(--_tf: 1): ${tfVal[slot]}; else: 0);`);
+        continue;
+      }
+
+      // Address dispatch
+      lines.push(`  --memAddr${slot}: if(`);
+      if (hasTF) {
+        lines.push(`    style(--_tf: 1): ${tfAddr[slot]};`);
+      }
+      for (const { opcode, addrExpr, comment } of slots[slot]) {
+        lines.push(`    style(--opcode: ${opcode}): ${addrExpr}; /* ${comment || ''} */`);
+      }
+      lines.push(`  else: -1);`);
+
+      // Value dispatch
+      lines.push(`  --memVal${slot}: if(`);
+      if (hasTF) {
+        lines.push(`    style(--_tf: 1): ${tfVal[slot]};`);
+      }
+      for (const { opcode, valExpr, comment } of slots[slot]) {
+        lines.push(`    style(--opcode: ${opcode}): ${valExpr}; /* ${comment || ''} */`);
+      }
+      lines.push(`  else: 0);`);
     }
-    lines.push('  else: 0);');
 
     return lines.join('\n');
   }
@@ -227,7 +210,7 @@ class DispatchTable {
  */
 export function emitCSS(opts, writeStream) {
   const { programBytes, biosBytes, memoryZones, embeddedData, htmlMode, programOffset,
-          initialCS, initialIP, initialRegs } = opts;
+          initialCS, initialIP } = opts;
 
   // Build sorted address array from zones (or fall back to legacy contiguous range)
   let addresses;
@@ -243,7 +226,7 @@ export function emitCSS(opts, writeStream) {
   // templateOpts.memSize is used for SP init — derive from the top of the lowest zone
   // (conventional memory area, which is always zones[0] by convention)
   const convEnd = memoryZones ? memoryZones[0][1] : (opts.memSize || 0x10000);
-  const templateOpts = { memSize: convEnd, programOffset, initialCS, initialIP, initialRegs };
+  const templateOpts = { memSize: convEnd, programOffset, initialCS, initialIP };
 
   // Build dispatch table
   const dispatch = new DispatchTable();
@@ -264,8 +247,6 @@ export function emitCSS(opts, writeStream) {
   emitAllGroups(dispatch);    // Group FE/F7/F6/80-83
   emitAllShifts(dispatch);    // SHL/SHR/SAR/ROL/ROR (D0-D1)
   emitCycleCounts(dispatch);  // Per-instruction 8086 cycle costs
-  emitIRQSentinel(dispatch);  // Sentinel opcode 0xF1 for hardware IRQ delivery
-  emitAllBiosHandlers(dispatch);  // BIOS opcode 0xD6 dispatch on routine ID
 
   const w = (s) => writeStream.write(s + '\n\n');
 
@@ -295,9 +276,6 @@ export function emitCSS(opts, writeStream) {
   w(emitShiftFlagFunctions());
   w(emitShiftByNFlagFunctions());
 
-  // 3b. IRQ helper @functions
-  w(emitIRQFunctions());
-
   // 4. Clock and CPU base
   w('/* ===== EXECUTION ENGINE ===== */');
   w(emitClockAndCpuBase({ htmlMode }));
@@ -306,33 +284,6 @@ export function emitCSS(opts, writeStream) {
   writeStream.write('  /* Register aliases (8-bit halves) */\n');
   w(emitRegisterAliases());
   w(emitDecodeProperties());
-
-  // PIC vector computation (IRQ number → interrupt vector)
-  writeStream.write('  /* ===== PIC / IRQ STATE ===== */\n');
-  writeStream.write(emitPicVectorProperties() + '\n\n');
-
-  // Keyboard state
-  writeStream.write('  /* ===== KEYBOARD ===== */\n');
-  writeStream.write('  --_kbdScancode: --rightShift(var(--keyboard), 8);\n');
-  writeStream.write('  --_kbdAscii: --lowerBytes(var(--keyboard), 8);\n');
-  // Edge detection: update kbdLast only at instruction boundaries
-  writeStream.write('  --kbdLast: if(style(--__1uOp: 0): var(--keyboard); else: var(--__1kbdLast));\n');
-  // _kbdChanged: 1 when keyboard differs from previous boundary, 0 otherwise
-  writeStream.write('  --_kbdChanged: if(style(--__1uOp: 0): min(1, max(0, sign(calc(max(var(--keyboard), var(--__1kbdLast)) - min(var(--keyboard), var(--__1kbdLast)))))); else: 0);\n');
-  writeStream.write('\n');
-
-  // BIOS subfunction latch: capture AH at instruction boundaries, hold during μop sequence.
-  // BIOS handlers dispatch on AH (subfunction selector) but may modify AX during the
-  // handler, which would taint AH on the next tick. biosAH preserves the original value.
-  //
-  // Three cases:
-  // 1. BIOS handler holding at μop 0 (opcode=214, uOp=0): keep previous biosAH
-  //    (the handler may have modified AX, but the subfunction hasn't changed)
-  // 2. Normal instruction boundary (uOp=0, not a BIOS hold): latch fresh from __1AX
-  // 3. Mid-instruction (uOp>0): keep previous biosAH
-  writeStream.write('  /* ===== BIOS AH/AL LATCH ===== */\n');
-  writeStream.write('  --biosAH: if(style(--opcode: 214) and style(--__1uOp: 0): var(--__1biosAH); style(--__1uOp: 0): --rightShift(var(--__1AX), 8); else: var(--__1biosAH));\n');
-  writeStream.write('  --biosAL: if(style(--opcode: 214) and style(--__1uOp: 0): var(--__1biosAL); style(--__1uOp: 0): --lowerBytes(var(--__1AX), 8); else: var(--__1biosAL));\n\n');
 
   // Unknown opcode detection — sets --unknownOp=1 and --haltCode=opcode
   writeStream.write('  /* ===== UNKNOWN OPCODE FLAG ===== */\n');
@@ -344,46 +295,15 @@ export function emitCSS(opts, writeStream) {
   writeStream.write('  /* Each register\'s next value is selected by opcode via a\n');
   writeStream.write('     giant if(style(--instId: N)) dispatch. This is the CPU. */\n');
   const regOrder = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI',
-                    'CS', 'DS', 'ES', 'SS', 'IP', 'flags', 'halt', 'cycleCount',
-                    'picMask', 'picPending', 'picInService'];
+                    'CS', 'DS', 'ES', 'SS', 'IP', 'flags', 'halt', 'cycleCount'];
   for (const reg of regOrder) {
-    // picPending default: OR in PIT IRQ (bit 0) when PIT counter crosses zero.
-    // --_pitFired is 0 or 1 (computed by PIT properties below).
-    const defaultExpr = reg === 'picPending'
-      ? `--or(--or(var(--__1picPending), var(--_pitFired)), calc(var(--_kbdChanged) * 2))`
-      : `var(--__1${reg})`;
+    const defaultExpr = `var(--__1${reg})`;
     writeStream.write(dispatch.emitRegisterDispatch(reg, defaultExpr) + '\n');
   }
   writeStream.write('\n');
 
-  // irqActive — standalone computed property (not dispatch-driven)
-  // Set to 1 at instruction boundaries when IF=1 and PIC has unmasked pending IRQ.
-  // Stays 1 during sentinel μop sequence, resets to 0 on sentinel retirement.
-  writeStream.write('  /* ===== IRQ ACTIVE ===== */\n');
-  writeStream.write('  /* Checked in order: first match wins. */\n');
-  writeStream.write(`  --irqActive: if(\n`);
-  writeStream.write(`    style(--opcode: 241) and style(--__1uOp: 5): 0; /* IRQ sentinel retirement */\n`);
-  writeStream.write(`    style(--opcode: 241): var(--__1irqActive); /* IRQ sentinel mid-sequence: hold */\n`);
-  writeStream.write(`    style(--opcode: 214) and style(--__1uOp: 0): if(\n`);
-  writeStream.write(`      style(--_irqEffective: 0): 0;\n`);
-  writeStream.write(`      style(--_ifFlag: 0): 0;\n`);
-  writeStream.write(`    else: 1); /* BIOS handler μop 0 hold: allow IRQ if pending+IF=1 */\n`);
-  writeStream.write(`    style(--opcode: 214): 0; /* BIOS handler mid-sequence: no IRQ */\n`);
-  writeStream.write(`    style(--_irqEffective: 0): 0; /* no unmasked pending IRQ */\n`);
-  writeStream.write(`    style(--_ifFlag: 0): 0; /* IF=0: interrupts disabled */\n`);
-  writeStream.write(`    style(--__1uOp: 0): 1; /* instruction boundary + IF=1 + IRQ pending */\n`);
-  writeStream.write(`  else: 0); /* mid-instruction */\n\n`);
-
-  // PIT (i8253) state — standalone computed properties
-  writeStream.write('  /* ===== PIT TIMER ===== */\n');
-  writeStream.write(emitPitProperties() + '\n\n');
-
-  // μop advance dispatch
-  writeStream.write('  /* ===== μOP ADVANCE ===== */\n');
-  writeStream.write(dispatch.emitUopAdvance() + '\n\n');
-
-  // Memory write slot (single addr/val pair per cycle)
-  writeStream.write('  /* ===== MEMORY WRITE ===== */\n');
+  // Memory write slots
+  writeStream.write('  /* ===== MEMORY WRITE SLOTS ===== */\n');
   writeStream.write(dispatch.emitMemoryWriteSlots() + '\n\n');
 
   // 6. Debug display
@@ -513,7 +433,11 @@ function emitMemoryWriteRulesStreaming(opts, ws) {
   let buf = '';
   let count = 0;
   for (const addr of addresses) {
-    buf += `  --m${addr}: if(style(--memAddr: ${addr}): var(--memVal); else: var(--__1m${addr}));\n`;
+    const slotLines = [];
+    for (let i = 0; i < NUM_WRITE_SLOTS; i++) {
+      slotLines.push(`    style(--memAddr${i}: ${addr}): var(--memVal${i});`);
+    }
+    buf += `  --m${addr}: if(\n${slotLines.join('\n')}\n  else: var(--__1m${addr}));\n`;
     if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
   }
   if (buf) ws.write(buf);

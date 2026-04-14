@@ -3,97 +3,316 @@
 **This is the single source of truth for project status.** Every agent MUST
 read this before starting work and MUST update it before finishing.
 
-Last updated: 2026-04-13
+Last updated: 2026-04-14
 
 ---
 
 ## Current status
 
-**V3 microcode execution model** — the transpiler generates cycle-accurate CSS
-with uOp sequences for multi-byte-write instructions. BIOS handlers are
-microcode (`transpiler/src/patterns/bios.mjs`), not assembly.
+**V4 architecture: boots DOS + bootle.com (hearts on screen).** The v3
+microcode (μOp) rewrite was abandoned — it introduced bugs that prevented
+boot regardless of BIOS configuration. V4 restores the v2 single-cycle
+architecture (every instruction completes in one CSS tick, 8 parallel
+memory write slots) and ports all useful v3 improvements on top of it.
 
-**3740 instructions conformant** on the DOS boot path (`bootle.com`). The CSS
-and JS reference emulators agree on the first 3740 instructions.
+**One BIOS, one build path:** `bios/css-emu-bios.asm` is the assembly
+BIOS. `transpiler/generate-dos.mjs` is the build script. No microcode
+BIOS, no `build.mjs`, no opcode 0xD6 dispatch.
+
+**Kernel identity:** kernel.sys is EDR-DOS (SvarDOS build), NOT FreeDOS.
 
 ## Active blocker
 
-**PIT/PIC/IRET likely needed for DOS boot** — the kernel boot sequence doc
-predicts the F5/F8 key polling loop (`biosinit.asm:option_key`) will block
-because it calls INT 1Ah waiting for 36 ticks, and the PIT doesn't fire.
-This has NOT been verified — the kernel may hit a different bug first.
-
-If the PIT is indeed the next blocker, it requires:
-1. Programming PIT channel 0 in `bios/init.asm` (OUT 0x43/0x40)
-2. Unmasking IRQ 0 in PIC (OUT 0x21)
-3. Fixing pit.mjs to treat reload=0 as 65536 (8253 behavior)
-4. Adding IRET to INT 08h/09h handlers (currently just skip sentinel)
-
-An earlier attempt to do all four at once caused a regression (kernel
-version string stopped appearing). Root cause unknown. These need to be
-added one at a time with verification after each step.
-
-**Seg-override decode bug** (may or may not still be present) — instruction
-3740: `CS: POP [0x8633]` (2E 8F 06 33 86). Memory mismatch at high byte.
-See `docs/debugging/known-bugs.md`.
+None — boot works. Next step is expanding program support.
 
 ## What's working
 
-- Full v3 microcode infrastructure (phases 1-4 complete)
-- BIOS microcode handlers: INT 08h, 09h, 10h, 11h, 12h, 13h, 15h, 16h, 19h, 1Ah, 20h
-- INT 1Ah AH=00h reads BDA tick count (was hardcoded 0)
-- INT 10h AH=0Eh handles CR/LF/BS/BEL control chars via `--biosAL` dispatch
-- `--biosAL` latched property (mirrors `--biosAH` pattern)
-- Keyboard IRQ path: `:active` buttons -> IRQ 1 -> INT 09h -> BDA buffer -> INT 16h
-- PIT timer, PIC interrupt controller in both JS and CSS
-- BIOS init stub (`bios/init.asm`) — real x86 code that sets up IVT, BDA, splash screen
-- `generate-dos.mjs` rewritten to use microcode BIOS (no more gossamer-dos.asm)
-- Hack path (.COM programs) fully working with keyboard-irq test
+- V4 single-cycle architecture with 8 memory write slots
+- Full DOS boot: BIOS init → kernel → bootle.com (hearts on screen)
+- Assembly BIOS (`bios/css-emu-bios.asm`) with all v3 improvements:
+  - INT 10h: Mode 13h set/clear, AH=1Ah display combination code
+  - INT 16h: BDA ring buffer (proper keyboard buffer, not memory polling)
+  - INT 1Ah: auto-incrementing tick counter (workaround for no PIT)
+- VGA Mode 13h framebuffer zone (0xA0000-0xAFA00) + text buffer
+- Contiguous conventional memory (0-640KB, no gap)
+- SP overflow fix (16-bit clamp) + initialRegs support
+- Shift flag OF (Overflow Flag) computation for shift-by-CL
+- `--cycleCount` register: real 8086 cycle costs per instruction
+- Keyboard CSS support (--keyboard property, :active button rules)
+- Prune options (--no-gfx, --no-text-vga) for CSS size optimization
+- Boot trace tool (`calcite/tools/boot-trace.mjs`)
+- Hack path (.COM programs) fully working
 - Conformance tests passing: timer-irq, rep-stosb, bcd, keyboard-irq
 
 ## What's next (in priority order)
 
-1. **PIT/PIC/IRET** — enable timer IRQ so F5/F8 timeout works (see active blocker)
-2. **Resume DOS boot conformance** — use `fulldiff.mjs` to find next divergence
-3. **INT 10h gaps** — AH=06h (scroll up), AH=09h (write char+attr), AH=08h (read char+attr)
-4. **Validate INT 13h disk read** — implemented but untested
-5. **ROM disk plan** — move disk image outside 1MB address space for large programs
-6. **End-to-end test** — boot DOS to COMMAND.COM prompt
+1. **INT 13h hard disk rejection** — currently the kernel probes hard
+   disks and gets floppy geometry back, which happens to work. Properly
+   rejecting hard disks (DL >= 0x80 → CF=1) causes a stall after the
+   version string. This needs investigation — likely the kernel hits a
+   timeout loop that requires real PIT ticks to exit.
+2. **PIT timer** — real PIT counter driven by `--cycleCount`. The
+   `cycleCount` register is already accumulating; need to derive PIT
+   countdown from it and fire INT 08h when it crosses zero.
+3. **More programs** — test with rogue, other DOS programs.
+4. **Rewrite BIOS in C** — assembly is hard for Claude to reason about. OpenWatcom
+   targeting 8086 real mode. Spec-driven, not a translation of gossamer.
 
 ## Recent decisions
 
-- **BIOS init is real x86 assembly** (`bios/init.asm`), not JS-side construction.
-  This lets the kernel's drbio layer run properly. (2026-04-13)
-- **Tick-accurate conformance not viable for DOS boot** — CSS does BIOS calls in
-  microcode ticks, JS does them instantly via int_handler hook. Debugging uses
-  documentation + calcite debugger instead. (2026-04-13)
-- **Folded IRET** — all BIOS handlers pop IP/CS/FLAGS in a single retirement uOp
-  rather than separate uOps, to avoid decode pipeline corruption. (2026-04-13)
+- **skipMicrocodeBios for assembly BIOS builds** — `emitCSS()` was
+  unconditionally registering opcode 0xD6 microcode BIOS handlers even when
+  the assembly BIOS is used (no 0xD6 stubs in ROM). This caused the kernel
+  crash. `build.mjs` now passes `skipMicrocodeBios: true`. (2026-04-14)
+- **Kernel is EDR-DOS, not FreeDOS** — the map file `kwc8616.map` is for
+  FreeDOS and doesn't match kernel.sys. The `../edrdos/` source is correct.
+  kernel.sys = kernel-edrdos.sys = kernel-svardos.sys (same hash). (2026-04-14)
+- **Batched write slots for REP string ops** — added 32 write slots that only
+  activate during REP MOVSB/MOVSW/STOSB/STOSW. Each memory byte checks all
+  32 slots. CSS grows ~5x but calcite optimizes via HashMap lookups. This is
+  the pragmatic middle ground between v2's 6 parallel slots (all instructions)
+  and v3's 1 slot (too slow for boot). (2026-04-13)
+- **pit.mjs reload=0 fix** — real PIT treats reload=0 as 65536. CSS PIT was
+  treating it as "off". Fixed by adding `_pitEffectiveReload` property and
+  checking `pitMode` instead of `pitReload` for the "not active" guard. (2026-04-13)
+- **Revived assembly BIOS for DOS boot** — the microcode BIOS (bios.mjs) was
+  architecturally cleaner but didn't boot. The old gossamer assembly BIOS did
+  boot on the v2 CSS. Copied to `bios/css-emu-bios.asm`. (2026-04-13)
+- **Hard disk probe bug** — INT 13h must check DL >= 0x80 and return CF=1 for
+  all hard disk calls. Without this, the kernel builds a corrupt DDSC chain
+  from floppy parameters and loops forever. (2026-04-13)
+- **C BIOS is the long-term plan** — Claude can't reliably read/write x86
+  assembly. OpenWatcom C targeting 8086 is the plan for a maintainable BIOS.
+  Assembly BIOS is the interim solution. (2026-04-13)
 
 ## Uncommitted work
 
 ### CSS-DOS repo
-- `transpiler/src/patterns/bios.mjs` — all BIOS handler emitters
-- `transpiler/src/template.mjs` — biosAH, biosSrc/biosDst/biosCnt state vars
-- `transpiler/src/emit-css.mjs` — biosAH computed property, keyboard CSS rules
-- `transpiler/src/memory.mjs` — removed memory gap in dosMemoryZones
-- `transpiler/generate-dos.mjs` — rewritten to use microcode BIOS
-- `tools/lib/bios-handlers.mjs` — JS reference BIOS handlers
-- `tools/ref-emu-dos.mjs` — updated for microcode BIOS path
-- `dos/config.sys` — updated
-- `bios/init.asm` — BIOS init stub
+- V4 architecture replacing V3 (this session)
+- V3 microcode files archived to `legacy/v3/`
+- `tools/ref-asm-bios.mjs` — JS emulator with assembly BIOS
+- (all prior uncommitted work from sessions 1-7 still uncommitted)
 
 ### Calcite repo
-- `crates/calcite-core/src/compile.rs` — near-identity dispatch fix, tracing infra
-- `crates/calcite-core/src/eval.rs` — trace_property, dump_ops_range APIs
-- `crates/calcite-cli/src/main.rs` — --key-events flag, name-based --halt
-- `crates/calcite-debugger/src/main.rs` — /trace-property, /dump-ops, /keyboard endpoints
+- `run.bat` — updated to use `generate-dos.mjs`
+- `crates/calcite-debugger/src/main.rs` — `/watchpoint` endpoint
+- `tools/boot-trace.mjs` — boot progress tracer
+- (all prior uncommitted work from sessions 1-7 still uncommitted)
 
 ---
 
 ## Entry log
 
 Newest entries first. See `docs/logbook/PROTOCOL.md` for how to write entries.
+
+### 2026-04-14 — Session 8: V4 architecture — abandon μOp rewrite, restore single-cycle
+
+**What:** Catalogued every difference between V2 (cc97447, boots) and V3
+(current, doesn't boot). Concluded the v3 μOp microcode architecture was
+the root cause of the boot failure — not the BIOS, not the INT 13h handler.
+Built V4: the v2 single-cycle architecture with all useful v3 improvements
+ported and boot-verified one at a time.
+
+**Why μOps were abandoned:** The v3 rewrite converted every multi-write
+instruction (INT, PUSH, CALL, MOV to memory, etc.) from single-cycle with
+6 parallel write slots to multi-cycle with 1 write slot and a μOp state
+machine. This introduced massive complexity — hand-coded state machines for
+dozens of instructions, changed stack address calculations, removed TF
+support, required every IP emitter to manually include `+ var(--prefixLen)`.
+Testing proved v3 can't boot even with the original v2 BIOS, confirming the
+μOp sequencer itself has bugs.
+
+**V4 improvements ported from V3 (each boot-verified):**
+1. 8 memory write slots (up from 6, headroom for future use)
+2. Contiguous conventional memory (no gap between low/high areas)
+3. VGA Mode 13h framebuffer zone (0xA0000-0xAFA00) + prune options
+4. SP overflow fix (16-bit clamp) + `initialRegs` support
+5. OF (Overflow Flag) in shift-by-CL flag functions
+6. INT 10h: Mode 13h set/clear, AH=1Ah display combination code, get_mode fix
+7. INT 16h: BDA ring buffer (proper keyboard buffer)
+8. Keyboard CSS support (--keyboard property, :active rules, HTML buttons)
+9. `--cycleCount` register (real 8086 cycle costs per instruction)
+
+**What was NOT ported (broken or V3-infrastructure-only):**
+- μOp sequencer and all multi-cycle instruction rewrites
+- PIT/PIC/IRQ hardware emulation (needs cycleCount-based PIT, not μOps)
+- Microcode BIOS handlers (opcode 0xD6 dispatch)
+- INT 13h hard disk rejection (causes stall — needs PIT to resolve timeout)
+
+**INT 13h investigation:** Adding `cmp dl, 0x80; jae .no_drive` causes the
+kernel to take a different init path that stalls after printing the version
+string. This happens in both V3 and V4 — it's not a μOp bug. The likely
+cause: the kernel's F5/F8 option key prompt has a timeout that requires
+real BDA tick advancement via PIT/INT 08h. The auto-incrementing INT 1Ah
+hack advances ticks on INT 1Ah calls but the timeout loop may not call
+INT 1Ah frequently enough. Without the hard disk rejection, the kernel
+skips this code path entirely and boots fine.
+
+**File changes:**
+- V3 microcode files archived to `legacy/v3/`
+- `transpiler/src/emit-css.mjs` — v4 single-cycle architecture (8 slots)
+- `transpiler/src/template.mjs` — keyboard, cycleCount, SP fix
+- `transpiler/src/memory.mjs` — contiguous zones, NUM_WRITE_SLOTS, prune
+- `transpiler/src/cycle-counts.mjs` — new: real 8086 cycle costs
+- `transpiler/src/decode.mjs` — v2 decode (no IRQ sentinel override)
+- `transpiler/generate-dos.mjs` — v4 build (no microcode, uses bios/ path)
+- `bios/css-emu-bios.asm` — v4 BIOS (v2 base + INT 10h/16h improvements)
+- `transpiler/src/patterns/shift.mjs` — OF computation for shift-by-CL
+- All pattern files — v2 single-cycle (no μOp parameters)
+- `calcite/run.bat` — updated to use `generate-dos.mjs`
+
+### 2026-04-14 — Session 7: Boot crash fixed (opcode 0xD6 collision), extensive boot investigation
+
+**What:** Found and fixed the boot crash at `CALL FAR [SS:1000]`. Also
+conducted extensive investigation of the boot sequence, fixed SP overflow,
+added debugger watchpoint feature, and verified v2 CSS still boots.
+
+**Boot crash root cause:** `emitCSS()` unconditionally called
+`emitAllBiosHandlers()` which registered microcode BIOS handlers for opcode
+0xD6 (SALC on real 8086), even when `build.mjs` uses the assembly BIOS (no
+0xD6 stubs in ROM). The EDR-DOS kernel binary contains 53 instances of byte
+0xD6. When executed as part of the instruction stream, the microcode handlers
+activated and corrupted CPU state, causing the kernel to take a wrong code
+path that eventually hit the uninitialized `lock_bios` far pointer at
+SS:0x1000.
+
+**Fix:** Added `skipMicrocodeBios` option to `emitCSS()`. `build.mjs` sets
+it to `true`. CSS output dropped from ~1.3GB to ~245MB. Calcite compile time
+dropped from ~40s to ~6s.
+
+**SP overflow fix:** `template.mjs` computed SP initial value as `memSize - 8`
+which produced 0x9FFF8 (20-bit) for 640KB memory. SP is a 16-bit register.
+Added `& 0xFFFF` clamp. `build.mjs` and `generate-dos.mjs` now pass
+`initialRegs: { SP: 0 }` for the DOS boot path since the BIOS sets SS:SP.
+
+**How the crash was found:**
+- Debugger watchpoint on address 0x97750 (SS:0x1000 at crash time) found the
+  bad data written at tick ~39923 during a REP MOVSB kernel relocation copy
+- The source data was already wrong — the kernel's code segment (TGROUP) and
+  data segment (DGROUP) overlap after relocation, so code bytes appear where
+  function pointer stubs should be
+- This bad data exists in BOTH v2 and v3 — it's a pre-existing issue, not the
+  crash cause
+- The crash happened because v3 reached a code path that dereferences
+  `lock_bios` (called from `device_driver` in bdevio.asm) while v2 did not
+- The different code path was caused by the 0xD6 microcode handlers corrupting
+  execution
+
+**V2 verification:** Checked out v2 transpiler at commit cc97447 into a git
+worktree (`/tmp/css-dos-v2`). Built v2 CSS with `generate-dos.mjs`. Loaded
+in current calcite debugger. V2 CSS boots to bootle.com (hearts on screen).
+V2 CSS also has bad data at SS:0x1000 (`18 19 1A 1B`) — same as v3. V2 just
+never hits the code path that reads it. V2's `emit-css.mjs` did not import
+or call `emitAllBiosHandlers` — that function didn't exist in v2.
+
+**Kernel identity confirmed:** kernel.sys is EDR-DOS (SvarDOS build),
+identified by boot message "Enhanced DR-DOS kernel 20250427 (rev 72ae65f)".
+The map file `kwc8616.map` in dos/bin/ is for a FreeDOS kernel (different
+binary) and is useless for debugging. `kernel.sys` = `kernel-edrdos.sys` =
+`kernel-svardos.sys` (same hash). `kernel-freedos.sys` is different.
+
+**Assembly BIOS diff (gossamer-dos.asm vs css-emu-bios.asm):** bios_init
+code is identical. Handler differences: INT 10h gained AH=1Ah (display
+combination code) and Mode 13h support in AH=00h. INT 13h gained hard disk
+rejection (DL >= 0x80), AH=16h (disk change), and REP MOVSW disk read
+(replacing manual word loop). INT 16h switched from polling 0000:0500 to
+BDA ring buffer.
+
+**Current state after fix:** The crash no longer occurs. The kernel prints
+its version string (it did before the fix too — the crash happened after
+that point). The kernel is now stuck after the version string — not booting
+to the program. The cause of the stall is unknown. V2 CSS boots all the way
+to the program without PIT or timer interrupts, so whatever blocks v3 now
+is a separate issue that needs investigation.
+
+**Infrastructure added:**
+- Calcite debugger: `/watchpoint` endpoint — ticks forward until a memory
+  byte changes, reports tick and full CPU state at the change point
+- `tools/ref-asm-bios.mjs` — JS reference emulator using the assembly BIOS
+  with no INT interception
+- QEMU installed on the system for future hardware emulation testing
+
+### 2026-04-13 — Session 6: Batched write slots, boot crash investigation, PIT fixes
+
+**What:** Added 32 batched write slots for REP string ops (MOVSB/MOVSW/
+STOSB/STOSW), making boot tracing practical. Rewrote INT 13h disk read to
+use REP MOVSW. Fixed pit.mjs reload=0 bug. Investigated boot crash.
+
+**Batched write slots:** Each memory byte now checks 32 write slots instead
+of 1. Extra slots only activate during REP string opcodes (0xA4/0xA5/0xAA/
+0xAB). Non-string-op ticks: all extra slots = -1 (no write). CSS grows ~5x
+(~1.3GB) but calcite handles it via HashMap lookups. This gives ~16x speedup
+on REP MOVSW and ~32x on REP MOVSB. Files changed: `emit-css.mjs` (memory
+write rules, slot emission), `patterns/misc.mjs` (batch helpers, slot
+generation), `decode.mjs` (lookahead source byte reads).
+
+**Unfixed DF bug:** Batched slot source reads and destination addresses
+always go forward (+N from SI/DI) regardless of direction flag. Code using
+`STD; REP MOVSB` would be corrupted by batching.
+
+**INT 13h disk read fix:** Replaced the 12-instruction-per-word push/pop
+segment-switching loop with `REP MOVSW`. Sets DS to source segment, uses
+ES:DI as destination. Each sector is 256 words via REP MOVSW, then DS
+advances by 32 paragraphs for the next sector.
+
+**pit.mjs fix:** CSS PIT treated `pitReload=0` as "not active" but real
+hardware treats it as 65536. Added `--_pitEffectiveReload` property that
+substitutes 65536 when pitReload is 0. Changed "not active" guards to check
+`pitMode=0` instead of `pitReload=0`.
+
+**PIT/EOI in BIOS (attempted, reverted):** Added PIT channel 0 programming
+(mode 3, reload 0x0000) and PIC IRQ 0/1 unmask to bios_init. Also added
+EOI (`OUT 0x20, 0x20`) to INT 08h handler. Reverted because timer
+interrupts during early kernel init (before CLI) caused the kernel version
+string to stop appearing. The EOI fix itself is correct — just needs to be
+re-added when PIT is safely enabled.
+
+**Boot crash investigation:** The kernel prints its version string, does
+device init, opens files, reads CONFIG.SYS. Then at 0E91:2981 it does
+`CALL FAR [SS:1000]` (bytes `36 FF 1E 00 10`). The far pointer at
+SS:1000 = 9675:1000 contains 1B1A:1918, which is uninitialized memory
+(all zeros). The CPU then executes `ADD [BX+SI],AL` (opcode 0x00) forever,
+advancing IP through empty memory. This happens regardless of batching,
+PIT state, or which program is loaded. The JS reference emulator with the
+microcode BIOS hits a different failure: it loops at 9675:61D7 because BDA
+ticks never advance (PIT not programmed, IRQ 0 masked).
+
+**Key insight:** The boot failure is NOT caused by batching or PIT. It's a
+pre-existing issue in the kernel's init sequence. The function pointer at
+SS:1000 targets memory that was never written to. Next step: debug why
+that pointer targets zeros — either the kernel failed to write code there,
+or something about the BIOS/memory layout is wrong.
+
+### 2026-04-13 — Session 5: Assembly BIOS revival, hard disk fix, boot trace tool
+
+**What:** Revived the old gossamer assembly BIOS as `bios/css-emu-bios.asm`.
+Created `transpiler/build.mjs` as a clean build script. Found and fixed a
+hard disk probe bug in INT 13h (DL >= 0x80 not checked). Built
+`calcite/tools/boot-trace.mjs` for high-level boot progress tracing.
+
+**Why:** The microcode BIOS (sessions 1-4) was architecturally complex and
+didn't boot DOS. The old assembly BIOS had previously booted DOS on the v2
+CSS. Reviving it gives a working baseline to iterate from.
+
+**Hard disk bug:** INT 13h didn't check DL, so `AH=08h DL=0x80` returned
+floppy geometry as if it were a hard disk. The kernel built a DDSC chain
+with corrupt data that looped forever (detected via boot-trace.mjs at
+8991:255A-258B). Fix: reject all calls with DL >= 0x80 (CF=1, AH=1).
+
+**Boot trace tool:** `boot-trace.mjs` samples IP at intervals via the
+calcite debugger HTTP API, cross-references the kernel map file for symbol
+names, and detects IP loops. This identified both the DDSC loop and the
+overall boot progression (BIOS init → kernel decompress → device init →
+file opens → disk reads).
+
+**Current state after fix:** Boot gets through BIOS init, kernel version
+string, device driver init, file opens, and disk reads (INT 13h). It has
+not been confirmed where it ultimately stalls — v3 tick speed makes testing
+slow (REP MOVSW with CX=30000 takes 30000+ ticks).
+
+**Key decision:** Long-term BIOS should be rewritten in C (OpenWatcom)
+because Claude can't reliably reason about x86 assembly. The assembly BIOS
+is an interim solution.
 
 ### 2026-04-13 — Session 4: BIOS gap fixes (INT 1Ah, INT 10h CR/LF)
 

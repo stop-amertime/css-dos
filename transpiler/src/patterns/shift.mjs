@@ -37,7 +37,7 @@ export function emitShift_D1(dispatch) {
       `Shift D1 → ${regName}`);
   }
 
-  // Memory write: if mod!=3, 2 μops for 16-bit write
+  // Memory write: if mod!=3
   dispatch.addMemWrite(0xD1,
     `if(style(--mod: 3): -1; else: var(--ea))`,
     `if(` +
@@ -49,7 +49,7 @@ export function emitShift_D1(dispatch) {
     `style(--reg: 2): --lowerBytes(calc(var(--rmVal16) * 2 + var(--_cf)), 8); ` +
     `style(--reg: 3): --lowerBytes(calc(round(down, var(--rmVal16) / 2) + var(--_cf) * 32768), 8); ` +
     `else: 0)`,
-    `Shift D1 → mem lo`, 0);
+    `Shift D1 → mem lo`);
   dispatch.addMemWrite(0xD1,
     `if(style(--mod: 3): -1; else: calc(var(--ea) + 1))`,
     `if(` +
@@ -61,27 +61,21 @@ export function emitShift_D1(dispatch) {
     `style(--reg: 2): --rightShift(--lowerBytes(calc(var(--rmVal16) * 2 + var(--_cf)), 16), 8); ` +
     `style(--reg: 3): --rightShift(calc(round(down, var(--rmVal16) / 2) + var(--_cf) * 32768), 8); ` +
     `else: 0)`,
-    `Shift D1 → mem hi`, 1);
+    `Shift D1 → mem hi`);
 
-  // Flags
+  // Flags: simplified — CF from the shifted-out bit
+  // RCL/RCR: only CF changes (new CF = shifted-out bit); leave PF/ZF/SF unchanged
   dispatch.addEntry('flags', 0xD1,
     `if(` +
     `style(--reg: 4): calc(--shlFlags16(var(--rmVal16)) + --and(var(--__1flags), 3856)); ` +
     `style(--reg: 5): calc(--shrFlags16(var(--rmVal16)) + --and(var(--__1flags), 3856)); ` +
     `style(--reg: 7): calc(--sarFlags16(var(--rmVal16)) + --and(var(--__1flags), 3856)); ` +
-    `style(--reg: 2): calc(var(--__1flags) - --bit(var(--__1flags), 0) + --bit(var(--rmVal16), 15)); ` +
-    `style(--reg: 3): calc(var(--__1flags) - --bit(var(--__1flags), 0) + --bit(var(--rmVal16), 0)); ` +
+    `style(--reg: 2): calc(var(--__1flags) - --bit(var(--__1flags), 0) + --bit(var(--rmVal16), 15)); ` +  // RCL: new CF = old bit 15
+    `style(--reg: 3): calc(var(--__1flags) - --bit(var(--__1flags), 0) + --bit(var(--rmVal16), 0)); ` +   // RCR: new CF = old bit 0
     `else: var(--__1flags))`,
     `Shift D1 flags`);
 
-  dispatch.addEntry('IP', 0xD1,
-    `if(style(--mod: 3): calc(var(--__1IP) + 2 + var(--modrmExtra) + var(--prefixLen)); else: var(--__1IP))`,
-    `Shift D1 IP`, 0);
-  dispatch.addEntry('IP', 0xD1,
-    `calc(var(--__1IP) + 2 + var(--modrmExtra) + var(--prefixLen))`,
-    `Shift D1 retire`, 1);
-  dispatch.setUopAdvance(0xD1,
-    `if(style(--mod: 3): 0; style(--__1uOp: 0): 1; else: 0)`);
+  dispatch.addEntry('IP', 0xD1, `calc(var(--__1IP) + 2 + var(--modrmExtra))`, `Shift D1`);
 }
 
 /**
@@ -128,7 +122,7 @@ export function emitShift_D0(dispatch) {
     `else: var(--__1flags))`,
     `Shift D0 flags`);
 
-  dispatch.addEntry('IP', 0xD0, `calc(var(--__1IP) + 2 + var(--modrmExtra) + var(--prefixLen))`, `Shift D0`);
+  dispatch.addEntry('IP', 0xD0, `calc(var(--__1IP) + 2 + var(--modrmExtra))`, `Shift D0`);
 }
 
 /**
@@ -242,7 +236,7 @@ export function emitShift_D3(dispatch) {
       `Shift D3 → ${regName}`);
   }
 
-  // Memory writes for mod != 3 (2 μops)
+  // Memory writes for mod != 3
   dispatch.addMemWrite(0xD3,
     `if(style(--mod: 3): -1; else: var(--ea))`,
     `if(` +
@@ -252,7 +246,7 @@ export function emitShift_D3(dispatch) {
     `style(--reg: 0): --lowerBytes(${rol16}, 8); ` +
     `style(--reg: 1): --lowerBytes(${ror16}, 8); ` +
     `else: 0)`,
-    `Shift D3 → mem lo`, 0);
+    `Shift D3 → mem lo`);
   dispatch.addMemWrite(0xD3,
     `if(style(--mod: 3): -1; else: calc(var(--ea) + 1))`,
     `if(` +
@@ -262,7 +256,7 @@ export function emitShift_D3(dispatch) {
     `style(--reg: 0): --rightShift(${rol16}, 8); ` +
     `style(--reg: 1): --rightShift(${ror16}, 8); ` +
     `else: 0)`,
-    `Shift D3 → mem hi`, 1);
+    `Shift D3 → mem hi`);
 
   // Flags: when CL=0 flags unchanged; otherwise compute per-operation flags
   // CF for SHL: bit (16-CL) of original = --bit(rmVal16, --_shlCFidx16),
@@ -271,22 +265,15 @@ export function emitShift_D3(dispatch) {
   // CF for ROL: bit 0 of result. CF for ROR: bit 15 of result.
   dispatch.addEntry('flags', 0xD3,
     `if(style(--_clMasked: 0): var(--__1flags); ` +
-    `style(--reg: 4): calc(--shlFlagsN16(var(--rmVal16), var(--_clMasked)) + --and(var(--__1flags), 1808)); ` +
-    `style(--reg: 5): calc(--shrFlagsN16(var(--rmVal16), var(--_clMasked)) + --and(var(--__1flags), 1808)); ` +
-    `style(--reg: 7): calc(--sarFlagsN16(var(--rmVal16), var(--_clMasked)) + --and(var(--__1flags), 1808)); ` +
+    `style(--reg: 4): calc(--shlFlagsN16(var(--rmVal16), var(--_clMasked)) + --and(var(--__1flags), 3856)); ` +
+    `style(--reg: 5): calc(--shrFlagsN16(var(--rmVal16), var(--_clMasked)) + --and(var(--__1flags), 3856)); ` +
+    `style(--reg: 7): calc(--sarFlagsN16(var(--rmVal16), var(--_clMasked)) + --and(var(--__1flags), 3856)); ` +
     `style(--reg: 0): calc(var(--__1flags) - var(--_cf) + --bit(${rol16}, 0)); ` +
     `style(--reg: 1): calc(var(--__1flags) - var(--_cf) + --bit(${ror16}, 15)); ` +
     `else: var(--__1flags))`,
     `Shift D3 flags`);
 
-  dispatch.addEntry('IP', 0xD3,
-    `if(style(--mod: 3): calc(var(--__1IP) + 2 + var(--modrmExtra) + var(--prefixLen)); else: var(--__1IP))`,
-    `Shift D3 IP`, 0);
-  dispatch.addEntry('IP', 0xD3,
-    `calc(var(--__1IP) + 2 + var(--modrmExtra) + var(--prefixLen))`,
-    `Shift D3 retire`, 1);
-  dispatch.setUopAdvance(0xD3,
-    `if(style(--mod: 3): 0; style(--__1uOp: 0): 1; else: 0)`);
+  dispatch.addEntry('IP', 0xD3, `calc(var(--__1IP) + 2 + var(--modrmExtra))`, `Shift D3`);
 }
 
 /**
@@ -332,15 +319,15 @@ export function emitShift_D2(dispatch) {
   // Flags
   dispatch.addEntry('flags', 0xD2,
     `if(style(--_clMasked: 0): var(--__1flags); ` +
-    `style(--reg: 4): calc(--shlFlagsN8(var(--rmVal8), var(--_clMasked)) + --and(var(--__1flags), 1808)); ` +
-    `style(--reg: 5): calc(--shrFlagsN8(var(--rmVal8), var(--_clMasked)) + --and(var(--__1flags), 1808)); ` +
-    `style(--reg: 7): calc(--sarFlagsN8(var(--rmVal8), var(--_clMasked)) + --and(var(--__1flags), 1808)); ` +
+    `style(--reg: 4): calc(--shlFlagsN8(var(--rmVal8), var(--_clMasked)) + --and(var(--__1flags), 3856)); ` +
+    `style(--reg: 5): calc(--shrFlagsN8(var(--rmVal8), var(--_clMasked)) + --and(var(--__1flags), 3856)); ` +
+    `style(--reg: 7): calc(--sarFlagsN8(var(--rmVal8), var(--_clMasked)) + --and(var(--__1flags), 3856)); ` +
     `style(--reg: 0): calc(var(--__1flags) - var(--_cf) + --bit(${rol8}, 0)); ` +
     `style(--reg: 1): calc(var(--__1flags) - var(--_cf) + --bit(${ror8}, 7)); ` +
     `else: var(--__1flags))`,
     `Shift D2 flags`);
 
-  dispatch.addEntry('IP', 0xD2, `calc(var(--__1IP) + 2 + var(--modrmExtra) + var(--prefixLen))`, `Shift D2`);
+  dispatch.addEntry('IP', 0xD2, `calc(var(--__1IP) + 2 + var(--modrmExtra))`, `Shift D2`);
 }
 
 /**
@@ -398,11 +385,10 @@ export function emitShiftByNFlagFunctions() {
 @function --shrFlagsN8(--val <integer>, --n <integer>) returns <integer> {
   --res: round(down, var(--val) / pow(2, var(--n)));
   --cf: --bit(var(--val), calc(var(--n) - 1));
-  --of: calc(--bit(var(--val), 7) * 2048);
   --pf: --parity(var(--res));
   --zf: if(style(--res: 0): 64; else: 0);
   --sf: calc(--bit(var(--res), 7) * 128);
-  result: calc(var(--cf) + var(--of) + var(--pf) + var(--zf) + var(--sf) + 2);
+  result: calc(var(--cf) + var(--pf) + var(--zf) + var(--sf) + 2);
 }
 
 @function --sarFlagsN8(--val <integer>, --n <integer>) returns <integer> {

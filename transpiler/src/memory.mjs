@@ -7,21 +7,29 @@
 const BIOS_LINEAR = 0xF0000; // F000:0000
 const BIOS_SEG = 0xF000;
 
+// Number of parallel memory write slots.
+// 6 is the minimum (INT pushes 3 words = 6 bytes).
+// 8 gives headroom for instructions that may need extra slots.
+// Calcite handles many slots efficiently via HashMap lookups.
+export const NUM_WRITE_SLOTS = 8;
+
+// Standard IVT entries for gossamer.asm (must match handler offsets in gossamer.lst / ref-emu.mjs)
+const BIOS_IVT_HANDLERS = {
+  0x10: 0x0000,  // INT 10h - Video services
+  0x16: 0x0155,  // INT 16h - Keyboard
+  0x1A: 0x0190,  // INT 1Ah - Timer
+  0x20: 0x023D,  // INT 20h - Program terminate
+  0x21: 0x01A9,  // INT 21h - DOS services
+};
+
 /**
- * Build IVT (Interrupt Vector Table) bytes from a handler map.
- * Handlers should come from tools/lib/bios-symbols.mjs loadIvtHandlers(),
- * which parses them fresh from the NASM listing. Nothing in this repo
- * should hardcode handler offsets — they change every BIOS rebuild.
- *
+ * Build IVT (Interrupt Vector Table) bytes for the standard BIOS handlers.
  * Returns {addr, bytes} suitable for embeddedData.
  * Each IVT entry is 4 bytes: IP_lo, IP_hi, CS_lo, CS_hi.
  */
-export function buildIVTData(handlers) {
-  if (!handlers || Object.keys(handlers).length === 0) {
-    throw new Error('buildIVTData: handlers map is required — pass loadIvtHandlers(lstPath)');
-  }
+export function buildIVTData() {
   const ivt = new Array(0x400).fill(0);
-  for (const [intNum, handlerOff] of Object.entries(handlers)) {
+  for (const [intNum, handlerOff] of Object.entries(BIOS_IVT_HANDLERS)) {
     const addr = parseInt(intNum) * 4;
     ivt[addr]     = handlerOff & 0xFF;         // IP low
     ivt[addr + 1] = (handlerOff >> 8) & 0xFF;  // IP high
@@ -48,29 +56,18 @@ export function buildAddressSet(zones) {
 /**
  * Standard memory zones for .COM programs.
  * --mem controls the conventional memory size (program + stack area).
- * When `graphics` is true, also includes the Mode 13h framebuffer at 0xA0000
- * (320x200 = 64000 bytes, one byte per pixel as a palette index).
  */
-export function comMemoryZones(programBytes, programOffset, memBytes, graphics = false) {
+export function comMemoryZones(programBytes, programOffset, memBytes) {
   // memBytes = size of conventional memory area starting at 0
   // (includes IVT + BDA + program + stack)
-  const zones = [
+  return [
     [0x0000, memBytes],                // IVT + BDA + program + stack (contiguous)
     [0xB8000, 0xB8FA0],               // VGA text mode (80x25x2 = 4000 bytes)
   ];
-  if (graphics) {
-    zones.push([0xA0000, 0xAFA00]);   // VGA Mode 13h framebuffer (320x200 = 64000 bytes)
-  }
-  return zones;
 }
 
 /**
- * Canonical memory zones for DOS boot mode.
- *
- * CSS-DOS is a DOS/PC emulator — the memory layout must match what a real
- * PC-compatible machine looks like, because that's what DOS programs assume.
- * See CLAUDE.md ("What CSS-DOS is (and isn't)") for the full rule set.
- *
+ * Standard memory zones for DOS boot mode.
  * memBytes = total conventional memory size (default 640KB = 0xA0000).
  *
  * The EDRDOS kernel always relocates its code and data structures to the
@@ -78,39 +75,22 @@ export function comMemoryZones(programBytes, programOffset, memBytes, graphics =
  * The middle area (between the kernel image and DOS high area) is where
  * user programs load — its size depends on the program.
  *
- * Canonical layout (default, no pruning):
+ * Layout (640KB):
  *   0x00000-0x00600  IVT + BDA + free area (always needed)
  *   0x00600-0x1A000  Kernel binary + decompressed code/data (~105 KB)
  *   0x1A000-0x30000  Kernel init workspace + temp relocation (~88 KB)
  *   0x30000-0x86000  User program area (grows with program size)
  *   0x86000-0xA0000  DOS data/code segments, relocated BIOS, CONFIG,
  *                    COMMAND.COM, system MCBs (~104 KB, always needed)
- *   0xA0000-0xAFA00  VGA Mode 13h framebuffer (64000 bytes) — always emitted
- *   0xB8000-0xB8FA0  VGA text mode buffer (4000 bytes) — always emitted
  *
- * Both VGA regions are emitted by default because a real PC always has
- * them. Programs that never touch them just get a zero-filled region in
- * the CSS.
- *
- * ### Bake-time pruning (optional)
- *
- * The `prune` option lets callers omit specific regions from the output as
- * a size optimization. This is prune-only: it never relocates or fakes
- * anything. Passing a prune flag is an author's promise that the program
- * does not write to that region. If it does, the write silently vanishes.
- *
- *   prune.gfx      — drop the Mode 13h framebuffer (saves 64000 bytes of CSS)
- *   prune.textVga  — drop the VGA text buffer      (saves 4000 bytes of CSS)
- *
- * `memBytes` is the other pruning knob: lowering it shrinks the conventional
- * RAM region. The kernel high area (top 104KB) is always included regardless.
+ * To reduce CSS size for small programs, pass a smaller --mem value.
+ * The kernel high area (top 104KB) is always included regardless of --mem.
  */
 export function dosMemoryZones(programBytes, programOffset, memBytes, embeddedData, prune = {}) {
   // Use one contiguous block for all conventional memory. The kernel
   // relocates itself to high memory and its code segment can span a wide
   // range of addresses, so splitting into low/high zones with a gap causes
-  // the CPU to execute into unmapped memory. The ~640KB CSS cost is
-  // acceptable for correctness.
+  // the CPU to execute into unmapped memory.
   const zones = [];
   zones.push([0x0000, memBytes]);
   if (!prune.gfx) {
@@ -226,13 +206,17 @@ export function emitMemoryProperties(opts) {
 
 /**
  * Emit the per-byte write rules for writable memory (inside .cpu).
- * v3: each byte checks the single memory write slot (--memAddr).
+ * Each byte checks all NUM_WRITE_SLOTS memory write slots.
  */
 export function emitMemoryWriteRules(opts) {
   const { addresses } = opts;
   const lines = [];
   for (const addr of addresses) {
-    lines.push(`  --m${addr}: if(style(--memAddr: ${addr}): var(--memVal); else: var(--__1m${addr}));`);
+    const slotLines = [];
+    for (let i = 0; i < NUM_WRITE_SLOTS; i++) {
+      slotLines.push(`    style(--memAddr${i}: ${addr}): var(--memVal${i});`);
+    }
+    lines.push(`  --m${addr}: if(\n${slotLines.join('\n')}\n  else: var(--__1m${addr}));`);
   }
   return lines.join('\n');
 }
@@ -278,19 +262,22 @@ export function emitMemoryExecuteKeyframe(opts) {
 }
 
 /**
- * Emit @property declarations for the single memory write slot.
- * v3: one write per cycle (--memAddr, --memVal).
+ * Emit @property declarations for memory write slots.
  */
 export function emitWriteSlotProperties() {
-  return `@property --memAddr {
+  const lines = [];
+  for (let i = 0; i < NUM_WRITE_SLOTS; i++) {
+    lines.push(`@property --memAddr${i} {
   syntax: '<integer>';
   inherits: true;
   initial-value: -1;
 }
 
-@property --memVal {
+@property --memVal${i} {
   syntax: '<integer>';
   inherits: true;
   initial-value: 0;
-}`;
+}`);
+  }
+  return lines.join('\n\n');
 }

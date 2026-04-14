@@ -228,9 +228,8 @@ export function emitDecodeProperties() {
   --q4: if(style(--prefixLen: 0): var(--raw4); style(--prefixLen: 1): var(--raw5); else: var(--raw6));
   --q5: if(style(--prefixLen: 0): var(--raw5); style(--prefixLen: 1): var(--raw6); else: var(--raw7));
 
-  /* Opcode (first non-prefix byte).
-     When irqActive=1, override to sentinel 0xF1 for IRQ acknowledge sequence. */
-  --opcode: if(style(--__1irqActive: 1): 241; else: var(--q0));
+  /* Opcode (first non-prefix byte) */
+  --opcode: var(--q0);
 
   /* d and w bits from opcode */
   --dBit: --rightShift(--and(var(--opcode), 2), 1);
@@ -371,5 +370,13 @@ export function emitDecodeProperties() {
   --_shlCFidx16: max(0, calc(16 - var(--_clMasked)));
   --_shlCFidx8: max(0, calc(8 - var(--_clMasked)));
 
+  /* TF (Trap Flag) single-step: 8086 fires INT 1 AFTER the instruction completes.
+     --_tfPending: set to 1 when current FLAGS has TF=1 (latches the request).
+     --_tf: fires INT 1 on the NEXT tick by reading __1_tfPending.
+     This way the instruction executes normally, then INT 1 fires on the following tick. */
+  --_tfPending: --bit(var(--flags), 8);
+  --_tf: var(--__1_tfPending);
+  --_tfIP: --read2(4);
+  --_tfCS: --read2(6);
 `;
 }

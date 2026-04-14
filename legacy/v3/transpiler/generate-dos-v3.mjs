@@ -1,0 +1,205 @@
+#!/usr/bin/env node
+// generate-dos.mjs — CSS-DOS build script
+//
+// BUILD PIPELINE:
+//
+//   Inputs:
+//     1. BIOS binary    — x86 code placed at F000:0000 (currently: bios/init.asm + microcode stubs)
+//     2. DOS kernel     — dos/bin/kernel.sys, placed at 0060:0000
+//     3. Program .COM   — the program to run (e.g. rogue.com)
+//     4. CONFIG.SYS     — generated, tells DOS which program to SHELL= into
+//
+//   What this script does:
+//     1. Assembles the BIOS binary (NASM)
+//     2. Builds a FAT12 disk image containing kernel + config + program (mkfat12.mjs)
+//     3. Calls emitCSS() which produces a SINGLE CSS FILE that IS the computer:
+//        - @function declarations (readMem, decode, flags, arithmetic)
+//        - .cpu rule with register dispatch tables (--AX, --IP, etc.)
+//        - PIT/PIC/IRQ hardware state
+//        - @property declarations (one per memory byte, ~640KB worth)
+//        - Memory read/write/buffer rules
+//        - @keyframes for the clock tick animation
+//
+//   Output:
+//     One .css file. Open it in Chrome and it runs an 8086 PC.
+//     Calcite (../calcite) is a JIT that evaluates the same CSS faster.
+//
+// Usage: node transpiler/generate-dos.mjs program.com -o program.css [options]
+//
+// Options:
+//   -o FILE            Output CSS (or HTML with --html)
+//   --html             Emit an HTML file wrapping the CSS
+//   --mem BYTES        Conventional memory size (default 0xA0000 = 640KB)
+//   --data NAME PATH   Copy a companion file onto the disk image
+//   --no-gfx           Omit the VGA Mode 13h framebuffer (0xA0000-0xAFA00)
+//   --no-text-vga      Omit the VGA text buffer (0xB8000-0xB8FA0)
+
+import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { resolve, dirname, extname, basename } from 'path';
+import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
+import { emitCSS } from './src/emit-css.mjs';
+import { dosMemoryZones } from './src/memory.mjs';
+import { createWriteStream, statSync } from 'fs';
+import { buildBiosRom } from './src/patterns/bios.mjs';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const projectRoot = resolve(__dirname, '..');
+
+// --- Paths ---
+const KERNEL_SYS = resolve(projectRoot, 'dos', 'bin', 'kernel.sys');
+const MKFAT12 = resolve(projectRoot, 'tools', 'mkfat12.mjs');
+const CONFIG_SYS = resolve(projectRoot, 'dos', 'config.sys');
+
+// --- Memory layout ---
+const KERNEL_LINEAR = 0x600;     // 0060:0000 — where DOS kernel expects to be loaded
+const DISK_LINEAR = 0xD0000;     // D000:0000 — memory-resident disk image
+const BIOS_LINEAR = 0xF0000;     // F000:0000 — BIOS ROM
+const BIOS_SEG = 0xF000;
+const BDA_SEG = 0x0040;
+const BDA_BASE = 0x0400;
+
+const NASM = resolve('C:\\Users\\AdmT9N0CX01V65438A\\AppData\\Local\\bin\\NASM\\nasm.exe');
+
+// --- CLI argument parsing ---
+const args = process.argv.slice(2);
+if (args.length === 0) {
+  console.error('Usage: node generate-dos.mjs <program.com> [-o output] [--html] [--mem N] [--data NAME PATH] [--no-gfx] [--no-text-vga]');
+  process.exit(1);
+}
+
+let inputFile = null;
+let outputFile = null;
+let htmlMode = false;
+let memOverride = null;
+const prune = { gfx: false, textVga: false };
+const dataFiles = []; // [{name, path}] — companion files to include on disk
+
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === '-o' && i + 1 < args.length) {
+    outputFile = args[++i];
+  } else if (args[i] === '--html') {
+    htmlMode = true;
+  } else if (args[i] === '--mem' && i + 1 < args.length) {
+    memOverride = parseInt(args[++i]);
+  } else if (args[i] === '--no-gfx') {
+    prune.gfx = true;
+  } else if (args[i] === '--no-text-vga') {
+    prune.textVga = true;
+  } else if (args[i] === '--data' && i + 2 < args.length) {
+    const name = args[++i];
+    const path = args[++i];
+    dataFiles.push({ name, path });
+  } else if (!inputFile) {
+    inputFile = args[i];
+  }
+}
+
+if (!inputFile) {
+  console.error('Error: no input file specified');
+  process.exit(1);
+}
+
+const programName = basename(inputFile).toUpperCase();
+const programName83 = programName.length <= 12 ? programName : programName.substring(0, 12);
+
+// --- Step 1: Build BIOS ROM (init stub + microcode stubs) ---
+console.log('Building BIOS ROM...');
+const { romBytes: biosRomBytes } = buildBiosRom();
+
+// Assemble the init stub from bios/init.asm
+const initAsmPath = resolve(projectRoot, 'bios', 'init.asm');
+const initBinPath = resolve(projectRoot, 'bios', 'init.bin');
+try {
+  execSync(`"${NASM}" -f bin -o "${initBinPath}" "${initAsmPath}"`, { stdio: 'pipe' });
+} catch (e) {
+  console.error('NASM assembly of init.asm failed:', e.stderr?.toString());
+  process.exit(1);
+}
+const initBytes = [...readFileSync(initBinPath)];
+console.log(`  Init stub: ${initBytes.length} bytes`);
+
+// Concatenate: init stub + D6 microcode stubs = complete BIOS ROM
+const biosBytes = [...initBytes, ...biosRomBytes];
+console.log(`  BIOS ROM: ${biosBytes.length} bytes (${initBytes.length} init + ${biosRomBytes.length} microcode stubs)`);
+
+// --- Step 2: Build disk image ---
+console.log('Building FAT12 disk image...');
+const diskImgPath = resolve(projectRoot, 'dos', 'disk.img');
+
+const COMMAND_COM = resolve(projectRoot, 'dos', 'bin', 'command.com');
+const isShellMode = programName83 === 'SHELL.COM';
+const shellProgram = isShellMode ? 'COMMAND.COM' : programName83;
+const configContent = `SHELL=\\${shellProgram}\n`;
+writeFileSync(CONFIG_SYS, configContent);
+
+let mkfatCmd = `node "${MKFAT12}" -o "${diskImgPath}" --file KERNEL.SYS "${KERNEL_SYS}" --file CONFIG.SYS "${CONFIG_SYS}"`;
+if (isShellMode) {
+  mkfatCmd += ` --file COMMAND.COM "${COMMAND_COM}"`;
+} else {
+  mkfatCmd += ` --file ${programName83} "${resolve(inputFile)}"`;
+}
+for (const df of dataFiles) {
+  const name83 = df.name.toUpperCase();
+  mkfatCmd += ` --file ${name83} "${resolve(df.path)}"`;
+}
+try {
+  const out = execSync(mkfatCmd, { stdio: 'pipe' });
+  console.log(out.toString().trim());
+} catch (e) {
+  console.error('mkfat12 failed:', e.stderr?.toString());
+  process.exit(1);
+}
+if (dataFiles.length > 0) {
+  console.log(`  Companion files: ${dataFiles.map(f => f.name).join(', ')}`);
+}
+const diskBytes = [...readFileSync(diskImgPath)];
+console.log(`  Disk image: ${diskBytes.length} bytes`);
+
+// --- Step 3: Read kernel ---
+const kernelBytes = [...readFileSync(KERNEL_SYS)];
+console.log(`  Kernel: ${kernelBytes.length} bytes`);
+
+// --- Step 4: Embedded data (disk only — IVT/BDA/splash done by init stub) ---
+const embData = [];
+embData.push({ addr: DISK_LINEAR, bytes: diskBytes });
+
+const defaultMem = 0xA0000;
+const memBytes = memOverride != null ? memOverride : defaultMem;
+
+// --- Step 5: Derive output filename ---
+if (!outputFile) {
+  const base = basename(inputFile, extname(inputFile));
+  outputFile = base + '-dos' + (htmlMode ? '.html' : '.css');
+}
+
+// --- Step 6: Generate CSS ---
+console.log('Generating CSS...');
+
+const memoryZones = dosMemoryZones(kernelBytes, KERNEL_LINEAR, memBytes, embData, prune);
+if (prune.gfx)     console.log('  Pruned: VGA Mode 13h framebuffer (0xA0000-0xAFA00)');
+if (prune.textVga) console.log('  Pruned: VGA text buffer (0xB8000-0xB8FA0)');
+
+const totalAddresses = memoryZones.reduce((sum, [s, e]) => sum + (e - s), 0);
+console.log(`Memory zones: ${memoryZones.map(([s,e]) => `0x${s.toString(16)}-0x${e.toString(16)} (${e-s})`).join(', ')}`);
+console.log(`Total addresses: ${totalAddresses} (${(totalAddresses / 1024).toFixed(1)} KB)`);
+
+const outPath = resolve(outputFile);
+const ws = createWriteStream(outPath, { encoding: 'utf-8' });
+
+emitCSS({
+  programBytes: kernelBytes,
+  biosBytes,
+  memoryZones,
+  embeddedData: embData,
+  htmlMode,
+  programOffset: KERNEL_LINEAR,  // kernel loaded at 0x600
+  initialCS: 0xF000,             // start at BIOS init stub
+  initialIP: 0x0000,
+  initialRegs: { SP: 0 },        // hardware reset — BIOS init sets SS:SP
+}, ws);
+
+ws.end(() => {
+  const size = statSync(outPath).size;
+  console.log(`Generated ${outputFile} (${(size / 1024 / 1024).toFixed(1)} MB)`);
+});

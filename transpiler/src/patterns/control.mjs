@@ -55,7 +55,7 @@ export function emitJcc(dispatch) {
     // If not taken: IP = IP + 2
     // Combined: IP = IP + 2 + taken * sign_extend(q1)
     dispatch.addEntry('IP', opcode,
-      `--lowerBytes(calc(var(--__1IP) + 2 + var(--prefixLen) + ${taken} * --u2s1(var(--q1))), 16)`,
+      `--lowerBytes(calc(var(--__1IP) + 2 + ${taken} * --u2s1(var(--q1))), 16)`,
       `${name} short`);
   }
 }
@@ -65,7 +65,7 @@ export function emitJcc(dispatch) {
  */
 export function emitJMP_short(dispatch) {
   dispatch.addEntry('IP', 0xEB,
-    `--lowerBytes(calc(var(--__1IP) + 2 + var(--prefixLen) + --u2s1(var(--q1))), 16)`,
+    `--lowerBytes(calc(var(--__1IP) + 2 + --u2s1(var(--q1))), 16)`,
     `JMP short`);
 }
 
@@ -74,7 +74,7 @@ export function emitJMP_short(dispatch) {
  */
 export function emitJMP_near(dispatch) {
   dispatch.addEntry('IP', 0xE9,
-    `--lowerBytes(calc(var(--__1IP) + 3 + var(--prefixLen) + --u2s2(calc(var(--q1) + var(--q2) * 256))), 16)`,
+    `--lowerBytes(calc(var(--__1IP) + 3 + --u2s2(calc(var(--q1) + var(--q2) * 256))), 16)`,
     `JMP near`);
 }
 
@@ -84,27 +84,26 @@ export function emitJMP_near(dispatch) {
  * SP decreases by 2.
  */
 export function emitCALL_near(dispatch) {
-  // CALL near (0xE8): 2 μops — push return address, jump.
   // Return address = IP + 3 (after the 3-byte CALL instruction)
-  const retAddr = `calc(var(--__1IP) + 3 + var(--prefixLen))`;
-
-  // μop 0: SP -= 2, write retAddr lo at SS:(origSP-2)
+  const retAddr = `calc(var(--__1IP) + 3)`;
+  // New SP = SP - 2
   dispatch.addEntry('SP', 0xE8,
     `calc(var(--__1SP) - 2)`,
-    `CALL near (SP-=2)`, 0);
+    `CALL near (SP-=2)`);
+  // Push return address to stack: write at SS:SP (after decrement)
+  // low byte at SS*16 + SP-2, high byte at SS*16 + SP-1
   dispatch.addMemWrite(0xE8,
     `calc(var(--__1SS) * 16 + var(--__1SP) - 2)`,
     `--lowerBytes(${retAddr}, 8)`,
-    `CALL near push ret lo`, 0);
-
-  // μop 1: write retAddr hi at SS:(origSP-1) = SS:(__1SP+1), jump, retire
+    `CALL near push ret lo`);
   dispatch.addMemWrite(0xE8,
-    `calc(var(--__1SS) * 16 + var(--__1SP) + 1)`,
+    `calc(var(--__1SS) * 16 + var(--__1SP) - 1)`,
     `--rightShift(${retAddr}, 8)`,
-    `CALL near push ret hi`, 1);
+    `CALL near push ret hi`);
+  // Jump
   dispatch.addEntry('IP', 0xE8,
-    `--lowerBytes(calc(var(--__1IP) + 3 + var(--prefixLen) + --u2s2(calc(var(--q1) + var(--q2) * 256))), 16)`,
-    `CALL near`, 1);
+    `--lowerBytes(calc(var(--__1IP) + 3 + --u2s2(calc(var(--q1) + var(--q2) * 256))), 16)`,
+    `CALL near`);
 }
 
 /**
@@ -138,72 +137,68 @@ export function emitRET_imm(dispatch) {
  * Uses 6 memory write slots (3 word pushes).
  */
 export function emitINT(dispatch) {
-  // INT imm8 (0xCD): 6 μops, one memory write per cycle.
-  //
-  // μop 0: SP -= 6, write FLAGS lo at SS:(origSP-2)
-  // μop 1: write FLAGS hi at SS:(origSP-1)
-  // μop 2: write CS lo at SS:(origSP-4)
-  // μop 3: write CS hi at SS:(origSP-3)
-  // μop 4: write retIP lo at SS:(origSP-6)
-  // μop 5: write retIP hi at SS:(origSP-5), load CS:IP from IVT, clear IF+TF, retire
-  //
-  // FLAGS clearing deferred to μop 5 so μops 0-1 can read original flags from --__1flags.
-  // Nothing in the INT sequence observes the cleared flags before retirement.
+  // Interrupt number is at q1 (byte after opcode)
+  // IVT entry at intNum * 4: 2 bytes IP, 2 bytes CS
+  // Stack: SP -= 6 (push FLAGS, CS, IP+2)
 
-  const ssBase = `var(--__1SS) * 16`;
+  dispatch.addEntry('SP', 0xCD, `calc(var(--__1SP) - 6)`, `INT (SP-=6)`);
 
-  // μop 0: SP -= 6, write FLAGS lo
-  // --__1SP is original SP. Write at SS:(origSP - 2).
-  dispatch.addEntry('SP', 0xCD, `calc(var(--__1SP) - 6)`, `INT (SP-=6)`, 0);
+  // New IP from IVT: read2(intNum * 4)
+  dispatch.addEntry('IP', 0xCD,
+    `--read2(calc(var(--q1) * 4))`,
+    `INT load IP from IVT`);
+
+  // New CS from IVT: read2(intNum * 4 + 2)
+  dispatch.addEntry('CS', 0xCD,
+    `--read2(calc(var(--q1) * 4 + 2))`,
+    `INT load CS from IVT`);
+
+  // FLAGS: clear IF (bit 9) and TF (bit 8) — keep other bits
+  // new flags = old flags & ~0x0300 = old flags & 0xFCFF
+  // But this is the pushed value; the new flags register value has IF+TF cleared
+  dispatch.addEntry('flags', 0xCD,
+    `--and(var(--__1flags), 64767)`,
+    `INT clear IF+TF`);
+  // 64767 = 0xFCFF = ~(IF|TF) & 0xFFFF
+
+  const ssBase = `calc(var(--__1SS) * 16)`;
+  const retIP = `calc(var(--__1IP) + 2)`;
+
+  // 8086 INT pushes: FLAGS first (to highest addr), then CS, then IP (to lowest addr)
+  // After SP -= 6, stack layout is:
+  //   [SP+0, SP+1] = return IP   (pushed last)
+  //   [SP+2, SP+3] = CS          (pushed second)
+  //   [SP+4, SP+5] = FLAGS       (pushed first)
+
+  // Push FLAGS (at SP-2, SP-1) — pushed first, goes to highest address
   dispatch.addMemWrite(0xCD,
     `calc(${ssBase} + var(--__1SP) - 2)`,
     `--lowerBytes(var(--__1flags), 8)`,
-    `INT push FLAGS lo`, 0);
-
-  // μop 1: write FLAGS hi
-  // --__1SP = origSP-6. origSP-1 = __1SP+5.
-  // --__1flags still has IF+TF (clearing deferred).
+    `INT push FLAGS lo`);
   dispatch.addMemWrite(0xCD,
-    `calc(${ssBase} + var(--__1SP) + 5)`,
+    `calc(${ssBase} + var(--__1SP) - 1)`,
     `--rightShift(var(--__1flags), 8)`,
-    `INT push FLAGS hi`, 1);
+    `INT push FLAGS hi`);
 
-  // μop 2: write CS lo
-  // origSP-4 = __1SP+2
+  // Push CS (at SP-4, SP-3)
   dispatch.addMemWrite(0xCD,
-    `calc(${ssBase} + var(--__1SP) + 2)`,
+    `calc(${ssBase} + var(--__1SP) - 4)`,
     `--lowerBytes(var(--__1CS), 8)`,
-    `INT push CS lo`, 2);
-
-  // μop 3: write CS hi
-  // origSP-3 = __1SP+3
+    `INT push CS lo`);
   dispatch.addMemWrite(0xCD,
-    `calc(${ssBase} + var(--__1SP) + 3)`,
+    `calc(${ssBase} + var(--__1SP) - 3)`,
     `--rightShift(var(--__1CS), 8)`,
-    `INT push CS hi`, 3);
+    `INT push CS hi`);
 
-  // μop 4: write retIP lo (return address = origIP+2)
-  // origSP-6 = __1SP. --__1IP is still original IP (IP hasn't changed).
+  // Push return IP (at SP-6, SP-5) — pushed last, goes to lowest address
   dispatch.addMemWrite(0xCD,
-    `calc(${ssBase} + var(--__1SP))`,
-    `--lowerBytes(calc(var(--__1IP) + 2 + var(--prefixLen)), 8)`,
-    `INT push IP lo`, 4);
-
-  // μop 5: write retIP hi, load CS:IP from IVT, clear IF+TF, retire
-  // origSP-5 = __1SP+1
+    `calc(${ssBase} + var(--__1SP) - 6)`,
+    `--lowerBytes(${retIP}, 8)`,
+    `INT push IP lo`);
   dispatch.addMemWrite(0xCD,
-    `calc(${ssBase} + var(--__1SP) + 1)`,
-    `--rightShift(calc(var(--__1IP) + 2 + var(--prefixLen)), 8)`,
-    `INT push IP hi`, 5);
-  dispatch.addEntry('IP', 0xCD,
-    `--read2(calc(var(--q1) * 4))`,
-    `INT load IP from IVT`, 5);
-  dispatch.addEntry('CS', 0xCD,
-    `--read2(calc(var(--q1) * 4 + 2))`,
-    `INT load CS from IVT`, 5);
-  dispatch.addEntry('flags', 0xCD,
-    `--and(var(--__1flags), 64767)`,
-    `INT clear IF+TF`, 5);
+    `calc(${ssBase} + var(--__1SP) - 5)`,
+    `--rightShift(${retIP}, 8)`,
+    `INT push IP hi`);
 }
 
 /**
@@ -241,7 +236,7 @@ export function emitLOOP(dispatch) {
   // IP = IP + 2 + (CX-1 != 0 ? rel8 : 0)
   // We need to check if the NEW CX is zero
   dispatch.addEntry('IP', 0xE2,
-    `if(style(--_loopCX: 0): calc(var(--__1IP) + 2 + var(--prefixLen)); else: --lowerBytes(calc(var(--__1IP) + 2 + var(--prefixLen) + --u2s1(var(--q1))), 16))`,
+    `if(style(--_loopCX: 0): calc(var(--__1IP) + 2); else: --lowerBytes(calc(var(--__1IP) + 2 + --u2s1(var(--q1))), 16))`,
     `LOOP`);
 }
 
@@ -252,7 +247,7 @@ export function emitLOOPE(dispatch) {
   const newCX = `--lowerBytes(calc(var(--__1CX) - 1 + 65536), 16)`;
   dispatch.addEntry('CX', 0xE1, newCX, `LOOPE (CX-=1)`);
   dispatch.addEntry('IP', 0xE1,
-    `if(style(--_loopCX: 0): calc(var(--__1IP) + 2 + var(--prefixLen)); else: if(style(--_zf: 0): calc(var(--__1IP) + 2 + var(--prefixLen)); else: --lowerBytes(calc(var(--__1IP) + 2 + var(--prefixLen) + --u2s1(var(--q1))), 16)))`,
+    `if(style(--_loopCX: 0): calc(var(--__1IP) + 2); else: if(style(--_zf: 0): calc(var(--__1IP) + 2); else: --lowerBytes(calc(var(--__1IP) + 2 + --u2s1(var(--q1))), 16)))`,
     `LOOPE`);
 }
 
@@ -263,7 +258,7 @@ export function emitLOOPNE(dispatch) {
   const newCX = `--lowerBytes(calc(var(--__1CX) - 1 + 65536), 16)`;
   dispatch.addEntry('CX', 0xE0, newCX, `LOOPNE (CX-=1)`);
   dispatch.addEntry('IP', 0xE0,
-    `if(style(--_loopCX: 0): calc(var(--__1IP) + 2 + var(--prefixLen)); else: if(style(--_zf: 1): calc(var(--__1IP) + 2 + var(--prefixLen)); else: --lowerBytes(calc(var(--__1IP) + 2 + var(--prefixLen) + --u2s1(var(--q1))), 16)))`,
+    `if(style(--_loopCX: 0): calc(var(--__1IP) + 2); else: if(style(--_zf: 1): calc(var(--__1IP) + 2); else: --lowerBytes(calc(var(--__1IP) + 2 + --u2s1(var(--q1))), 16)))`,
     `LOOPNE`);
 }
 
@@ -272,7 +267,7 @@ export function emitLOOPNE(dispatch) {
  */
 export function emitJCXZ(dispatch) {
   dispatch.addEntry('IP', 0xE3,
-    `if(style(--__1CX: 0): --lowerBytes(calc(var(--__1IP) + 2 + var(--prefixLen) + --u2s1(var(--q1))), 16); else: calc(var(--__1IP) + 2 + var(--prefixLen)))`,
+    `if(style(--__1CX: 0): --lowerBytes(calc(var(--__1IP) + 2 + --u2s1(var(--q1))), 16); else: calc(var(--__1IP) + 2))`,
     `JCXZ`);
 }
 
@@ -281,46 +276,37 @@ export function emitJCXZ(dispatch) {
  * Format: 0x9A, IP_lo, IP_hi, CS_lo, CS_hi (5 bytes)
  */
 export function emitCALL_far(dispatch) {
-  // CALL far (0x9A): 4 μops — push CS, push IP+5, load CS:IP.
-  // Format: 0x9A, IP_lo, IP_hi, CS_lo, CS_hi (5 bytes)
-  //
-  // Stack layout after SP-=4:
-  //   [SP+0,SP+1] = return IP (lower address)
-  //   [SP+2,SP+3] = old CS    (higher address)
+  dispatch.addEntry('SP', 0x9A, `calc(var(--__1SP) - 4)`, `CALL far (SP-=4)`);
 
-  const ssBase = `var(--__1SS) * 16`;
+  // New IP = q1 + q2*256, new CS = q3 + q4*256
+  dispatch.addEntry('IP', 0x9A,
+    `calc(var(--q1) + var(--q2) * 256)`,
+    `CALL far load IP`);
+  dispatch.addEntry('CS', 0x9A,
+    `calc(var(--q3) + var(--q4) * 256)`,
+    `CALL far load CS`);
 
-  // μop 0: SP -= 4, write CS lo at SS:(origSP-2)
-  dispatch.addEntry('SP', 0x9A, `calc(var(--__1SP) - 4)`, `CALL far (SP-=4)`, 0);
+  const ssBase = `calc(var(--__1SS) * 16)`;
+  const retIP = `calc(var(--__1IP) + 5)`;
+
+  // Push old CS at SP-2 (pushed first, higher address)
   dispatch.addMemWrite(0x9A,
     `calc(${ssBase} + var(--__1SP) - 2)`,
     `--lowerBytes(var(--__1CS), 8)`,
-    `CALL far push CS lo`, 0);
-
-  // μop 1: write CS hi at SS:(origSP-1) = SS:(__1SP+3)
+    `CALL far push CS lo`);
   dispatch.addMemWrite(0x9A,
-    `calc(${ssBase} + var(--__1SP) + 3)`,
+    `calc(${ssBase} + var(--__1SP) - 1)`,
     `--rightShift(var(--__1CS), 8)`,
-    `CALL far push CS hi`, 1);
-
-  // μop 2: write retIP lo at SS:(origSP-4) = SS:(__1SP)
-  // --__1IP is still original IP (hasn't changed)
+    `CALL far push CS hi`);
+  // Push return IP at SP-4 (pushed second, lower address)
   dispatch.addMemWrite(0x9A,
-    `calc(${ssBase} + var(--__1SP))`,
-    `--lowerBytes(calc(var(--__1IP) + 5 + var(--prefixLen)), 8)`,
-    `CALL far push IP lo`, 2);
-
-  // μop 3: write retIP hi at SS:(origSP-3) = SS:(__1SP+1), load CS:IP, retire
+    `calc(${ssBase} + var(--__1SP) - 4)`,
+    `--lowerBytes(${retIP}, 8)`,
+    `CALL far push IP lo`);
   dispatch.addMemWrite(0x9A,
-    `calc(${ssBase} + var(--__1SP) + 1)`,
-    `--rightShift(calc(var(--__1IP) + 5 + var(--prefixLen)), 8)`,
-    `CALL far push IP hi`, 3);
-  dispatch.addEntry('IP', 0x9A,
-    `calc(var(--q1) + var(--q2) * 256)`,
-    `CALL far load IP`, 3);
-  dispatch.addEntry('CS', 0x9A,
-    `calc(var(--q3) + var(--q4) * 256)`,
-    `CALL far load CS`, 3);
+    `calc(${ssBase} + var(--__1SP) - 3)`,
+    `--rightShift(${retIP}, 8)`,
+    `CALL far push IP hi`);
 }
 
 /**

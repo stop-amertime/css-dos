@@ -4,19 +4,12 @@
 // Generates a CSS file that boots DOS, which then loads and runs
 // the target program via its real DOS kernel.
 //
-// Usage: node transpiler/generate-dos.mjs program.com -o program.css [options]
+// Usage: node transpiler/generate-dos.mjs program.com -o program.css [--html]
 //
-// Options:
-//   -o FILE         Output CSS (or HTML with --html)
-//   --html          Emit an HTML file wrapping the CSS
-//   --mem BYTES     Conventional memory size (default 0xA0000 = 640KB)
-//   --data NAME PATH  Copy a companion file onto the disk image
-//   --no-gfx        Omit the VGA Mode 13h framebuffer (0xA0000-0xAFA00).
-//   --no-text-vga   Omit the VGA text buffer (0xB8000-0xB8FA0).
-//
-// BIOS handlers are microcode (transpiler/src/patterns/bios.mjs).
-// The init stub (bios/init.asm) runs as real x86 at F000:0000 to set up
-// the IVT, BDA, and splash screen, then jumps to the DOS kernel.
+// This script:
+// 1. Builds a FAT12 disk image containing KERNEL.SYS, CONFIG.SYS, and the program
+// 2. Assembles the DOS BIOS (bios/css-emu-bios.asm)
+// 3. Calls the transpiler with the kernel, disk image, and BIOS embedded in memory
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve, dirname, extname, basename } from 'path';
@@ -25,30 +18,28 @@ import { execSync } from 'child_process';
 import { emitCSS } from './src/emit-css.mjs';
 import { dosMemoryZones } from './src/memory.mjs';
 import { createWriteStream, statSync } from 'fs';
-import { buildBiosRom } from './src/patterns/bios.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, '..');
 
 // --- Paths ---
+const NASM = resolve('C:\\Users\\AdmT9N0CX01V65438A\\AppData\\Local\\bin\\NASM\\nasm.exe');
+const BIOS_ASM = resolve(projectRoot, 'bios', 'css-emu-bios.asm');
+const BIOS_BIN = resolve(projectRoot, 'bios', 'css-emu-bios.bin');
+const BIOS_LST = resolve(projectRoot, 'bios', 'css-emu-bios.lst');
 const KERNEL_SYS = resolve(projectRoot, 'dos', 'bin', 'kernel.sys');
 const MKFAT12 = resolve(projectRoot, 'tools', 'mkfat12.mjs');
 const CONFIG_SYS = resolve(projectRoot, 'dos', 'config.sys');
 
 // --- Memory layout ---
 const KERNEL_LINEAR = 0x600;     // 0060:0000 — where DOS kernel expects to be loaded
-const DISK_LINEAR = 0xD0000;     // D000:0000 — memory-resident disk image
+const DISK_LINEAR = 0xC0000;     // C000:0000 — memory-resident disk image (192 KB window: 0xC0000–0xEFFFF)
 const BIOS_LINEAR = 0xF0000;     // F000:0000 — BIOS ROM
-const BIOS_SEG = 0xF000;
-const BDA_SEG = 0x0040;
-const BDA_BASE = 0x0400;
-
-const NASM = resolve('C:\\Users\\AdmT9N0CX01V65438A\\AppData\\Local\\bin\\NASM\\nasm.exe');
 
 // --- CLI argument parsing ---
 const args = process.argv.slice(2);
 if (args.length === 0) {
-  console.error('Usage: node generate-dos.mjs <program.com> [-o output] [--html] [--mem N] [--data NAME PATH] [--no-gfx] [--no-text-vga]');
+  console.error('Usage: node generate-dos.mjs <program.com> [-o output] [--html] [--data NAME PATH] ...');
   process.exit(1);
 }
 
@@ -56,6 +47,7 @@ let inputFile = null;
 let outputFile = null;
 let htmlMode = false;
 let memOverride = null;
+let programArgs = null; // string appended after the program name on the SHELL= line
 const prune = { gfx: false, textVga: false };
 const dataFiles = []; // [{name, path}] — companion files to include on disk
 
@@ -70,6 +62,8 @@ for (let i = 0; i < args.length; i++) {
     prune.gfx = true;
   } else if (args[i] === '--no-text-vga') {
     prune.textVga = true;
+  } else if (args[i] === '--args' && i + 1 < args.length) {
+    programArgs = args[++i];
   } else if (args[i] === '--data' && i + 2 < args.length) {
     const name = args[++i];
     const path = args[++i];
@@ -87,42 +81,49 @@ if (!inputFile) {
 const programName = basename(inputFile).toUpperCase();
 const programName83 = programName.length <= 12 ? programName : programName.substring(0, 12);
 
-// --- Step 1: Build BIOS ROM (init stub + microcode stubs) ---
-console.log('Building BIOS ROM...');
-const { romBytes: biosRomBytes } = buildBiosRom();
-
-// Assemble the init stub from bios/init.asm
-const initAsmPath = resolve(projectRoot, 'bios', 'init.asm');
-const initBinPath = resolve(projectRoot, 'bios', 'init.bin');
+// --- Step 1: Assemble BIOS ---
+console.log('Assembling BIOS...');
 try {
-  execSync(`"${NASM}" -f bin -o "${initBinPath}" "${initAsmPath}"`, { stdio: 'pipe' });
+  execSync(`"${NASM}" -f bin -o "${BIOS_BIN}" "${BIOS_ASM}" -l "${BIOS_LST}"`, {
+    stdio: 'pipe',
+  });
 } catch (e) {
-  console.error('NASM assembly of init.asm failed:', e.stderr?.toString());
+  console.error('NASM failed:', e.stderr?.toString());
   process.exit(1);
 }
-const initBytes = [...readFileSync(initBinPath)];
-console.log(`  Init stub: ${initBytes.length} bytes`);
+const biosBytes = [...readFileSync(BIOS_BIN)];
+console.log(`  BIOS: ${biosBytes.length} bytes`);
 
-// Concatenate: init stub + D6 microcode stubs = complete BIOS ROM
-const biosBytes = [...initBytes, ...biosRomBytes];
-console.log(`  BIOS ROM: ${biosBytes.length} bytes (${initBytes.length} init + ${biosRomBytes.length} microcode stubs)`);
+// --- Step 2: Get bios_init offset from listing ---
+const listing = readFileSync(BIOS_LST, 'utf-8');
+let biosInitOffset = null;
+const lines = listing.split('\n');
+for (let i = 0; i < lines.length; i++) {
+  if (lines[i].includes('bios_init:')) {
+    // Next line has the offset
+    const match = lines[i + 1]?.match(/([0-9A-Fa-f]{8})/);
+    if (match) {
+      biosInitOffset = parseInt(match[1], 16);
+    }
+    break;
+  }
+}
+if (biosInitOffset === null) {
+  console.error('Error: could not find bios_init offset in listing');
+  process.exit(1);
+}
+console.log(`  bios_init offset: 0x${biosInitOffset.toString(16)}`);
 
-// --- Step 2: Build disk image ---
+// --- Step 3: Build disk image ---
 console.log('Building FAT12 disk image...');
 const diskImgPath = resolve(projectRoot, 'dos', 'disk.img');
 
-const COMMAND_COM = resolve(projectRoot, 'dos', 'bin', 'command.com');
-const isShellMode = programName83 === 'SHELL.COM';
-const shellProgram = isShellMode ? 'COMMAND.COM' : programName83;
-const configContent = `SHELL=\\${shellProgram}\n`;
+// Write a CONFIG.SYS that runs the program
+const shellLine = programArgs ? `SHELL=\\${programName83} ${programArgs}` : `SHELL=\\${programName83}`;
+const configContent = `${shellLine}\n`;
 writeFileSync(CONFIG_SYS, configContent);
 
-let mkfatCmd = `node "${MKFAT12}" -o "${diskImgPath}" --file KERNEL.SYS "${KERNEL_SYS}" --file CONFIG.SYS "${CONFIG_SYS}"`;
-if (isShellMode) {
-  mkfatCmd += ` --file COMMAND.COM "${COMMAND_COM}"`;
-} else {
-  mkfatCmd += ` --file ${programName83} "${resolve(inputFile)}"`;
-}
+let mkfatCmd = `node "${MKFAT12}" -o "${diskImgPath}" --file KERNEL.SYS "${KERNEL_SYS}" --file CONFIG.SYS "${CONFIG_SYS}" --file ${programName83} "${resolve(inputFile)}"`;
 for (const df of dataFiles) {
   const name83 = df.name.toUpperCase();
   mkfatCmd += ` --file ${name83} "${resolve(df.path)}"`;
@@ -140,16 +141,9 @@ if (dataFiles.length > 0) {
 const diskBytes = [...readFileSync(diskImgPath)];
 console.log(`  Disk image: ${diskBytes.length} bytes`);
 
-// --- Step 3: Read kernel ---
+// --- Step 4: Read kernel ---
 const kernelBytes = [...readFileSync(KERNEL_SYS)];
 console.log(`  Kernel: ${kernelBytes.length} bytes`);
-
-// --- Step 4: Embedded data (disk only — IVT/BDA/splash done by init stub) ---
-const embData = [];
-embData.push({ addr: DISK_LINEAR, bytes: diskBytes });
-
-const defaultMem = 0xA0000;
-const memBytes = memOverride != null ? memOverride : defaultMem;
 
 // --- Step 5: Derive output filename ---
 if (!outputFile) {
@@ -160,9 +154,14 @@ if (!outputFile) {
 // --- Step 6: Generate CSS ---
 console.log('Generating CSS...');
 
+// DOS conventional memory size. The kernel relocates its own code and data
+// structures to the top of conventional memory (up to 0xA0000 = 640KB),
+// so we always need the full 640KB. Use --mem to override if needed.
+const defaultMem = 0xA0000;
+const memBytes = memOverride != null ? memOverride : defaultMem;
+
+const embData = [{ addr: DISK_LINEAR, bytes: diskBytes }];
 const memoryZones = dosMemoryZones(kernelBytes, KERNEL_LINEAR, memBytes, embData, prune);
-if (prune.gfx)     console.log('  Pruned: VGA Mode 13h framebuffer (0xA0000-0xAFA00)');
-if (prune.textVga) console.log('  Pruned: VGA text buffer (0xB8000-0xB8FA0)');
 
 const totalAddresses = memoryZones.reduce((sum, [s, e]) => sum + (e - s), 0);
 console.log(`Memory zones: ${memoryZones.map(([s,e]) => `0x${s.toString(16)}-0x${e.toString(16)} (${e-s})`).join(', ')}`);
@@ -178,9 +177,9 @@ emitCSS({
   embeddedData: embData,
   htmlMode,
   programOffset: KERNEL_LINEAR,  // kernel loaded at 0x600
-  initialCS: 0xF000,             // start at BIOS init stub
-  initialIP: 0x0000,
-  initialRegs: {},               // hardware reset state — init stub sets everything
+  initialCS: 0xF000,
+  initialIP: biosInitOffset,
+  initialRegs: { SP: 0 },       // hardware reset — BIOS init sets SS:SP
 }, ws);
 
 ws.end(() => {

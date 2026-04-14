@@ -63,9 +63,12 @@ zero x86 knowledge.
 
 ## Quick orientation
 
-- **Current architecture:** V3 microcode execution model. See `docs/architecture/v3-execution-model.md`.
-- **Full V3 spec:** `V3-PLAN-1.md` at repo root.
-- **BIOS handlers:** Microcode in `transpiler/src/patterns/bios.mjs`. See `docs/architecture/css-bios.md`.
+- **Current architecture:** V4 single-cycle (restored from V2). Every instruction
+  completes in one CSS tick with 8 parallel memory write slots. The V3 μOp
+  microcode rewrite was abandoned — it had bugs that prevented boot. V3 files
+  are archived in `legacy/v3/`.
+- **BIOS:** Assembly at `bios/css-emu-bios.asm`. No microcode BIOS.
+- **Build script:** `transpiler/generate-dos.mjs` (single entry point for DOS boot).
 - **Transpiler architecture:** `transpiler/README.md`
 - **How to add instructions:** `transpiler/AGENT-GUIDE.md`
 - **Conformance testing:** `docs/reference/conformance-testing.md`
