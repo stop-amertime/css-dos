@@ -346,19 +346,21 @@ export function emitShiftByNFlagFunctions() {
 @function --shlFlagsN16(--val <integer>, --n <integer>) returns <integer> {
   --res: --lowerBytes(round(nearest, calc(var(--val) * pow(2, var(--n)))), 16);
   --cf: --bit(var(--val), max(0, calc(16 - var(--n))));
+  --of: calc(abs(--bit(var(--res), 15) - var(--cf)) * 2048);
   --pf: --parity(var(--res));
   --zf: if(style(--res: 0): 64; else: 0);
   --sf: calc(--bit(var(--res), 15) * 128);
-  result: calc(var(--cf) + var(--pf) + var(--zf) + var(--sf) + 2);
+  result: calc(var(--cf) + var(--of) + var(--pf) + var(--zf) + var(--sf) + 2);
 }
 
 @function --shrFlagsN16(--val <integer>, --n <integer>) returns <integer> {
   --res: round(down, var(--val) / pow(2, var(--n)));
   --cf: --bit(var(--val), calc(var(--n) - 1));
+  --of: calc(--bit(var(--val), 15) * 2048);
   --pf: --parity(var(--res));
   --zf: if(style(--res: 0): 64; else: 0);
   --sf: calc(--bit(var(--res), 15) * 128);
-  result: calc(var(--cf) + var(--pf) + var(--zf) + var(--sf) + 2);
+  result: calc(var(--cf) + var(--of) + var(--pf) + var(--zf) + var(--sf) + 2);
 }
 
 @function --sarFlagsN16(--val <integer>, --n <integer>) returns <integer> {
@@ -373,10 +375,11 @@ export function emitShiftByNFlagFunctions() {
 @function --shlFlagsN8(--val <integer>, --n <integer>) returns <integer> {
   --res: --lowerBytes(round(nearest, calc(var(--val) * pow(2, var(--n)))), 8);
   --cf: --bit(var(--val), max(0, calc(8 - var(--n))));
+  --of: calc(abs(--bit(var(--res), 7) - var(--cf)) * 2048);
   --pf: --parity(var(--res));
   --zf: if(style(--res: 0): 64; else: 0);
   --sf: calc(--bit(var(--res), 7) * 128);
-  result: calc(var(--cf) + var(--pf) + var(--zf) + var(--sf) + 2);
+  result: calc(var(--cf) + var(--of) + var(--pf) + var(--zf) + var(--sf) + 2);
 }
 
 @function --shrFlagsN8(--val <integer>, --n <integer>) returns <integer> {
