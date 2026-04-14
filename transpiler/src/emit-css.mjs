@@ -21,6 +21,7 @@ import { emitAllStack } from './patterns/stack.mjs';
 import { emitAllMisc } from './patterns/misc.mjs';
 import { emitAllGroups } from './patterns/group.mjs';
 import { emitAllShifts, emitShiftFlagFunctions, emitShiftByNFlagFunctions } from './patterns/shift.mjs';
+import { emitCycleCounts } from './cycle-counts.mjs';
 
 /**
  * Dispatch table builder. Collects per-register entries keyed by opcode.
@@ -245,6 +246,7 @@ export function emitCSS(opts, writeStream) {
   emitAllMisc(dispatch);      // HLT/NOP/LODSB/STOSB/MOV r/m imm/flag manip/CBW/CWD/XCHG
   emitAllGroups(dispatch);    // Group FE/F7/F6/80-83
   emitAllShifts(dispatch);    // SHL/SHR/SAR/ROL/ROR (D0-D1)
+  emitCycleCounts(dispatch);  // Per-instruction 8086 cycle costs
 
   const w = (s) => writeStream.write(s + '\n\n');
 
@@ -293,7 +295,7 @@ export function emitCSS(opts, writeStream) {
   writeStream.write('  /* Each register\'s next value is selected by opcode via a\n');
   writeStream.write('     giant if(style(--instId: N)) dispatch. This is the CPU. */\n');
   const regOrder = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI',
-                    'CS', 'DS', 'ES', 'SS', 'IP', 'flags', 'halt'];
+                    'CS', 'DS', 'ES', 'SS', 'IP', 'flags', 'halt', 'cycleCount'];
   for (const reg of regOrder) {
     const defaultExpr = `var(--__1${reg})`;
     writeStream.write(dispatch.emitRegisterDispatch(reg, defaultExpr) + '\n');
