@@ -175,6 +175,7 @@ emitCSS({
   programOffset: KERNEL_LINEAR,  // kernel loaded at 0x600
   initialCS: 0xF000,
   initialIP: biosInitOffset,
+  initialRegs: { SP: 0 },       // hardware reset — BIOS init sets SS:SP
 }, ws);
 
 ws.end(() => {
