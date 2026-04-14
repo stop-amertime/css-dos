@@ -47,6 +47,7 @@ let inputFile = null;
 let outputFile = null;
 let htmlMode = false;
 let memOverride = null;
+const prune = { gfx: false, textVga: false };
 const dataFiles = []; // [{name, path}] — companion files to include on disk
 
 for (let i = 0; i < args.length; i++) {
@@ -56,6 +57,10 @@ for (let i = 0; i < args.length; i++) {
     htmlMode = true;
   } else if (args[i] === '--mem' && i + 1 < args.length) {
     memOverride = parseInt(args[++i]);
+  } else if (args[i] === '--no-gfx') {
+    prune.gfx = true;
+  } else if (args[i] === '--no-text-vga') {
+    prune.textVga = true;
   } else if (args[i] === '--data' && i + 2 < args.length) {
     const name = args[++i];
     const path = args[++i];
@@ -152,7 +157,7 @@ const defaultMem = 0xA0000;
 const memBytes = memOverride != null ? memOverride : defaultMem;
 
 const embData = [{ addr: DISK_LINEAR, bytes: diskBytes }];
-const memoryZones = dosMemoryZones(kernelBytes, KERNEL_LINEAR, memBytes, embData);
+const memoryZones = dosMemoryZones(kernelBytes, KERNEL_LINEAR, memBytes, embData, prune);
 
 const totalAddresses = memoryZones.reduce((sum, [s, e]) => sum + (e - s), 0);
 console.log(`Memory zones: ${memoryZones.map(([s,e]) => `0x${s.toString(16)}-0x${e.toString(16)} (${e-s})`).join(', ')}`);

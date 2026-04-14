@@ -86,14 +86,19 @@ export function comMemoryZones(programBytes, programOffset, memBytes) {
  * To reduce CSS size for small programs, pass a smaller --mem value.
  * The kernel high area (top 104KB) is always included regardless of --mem.
  */
-export function dosMemoryZones(programBytes, programOffset, memBytes, embeddedData) {
+export function dosMemoryZones(programBytes, programOffset, memBytes, embeddedData, prune = {}) {
   // Use one contiguous block for all conventional memory. The kernel
   // relocates itself to high memory and its code segment can span a wide
   // range of addresses, so splitting into low/high zones with a gap causes
   // the CPU to execute into unmapped memory.
   const zones = [];
   zones.push([0x0000, memBytes]);
-  zones.push([0xB8000, 0xB8FA0]);           // VGA text mode
+  if (!prune.gfx) {
+    zones.push([0xA0000, 0xAFA00]);         // VGA Mode 13h framebuffer (320x200)
+  }
+  if (!prune.textVga) {
+    zones.push([0xB8000, 0xB8FA0]);         // VGA text mode (80x25x2)
+  }
 
   // Include embedded data regions (e.g., disk image at 0xD0000)
   for (const { addr, bytes } of (embeddedData || [])) {
