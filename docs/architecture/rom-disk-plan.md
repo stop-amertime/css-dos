@@ -1,8 +1,9 @@
 # ROM Disk Plan
 
-**Status: Implemented on `feature/rom-disk` (commit 1f21f76+). Calcite
-flat-array dispatch optimization landed (compile time for bootle:
-frozen → 29s). Boot-level runtime verification next.**
+**Status: Working. Bootle booted end-to-end through the rom-disk window on
+`feature/rom-disk` (2026-04-15) after calcite's flat-array dispatch fast
+path landed. Zork+FROTZ not yet retested but expected to work now that the
+O(1) dispatch lookup is in place.**
 
 The DOS boot path used to bake the FAT12 disk image into 8086 memory at
 0xD0000. This limited disk size to ~128 KB (space between 0xD0000 and 0xEFFFF).

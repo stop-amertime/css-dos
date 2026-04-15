@@ -3,19 +3,18 @@
 **This is the single source of truth for project status.** Every agent MUST
 read this before starting work and MUST update it before finishing.
 
-Last updated: 2026-04-14 (session 9)
+Last updated: 2026-04-15 (session 10)
 
 ---
 
 ## Current status
 
 **V4 architecture boots DOS + bootle.com on master (commit 8c407d9).**
-Rom-disk WIP on `feature/rom-disk` (1f21f76) — disk bytes moved outside
+Rom-disk works end-to-end on `feature/rom-disk`: disk bytes moved outside
 the 1 MB 8086 space, accessed via `--readDiskByte(--idx)` dispatch and
-a BIOS window at 0xD000:0000. Bootle builds end-to-end (457 MB CSS) but
-calcite compile freezes on the ~68K-branch dispatch because the existing
-compiler has no flat-array fast path for single-parameter literal
-dispatches. Calcite work in flight in sibling repo.
+a BIOS window at 0xD000:0000. Bootle boots through the rom-disk path live
+in calcite (2026-04-15) after calcite's single-parameter literal-dispatch
+flat-array fast path landed.
 
 **One BIOS, one build path:** `bios/css-emu-bios.asm` is the assembly
 BIOS. `transpiler/generate-dos.mjs` is the build script. No microcode
@@ -25,13 +24,8 @@ BIOS, no `build.mjs`, no opcode 0xD6 dispatch.
 
 ## Active blocker
 
-Calcite flat-array dispatch optimization. The rom-disk plan's
-`@function --readDiskByte(--idx)` with one branch per disk byte is parse-
-fast but compile-frozen in calcite — it iterates every branch and emits a
-full `Vec<Op>` per entry instead of detecting the "all entries are integer
-literals" pattern and emitting a single `DispatchFlatArray` op backed by a
-`Vec<i32>`. See `docs/architecture/rom-disk-plan.md`. Work in progress in
-the calcite repo.
+None for rom-disk — bootle boots through it. Next: retest Zork+FROTZ (larger
+disk, exercises more of the dispatch), then merge `feature/rom-disk` → master.
 
 ## What's working
 
@@ -112,6 +106,50 @@ the calcite repo.
 ## Entry log
 
 Newest entries first. See `docs/logbook/PROTOCOL.md` for how to write entries.
+
+### 2026-04-15 — Session 10: rom-disk end-to-end working; calcite fast path + CLI menu
+
+**What:** Bootle boots end-to-end through the rom-disk window. Verified
+live in calcite with keyboard + framebuffer rendering.
+
+**Calcite side (sibling repo, uncommitted):**
+- Wired up the previously-inert `Op::DispatchFlatArray` instruction. The
+  compile-side builder (`try_build_flat_dispatch` at
+  `calcite/crates/calcite-core/src/compile.rs`) fires when a dispatch
+  table has ≤1 parameter, every entry and the fallback are i32 literals,
+  and max_key - min_key ≤ 10M. The compiled program owns a
+  `Vec<FlatDispatchArray>`; at runtime the op does a single bounds-checked
+  array index. Multi-parameter / non-literal / sparse dispatches still go
+  through the old per-entry path unchanged.
+- Added a name-keyed cache (`flat_dispatch_cache`) so repeated call sites
+  of the same function reuse the same array. Critical: the rom-disk
+  window's 512 dispatch sites would otherwise rebuild the full disk array
+  per site.
+- Added parse + compile progress bars (`render_progress` in compile.rs,
+  wired into the parser via a byte-position meter). Opt out via
+  `CALCITE_NO_PROGRESS=1`.
+- Replaced the old `--ticks` default (was `1`) with `Option<u32>`. Absent →
+  unlimited / interactive; explicit → N ticks non-interactive. Fixes a
+  regression where menu-launched programs ran one tick and exited.
+- Rewrote `calcite-cli` into a proper launcher: when `--input` is omitted,
+  a keyboard-driven grid menu appears showing every `output/*.css`,
+  every top-level `programs/*.{com,exe}`, and every `.com`/`.exe` inside
+  `programs/*/` subdirs. On select, invokes `generate-dos.mjs` with all
+  sibling files (inside subdirs) as `--data`. CSS-DOS logo (from PNG in
+  `icons/css-dos-logo-32x32.png`) during the menu/generation phase;
+  calc(ite) ASCII banner during parse/compile.
+- Full bootle compile: parse 4.7s, compile ~16s (down from "frozen" /
+  48 GB allocation). Runtime unchanged (1 tick ≈ 74 µs).
+
+**CSS-DOS side (this commit):** logbook + rom-disk-plan updates only.
+Everything actually doing the work landed in session 9's `1f21f76`.
+
+**Follow-ups:**
+- Retest Zork+FROTZ (~284 KB disk) through the rom-disk path.
+- Profile calcite's flat-array lookup under heavy INT 13h load (REP MOVSW
+  hitting the window 256× per sector) to confirm it's as fast as expected.
+- Commit calcite-side work (separate repo, separate checkpoint).
+- Merge `feature/rom-disk` → master once Zork is green.
 
 ### 2026-04-14 — Session 9: rom-disk implementation on feature branch
 
