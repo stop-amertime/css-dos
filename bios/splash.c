@@ -33,6 +33,18 @@ static void outb(unsigned int port, unsigned char val);
 static void int10_ax(unsigned int ax);
 #pragma aux int10_ax = "int 0x10" parm [ax] modify exact [ax bx cx dx];
 
+/* REP STOSB into ES:DI. Parameters: segment, offset, value, count.
+   Calcite pattern-recognises this shape (addr++, counter--, mem[addr]=val)
+   and lowers it to a single MemoryFill op — one CSS tick for the whole fill. */
+static void vga_fill(unsigned int seg, unsigned int off,
+                     unsigned char val, unsigned int count);
+#pragma aux vga_fill =              \
+    "mov es, ax"                    \
+    "mov al, bl"                    \
+    "rep stosb"                     \
+    parm [ax] [di] [bl] [cx]        \
+    modify exact [ax bx cx di es];
+
 static void set_mode_13h(void) {
     int10_ax(0x0013);
 }
@@ -106,27 +118,19 @@ static unsigned long read_ticks(void) {
     return ((unsigned long)hi << 16) | lo;
 }
 
-/* BDA ticks don't advance during splash because PIT/IRQ 0 aren't programmed
-   yet (BIOS is still initialising). Use a raw busy loop instead — the goal
-   is just visual pacing between POST lines. Nested 16-bit loops avoid
-   pulling in OpenWatcom's __U4M 32-bit multiply helper. */
-static void busy_delay_units(unsigned int units) {
-    volatile unsigned int i, j;
-    unsigned int u;
-    for (u = 0; u < units; u++) {
-        for (i = 0; i < 200; i++) {
-            for (j = 0; j < 100; j++) { }
-        }
-    }
-}
+/* Splash pacing used to be a nested volatile busy-wait. At ~1 CSS tick
+   per inner iteration and ~900,000 inner iterations per splash_show(),
+   it was accounting for >90% of splash wall time. Gutted.
 
+   A proper implementation will reintroduce pacing once the PIT is
+   programmed and INT 08h advances BDA ticks — at that point wait_until()
+   can HLT-loop on the real tick counter, which costs ~0 CSS ticks. */
 static void wait_ticks(unsigned int n) {
-    busy_delay_units(n);
+    (void)n;
 }
 
 static void wait_until(unsigned long target_tick) {
     (void)target_tick;
-    busy_delay_units(20);
 }
 
 static void draw_memory_line(unsigned int x, unsigned int y, unsigned char color) {
@@ -159,14 +163,10 @@ void splash_show(void) {
     set_palette();
 
     /* Fill the screen with dark gray so the logo's black outline is
-       visible. Doubles as a rough performance gate — until the engine
-       is quick, watching this fill is the long pole of splash startup. */
-    {
-        unsigned int py, px;
-        for (py = 0; py < 200; py++) {
-            for (px = 0; px < 320; px++) vga_pixel(px, py, 8);
-        }
-    }
+       visible. REP STOSB — one CPU instruction (well, one repeated one)
+       for the whole 64000-byte framebuffer. Calcite recognises this as
+       an affine memory-fill and lowers it to a single MemoryFill op. */
+    vga_fill(VGA_SEG, 0, 8, 64000u);
 
     blit_logo(20, 52, 3);
     draw_text(140, 52, "CSS-DOS",       15);
