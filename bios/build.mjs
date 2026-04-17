@@ -14,8 +14,8 @@ const repoRoot = join(__dirname, '..');
 
 function loadEnv(path) {
     const env = {};
-    for (const line of readFileSync(path, 'utf8').split('\n')) {
-        const m = line.match(/^([A-Z_]+)=(.+)$/);
+    for (const rawLine of readFileSync(path, 'utf8').split(/\r?\n/)) {
+        const m = rawLine.match(/^([A-Z_]+)=(.+)$/);
         if (m) env[m[1]] = m[2].trim();
     }
     return env;
