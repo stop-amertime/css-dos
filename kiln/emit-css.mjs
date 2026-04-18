@@ -7,7 +7,7 @@ import { emitDecodeFunction, emitDecodeProperties } from './decode.mjs';
 import {
   emitPropertyDecls, emitBufferReads, emitRegisterAliases,
   emitStoreKeyframe, emitExecuteKeyframe, emitClockKeyframes,
-  emitClockAndCpuBase, emitDebugDisplay, emitHTMLHeader, emitHTMLFooter,
+  emitClockAndCpuBase, emitDebugDisplay,
   emitKeyboardRules,
 } from './template.mjs';
 import { emitWriteSlotProperties, buildInitialMemory, buildAddressSet, NUM_WRITE_SLOTS } from './memory.mjs';
@@ -210,8 +210,8 @@ class DispatchTable {
  * opts.memSize: (legacy) if memoryZones is not provided, emits 0..memSize contiguously.
  */
 export function emitCSS(opts, writeStream) {
-  const { programBytes, biosBytes, memoryZones, embeddedData, htmlMode, programOffset,
-          initialCS, initialIP, diskBytes } = opts;
+  const { programBytes, biosBytes, memoryZones, embeddedData, programOffset,
+          initialCS, initialIP, diskBytes, header } = opts;
 
   // Build sorted address array from zones (or fall back to legacy contiguous range)
   let addresses;
@@ -252,8 +252,12 @@ export function emitCSS(opts, writeStream) {
 
   const w = (s) => writeStream.write(s + '\n\n');
 
-  if (htmlMode) {
-    writeStream.write(emitHTMLHeader());
+  // Optional cabinet header comment (the self-describing block the builder
+  // prepends to every cabinet). Written verbatim at the top of the CSS.
+  if (header) {
+    writeStream.write(header);
+    if (!header.endsWith('\n')) writeStream.write('\n');
+    writeStream.write('\n');
   }
 
   // =====================================================================
@@ -280,7 +284,7 @@ export function emitCSS(opts, writeStream) {
 
   // 4. Clock and CPU base
   w('/* ===== EXECUTION ENGINE ===== */');
-  w(emitClockAndCpuBase({ htmlMode }));
+  w(emitClockAndCpuBase({}));
 
   // 5. .cpu rule body — aliases, decode, dispatch, write rules
   writeStream.write('  /* Register aliases (8-bit halves) */\n');
@@ -364,10 +368,6 @@ export function emitCSS(opts, writeStream) {
   writeStream.write('  }\n}\n\n');
 
   w(emitClockKeyframes());
-
-  if (htmlMode) {
-    writeStream.write(emitHTMLFooter());
-  }
 }
 
 // --- Streaming memory emitters (write directly, avoid building huge strings) ---

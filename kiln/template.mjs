@@ -158,79 +158,9 @@ export function emitDebugDisplay(opts) {
 }`;
 }
 
-/**
- * Emit the HTML wrapper with JS clock driver for testing.
- */
-export function emitHTMLHeader() {
-  return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>CSS-DOS</title>
-<style>
-`;
-}
-
-export function emitHTMLFooter() {
-  return `
-key-board {
-  display: grid;
-  grid-template-columns: repeat(10, 1fr);
-  gap: 2px;
-  max-width: 500px;
-  margin: 8px 0;
-}
-key-board button {
-  font-size: 16px;
-  padding: 4px 8px;
-  cursor: pointer;
-}
-</style>
-</head>
-<body>
-<div class="clock" style="container-type:inline-size">
-  <div class="cpu">
-    <key-board>
-      <button>0</button><button>1</button><button>2</button><button>3</button><button>4</button><button>5</button><button>6</button><button>7</button><button>8</button><button>9</button><button>Q</button><button>W</button><button>E</button><button>R</button><button>T</button><button>Y</button><button>U</button><button>I</button><button>O</button><button>P</button><button>A</button><button>S</button><button>D</button><button>F</button><button>G</button><button>H</button><button>J</button><button>K</button><button>L</button><button>\u21B5</button><button>Z</button><button>X</button><button>C</button><button>V</button><button>B</button><button>N</button><button>M</button><button>\u2423</button><button>Esc</button><button>\u2190</button><button>\u2193</button><button>\u2191</button><button>\u2192</button><button>Tab</button><button>Bksp</button>
-    </key-board>
-  </div>
-</div>
-<script>
-// JS clock driver — stops the CSS animation and drives the clock directly.
-let clock = 0;
-
-function tickInstruction() {
-  for (let i = 0; i < 4; i++) {
-    document.querySelector(".clock").style = \`--clock:\${clock}!important\`;
-    clock = (clock + 1) % 4;
-    getComputedStyle(document.querySelector(".cpu")).getPropertyValue("--__1IP");
-  }
-}
-
-function animate() {
-  tickInstruction();
-  const ip = parseInt(getComputedStyle(document.querySelector(".cpu")).getPropertyValue("--__1IP"));
-  const halt = parseInt(getComputedStyle(document.querySelector(".cpu")).getPropertyValue("--__1halt"));
-  if (halt === 1 || ip === 0) {
-    // Read final register state
-    const cpu = document.querySelector(".cpu");
-    const cs = getComputedStyle(cpu);
-    const regs = ['AX','BX','CX','DX','SP','BP','SI','DI','CS','DS','ES','SS','IP','flags'];
-    const state = {};
-    for (const r of regs) state[r] = parseInt(cs.getPropertyValue('--__1' + r));
-    console.log('HALT', JSON.stringify(state));
-    return;
-  }
-  requestAnimationFrame(animate);
-}
-
-document.querySelector(".clock").style = "--clock:0!important";
-// Auto-start after a brief delay to allow external scripts to override
-if (!window.__noAutoStart) requestAnimationFrame(animate);
-</script>
-</body>
-</html>`;
-}
+// HTML wrapping used to live here. It moved out of Kiln and into
+// `player/index.html`, a static file that loads cabinets via
+// `?cabinet=path/to/cabinet.css`. Kiln emits pure CSS; the player loads it.
 
 // --- Internal ---
 
