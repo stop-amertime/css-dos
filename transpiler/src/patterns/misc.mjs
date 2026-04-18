@@ -476,6 +476,62 @@ export function emitLAHF_SAHF(dispatch) {
 }
 
 /**
+ * Peripheral helper computed properties emitted into the .cpu rule.
+ *
+ * These aren't dispatched — they're derived each tick from the new
+ * --cycleCount (which the instruction's cycle-count entry has already
+ * set for this tick) and the __1 versions of the PIT state vars.
+ *
+ * --_pitTicks: PIT input pulses consumed this retirement.
+ *   The 8086 runs at ~4.77 MHz, the PIT at ~1.193 MHz — a 4:1 ratio.
+ *   So each increment of cycleCount/4 is one PIT tick.
+ * --_pitDecrement: how much to subtract from the counter. Mode 3
+ *   (square wave) decrements by 2 per PIT tick; other modes by 1.
+ * --_pitFired: 1 iff the counter would cross zero this tick and the
+ *   PIT is armed (pitReload != 0). Used to raise IRQ 0 on picPending.
+ *   Computed via sign(decrement - counter + 1): positive when the
+ *   decrement is at least counter (i.e. counter reaches 0 or below),
+ *   clamped to [0, 1].
+ */
+export function emitPeripheralCompute() {
+  const pitTicks = `calc(round(down, var(--cycleCount) / 4) - round(down, var(--__1cycleCount) / 4))`;
+  const pitDecrement = `if(style(--__1pitMode: 3): calc(var(--_pitTicks) * 2); else: var(--_pitTicks))`;
+  const pitFired = `if(style(--__1pitReload: 0): 0; else: min(1, max(0, sign(calc(var(--_pitDecrement) - var(--__1pitCounter) + 1)))))`;
+  return [
+    `  /* Peripheral clocks derived from this tick's --cycleCount */`,
+    `  --_pitTicks: ${pitTicks};`,
+    `  --_pitDecrement: ${pitDecrement};`,
+    `  --_pitFired: ${pitFired};`,
+  ].join('\n');
+}
+
+/**
+ * Expression for --pitCounter's per-tick countdown: decrement by
+ * --_pitDecrement, reload from --__1pitReload on zero crossing. Holds
+ * at 0 while idle (pitReload == 0). Used both as the register-level
+ * default (opcodes with no PIT dispatch entry) and as the `else:` of
+ * the port-write entries (OUT to a non-PIT port must still tick).
+ */
+export function pitCounterDefaultExpr() {
+  return `if(
+    style(--__1pitReload: 0): 0;
+    else: calc(
+      var(--__1pitCounter) - var(--_pitDecrement)
+      + max(0, sign(calc(var(--_pitDecrement) - var(--__1pitCounter) + 1))) * var(--__1pitReload)
+    )
+  )`;
+}
+
+/**
+ * Default expression for --picPending. Sets bit 0 when the PIT crosses
+ * zero this tick. Phase 3 will also OR in bit 1 on keyboard edges and
+ * AND-out the bit acknowledged by the IRQ sentinel.
+ */
+export function picPendingDefaultExpr() {
+  return `if(style(--_pitFired: 1): --or(var(--__1picPending), 1); else: var(--__1picPending))`;
+}
+
+/**
  * I/O port instructions: IN and OUT.
  *
  * Reads:
@@ -607,17 +663,19 @@ export function emitIO(dispatch) {
 
   // pitCounter: OUT 0x43 resets to 0. OUT 0x40 with writeState=1 loads the
   // new full reload into the counter (matches real PIT behavior — the counter
-  // starts ticking only after both bytes are written). Phase 2 adds the
-  // cycleCount-driven decrement; for Phase 1 the counter just holds.
+  // starts ticking only after both bytes are written). On OUT to any other
+  // port (e.g. 0x20, 0x21), fall through to the normal per-tick countdown —
+  // the PIT must keep running while the program is talking to other devices.
+  const pitTick = pitCounterDefaultExpr();
   const pitCounterImm = `if(
     style(--q1: 67): 0;
     style(--q1: 64) and style(--__1pitWriteState: 1): calc(--and(var(--__1pitReload), 255) + ${al} * 256);
-    else: var(--__1pitCounter)
+    else: ${pitTick}
   )`;
   const pitCounterDx = `if(
     style(--__1DX: 67): 0;
     style(--__1DX: 64) and style(--__1pitWriteState: 1): calc(--and(var(--__1pitReload), 255) + ${al} * 256);
-    else: var(--__1pitCounter)
+    else: ${pitTick}
   )`;
   dispatch.addEntry('pitCounter', 0xE6, pitCounterImm, `OUT 0x40/0x43: PIT counter load`);
   dispatch.addEntry('pitCounter', 0xEE, pitCounterDx, `OUT DX=0x40/0x43: PIT counter load`);

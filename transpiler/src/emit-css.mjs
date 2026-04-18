@@ -18,7 +18,7 @@ import { emitMOV_RegImm16, emitMOV_RegImm8, emitMOV_RegRM, emitMOV_SegRM, emitMO
 import { emitAllALU } from './patterns/alu.mjs';
 import { emitAllControl } from './patterns/control.mjs';
 import { emitAllStack } from './patterns/stack.mjs';
-import { emitAllMisc } from './patterns/misc.mjs';
+import { emitAllMisc, emitPeripheralCompute, pitCounterDefaultExpr, picPendingDefaultExpr } from './patterns/misc.mjs';
 import { emitAllGroups } from './patterns/group.mjs';
 import { emitAllShifts, emitShiftFlagFunctions, emitShiftByNFlagFunctions } from './patterns/shift.mjs';
 import { emitAll186 } from './patterns/extended186.mjs';
@@ -286,6 +286,7 @@ export function emitCSS(opts, writeStream) {
   writeStream.write('  /* Register aliases (8-bit halves) */\n');
   w(emitRegisterAliases());
   w(emitDecodeProperties());
+  w(emitPeripheralCompute());
 
   // Unknown opcode detection — sets --unknownOp=1 and --haltCode=opcode
   writeStream.write('  /* ===== UNKNOWN OPCODE FLAG ===== */\n');
@@ -299,11 +300,18 @@ export function emitCSS(opts, writeStream) {
   const regOrder = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI',
                     'CS', 'DS', 'ES', 'SS', 'IP', 'flags', 'halt', 'cycleCount',
                     // PIC/PIT state — updated by OUT handlers in patterns/misc.mjs.
-                    // Vars with no dispatch entries fall through to defaultExpr (hold).
+                    // Vars with no dispatch entries fall through to defaultExpr.
                     'picMask', 'picPending', 'picInService',
                     'pitMode', 'pitReload', 'pitCounter', 'pitWriteState'];
+  // Custom defaults: the fall-through expression when no dispatch entry fires
+  // for this opcode. pitCounter ticks every instruction; picPending latches
+  // the PIT-fired edge. Everything else just holds its __1 value.
+  const customDefaults = {
+    pitCounter: pitCounterDefaultExpr(),
+    picPending: picPendingDefaultExpr(),
+  };
   for (const reg of regOrder) {
-    const defaultExpr = `var(--__1${reg})`;
+    const defaultExpr = customDefaults[reg] ?? `var(--__1${reg})`;
     writeStream.write(dispatch.emitRegisterDispatch(reg, defaultExpr) + '\n');
   }
   writeStream.write('\n');
