@@ -58,7 +58,12 @@ zero x86 knowledge.
 
 - **The CSS must work in Chrome.** If Chrome can't evaluate it, it's wrong.
 - **Calcite can't change the CSS.** Only faster evaluation of the same expressions.
-- **Never suggest CSS changes to help calcite.**
+- **You may restructure CSS to be easier to JIT-optimise**, as long as
+  Chrome still evaluates it the same way and produces the same results.
+  Expressing the same computation in a different, more
+  pattern-recognisable shape is fine. What is NOT fine: dummy code,
+  metadata properties, or side-channels whose only purpose is to sneak
+  information to calcite. The CSS must pay for itself in Chrome.
 - **If calcite disagrees with Chrome, calcite is wrong.**
 
 ## Quick orientation
