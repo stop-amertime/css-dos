@@ -1,4 +1,9 @@
 #!/usr/bin/env node
+// ARCHIVED — 2026-04-18.
+// Reference 8086 emulator for the microcode-BIOS DOS path (V3 era).
+// Superseded by conformance/ref-muslin.mjs when V4 went back to an
+// assembly BIOS. Not used by any current tool. Kept as a reference.
+//
 // Reference 8086 emulator for DOS boot testing.
 // Loads the same memory layout as generate-dos.mjs:
 //   - KERNEL.SYS at 0060:0000 (linear 0x600)
