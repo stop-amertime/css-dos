@@ -41,11 +41,12 @@ Thumbs.db
 .playwright-mcp/
 
 # Trace / conformance artifacts (JSON dumps from ref emulators, etc.)
-*.json
-!package.json
-!package-lock.json
-!program.schema.json
-!carts/**/program.json
+ref-trace.json
+*-trace.json
+trace-*.json
+
+# Claude/editor state
+.claude/
 
 # Disk images and archives
 *.img
