@@ -66,7 +66,7 @@ function parseArgs(argv) {
 const USAGE = `Usage: node builder/build.mjs <cart> [-o output.css] [--cache-dir path]
 
   <cart>            Path to a cart folder or .zip.
-  -o output.css     Output path. Default: <cartname>.css in cwd.
+  -o output.css     Output path. Default: out/<cartname>.css.
   --cache-dir path  Scratch dir for intermediate artifacts. Default: tmp.
 
 Environment:
@@ -104,8 +104,10 @@ async function main() {
     console.log(`[floppy] ${floppy.bytes.length} bytes, ${floppy.layout.length} files`);
   }
 
-  // Output path
-  const outputPath = args.output ?? `${cart.name}.css`;
+  // Output path. Default lands in ./out/ so cabinets don't clutter the repo root
+  // and the .gitignore can be scoped to one directory.
+  const outputPath = args.output ?? join('out', `${cart.name}.css`);
+  mkdirSync(dirname(resolve(outputPath)), { recursive: true });
   const outStream = createWriteStream(resolve(outputPath), { encoding: 'utf-8' });
 
   const header = buildCabinetHeader({ cart, manifest, bios, floppy });

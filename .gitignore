@@ -1,14 +1,8 @@
-# Generated cabinets (the .css output of the builder)
-*.css
-!player/*.css
-!player/assets/*.css
-!web/site/assets/*.css
+# Builder output — cabinets land here by default (see builder/build.mjs).
+out/
 
-# HTML — we only have the player's index.html; everything else is scratch
-*.html
-!player/*.html
-!web/site/*.html
-!web/tests/*.html
+# Scratch builds used during testing — any top-level file starting with tmp-.
+tmp-*
 
 # Compiled binaries and listings
 *.bin
