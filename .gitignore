@@ -1,10 +1,13 @@
 # Generated cabinets (the .css output of the builder)
 *.css
 !player/*.css
+!web/site/assets/*.css
 
 # HTML — we only have the player's index.html; everything else is scratch
 *.html
 !player/*.html
+!web/site/*.html
+!web/tests/*.html
 
 # Compiled binaries and listings
 *.bin
