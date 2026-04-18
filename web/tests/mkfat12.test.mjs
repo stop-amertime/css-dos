@@ -27,6 +27,13 @@ test('buildFat12Image preserves input file ordering (A+B vs B+A differ)', () => 
   assert.notDeepEqual(imgAB, imgBA, 'images with swapped file order should differ');
 });
 
+test('buildFat12Image throws on missing bytes', () => {
+  assert.throws(
+    () => buildFat12Image([{ name: 'BAD.TXT', bytes: null }]),
+    /must be/i,
+  );
+});
+
 test('buildFat12Image file bytes appear in the data region', () => {
   const content = new TextEncoder().encode('hi!\n');
   const files = [{ name: 'HELLO.TXT', bytes: content }];

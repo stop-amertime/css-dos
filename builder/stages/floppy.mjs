@@ -58,8 +58,7 @@ export function buildFloppy({ cart, manifest, cacheDir }) {
     name: f.name,
     bytes: readFileSync(f.path),
   }));
-  const imgBytes = buildFat12Image(fatFiles);
-  const bytes = [...imgBytes];
+  const bytes = buildFat12Image(fatFiles);
 
   // Annotate sizes post-hoc.
   for (const f of layout) {

@@ -29,6 +29,16 @@
  * @returns {Uint8Array} Raw FAT12 disk image.
  */
 export function buildFat12Image(files) {
+  // Validate input: each file must have a string name and Uint8Array bytes.
+  for (const f of files) {
+    if (!f || typeof f.name !== 'string' || !(f.bytes instanceof Uint8Array)) {
+      throw new Error(
+        `buildFat12Image: each file must be {name: string, bytes: Uint8Array}; got ` +
+        JSON.stringify(f, (k, v) => v instanceof Uint8Array ? `Uint8Array(${v.length})` : v),
+      );
+    }
+  }
+
   // Normalise input: uppercase names, convert / to \
   const normFiles = files.map(f => ({
     name: f.name.toUpperCase().replace(/\//g, '\\'),
@@ -313,7 +323,9 @@ function writeFAT12Entry(buf, fatStart, cluster, value) {
 // ============================================================
 
 // Detect whether this module is the entry point (works for both CJS and ESM).
-const isMain = process.argv[1] &&
+// The typeof guard is required: `process` is undefined in browsers, and a bare
+// reference at module top level would throw ReferenceError before the if-check.
+const isMain = typeof process !== 'undefined' && process.argv[1] &&
   (process.argv[1].endsWith('mkfat12.mjs') || process.argv[1].endsWith('mkfat12'));
 
 if (isMain) {
