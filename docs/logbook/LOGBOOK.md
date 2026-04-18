@@ -202,10 +202,57 @@ one tick with 8 write slots.
 right three priorities (keyboard port, PIC EOI, timer IRQ). Will leave
 open with a scope-update comment rather than rewrite.
 
-**Plan for this session:** Start Phase 1 — port-decode refactor in
-`patterns/misc.mjs` + new state vars in `template.mjs`. OUT handlers
-populate state; no behavior change yet (no IRQ firing). Next sessions
-wire cycleCount → pitCounter → INT 08h, and --keyboard edge → INT 09h.
+**Delivered this session (3 commits on `claude/doom8088-readiness-check-6BRWJ`):**
+
+Phase 1 — port decode + state vars (`5afa52e`):
+- New STATE_VARS in template.mjs: picMask (init 0xFF), picPending,
+  picInService, pitMode, pitReload, pitCounter, pitWriteState.
+- emitIO() in patterns/misc.mjs dispatches OUT 0x20/0x21/0x40/0x43
+  to the right state var per port. Non-specific EOI on OUT 0x20 uses
+  the `(x & (x-1))` trick to clear the lowest in-service bit.
+- Dispatch entries fall through to `var(--__1NAME)` (hold) for
+  unrelated ports — the entry fires per-opcode, so the hold is explicit.
+
+Phase 2 — PIT countdown + picPending edge (`27c972a`):
+- emit-css.mjs learns per-register customDefaults so pitCounter/picPending
+  can opt into tick/edge expressions instead of default hold.
+- --_pitTicks (cycleCount/4 delta), --_pitDecrement (×2 in mode 3),
+  --_pitFired (zero-crossing guarded by pitReload != 0).
+- pitCounter decrements by --_pitDecrement each tick; reloads on zero
+  crossing. Port-write dispatch entries fall through to the same tick
+  expression (an OUT to port 0x21 must not stall the PIT).
+- picPending default ORs --_pitFired into bit 0. No IRQ delivery yet.
+
+Phase 3 — IRQ delivery + keyboard edge (`4bd502e`):
+- Single-cycle "sentinel" override, parallel to TF. No 0xF1 opcode —
+  the override fires on the instruction-boundary tick, reusing slot 0-5
+  memory writes for the FLAGS/CS/IP push while register dispatches land
+  the new IVT values.
+- prevKeyboard state var + --_kbdEdge on press (0 → non-zero).
+- --_picEffective / --_ifFlag / --_irqActive / --picVector / --_irqBit
+  computed in the .cpu rule (emitIRQCompute).
+- IRQ_OVERRIDES for SP/IP/CS/flags/cycleCount/picPending/picInService.
+- Fixed latent bug: TF trap used to still fire normal-instruction writes
+  in slots 6-7. Now both TF and IRQ suppress (-1, 0) in unused slots.
+
+**What works now (in principle):**
+- PIT channel 0 actually counts down and fires IRQ 0 if Doom programs it.
+- OUT 0x21 sets picMask, OUT 0x20 acks.
+- Keyboard press raises IRQ 1, IP/CS/FLAGS pushed, jumped to IVT[9] vector.
+- --_cycleCount feeds the PIT naturally, so no separate real-time clock.
+
+**Known limits / follow-ups:**
+1. Only IRQs 0 and 1 wired (no lowestBit helper). Sufficient for Doom8088.
+2. --_kbdEdge fires only on press. Doom8088 reads break codes (high-bit
+   set) on release to track held keys — without those, WASD held-movement
+   breaks. Next session: inject break scancode on keyboard→0 transitions,
+   or expose released-key snapshot in --_kbdRelease.
+3. No palette port 0x3C8/0x3C9 writes — Mode 13h damage-flash is silent.
+4. No validation yet that a build actually runs — the transpiler emits
+   correct-shaped CSS, but no conformance diff has been run (`gossamer.bin`
+   not present in this checkout). Running the `keyboard-irq.asm` test
+   through `compare.mjs` is the next logical step; it exercises OUT 0x21
+   and INT 16h round-trip via the BDA buffer.
 
 ### 2026-04-15 — Session 10: rom-disk end-to-end working; calcite fast path + CLI menu
 
