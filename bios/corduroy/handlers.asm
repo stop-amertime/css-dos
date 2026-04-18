@@ -6,6 +6,7 @@
 
 global int01h_handler
 global int08h_handler
+global int09h_handler
 global int10h_handler
 global int11h_handler
 global int12h_handler
@@ -822,8 +823,74 @@ int08h_handler:
     mov byte [new_day], 1
 .no_midnight:
     int 0x1C               ; User timer tick hook
+    ; EOI to PIC (IRQ 0) — must be last so a nested exception during INT 1Ch
+    ; still sees picInService set and clears its own bit cleanly.
+    mov al, 0x20
+    out 0x20, al
     pop ds
     pop dx
+    pop ax
+    iret
+
+; ============================================================
+; INT 09h — Keyboard IRQ (IRQ1)
+; Reads scancode from port 0x60, pushes (scancode<<8 | ascii) into the BDA
+; ring buffer so INT 16h works, toggles port 0x61 bit 7 to ack the keyboard
+; controller, then EOIs the PIC. The --keyboard CSS property already packs
+; (scancode<<8 | ascii) into the low word: port 0x60 IN returns the scancode
+; (high byte), and we look up ASCII via scancode2ascii[] since we can't read
+; the low byte directly from the port.
+; ============================================================
+int09h_handler:
+    push ax
+    push bx
+    push cx
+    push ds
+    mov ax, BDA_SEG
+    mov ds, ax
+
+    ; Read scancode from keyboard port.
+    in al, 0x60            ; AL = scancode
+    mov ah, al             ; keep a copy in AH for BDA word high byte
+    xor bh, bh
+    mov bl, al             ; BX = scancode (for ASCII LUT)
+    cmp bl, 0x80
+    jae .ack               ; break code (high bit set) — don't buffer
+
+    ; Look up ASCII in table; entries are 1 byte each, indexed by scancode.
+    mov al, [cs:scancode2ascii + bx]
+    ; AH = scancode, AL = ASCII → AX = BIOS key word.
+
+    ; Append to BDA ring buffer if there's space.
+    mov bx, [kbd_buffer_tail]
+    mov cx, bx
+    add cx, 2
+    cmp cx, [kbd_buffer_end]
+    jb .no_wrap
+    mov cx, [kbd_buffer_start]
+.no_wrap:
+    cmp cx, [kbd_buffer_head]
+    je .ack                ; buffer full — drop the key
+    mov [bx], ax
+    mov [kbd_buffer_tail], cx
+
+.ack:
+    ; Ack keyboard controller: pulse port 0x61 bit 7 high then low. Real PCs
+    ; need this; in CSS it's a harmless OUT to an unhandled port.
+    in al, 0x61
+    mov ah, al
+    or al, 0x80
+    out 0x61, al
+    mov al, ah
+    out 0x61, al
+
+    ; EOI to PIC (IRQ 1) — last, as with INT 08h.
+    mov al, 0x20
+    out 0x20, al
+
+    pop ds
+    pop cx
+    pop bx
     pop ax
     iret
 
@@ -947,7 +1014,7 @@ interrupt_table:
     dw int_dummy            ; INT 06 - Invalid opcode
     dw int_dummy            ; INT 07 - Coprocessor N/A
     dw int08h_handler       ; INT 08 - IRQ0 Timer
-    dw int_dummy            ; INT 09 - IRQ1 Keyboard (no hw kbd)
+    dw int09h_handler       ; INT 09 - IRQ1 Keyboard
     dw int_dummy            ; INT 0A - IRQ2
     dw int_dummy            ; INT 0B - IRQ3
     dw int_dummy            ; INT 0C - IRQ4
@@ -1013,4 +1080,26 @@ disk_param_table:
     db 0xF6                ; fill byte for format
     db 0x0F                ; head settle time (ms)
     db 0x08                ; motor start time (1/8 sec units)
+
+; ============================================================
+; Scancode → ASCII lookup for INT 09h.
+; 128 entries, indexed by make-code (0x00-0x7F). Unassigned = 0.
+; Matches the (scancode, ascii) pairs in kiln/template.mjs KEYBOARD_KEYS —
+; only keys the CSS :active keyboard can produce are mapped; everything
+; else is 0 (a non-character scancode that INT 16h callers treat as "no
+; ASCII", e.g. arrow keys).
+; ============================================================
+scancode2ascii:
+    db 0x00, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00   ; 00 Esc
+    db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x09   ; 0E Bksp, 0F Tab
+    db 0x71, 0x77, 0x65, 0x72, 0x74, 0x79, 0x75, 0x69   ; 10-17 QWERTYUI
+    db 0x6F, 0x70, 0x00, 0x00, 0x0D, 0x00, 0x61, 0x73   ; 18 O, 19 P, 1C Enter, 1E A, 1F S
+    db 0x64, 0x66, 0x67, 0x68, 0x6A, 0x6B, 0x6C, 0x00   ; 20-27 DFGHJKL
+    db 0x00, 0x00, 0x00, 0x00, 0x7A, 0x78, 0x63, 0x76   ; 2C-2F ZXCV
+    db 0x62, 0x6E, 0x6D, 0x00, 0x00, 0x00, 0x00, 0x00   ; 30-32 BNM
+    db 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00   ; 39 Space
+    db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00   ; 40-47
+    db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00   ; 48 Up, 4B Left, 4D Right (all ASCII=0)
+    db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00   ; 50 Down
+    times 0x80 - ($ - scancode2ascii) db 0x00
 
