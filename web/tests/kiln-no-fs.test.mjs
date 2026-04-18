@@ -33,8 +33,8 @@ test('builder/lib/config.mjs and builder/stages/kiln.mjs are browser-safe', () =
   for (const f of ['builder/lib/config.mjs', 'builder/stages/kiln.mjs']) {
     const src = readFileSync(resolve(repoRoot, f), 'utf8');
     assert.ok(
-      !/from\s+['"]node:fs/.test(src),
-      `${f} imports node:fs — move I/O to caller`
+      !/from\s+['"]node:/.test(src) && !/require\(['"]node:/.test(src),
+      `${f} imports a node: module — move I/O to caller`
     );
   }
 });

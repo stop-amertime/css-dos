@@ -25,6 +25,7 @@ export function runKiln({ bios, floppy, manifest, kernelBytes, programBytes, out
 }
 
 function runKilnDos({ bios, floppy, manifest, kernelBytes, output, header }) {
+  if (!kernelBytes) throw new Error('runKilnDos: kernelBytes is required');
   const memBytes = resolveMemorySize(manifest.memory?.conventional ?? '640K');
   const prune = {
     gfx:     manifest.memory?.gfx === false,

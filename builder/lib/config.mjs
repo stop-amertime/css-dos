@@ -22,6 +22,8 @@ export function resolveManifest(manifest, files, presets = {}) {
   const presetName = manifest.preset ?? 'dos-muslin';
   if (!VALID_PRESETS.includes(presetName)) {
     errors.push(`preset: must be one of ${VALID_PRESETS.join(', ')}; got ${JSON.stringify(presetName)}`);
+  } else if (presets[presetName] === undefined) {
+    throw new Error(`preset "${presetName}" was not loaded by the caller; pass presets[${JSON.stringify(presetName)}] when calling resolveManifest`);
   }
 
   const preset = presets[presetName] ?? {};
