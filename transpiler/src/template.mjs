@@ -44,6 +44,11 @@ export const STATE_VARS = [
   { name: 'pitReload', init: 0, debug: false },
   { name: 'pitCounter', init: 0, debug: false },
   { name: 'pitWriteState', init: 0, debug: false },
+
+  // Previous-tick snapshot of --keyboard, used to detect press edges for IRQ 1.
+  // --keyboard is driven externally by :active button rules; its double-buffered
+  // snapshot lets us compare this tick's value against last tick's.
+  { name: 'prevKeyboard', init: 0, debug: false },
 ];
 
 /**

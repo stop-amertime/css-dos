@@ -523,12 +523,58 @@ export function pitCounterDefaultExpr() {
 }
 
 /**
- * Default expression for --picPending. Sets bit 0 when the PIT crosses
- * zero this tick. Phase 3 will also OR in bit 1 on keyboard edges and
- * AND-out the bit acknowledged by the IRQ sentinel.
+ * Default expression for --picPending. ORs in bit 0 when the PIT crosses
+ * zero (_pitFired) and bit 1 on a keyboard press edge (_kbdEdge).
+ *
+ * The IRQ-acknowledge branch (clearing --_irqBit) is applied via the
+ * register-level IRQ_OVERRIDES in emit-css.mjs, not here — the override
+ * takes priority over this default when --_irqActive fires.
  */
 export function picPendingDefaultExpr() {
-  return `if(style(--_pitFired: 1): --or(var(--__1picPending), 1); else: var(--__1picPending))`;
+  return `--or(
+    --or(var(--__1picPending), var(--_pitFired)),
+    calc(var(--_kbdEdge) * 2)
+  )`;
+}
+
+/**
+ * Compute properties for IRQ delivery. Emitted as standalone lines in
+ * the .cpu rule — not dispatch-routed.
+ *
+ *   --_kbdEdge:     1 iff --keyboard went from 0 last tick to non-zero now.
+ *   --_picEffective: pending-and-unmasked IRQs, masked to 0 when another
+ *                    IRQ is already in service (prevents nesting).
+ *   --_ifFlag:      interrupt-enable flag (bit 9 of FLAGS).
+ *   --_irqActive:   1 iff an IRQ should fire at this instruction boundary.
+ *   --_irq0Pending: 1 iff IRQ 0 (PIT) is the effective pending IRQ.
+ *                   IRQ 0 has priority over IRQ 1 on real PICs.
+ *   --picVector:    INT vector for the acknowledged IRQ (8 or 9 for now).
+ *   --_irqBit:      bitmask (1 or 2) of the IRQ being acknowledged.
+ *
+ * Phase 3 only handles IRQ 0 (timer) and IRQ 1 (keyboard) — the only ones
+ * Doom8088 cares about. Adding more IRQs would generalize --picVector
+ * and --_irqBit through a lowestBit helper like v3's irq.mjs did.
+ */
+export function emitIRQCompute() {
+  const kbdEdge = `if(
+    style(--keyboard: 0): 0;
+    style(--__1prevKeyboard: 0): 1;
+    else: 0
+  )`;
+  const picEffective = `if(
+    style(--__1picInService: 0): --and(var(--__1picPending), --not(var(--__1picMask)));
+    else: 0
+  )`;
+  return [
+    `  /* IRQ delivery state */`,
+    `  --_kbdEdge: ${kbdEdge};`,
+    `  --_picEffective: ${picEffective};`,
+    `  --_ifFlag: --bit(var(--__1flags), 9);`,
+    `  --_irqActive: if(style(--_ifFlag: 0): 0; style(--_picEffective: 0): 0; else: 1);`,
+    `  --_irq0Pending: --and(var(--_picEffective), 1);`,
+    `  --picVector: if(style(--_irq0Pending: 1): 8; else: 9);`,
+    `  --_irqBit: if(style(--_irq0Pending: 1): 1; else: 2);`,
+  ].join('\n');
 }
 
 /**
