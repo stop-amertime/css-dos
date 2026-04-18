@@ -52,3 +52,4 @@ docs/superpowers/
 entry.err
 bios/build/
 bios/bios.map
+dos/config.sys
