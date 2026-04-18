@@ -1166,6 +1166,16 @@ git commit -m "web: service worker serves cabinets from Cache Storage"
       <a id="turbo-link" href="/turbo.html">Play (turbo)</a>
       <a id="download" download="cabinet.css">Download .css</a>
     </section>
+    <section id="source-viewer" hidden>
+      <h2>4. Source (paginated)</h2>
+      <p class="pager-info">Page <span id="page-num">1</span> of <span id="page-total">0</span> · <span id="page-bytes"></span></p>
+      <div class="pager-controls">
+        <button id="page-prev">« Prev</button>
+        <input id="page-jump" type="number" min="1" value="1">
+        <button id="page-next">Next »</button>
+      </div>
+      <pre id="source-pre"></pre>
+    </section>
   </main>
   <script>
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js', { scope: '/' });
@@ -1215,8 +1225,52 @@ $('start').addEventListener('click', async () => {
   $('result').hidden = false;
   $('size').textContent = `${(blob.size / 1024 / 1024).toFixed(1)} MB`;
   $('download').href = URL.createObjectURL(blob);
+
+  setupSourceViewer(blob);
 });
+
+// Paginated source viewer: slices the Blob into ~50 KB pages and shows one at
+// a time. Never holds more than one page's worth of text in the DOM/JS heap.
+const PAGE_SIZE = 50 * 1024;
+
+function setupSourceViewer(blob) {
+  const pre = $('source-pre');
+  const pageNumEl = $('page-num');
+  const pageTotalEl = $('page-total');
+  const pageBytesEl = $('page-bytes');
+  const jump = $('page-jump');
+  const pageCount = Math.max(1, Math.ceil(blob.size / PAGE_SIZE));
+  let currentPage = 1;
+
+  pageTotalEl.textContent = pageCount;
+  jump.max = pageCount;
+  $('source-viewer').hidden = false;
+
+  async function render(page) {
+    const clamped = Math.max(1, Math.min(pageCount, page));
+    currentPage = clamped;
+    const start = (clamped - 1) * PAGE_SIZE;
+    const end = Math.min(blob.size, start + PAGE_SIZE);
+    const text = await blob.slice(start, end).text();
+    pre.textContent = text;
+    pageNumEl.textContent = clamped;
+    jump.value = clamped;
+    pageBytesEl.textContent = `bytes ${start}–${end - 1}`;
+  }
+
+  $('page-prev').addEventListener('click', () => render(currentPage - 1));
+  $('page-next').addEventListener('click', () => render(currentPage + 1));
+  jump.addEventListener('change', () => render(parseInt(jump.value, 10) || 1));
+
+  render(1);
+}
 ```
+
+**Notes on the source viewer:**
+- Uses `blob.slice(start, end).text()` — slicing a Blob is zero-copy; reading the slice to text materialises at most `PAGE_SIZE` bytes into JS memory. Safe for 500 MB cabinets.
+- Page breaks fall on byte boundaries, not line boundaries; some pages start mid-line. This is intentional (keeps the logic simple and the "this is a huge pile of CSS" aesthetic right). If we ever want line-aligned pages, snap each `end` forward to the next `\n` via a second `slice`.
+- `PAGE_SIZE = 50 * 1024` gives ~10,000 pages on a 500 MB cabinet. Tune this constant to taste.
+- The `<pre>` needs CSS: monospace, fixed height, `overflow: auto`, `white-space: pre-wrap` or `pre` depending on whether you want long-line wrapping. Set this in site.css.
 
 - [ ] **Step 3: site.css**
 
