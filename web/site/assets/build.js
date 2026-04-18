@@ -7,19 +7,108 @@ import { saveCabinet } from '/browser-builder/storage.mjs';
 
 const $ = (id) => document.getElementById(id);
 
-// ── File picker: enable Build button when a file is selected ─────────────────
+// ── File / folder picker ─────────────────────────────────────────────────────
+// Track which input was last used so Build knows which source to read.
+// Picking from one clears the other so we never have both active.
+
+let activeSource = null; // 'file' | 'folder' | null
+
+function runnableNames() {
+  // Returns an array of uppercase filenames (.com/.exe) from the active input.
+  const out = [];
+  if (activeSource === 'file') {
+    const f = $('com-file').files[0];
+    if (f) out.push(f.name.toUpperCase());
+  } else if (activeSource === 'folder') {
+    for (const f of $('dir-file').files || []) {
+      const n = f.name.toUpperCase();
+      if (n.endsWith('.COM') || n.endsWith('.EXE')) out.push(n);
+    }
+  }
+  return out;
+}
+
+function refreshAutorunDropdown() {
+  const sel = $('autorun');
+  const preset = $('preset').value;
+  const runnables = runnableNames();
+
+  // Hack preset: autorun is driven by the single .com — hide the picker.
+  $('autorun-row').hidden = preset === 'hack' || runnables.length === 0;
+
+  // Preserve the user's current choice if it's still valid.
+  const previous = sel.value;
+  sel.innerHTML = '';
+  // COMMAND.COM is always offered — if the cart doesn't include it, the
+  // floppy builder falls back to dos/bin/command.com. Selecting it drops
+  // the user at a DOS prompt instead of auto-running a program.
+  const cmdOpt = document.createElement('option');
+  cmdOpt.value = 'COMMAND.COM';
+  cmdOpt.textContent = 'COMMAND.COM (DOS prompt)';
+  sel.appendChild(cmdOpt);
+  for (const n of runnables) {
+    if (n === 'COMMAND.COM') continue; // avoid a duplicate
+    const opt = document.createElement('option');
+    opt.value = n;
+    opt.textContent = n;
+    sel.appendChild(opt);
+  }
+
+  // Default: single-file mode → autorun that one; else preserve previous or COMMAND.COM.
+  if ([...sel.options].some(o => o.value === previous)) {
+    sel.value = previous;
+  } else if (activeSource === 'file' && runnables.length === 1) {
+    sel.value = runnables[0];
+  } else {
+    sel.value = 'COMMAND.COM';
+  }
+}
 
 $('com-file').addEventListener('change', () => {
   const file = $('com-file').files[0];
-  $('file-name').textContent = file ? file.name : 'No file selected';
-  $('start').disabled = !file;
+  if (!file) return;
+  $('dir-file').value = '';
+  activeSource = 'file';
+  $('file-name').textContent = file.name;
+  $('start').disabled = false;
+  refreshAutorunDropdown();
 });
+
+$('dir-file').addEventListener('change', () => {
+  const files = $('dir-file').files;
+  if (!files || files.length === 0) return;
+  $('com-file').value = '';
+  activeSource = 'folder';
+  $('file-name').textContent = `${files.length} file${files.length === 1 ? '' : 's'} from folder`;
+  $('start').disabled = false;
+  refreshAutorunDropdown();
+});
+
+$('preset').addEventListener('change', refreshAutorunDropdown);
+refreshAutorunDropdown();
 
 // ── Build button ──────────────────────────────────────────────────────────────
 
 $('start').addEventListener('click', async () => {
-  const file = $('com-file').files[0];
-  if (!file) { alert('Pick a .com file first.'); return; }
+  // Collect files from whichever input was used.
+  let cartFiles = []; // [{ name, bytes }]
+  if (activeSource === 'file') {
+    const f = $('com-file').files[0];
+    if (!f) { alert('Pick a file or folder first.'); return; }
+    cartFiles = [{ name: f.name, bytes: new Uint8Array(await f.arrayBuffer()) }];
+  } else if (activeSource === 'folder') {
+    const list = $('dir-file').files;
+    if (!list || list.length === 0) { alert('Pick a file or folder first.'); return; }
+    cartFiles = await Promise.all(
+      [...list].map(async f => ({
+        name: f.name,  // basename only; subfolder paths are flattened
+        bytes: new Uint8Array(await f.arrayBuffer()),
+      })),
+    );
+  } else {
+    alert('Pick a file or folder first.');
+    return;
+  }
 
   // Disable build button while running.
   $('start').disabled = true;
@@ -32,16 +121,18 @@ $('start').addEventListener('click', async () => {
   stages.innerHTML = '';
   $('log').textContent = '';
 
-  const bytes = new Uint8Array(await file.arrayBuffer());
   const preset = $('preset').value;
-  const autorun = file.name.toUpperCase();
+  // COMMAND.COM is the "drop to DOS prompt" option — pass null so the floppy
+  // builder's default branch (add COMMAND.COM + SHELL=\COMMAND.COM) fires.
+  // Any other value is a specific SHELL= target.
+  const autorunSel = $('autorun').value;
+  const autorun = (autorunSel === '' || autorunSel === 'COMMAND.COM') ? null : autorunSel;
 
   let blob;
   try {
     blob = await buildCabinetInBrowser({
       preset,
-      programBytes: bytes,
-      programName: file.name,
+      files: cartFiles,
       autorun,
       onProgress: ({ stage, message }) => {
         // Add a stage <li> to the ordered list.

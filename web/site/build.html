@@ -18,15 +18,24 @@
         <div class="group">
           <span class="group-label">1. Pick your program</span>
           <div class="row">
-            <label class="btn file-label" for="com-file">Open .com</label>
+            <label class="btn file-label" for="com-file">Open file</label>
             <input type="file" id="com-file" accept=".com,.exe">
+            <label class="btn file-label" for="dir-file">Open folder</label>
+            <input type="file" id="dir-file" webkitdirectory directory multiple>
             <span id="file-name" class="dim">No file selected</span>
           </div>
           <div class="row">
             <label for="preset">Preset:</label>
             <select id="preset" class="field">
-              <option value="dos-muslin" selected>DOS + Muslin BIOS</option>
+              <option value="dos-corduroy" selected>DOS + Corduroy BIOS</option>
+              <option value="dos-muslin">DOS + Muslin BIOS</option>
               <option value="hack">hack (.com direct, no DOS)</option>
+            </select>
+          </div>
+          <div class="row" id="autorun-row" hidden>
+            <label for="autorun">Autorun:</label>
+            <select id="autorun" class="field">
+              <option value="">(none — drop to COMMAND.COM prompt)</option>
             </select>
           </div>
           <div class="row">
@@ -50,9 +59,10 @@
           <span class="group-label">3. Your cabinet is ready</span>
           <p id="size" class="dim"></p>
           <div class="row">
-            <a id="play-link" class="btn" href="/play.html" target="_blank">Play (JS-free)</a>
-            <a id="turbo-link" class="btn" href="/turbo.html" target="_blank">Play (turbo)</a>
-            <a id="meter-link" class="btn" href="/meter.html" target="_blank">Play (meter)</a>
+            <a id="play-link" class="btn" href="/player/calcite.html" target="_blank">Play</a>
+            <a id="play-css-link" class="btn" href="/player/play.html" target="_blank">Play (pure CSS)</a>
+            <a id="turbo-link" class="btn" href="/player/turbo.html" target="_blank">Play (turbo)</a>
+            <a id="meter-link" class="btn" href="/player/meter.html" target="_blank">Play (meter)</a>
             <a id="download" class="btn" download="cabinet.css">Download .css</a>
           </div>
         </div>

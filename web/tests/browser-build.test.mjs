@@ -54,7 +54,7 @@ test('dos-muslin: builds a minimal DOS cart', async () => {
 test('rejects unsupported preset', async () => {
   await assert.rejects(
     buildCabinetInBrowser({
-      preset: 'dos-corduroy',
+      preset: 'nonsense-preset',
       programBytes: new Uint8Array([0xC3]),
       programName: 'X.COM',
     }),
