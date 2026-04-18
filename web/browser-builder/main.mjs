@@ -34,12 +34,16 @@ async function fetchBytes(url) {
 /**
  * Load all preset JSON files from /presets/*.json so resolveManifest can
  * merge them. Matches what builder/build.mjs does at startup.
+ * Module-level cache so repeated buildCabinetInBrowser calls skip the fetches.
  */
+let _presetsCache = null;
 async function loadPresets() {
+  if (_presetsCache) return _presetsCache;
   const entries = await Promise.all(
     ALL_PRESET_NAMES.map(async name => [name, await fetchJSON(`/presets/${name}.json`)]),
   );
-  return Object.fromEntries(entries);
+  _presetsCache = Object.fromEntries(entries);
+  return _presetsCache;
 }
 
 /**
@@ -109,10 +113,10 @@ export async function buildCabinetInBrowser({
   const bios = await loadPrebakedBios(biosFlavor);
 
   const writer = new BlobWriter();
-  const header = buildHeader({ preset, biosFlavor, programName: progName });
 
   if (preset === 'hack') {
     // Hack path: program bytes go directly to Kiln as number[].
+    const header = buildHeader({ preset, biosFlavor, programName: progName });
     onProgress({ stage: 'kiln', message: 'Transpiling to CSS...' });
     runKiln({
       bios,
@@ -132,6 +136,7 @@ export async function buildCabinetInBrowser({
     ]);
 
     onProgress({ stage: 'floppy', message: 'Assembling FAT12 floppy image...' });
+    await new Promise(resolve => setTimeout(resolve, 0));
     const floppyAutorun = manifest.boot?.autorun ?? null;
     const floppyArgs = manifest.boot?.args ?? '';
 
@@ -144,7 +149,11 @@ export async function buildCabinetInBrowser({
       args: floppyArgs,
     });
 
+    // Build header after floppy so floppyLayout is available.
+    const header = buildHeader({ preset, biosFlavor, programName: progName, floppyLayout: floppy.layout });
+
     onProgress({ stage: 'kiln', message: 'Transpiling to CSS...' });
+    await new Promise(resolve => setTimeout(resolve, 0));
     // kernelBytes must be number[] to match what builder/build.mjs passes.
     const kernelBytes = [...kernelArr];
 
