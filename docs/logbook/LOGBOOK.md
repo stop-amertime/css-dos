@@ -58,42 +58,30 @@ was abandoned with μOps; must be re-introduced as single-cycle).
 
 ## What's next (in priority order)
 
-Doom8088 is the driving target. Items 1-4 are its blockers. Items 5+ are
+Doom8088 is the driving target. Items 1-5 are its blockers. Items 6+ are
 parallel/follow-on work.
 
-1. **Port decode for PIC/PIT/speaker** — `transpiler/src/patterns/misc.mjs`
-   `emitIO()` currently only handles port 0x60 IN; OUT to every port is a
-   no-op. Add state vars and OUT handlers for:
-   - 0x20 (PIC command: EOI = OUT 0x20, 0x20 clears highest-priority ISR bit)
-   - 0x21 (PIC IMR: data byte sets interrupt mask)
-   - 0x40/0x42 (PIT channel 0/2 reload: lo/hi sequencing)
-   - 0x43 (PIT control word: channel select, r/w mode, counting mode)
-   - 0x61 (PCB control: PC speaker gate + keyboard ack bit toggle)
-   V3's abandoned `legacy/v3/transpiler/src/patterns/pit.mjs` has the
-   pitCounter/pitReload/pitMode/pitWriteState logic; port to V4 single-cycle.
-2. **PIT-driven INT 08h auto-fire** — decrement `--pitCounter` by
-   `floor(Δ--cycleCount / 4)` per retired instruction (mode 3 decrements
-   by 2x). When it crosses zero, raise IRQ 0 via picPending.
-3. **IRQ sentinel dispatch (0xF1) as single-cycle** — force `--opcode`
-   to sentinel 0xF1 when `(picPending & ~picMask & ~picInService) != 0`
-   and IF is set. Sentinel does the same SP-=6 + 3 word pushes + IP/CS
-   from IVT that 0xCD does, but vector comes from `--picVector` and
-   retIP is current IP (no instruction consumed). V3's `legacy/v3/.../irq.mjs`
-   is the template, minus the μOp split.
-4. **INT 09h on keyboard edge** — detect `--keyboard` changes between
-   retired cycles, raise IRQ 1 via picPending. Doom8088 hooks INT 09h
-   directly (bypasses INT 16h), so this is required, not optional.
-5. **INT 13h hard disk rejection** — kernel currently probes hard disks
+1. **C BIOS INT 09h + EOI (#25, #26)** — before session 11's PIC/PIT
+   plumbing (PR #24) can actually run Doom, the C BIOS needs to install
+   an INT 09h handler and both INT 08h and INT 09h need to send `OUT
+   0x20, 0x20` before IRET. Without these, the first BIOS-served IRQ
+   latches `picInService` and wedges the PIC. Doom replaces the handlers
+   itself, but there's a startup window where the BIOS handler runs.
+2. **Conformance diff for PIC/PIT (#28)** — run `tools/compare.mjs` on
+   `keyboard-irq.com` / `timer-irq.asm` to confirm CSS matches
+   `tools/peripherals.mjs` tick-for-tick.
+3. **Keyboard break scancodes (#27)** — Doom8088 tracks held keys via
+   release scancodes (high bit set). `--_kbdEdge` fires press-only;
+   release edges need IRQ + synthesized break scancode on port 0x60.
+4. **INT 13h hard disk rejection** — kernel currently probes hard disks
    and gets floppy geometry, which happens to work. Proper rejection
    (DL >= 0x80 → CF=1) causes a stall after the version string — the
-   kernel hits a timeout loop that requires real PIT ticks. This unblocks
-   itself once item 2 lands.
-6. **Rom-disk WAD validation** — retest Zork+FROTZ (~284 KB), then attempt
-   Doom8088's processed WAD (hundreds of KB). Confirms calcite's flat-array
-   dispatch scales to larger disks.
-7. **More programs** — rogue and other DOS programs.
-8. **Rewrite BIOS in C** — OpenWatcom targeting 8086 real mode. Spec-driven,
-   not a translation of gossamer.
+   kernel hits a timeout loop that requires real PIT ticks. Should
+   unblock itself once items 1-2 land and the PIT actually fires.
+5. **Rom-disk WAD validation** — retest Zork+FROTZ (~284 KB), then
+   attempt Doom8088's processed WAD (hundreds of KB). Confirms calcite's
+   flat-array dispatch scales to larger disks.
+6. **More programs** — rogue and other DOS programs.
 
 ## Recent decisions
 
