@@ -33,17 +33,28 @@ static void outb(unsigned int port, unsigned char val);
 static void int10_ax(unsigned int ax);
 #pragma aux int10_ax = "int 0x10" parm [ax] modify exact [ax bx cx dx];
 
-/* REP STOSB into ES:DI. Parameters: segment, offset, value, count.
-   Calcite pattern-recognises this shape (addr++, counter--, mem[addr]=val)
-   and lowers it to a single MemoryFill op — one CSS tick for the whole fill. */
-static void vga_fill(unsigned int seg, unsigned int off,
-                     unsigned char val, unsigned int count);
-#pragma aux vga_fill =              \
+/* Bulk fill via INT 2F/AH=FE/AL=0 — CSS-DOS vendor extension.
+   Parameters: segment, offset, value, count.
+
+   Writes {kind, dst, count, value} to the BIOS-reserved scratch region
+   at linear 0x510..0x516, then IRETs. Kiln's memory-cell CSS consumes
+   those bytes via --bulkOpKind / --bulkDst / --bulkCount / --bulkValue
+   and, on the following tick, every memory cell in the range
+   [dst, dst+count) sets itself to `val` in parallel. Chrome does the
+   range check per cell; calcite (Task 1.6/1.7) recognises the shape
+   and collapses it to a single Op::MemoryFill.
+
+   A 64 KiB splash clear goes from ~64 000 calcite ticks (one byte per
+   REP STOSB iteration) to 1 tick. */
+static void bulk_fill(unsigned int seg, unsigned int off,
+                      unsigned char val, unsigned int count);
+#pragma aux bulk_fill =             \
     "mov es, ax"                    \
-    "mov al, bl"                    \
-    "rep stosb"                     \
+    "mov dl, bl"                    \
+    "mov ax, 0xFE00"                \
+    "int 0x2F"                      \
     parm [ax] [di] [bl] [cx]        \
-    modify exact [ax bx cx di es];
+    modify exact [ax bx cx dx di es];
 
 static void set_mode_13h(void) {
     int10_ax(0x0013);
@@ -163,10 +174,10 @@ void splash_show(void) {
     set_palette();
 
     /* Fill the screen with dark gray so the logo's black outline is
-       visible. REP STOSB — one CPU instruction (well, one repeated one)
-       for the whole 64000-byte framebuffer. Calcite recognises this as
-       an affine memory-fill and lowers it to a single MemoryFill op. */
-    vga_fill(VGA_SEG, 0, 8, 64000u);
+       visible. One INT 2F/AH=FE/AL=0 dispatch — the handler writes
+       the bulk-op scratch region and the range-predicate CSS in every
+       memory cell evaluates in parallel on the following Chrome tick. */
+    bulk_fill(VGA_SEG, 0, 8, 64000u);
 
     blit_logo(20, 52, 3);
     draw_text(140, 52, "CSS-DOS",       15);

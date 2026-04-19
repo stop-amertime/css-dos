@@ -8,10 +8,24 @@ const BIOS_LINEAR = 0xF0000; // F000:0000
 const BIOS_SEG = 0xF000;
 
 // Number of parallel memory write slots.
-// 6 is the minimum (INT pushes 3 words = 6 bytes).
-// 8 gives headroom for instructions that may need extra slots.
-// Calcite handles many slots efficiently via HashMap lookups.
-export const NUM_WRITE_SLOTS = 8;
+// 6 is the minimum and maximum currently needed (INT pushes 3 words = 6 bytes).
+// Calcite handles many slots efficiently via HashMap lookups, but keeping this
+// tight keeps the emitted CSS small.
+export const NUM_WRITE_SLOTS = 6;
+
+// Bulk-op scratch region (INT 2F/AH=FE vendor extension).
+// Seven bytes at linear 0x510..0x516:
+//   0x510: bulkOpKind  (byte; 1=fill, 0=inactive, 2/3 reserved)
+//   0x511: bulkDst byte 0 (low)
+//   0x512: bulkDst byte 1 (mid)
+//   0x513: bulkDst byte 2 (high — 20-bit linear address)
+//   0x514: bulkCount byte 0 (low)
+//   0x515: bulkCount byte 1 (high)
+//   0x516: bulkValue (byte)
+// Chosen to avoid corduroy's rom-disk LBA at 0x4F0..0x4F1 and HALT_ADDR at 0x504.
+// Still inside the BDA intra-app area and below DOS TPA (0x600).
+export const BULK_OP_SCRATCH_BASE = 0x510;
+export const BULK_OP_SCRATCH_SIZE = 7;
 
 // Standard IVT entries for gossamer.asm (must match handler offsets in gossamer.lst / ref-emu.mjs)
 const BIOS_IVT_HANDLERS = {
@@ -92,9 +106,10 @@ export function dosMemoryZones(programBytes, programOffset, memBytes, embeddedDa
   // range of addresses, so splitting into low/high zones with a gap causes
   // the CPU to execute into unmapped memory.
   //
-  // Note: the LBA register at linear 0x4F0-0x4F1 (BDA intra-app area) is
-  // naturally inside [0x0000, memBytes] and therefore normal writable
-  // memory — no special handling needed.
+  // Note: the LBA register at linear 0x4F0-0x4F1 and the requested-video-
+  // mode latch at linear 0x4F2 (both BDA intra-app area) are naturally
+  // inside [0x0000, memBytes] and therefore normal writable memory — no
+  // special handling needed.
   const zones = [];
   zones.push([0x0000, memBytes]);
   if (!prune.gfx) {

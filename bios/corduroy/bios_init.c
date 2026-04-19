@@ -46,6 +46,7 @@ extern void int16h_handler(void);
 extern void int19h_handler(void);
 extern void int1ah_handler(void);
 extern void int20h_handler(void);
+extern void int2fh_handler(void);
 extern void default_handler(void);
 
 #pragma aux int_dummy       "*"
@@ -61,6 +62,7 @@ extern void default_handler(void);
 #pragma aux int19h_handler  "*"
 #pragma aux int1ah_handler  "*"
 #pragma aux int20h_handler  "*"
+#pragma aux int2fh_handler  "*"
 #pragma aux default_handler "*"
 
 #define HANDLER_OFF(fn) ((unsigned int)(void __near *)(fn))
@@ -94,6 +96,7 @@ static void install_ivt(void) {
     ivt[0x1A * 2] = HANDLER_OFF(int1ah_handler);
     ivt[0x20 * 2] = HANDLER_OFF(int20h_handler);
     ivt[0x21 * 2] = HANDLER_OFF(default_handler);
+    ivt[0x2F * 2] = HANDLER_OFF(int2fh_handler);
 }
 
 static void install_bda(void) {

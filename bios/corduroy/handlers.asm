@@ -17,6 +17,7 @@ global int19h_handler
 global int1ah_handler
 global int20h_handler
 global int_dummy
+global int2fh_handler
 global default_handler
 global interrupt_table
 global config_table
@@ -29,6 +30,11 @@ section _TEXT public align=1 class=CODE use16
 ; ============================================================
 DISK_SEG    equ 0xD000          ; Disk window (linear 0xD0000, 512 bytes, dispatched by CSS)
 disk_lba    equ 0x4F0           ; LBA register, linear 0x4F0 via 0x0000:0x04F0 (BDA intra-app area)
+req_video_mode equ 0x4F2        ; Last mode passed to INT 10h AH=00h, BEFORE the
+                                 ; silent remap to 0x03. Surfaced by the player /
+                                 ; CLI so users see which unsupported mode (EGA,
+                                 ; VGA planar, CGA, Hercules) the program asked
+                                 ; for. Single byte at linear 0x0000:0x04F2.
 BDA_SEG     equ 0x0040          ; BIOS Data Area segment
 BIOS_SEG    equ 0xF000          ; BIOS code segment
 VGA_SEG     equ 0xB800          ; VGA text mode segment
@@ -251,6 +257,14 @@ int10h_handler:
     ; Store requested mode in BDA and reset cursor
     push di
     push cx
+    ; First, save the ORIGINAL requested mode (before any remap) to
+    ; linear 0x04F2 so the host can diagnose "program asked for a
+    ; video mode we don't support".
+    push ax
+    xor cx, cx
+    mov ds, cx
+    mov [req_video_mode], al
+    pop ax
     mov cx, BDA_SEG
     mov ds, cx
     mov byte [video_cur_pos], 0
@@ -994,6 +1008,94 @@ int01h_handler:
 ; Matches reference BIOS int_dummy at FF53h.
 ; ============================================================
 int_dummy:
+    iret
+
+; ============================================================
+; INT 2Fh — CSS-DOS vendor bulk memory ops (AH=0xFE)
+;
+; AH=0xFE selects the vendor extension.
+;   AL=0x00 (fill): ES:DI = dst, CX = count, DL = byte value.
+;     Writes the tuple {kind=1, dst_linear (3 bytes), count (2 bytes),
+;     value (1 byte)} into the BIOS-reserved scratch region at linear
+;     0x510..0x516 for exactly one tick. Kiln's memory-cell CSS
+;     consumes these via --bulkOpKind / --bulkDst / --bulkCount /
+;     --bulkValue and broadcasts the fill across all cells in a
+;     single Chrome tick.
+;   Other AH values: IRET (no other INT 2F consumer exists in a
+;     CSS-DOS program).
+;   Other AL subfunctions: reserved for PR 2 (memcpy) / PR 3 (masked).
+;     Return CF=1 for now.
+;
+; Scratch layout (linear addresses, written via segment 0):
+;   0x510: bulkOpKind   (byte, = 1 for fill)
+;   0x511: bulkDst lo   (linear dst, low byte)
+;   0x512: bulkDst mid  (linear dst, mid byte)
+;   0x513: bulkDst hi   (linear dst, high byte — top 4 bits set for 0xA0000)
+;   0x514: bulkCount lo
+;   0x515: bulkCount hi
+;   0x516: bulkValue    (byte)
+;
+; Why 0x510: 0x4F0..0x4F1 is corduroy's rom-disk LBA word; 0x504 is
+; HALT_ADDR. 0x510..0x516 is unused conventional RAM below DOS TPA
+; (0x600) and inside the BDA intra-app area.
+; ============================================================
+int2fh_handler:
+    cmp ah, 0xFE
+    jne .not_ours
+    cmp al, 0x00
+    je .fill
+    ; Other subfunctions not yet implemented.
+    stc
+    iret
+
+.fill:
+    push ds
+    push ax
+    push bx
+    push cx
+    push dx
+
+    ; Compute linear dst = (ES << 4) + DI into a 24-bit value in DX:AX.
+    ; Low 16 bits of (ES << 4) go in AX, top 4 bits spill into DX low nibble.
+    mov ax, es
+    mov bx, ax                      ; BX = ES (save for hi nibble)
+    mov cl, 4
+    shl ax, cl                      ; AX = (ES << 4) & 0xFFFF
+    mov dx, bx
+    shr dx, cl                      ; DX = ES >> 12 (0..0xF)
+    add ax, di
+    adc dx, 0                       ; DX:AX = 20-bit linear dst
+
+    ; Switch DS to segment 0 for writes to the scratch region.
+    xor bx, bx
+    mov ds, bx
+
+    mov byte [0x510], 1             ; bulkOpKind = 1 (fill)
+    mov [0x511], al                 ; dst byte 0
+    mov [0x512], ah                 ; dst byte 1
+    mov bl, dl
+    mov [0x513], bl                 ; dst byte 2 (top 4 bits of 20-bit address)
+
+    ; CX = count (caller's CX, preserved on stack).
+    ; Stack (top → bottom): dx, cx, bx, ax, ds
+    mov bx, sp
+    mov cx, [bx+2]                  ; caller's CX
+    mov [0x514], cl                 ; count lo
+    mov [0x515], ch                 ; count hi
+
+    ; Caller's DL — original DX is at [bx+0].
+    mov ax, [bx+0]
+    mov [0x516], al                 ; value (low byte of caller DX = caller DL)
+
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    pop ds
+    clc
+    iret
+
+.not_ours:
     iret
 
 ; ============================================================
