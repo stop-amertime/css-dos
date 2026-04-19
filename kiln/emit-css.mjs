@@ -10,7 +10,7 @@ import {
   emitClockAndCpuBase, emitDebugDisplay,
   emitKeyboardRules,
 } from './template.mjs';
-import { emitWriteSlotProperties, buildInitialMemory, buildAddressSet, NUM_WRITE_SLOTS, BULK_OP_SCRATCH_BASE } from './memory.mjs';
+import { emitWriteSlotProperties, buildInitialMemory, buildAddressSet, NUM_WRITE_SLOTS } from './memory.mjs';
 import { emitFlagFunctions } from './patterns/flags.mjs';
 
 // Opcode emitters
@@ -200,10 +200,8 @@ class DispatchTable {
 
       // Build branches: TF/IRQ suppression/push first, then normal dispatch.
       // For slots 0-5 during TF/IRQ: push FLAGS/CS/IP.
-      // For any slot beyond 5 during TF/IRQ: suppress (-1, 0) — the normal
-      // instruction wasn't run, so its writes must not fire either. (With
-      // NUM_WRITE_SLOTS=6 this branch is currently unreachable; retained
-      // so raising the slot count stays safe.)
+      // For slots 6-7 during TF/IRQ: suppress (-1, 0) — the normal instruction
+      // wasn't run, so its writes must not fire either.
       const tfOrIrqAddr = intUsesSlot ? intAddr[slot] : '-1';
       const tfOrIrqVal  = intUsesSlot ? intVal[slot]  : '0';
 
@@ -318,13 +316,11 @@ export function emitCSS(opts, writeStream) {
   w(emitDecodeProperties());
   w(emitPeripheralCompute());
   w(emitIRQCompute());
-  w(emitBulkOpCompute());
 
-  // Unknown opcode detection — sets --unknownOp=1 when the current opcode
-  // has no dispatch entry. --haltCode is a sticky state var: its fall-through
-  // default latches the first offending opcode (see customDefaults below).
+  // Unknown opcode detection — sets --unknownOp=1 and --haltCode=opcode
   writeStream.write('  /* ===== UNKNOWN OPCODE FLAG ===== */\n');
-  writeStream.write(dispatch.emitUnknownOpFlag() + '\n\n');
+  writeStream.write(dispatch.emitUnknownOpFlag() + '\n');
+  writeStream.write('  --haltCode: calc(var(--unknownOp) * var(--opcode));\n\n');
 
   // Per-register dispatch tables — the heart of instruction execution
   writeStream.write('  /* ===== REGISTER DISPATCH TABLES ===== */\n');
@@ -337,19 +333,15 @@ export function emitCSS(opts, writeStream) {
                     'picMask', 'picPending', 'picInService',
                     'pitMode', 'pitReload', 'pitCounter', 'pitWriteState',
                     // Keyboard-edge detection: snapshot current --keyboard.
-                    'prevKeyboard',
-                    // Sticky unknown-opcode latch; see customDefaults below.
-                    'haltCode'];
+                    'prevKeyboard'];
   // Custom defaults: the fall-through expression when no dispatch entry fires
   // for this opcode. pitCounter ticks every instruction; picPending latches
-  // PIT+keyboard edges; prevKeyboard snapshots --keyboard. haltCode latches
-  // the first offending opcode and is sticky thereafter. Everything else
+  // PIT+keyboard edges; prevKeyboard snapshots --keyboard. Everything else
   // just holds its __1 value.
   const customDefaults = {
     pitCounter: pitCounterDefaultExpr(),
     picPending: picPendingDefaultExpr(),
     prevKeyboard: 'var(--keyboard)',
-    haltCode: 'if(style(--__1haltCode: 0) and style(--unknownOp: 1): var(--opcode); else: var(--__1haltCode))',
   };
   for (const reg of regOrder) {
     const defaultExpr = customDefaults[reg] ?? `var(--__1${reg})`;
@@ -379,7 +371,6 @@ export function emitCSS(opts, writeStream) {
     '   followed by memory read/write rules and animation keyframes.\n' +
     '   The CPU logic above is a small fraction of this file. The rest is memory. */\n');
   w(emitPropertyDecls(templateOpts));
-  w(emitBulkOpProperties());
   // Memory properties — emit in chunks to avoid huge strings
   emitMemoryPropertiesStreaming(memOpts, writeStream);
   w(emitWriteSlotProperties());
@@ -418,43 +409,6 @@ export function emitCSS(opts, writeStream) {
   writeStream.write('  }\n}\n\n');
 
   w(emitClockKeyframes());
-}
-
-// --- Bulk-op scaffolding (INT 2F/AH=FE) ---
-
-/**
- * Emit @property declarations for the 6 bulk-op derived variables.
- * These are not double-buffered registers — they are recomputed every tick
- * from the BIOS-reserved scratch memory (linear 0x510..0x516).
- */
-function emitBulkOpProperties() {
-  const names = ['bulkOpKind', 'bulkDst', 'bulkSrc', 'bulkCount', 'bulkValue', 'bulkMask'];
-  return names.map(n => `@property --${n} {
-  syntax: '<integer>';
-  inherits: true;
-  initial-value: 0;
-}`).join('\n\n');
-}
-
-/**
- * Emit .cpu-rule assignments that derive the bulk-op vars from scratch memory.
- * All reads use --__1m<addr> so they reflect the PREVIOUS tick's memory state
- * — the tick after an INT 2F/AH=FE dispatch, which is when the range-predicate
- * clause in memory write rules should fire.
- */
-function emitBulkOpCompute() {
-  const base = 0x510;
-  return [
-    '  /* ===== BULK OP STATE (INT 2F/AH=FE) ===== */',
-    '  /* Derived each tick from the BIOS-reserved scratch region at 0x510..0x516.',
-    '     The INT 2F handler writes these bytes; the memory-cell range-predicate',
-    '     clause reads --bulkOpKind/--bulkDst/--bulkCount/--bulkValue to broadcast',
-    '     a single-tick parallel fill across all cells in the range. */',
-    `  --bulkOpKind: var(--__1m${base + 0});`,
-    `  --bulkDst: calc(var(--__1m${base + 1}) + var(--__1m${base + 2}) * 256 + var(--__1m${base + 3}) * 65536);`,
-    `  --bulkCount: calc(var(--__1m${base + 4}) + var(--__1m${base + 5}) * 256);`,
-    `  --bulkValue: var(--__1m${base + 6});`,
-  ].join('\n');
 }
 
 // --- Streaming memory emitters (write directly, avoid building huge strings) ---
@@ -552,7 +506,6 @@ function emitMemoryBufferReadsStreaming(opts, ws) {
 
 function emitMemoryWriteRulesStreaming(opts, ws) {
   const { addresses } = opts;
-  const kindAddr = BULK_OP_SCRATCH_BASE; // 0x510
   let buf = '';
   let count = 0;
   for (const addr of addresses) {
@@ -560,37 +513,7 @@ function emitMemoryWriteRulesStreaming(opts, ws) {
     for (let i = 0; i < NUM_WRITE_SLOTS; i++) {
       slotLines.push(`    style(--memAddr${i}: ${addr}): var(--memVal${i});`);
     }
-    // Bulk-fill range-predicate clause: fires when an INT 2F/AH=FE/AL=0 was
-    // dispatched on the previous tick (the BIOS handler wrote the scratch
-    // region, and --bulkOpKind reads its buffered value here).
-    //
-    // Self-clear: the kind byte itself (linear 0x510) resets to 0 the same
-    // tick the fill fires, so --bulkOpKind reverts next tick and the fill
-    // only happens once per INT 2F call.
-    //
-    // For every other cell, the clause fires for bulkOpKind=1 regardless of
-    // address; the range check lives inside the value expression. That's so
-    // the style-test stays a single style() — calcite's parser only accepts
-    // style() inside and-chains (not bare calc() comparisons), and Chrome
-    // handles the arithmetic identically. In-range cells get --bulkValue;
-    // out-of-range cells see value unchanged (their --__1m value).
-    //
-    // in-range = sign(max(0, addr - bulkDst + 1))
-    //          * sign(max(0, bulkDst + bulkCount - addr))
-    //   (first factor: 1 iff addr >= bulkDst; second: 1 iff addr < dst+count)
-    let bulkClause;
-    if (addr === kindAddr) {
-      bulkClause = `    style(--bulkOpKind: 1): 0;\n`;
-    } else {
-      const inRange =
-        `sign(max(0, ${addr} - var(--bulkDst) + 1)) ` +
-        `* sign(max(0, var(--bulkDst) + var(--bulkCount) - ${addr}))`;
-      bulkClause =
-        `    style(--bulkOpKind: 1): ` +
-        `calc((${inRange}) * var(--bulkValue) + ` +
-        `(1 - (${inRange})) * var(--__1m${addr}));\n`;
-    }
-    buf += `  --m${addr}: if(\n${bulkClause}${slotLines.join('\n')}\n  else: var(--__1m${addr}));\n`;
+    buf += `  --m${addr}: if(\n${slotLines.join('\n')}\n  else: var(--__1m${addr}));\n`;
     if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
   }
   if (buf) ws.write(buf);
