@@ -9,7 +9,8 @@ Calcite, behaves like a tiny PC with the cart's program already booted.
 This document is the canonical reference for what goes in a cart.
 
 - Schema file: [`program.schema.json`](../program.schema.json) at repo root.
-- Minimum viable cart: a folder with one `.COM` file and no `program.json`.
+- Minimum viable cart: a single `.COM` file, or a folder with one `.COM`
+  file and no `program.json`.
 - The builder will infer defaults for everything unstated.
 
 ## The 30-second path
@@ -22,11 +23,29 @@ Generated mycart.css (227.3 MB)
 ```
 
 That's it. No `program.json` needed. You dropped one program, so the builder
-autoruns it. You didn't specify a BIOS, so the builder picked the Muslin
+autoruns it. You didn't specify a BIOS, so the builder picked the Corduroy
 BIOS (the current default). You didn't specify memory, so the builder gave
 you 640K.
 
 If you need to change any of that, add a `program.json`.
+
+### Even shorter: a bare `.com` is a cart
+
+You don't need a folder at all. A single `.com` (or `.exe`) file path
+is a complete cart on its own. The builder wraps it in a synthetic
+one-file cart directory behind the scenes, applies the default preset
+(`dos-corduroy`), and autoruns the program.
+
+```
+$ node builder/build.mjs ../calcite/programs/fire/fire.com -o fire.css
+Generated fire.css
+```
+
+Useful for trying a random .COM without committing to a folder/manifest.
+If you need any non-default — a different BIOS, extra data files on the
+floppy, a specific memory size — you'll have to promote it to a folder
+cart with a `program.json`. See [`builder/lib/cart.mjs`](../builder/lib/cart.mjs)
+`wrapBareProgram` for the implementation.
 
 ## Cart structure
 
@@ -56,8 +75,8 @@ When `program.json` is missing or sparse, the builder fills in:
 
 | Field | Default |
 |---|---|
-| `preset` | `dos-muslin` |
-| `bios` | derived from preset (`muslin`) |
+| `preset` | `dos-corduroy` |
+| `bios` | derived from preset (`corduroy`) |
 | `memory.conventional` | `640K` for DOS carts; `autofit` for hack carts |
 | `memory.gfx` | `true` |
 | `memory.textVga` | `true` |
@@ -136,7 +155,7 @@ header.
 
 ### `preset` · implemented
 
-One of `dos-muslin` (default), `dos-corduroy`, or `hack`. A preset is a
+One of `dos-corduroy` (default), `dos-muslin`, or `hack`. A preset is a
 partial manifest checked into `builder/presets/` that the cart's own
 fields override selectively. Presets exist so the common case is a
 one-line manifest or no manifest at all.
@@ -165,13 +184,14 @@ Size of conventional RAM, in bytes.
 - Integer → exact bytes (minimum 1024).
 - String → preset (`"4K"`, `"64K"`, `"128K"`, `"256K"`, `"512K"`, `"640K"`)
   or `"autofit"`.
-- `"autofit"` means "smallest safe size for the program" — valid on hack
-  carts, where it sizes just big enough for the `.COM` plus stack
-  headroom. On DOS carts `"autofit"` resolves to `"640K"`.
-
-**Known limitation:** on DOS carts, values below `640K` are accepted by
-the schema but are not known to boot with the current kernel layout. The
-builder warns and proceeds. Tracked as a follow-up.
+- `"autofit"` means "smallest safe size for the program". On hack carts
+  it sizes just big enough for the `.COM` plus stack headroom. On DOS
+  carts it resolves to `DOS_TPA_BASE + programSize + stack + kernel high
+  area` aligned up to 16 KB, clamped to [128 KB, 640 KB] — typically
+  272–480 KB for small programs, `"640K"` for anything large.
+- Note: the Corduroy BIOS places its init stack in a 64 KB window ending
+  just below this value (see `patchBiosStackSeg` in `kiln.mjs`), so the
+  minimum usable size is 128 KB.
 
 ### `memory.gfx` · implemented (DOS) · aspirational (hack)
 
@@ -264,20 +284,20 @@ exclusive with `boot.autorun`. Required on hack carts.
 
 ## Presets in full
 
-### `dos-muslin` (default)
+### `dos-corduroy` (default)
 
 ```json
 {
-  "bios": "muslin",
+  "bios": "corduroy",
   "memory":  { "conventional": "640K", "gfx": true, "textVga": true },
   "disk":    { "mode": "rom", "size": "1440K", "writable": true },
-  "boot":    { "autorun": null, "args": "" }
+  "boot":    { "args": "" }
 }
 ```
 
-### `dos-corduroy`
+### `dos-muslin`
 
-As `dos-muslin`, but `bios: "corduroy"`.
+As `dos-corduroy`, but `bios: "muslin"`.
 
 ### `hack`
 

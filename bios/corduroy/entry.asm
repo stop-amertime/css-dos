@@ -26,13 +26,22 @@ _start:
     cli
     cld
 
-    ; Stack at 0x9000:0xFFFE (top of ~576 KB conventional RAM, linear
-    ; 0x9FFFE). Above IVT/BDA/kernel-load so install_ivt's IVT fill cannot
-    ; stomp our own stack. The old asm BIOS could safely use 0x0030:0x0100
-    ; because its init code did not push/pop during the IVT write loop;
-    ; our C-based install_ivt has caller-save pushes whose stack slots live
-    ; inside the IVT being written, which corrupts the return address.
-    mov ax, 0x9000
+    ; Stack segment is patched at build time by patchBiosStackSeg() in
+    ; builder/stages/kiln.mjs to sit just below the configured memory top:
+    ; SS = (memBytes - 0x10000) / 16, SP = 0xFFFE. For 640 KB builds this
+    ; resolves to 0x9000:FFFE (linear 0x9FFFE) matching the old hardcode;
+    ; for smaller autofit builds it moves down into real RAM instead of
+    ; landing in unmapped memory.
+    ;
+    ; Above IVT/BDA/kernel-load so install_ivt's IVT fill cannot stomp our
+    ; own stack. The old asm BIOS could safely use 0x0030:0x0100 because
+    ; its init code did not push/pop during the IVT write loop; our
+    ; C-based install_ivt has caller-save pushes whose stack slots would
+    ; otherwise land inside the IVT being written.
+    ;
+    ; 0xBEEE is a link-time signature the builder scans for. The pattern
+    ; must appear exactly once in bios.bin.
+    mov ax, 0xBEEE
     mov ss, ax
     mov sp, 0xFFFE
 

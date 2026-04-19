@@ -5,13 +5,13 @@ before starting work and MUST update it before finishing.
 See `PROTOCOL.md` for the entry format. Pre-session-12 entries archived to
 `docs/archive/logbook-sessions-1-12-2026-04.md`.
 
-Last updated: 2026-04-19 (session 12 — eliza/keyboard investigation, inconclusive)
+Last updated: 2026-04-19 (session 13 — autofit memory fix)
 
 ---
 
 ## Current status
 
-V4 single-cycle CSS, 8 memory write slots, rom-disk window at 0xD0000.
+V4 single-cycle CSS, 6 memory write slots (slot-live gated), rom-disk window at 0xD0000.
 Corduroy (C BIOS) is the default DOS BIOS; Muslin (asm) is the fallback.
 Full DOS boot works (BIOS → EDR-DOS kernel → bootle.com). Hardware IRQ
 delivery is live: PIT fires IRQ 0 through IVT[8]; keyboard press/release
@@ -37,7 +37,7 @@ memory. Working hypothesis: file-read fails, eliza hangs pre-input, and
 
 ## What's working
 
-- V4 single-cycle, 8 memory write slots, contiguous 0–640 KB RAM, SP 16-bit clamp.
+- V4 single-cycle, 6 memory write slots (slot-live gated), contiguous 0–640 KB RAM, SP 16-bit clamp.
 - BIOS: INT 10h (Mode 13h, AH=1Ah), INT 13h (floppy via REP MOVSW),
   INT 16h (BDA ring buffer), INT 1Ah (auto-incrementing ticks).
 - Corduroy: real INT 09h handler, EOI on INT 08h/09h.
@@ -100,6 +100,37 @@ yet plumbed; `ref-corduroy.mjs` not yet written.
 Newest first. See `PROTOCOL.md` for format. Pre-session-12 history is
 archived at `docs/archive/logbook-sessions-1-12-2026-04.md`; one-line
 summaries below.
+
+### 2026-04-19 — Session 13: autofit memory fix (Corduroy stack)
+
+**What:** User reported that DOS builds using `memory.conventional:
+"autofit"` (the default for `dos-corduroy`) never boot — only `"640K"`
+worked. Root-caused to the Corduroy entry stub hardcoding its stack at
+`0x9000:0xFFFE` (linear 0x9FFFE), which sits outside autofit memory.
+Autofit for a tiny program produces memBytes=0x44000 (272 KB), so the
+stack lives in unmapped memory: every `push`/`ret` silently corrupts
+control flow, `call bios_init_` never returns to a valid address, and
+boot dies inside BIOS init.
+
+**Fix:** `bios/corduroy/entry.asm` now loads `mov ax, 0xBEEE` before
+`mov ss, ax; mov sp, 0xFFFE`. `patchBiosStackSeg()` in
+`builder/stages/kiln.mjs` rewrites the 0xBEEE immediate to
+`(memBytes - 0x10000) >> 4`, placing the stack in a 64 KB window ending
+just below the configured memory top. Mirrors the existing `0xBEEF`
+→ `conventional_mem_kb` patch pattern.
+
+**Verification:** Built the same tiny .COM cart with autofit vs 640K.
+At 2M ticks both produce identical cycle counts (13,311,444) and the
+same IP (295). Before the fix autofit stalled at IP=94 (spinning in
+the IRQ0 handler after the call chain corrupted); 640K reached IP=295.
+Prebaked web/prebake/corduroy.bin refreshed automatically via
+`refreshPrebake` — browser builder gets the fix on next build.
+
+**Scope:** Only affects Corduroy. Muslin sets its stack at 0x0030:0x0100
+(inside the IVT) and was never broken. Hack path (.COM) doesn't use
+this BIOS stub.
+
+---
 
 ### 2026-04-19 — Session 12: eliza / COMMAND.COM keyboard investigation (inconclusive)
 
