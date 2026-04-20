@@ -73,11 +73,3 @@ Compare by eye: find the commit before your change, find the commit after, diff 
 | int-heavy | 100000 | 346641 | 2.9 | 5.75 (120.5%) | 6.4MB |
 | mov-heavy | 100000 | 404635 | 2.5 | 1.13 (23.7%) | 6.4MB |
 
-## 2026-04-20T08:38:29Z — 8b15be9-dirty — flat-shape now default
-
-| Scenario | Ticks | Ticks/sec | us/tick | MHz (% of 8086) | Cabinet |
-|---|---|---|---|---|---|
-| rogue-menu-idle | 50000 | 401747 | 2.5 | 102.86 (2155.2%) | 417.9MB |
-| int-heavy | 100000 | 363632 | 2.8 | 6.03 (126.4%) | 6.4MB |
-| mov-heavy | 100000 | 426541 | 2.3 | 1.19 (25.0%) | 6.4MB |
-

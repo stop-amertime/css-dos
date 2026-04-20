@@ -534,32 +534,70 @@ function emitMemoryBufferReadsStreaming(opts, ws) {
 }
 
 function emitMemoryWriteRulesStreaming(opts, ws) {
-  // Each byte's write rule checks the 6 memory write slots to see if the
-  // current tick is writing to this address. Every slot is gated by
-  // --_slotNLive: a per-tick dispatch that's 1 only when some opcode uses
-  // slot N (or TF/IRQ is pushing). Non-writing instructions set all six
-  // gates to 0, so every branch rejects at its slotNLive check without
-  // touching --memAddrN.
+  // Each byte's write rule checks the memory write slots to see if the
+  // current tick is writing to this address.
   //
-  // CSS `style(A) and style(B)` short-circuits on the first false operand,
-  // so idle ticks pay one style-query per slot per byte. Calcite's
-  // broadcast-write recogniser (pattern/broadcast_write.rs) peels each
-  // gate off and compiles the whole shape to a gated address-table lookup —
-  // skipping the entire table when the gate reads 0.
+  // Every slot is gated by --_slotNLive: a per-tick dispatch that's 1 only
+  // when some opcode uses slot N (or TF/IRQ is pushing). Non-writing
+  // instructions set all six gates to 0, so the whole nested if() short-
+  // circuits to "keep" without any --memAddrN address lookup.
+  //
+  // Slots nest in order 0→1→2→3→4→5 because slot usage is monotone:
+  // any opcode using slot 2 also uses 0 and 1, etc. (INT pushes 6 bytes,
+  // CALL FAR pushes 4, word stores use 2, byte stores use 1.) That
+  // monotonicity means the order of gate evaluation matches the order in
+  // which slots light up, so a 2-byte write evaluates exactly slots 0-1
+  // and stops at the slot2 gate.
+  //
+  // Calcite's broadcast-write recogniser (broadcast_write.rs) peels each
+  // gate off and skips the whole address table when the gate is 0.
+  // In Chrome the nested if() evaluates top-down and short-circuits the
+  // same way.
   const { addresses } = opts;
+  const flat = process.env.CSS_DOS_FLAT_WRITE_RULES === '1';
   let buf = '';
   let count = 0;
   for (const addr of addresses) {
     const hold = `var(--__1m${addr})`;
-    buf +=
-      `  --m${addr}: if(\n` +
-      `    style(--_slot0Live: 1) and style(--memAddr0: ${addr}): var(--memVal0);\n` +
-      `    style(--_slot1Live: 1) and style(--memAddr1: ${addr}): var(--memVal1);\n` +
-      `    style(--_slot2Live: 1) and style(--memAddr2: ${addr}): var(--memVal2);\n` +
-      `    style(--_slot3Live: 1) and style(--memAddr3: ${addr}): var(--memVal3);\n` +
-      `    style(--_slot4Live: 1) and style(--memAddr4: ${addr}): var(--memVal4);\n` +
-      `    style(--_slot5Live: 1) and style(--memAddr5: ${addr}): var(--memVal5);\n` +
-      `    else: ${hold});\n`;
+    if (flat) {
+      // Flat variant: each slot is its own top-level branch with a conjunction
+      // gate. CSS `style(A) and style(B)` short-circuits on the first false
+      // operand, so on idle ticks every branch rejects at the slotNLive check
+      // without touching --memAddrN. Calcite's broadcast-write recogniser
+      // (pattern/broadcast_write.rs) peels the gate off and compiles this to
+      // the same gated address-table lookup as the nested shape.
+      buf +=
+        `  --m${addr}: if(\n` +
+        `    style(--_slot0Live: 1) and style(--memAddr0: ${addr}): var(--memVal0);\n` +
+        `    style(--_slot1Live: 1) and style(--memAddr1: ${addr}): var(--memVal1);\n` +
+        `    style(--_slot2Live: 1) and style(--memAddr2: ${addr}): var(--memVal2);\n` +
+        `    style(--_slot3Live: 1) and style(--memAddr3: ${addr}): var(--memVal3);\n` +
+        `    style(--_slot4Live: 1) and style(--memAddr4: ${addr}): var(--memVal4);\n` +
+        `    style(--_slot5Live: 1) and style(--memAddr5: ${addr}): var(--memVal5);\n` +
+        `    else: ${hold});\n`;
+    } else {
+      buf +=
+        `  --m${addr}: if(\n` +
+        `    style(--_slot0Live: 1): if(\n` +
+        `      style(--memAddr0: ${addr}): var(--memVal0);\n` +
+        `      style(--_slot1Live: 1): if(\n` +
+        `        style(--memAddr1: ${addr}): var(--memVal1);\n` +
+        `        style(--_slot2Live: 1): if(\n` +
+        `          style(--memAddr2: ${addr}): var(--memVal2);\n` +
+        `          style(--_slot3Live: 1): if(\n` +
+        `            style(--memAddr3: ${addr}): var(--memVal3);\n` +
+        `            style(--_slot4Live: 1): if(\n` +
+        `              style(--memAddr4: ${addr}): var(--memVal4);\n` +
+        `              style(--_slot5Live: 1): if(\n` +
+        `                style(--memAddr5: ${addr}): var(--memVal5);\n` +
+        `                else: ${hold});\n` +
+        `              else: ${hold});\n` +
+        `            else: ${hold});\n` +
+        `          else: ${hold});\n` +
+        `        else: ${hold});\n` +
+        `      else: ${hold});\n` +
+        `    else: ${hold});\n`;
+    }
     if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
   }
   if (buf) ws.write(buf);
