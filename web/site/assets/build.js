@@ -3,7 +3,12 @@
 // Also drives the paginated source viewer.
 
 import { buildCabinetInBrowser } from '/browser-builder/main.mjs';
-import { saveCabinet } from '/browser-builder/storage.mjs';
+import { saveCabinet, purgeCabinets } from '/browser-builder/storage.mjs';
+
+// Cabinets are ephemeral — evict on tab unload so nothing persists across
+// browser sessions. `pagehide` fires for both close and bfcache transitions;
+// the purge itself is fire-and-forget (Cache Storage handles the abort).
+window.addEventListener('pagehide', () => { purgeCabinets(); });
 
 const $ = (id) => document.getElementById(id);
 
@@ -140,6 +145,10 @@ $('start').addEventListener('click', async () => {
   // Disable build button while running.
   $('start').disabled = true;
 
+  // Evict any cabinet left over from a previous build before we start — if
+  // this build fails partway the player tab must not pick up stale bytes.
+  await purgeCabinets();
+
   // Show progress section, clear old state.
   $('progress').hidden = false;
   $('result').hidden = true;
@@ -182,7 +191,8 @@ $('start').addEventListener('click', async () => {
       },
     });
 
-    // Save to Cache Storage so /play.html can load it via the service worker.
+    // Save to Cache Storage so /player/calcite.html can load it via the
+    // service worker. Cache Storage is the cross-tab hop from build→play.
     await saveCabinet(blob);
   } catch (err) {
     const li = document.createElement('li');

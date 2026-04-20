@@ -35,7 +35,8 @@ test('build.html has required structural elements', () => {
 test('build.js uses expected imports and PAGE_SIZE', () => {
   const js = readFileSync(resolve(siteRoot, 'assets', 'build.js'), 'utf8');
   assert.match(js, /import\s*\{\s*buildCabinetInBrowser\s*\}\s*from\s*['"][^'"]+main\.mjs['"]/);
-  assert.match(js, /import\s*\{\s*saveCabinet\s*\}\s*from\s*['"][^'"]+storage\.mjs['"]/);
+  assert.match(js, /import\s*\{[^}]*\bsaveCabinet\b[^}]*\}\s*from\s*['"][^'"]+storage\.mjs['"]/);
+  assert.match(js, /import\s*\{[^}]*\bpurgeCabinets\b[^}]*\}\s*from\s*['"][^'"]+storage\.mjs['"]/);
   assert.match(js, /PAGE_SIZE\s*=\s*50\s*\*\s*1024/);
   assert.match(js, /blob\.slice\(/);
   assert.match(js, /URL\.createObjectURL/);
