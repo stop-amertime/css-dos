@@ -1,5 +1,6 @@
 {
   "flavor": "gossamer",
+  "version": null,
   "entrySegment": null,
   "entryOffset": null,
   "sizeBytes": 639,
