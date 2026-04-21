@@ -42,6 +42,7 @@ const ALIASES = [
   ['/calcite/',         resolve(repoRoot, '..', 'calcite', 'web')],
   ['/tests/',           resolve(__dirname, '..', 'tests')],
   ['/tmp/',             resolve(repoRoot, 'tmp')],
+  ['/bench-assets/',    resolve(repoRoot, '..', 'calcite', 'programs')],
 ];
 
 const ALLOWED_ROOTS = [siteRoot, ...ALIASES.map(([, dir]) => dir)];
