@@ -9,7 +9,7 @@
 // 2. /_stream/fb and /_kbd — the calcite-bridge pipeline. When a page
 //    registers a MessagePort with us ({type:'register-calcite-bridge'}),
 //    we route /_stream/fb fetches into a multipart/x-mixed-replace
-//    response whose body is fed by JPEG frames that arrive over the
+//    response whose body is fed by BMP frames that arrive over the
 //    port, and we forward /_kbd?key=... submissions to the bridge.
 //    This lets player/calcite.html be a pure HTML+CSS runner: the
 //    <img src="/_stream/fb"> pulls a live stream with no page-side JS.
@@ -68,8 +68,7 @@ function handleBridgeMessage(ev) {
   const m = ev.data;
   if (!m || !m.type) return;
   if (m.type === 'frame' && m.bytes) {
-    // bytes is an ArrayBuffer; mime defaults to image/jpeg for back-compat.
-    broadcastFrame(m.bytes, m.mime || 'image/jpeg');
+    broadcastFrame(m.bytes, m.mime || 'image/bmp');
   }
 }
 

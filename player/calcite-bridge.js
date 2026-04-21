@@ -1,9 +1,9 @@
 // player/calcite-bridge.js
-// The calcite bridge: a dedicated worker spawned by build.html (and
-// split.html) on page load. Hosts the calcite WASM engine against the
-// cached cabinet, encodes each frame as JPEG, and ships the bytes over
-// a MessagePort to the service worker, which fans them out into any
-// active /_stream/fb multipart responses.
+// The calcite bridge: a dedicated module worker spawned by build.html
+// (and split.html) on page load. Hosts the calcite WASM engine against
+// the cached cabinet, assembles each frame as a BMP, and ships the
+// bytes over a MessagePort to the service worker, which fans them out
+// into any active /_stream/fb multipart responses.
 //
 // This is the "output device" side of /player/calcite.html: when that
 // page opens its <img> fetches /_stream/fb and the SW starts piping
@@ -12,11 +12,6 @@
 // Lifetime: tied to the page that spawned the bridge. Close that tab
 // and this worker dies; the runner freezes on its last frame.
 
-// Classic worker — loaded via dynamic import inside boot() so the
-// calcite-worker.js path is mirrored exactly. Module-type workers
-// appeared to tick ~7x slower than classic on this machine (Chrome
-// 147, 2026-04-21) despite loading the same WASM artifact. Until we
-// understand why, ape what's known to be fast.
 let initCalcite, CalciteEngine;
 
 let engine = null;
@@ -26,38 +21,18 @@ let swPort = null;
 let cachedCss = null;     // the cabinet CSS, read once at boot
 let running = false;      // tick loop gate — true only while a viewer is watching
 
-// JPEG encoder — OffscreenCanvas whose size tracks the active video mode.
-let encCanvas = null;
-let encCtx = null;
-let encWidth = 0;
-let encHeight = 0;
-let encImageData = null;
 
-// Frame pacing. We don't want to encode faster than the SW can push or
-// the browser can decode. Cap at 60 fps wall-clock; one outstanding
-// encode at a time; skip frames whose checksum matches the previous.
-const MIN_FRAME_MS = 1000 / 60;
-let lastFrameMs = 0;
-let encodeInFlight = false;
-let lastChecksum = -1;
-
-// Calcite batch sizing — mirrors grid.html so the feel matches.
-// Batch pacing — mirrors calcite.html's adapter. Start small (200
-// cycles) and let the EMA grow batchCount until each tick hits
-// ~TARGET_MS. For dense cabinets the steady state is a few thousand
-// cycles per batch; for sparse ones it walks up to MAX. Hardcoding a
-// large MIN starves the adapter and forces hundreds of milliseconds
-// per batch on any cabinet calcite finds expensive.
+// Batch pacing — start small (200 cycles) and let the EMA grow
+// batchCount until each tick hits ~TARGET_MS. For dense cabinets the
+// steady state is a few thousand cycles per batch; for sparse ones it
+// walks up to MAX. Hardcoding a large MIN starves the adapter and forces
+// hundreds of milliseconds per batch on any cabinet calcite finds expensive.
 const TARGET_MS = 14;
 const EMA_ALPHA = 0.3;
 const MIN_BATCH = 50;
 const MAX_BATCH = 50000;
 let batchCount = 200;
 let batchMsEma = TARGET_MS;
-// Per-phase EMAs — tick = engine.tick_batch time only; emit = everything
-// after (read VRAM + rasterise text + build BMP + postMessage).
-let tickOnlyMsEma = 0;
-let emitMsEma = 0;
 
 // VGA 16-color palette for text-mode rasterisation (matches
 // calcite-worker.js). Duplicated here to keep this worker self-contained.
@@ -75,30 +50,7 @@ const CYCLES_PER_FRAME = 68182; // 70 Hz at 4.77 MHz 8086 timebase
 // Canary — bump this when you change this file so you can confirm the
 // browser is actually serving the new version. Shows up in every status
 // line so it's impossible to miss in the console.
-const BRIDGE_VERSION = 'v19-instr';
-
-// Frame codec. Each convertToBlob call reads this, so you can swap
-// codecs live in devtools without reloading. Trade-offs:
-//   jpeg@0.85  — default before v13. Fast (~5ms/640x400), small, but
-//                visible chroma-subsampling smearing on text/pixel art.
-//   webp@0.95  — similar encode cost, much milder artifacts. Default.
-//   webp@1     — lossless WebP. Perfect pixels, ~15–25ms/frame.
-//   png        — lossless, slowest (~30–80ms/frame). Sharpest possible.
-//
-// Switch live: self.__frameCodec = { type:'image/png' }; etc.
-let frameCodec = { type: 'image/webp', quality: 0.95 };
-// Expose on the worker scope so it's inspectable and swappable from
-// the page via `__calciteBridge.postMessage(...)` pattern, or from
-// devtools after attaching to this worker.
-Object.defineProperty(self, '__frameCodec', {
-  get() { return frameCodec; },
-  set(v) {
-    if (v && typeof v === 'object' && typeof v.type === 'string') {
-      frameCodec = v;
-      postStatus(`codec → ${v.type}${v.quality != null ? '@' + v.quality : ''}`);
-    }
-  },
-});
+const BRIDGE_VERSION = 'v23';
 
 async function boot() {
   postStatus(`bridge boot ${BRIDGE_VERSION}`);
@@ -215,12 +167,7 @@ function resetMachine() {
     }
     engine = new CalciteEngine(cachedCss);
   }
-  // Reset pacing + dedup state so the first frame after a restart
-  // actually gets sent even if it happens to hash the same as the
-  // last frame of the previous run.
-  lastChecksum = -1;
-  lastFrameMs = 0;
-  encodeInFlight = false;
+  // Reset pacing so the adapter relearns for the new run.
   batchCount = MIN_BATCH;
   batchMsEma = TARGET_MS;
   postStatus('machine reset; running');
@@ -245,20 +192,12 @@ function tickLoop() {
     running = false;
     return;
   }
-  const tickEnd = performance.now();
-  const batchDt = tickEnd - batchStart;
+  const batchDt = performance.now() - batchStart;
   batchMsEma = batchMsEma * (1 - EMA_ALPHA) + batchDt * EMA_ALPHA;
   const ratio = Math.max(0.5, Math.min(2.0, TARGET_MS / batchMsEma));
   batchCount = Math.max(MIN_BATCH, Math.min(MAX_BATCH, Math.round(batchCount * ratio)));
 
-  // Per-batch profiling. Tick time is "useful" work; emit time is "render
-  // overhead". If emit >> tick, splitting to two workers is high-value.
-  // We track an EMA of each so the stats line shows steady-state split.
-  tickOnlyMsEma = tickOnlyMsEma * (1 - EMA_ALPHA) + batchDt * EMA_ALPHA;
-  const emitStart = tickEnd;
   maybeEmitFrame();
-  const emitDt = performance.now() - emitStart;
-  emitMsEma = emitMsEma * (1 - EMA_ALPHA) + emitDt * EMA_ALPHA;
 
   // Yield back to the event loop so SW-port messages (kbd input) get
   // drained promptly. We use MessageChannel here rather than
@@ -334,12 +273,16 @@ function buildBmpHeader(w, h) {
 
 function maybeEmitFrame() {
   if (!swPort) return;
-  if (encodeInFlight) return;
-  const now = performance.now();
-  if (now - lastFrameMs < MIN_FRAME_MS) return;
 
   const mode = engine.get_video_mode();
   const isGfxMode = mode === 0x13;
+
+  // Fallback: if the program entered Mode 13h but detect_video() didn't
+  // find a gfx region at init (common for hack-preset carts that set the
+  // mode after boot), synthesize the standard Mode 13h geometry here.
+  if (isGfxMode && !videoRegions.gfx) {
+    videoRegions.gfx = { addr: 0xA0000, size: 320*200, width: 320, height: 200 };
+  }
 
   let rgba = null;
   let w = 0, h = 0;
@@ -366,40 +309,31 @@ function maybeEmitFrame() {
     return;
   }
 
-  // Assemble BMP: header + RGBA pixels in one buffer. We own `rgba` for
-  // text mode (we just allocated it); for gfx mode it's a wasm-memory
-  // view we must copy out of. Single combined allocation is cleaner.
+  // Assemble BMP: header + RGBA pixels in one buffer. For text mode we
+  // own `rgba` (just allocated); for gfx mode it's a wasm-memory view
+  // we must copy out of. Single combined allocation is cleaner.
   const header = buildBmpHeader(w, h);
   const pixelBytes = w * h * 4;
   const fileBytes = new Uint8Array(BMP_HEADER_SIZE + pixelBytes);
   fileBytes.set(header, 0);
   fileBytes.set(rgba, BMP_HEADER_SIZE);
 
-  encodeInFlight = true;
-  lastFrameMs = now;
-  const encStart = performance.now();
-  // No async encode — just the assembly cost above. Measured anyway
-  // so the stats line keeps its meaning.
-  lastEncodeMs = performance.now() - encStart;
   frameCount++;
   lastFrameBytes = fileBytes.byteLength;
-  if (swPort) {
-    // Transfer the underlying ArrayBuffer so the SW owns it after post.
-    const buf = fileBytes.buffer;
-    swPort.postMessage({ type: 'frame', bytes: buf, width: w, height: h, mime: 'image/bmp' }, [buf]);
-  }
-  encodeInFlight = false;
+  // Transfer the underlying ArrayBuffer so the SW owns it after post.
+  const buf = fileBytes.buffer;
+  swPort.postMessage({ type: 'frame', bytes: buf, width: w, height: h, mime: 'image/bmp' }, [buf]);
 }
 
 let frameCount = 0;
 let lastReportFrames = 0;
-let totalEncodeMs = 0;
-let lastEncodeMs = 0;
 let lastFrameBytes = 0;
 let statsIntervalId = null;
 
-// Bench-stats channel. Anyone on the same origin can subscribe — the bench
-// page uses this to sample cycles/frames/encodeMs at 1 Hz.
+// Bench-stats channel. Anyone on the same origin can subscribe to
+// 'cssdos-bridge-stats' for 1 Hz samples of cycles/frames/batch — the
+// bench page uses this. Publishing it unconditionally is cheap (no
+// listeners = no-op postMessage).
 let benchChannel = null;
 try { benchChannel = new BroadcastChannel('cssdos-bridge-stats'); } catch {}
 const bridgeStartMs = performance.now();
@@ -411,8 +345,7 @@ function startStatsInterval() {
     lastReportFrames = frameCount;
     const cycles = engine ? (engine.get_state_var('cycleCount') >>> 0) : 0;
     postStatus(
-      `[${BRIDGE_VERSION}] ${delta} fps | total frames ${frameCount} | cycles ${cycles.toLocaleString()} ` +
-      `| tick ${tickOnlyMsEma.toFixed(1)}ms emit ${emitMsEma.toFixed(1)}ms ` +
+      `[${BRIDGE_VERSION}] ${delta} fps | cycles ${cycles.toLocaleString()} ` +
       `| size ${(lastFrameBytes/1024).toFixed(0)}KB ` +
       `| batch ${batchMsEma.toFixed(1)}ms (${batchCount} cyc) ` +
       `| mode=0x${engine ? engine.get_video_mode().toString(16) : '?'}`
@@ -424,12 +357,9 @@ function startStatsInterval() {
           wallMs: performance.now() - bridgeStartMs,
           cycles,
           framesEncoded: frameCount,
-          lastEncodeMs,
           lastFrameBytes,
           batchCount,
           batchMsEma,
-          tickOnlyMsEma,
-          emitMsEma,
           fpsWindow: delta,
           videoMode: engine ? engine.get_video_mode() : null,
         });
@@ -496,12 +426,6 @@ function rasteriseText(buf, cols, rows, outRGBA, opts) {
 self.onmessage = (ev) => {
   const d = ev.data;
   if (!d || !d.type) return;
-  if (d.type === 'set-codec') {
-    // Let the page swap codecs at runtime without reloading. Called via
-    // window.__calciteBridge.postMessage({type:'set-codec', codec: {...}}).
-    self.__frameCodec = d.codec;
-    return;
-  }
   if (d.type === 'sw-port' && ev.ports && ev.ports[0]) {
     swPort = ev.ports[0];
     swPort.onmessage = (m) => {

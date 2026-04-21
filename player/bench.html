@@ -44,39 +44,54 @@
       logEl.textContent += s + '\n';
     }
 
-    // Zork1-2 cart. We rely on the `/bench-assets/` dev-server alias
-    // pointing at ../calcite/programs/.
-    const CART_FILES = [
-      '_ZORK1.COM',
-      'NNANSI.COM',
-      'README.TXT',
-      'SETUP.INF',
-      'ZORK1.BAT',
-      'DATA/ZORK1.DAT',
-      'DATA/ZORK1.SAV',
-    ];
-    const CART_BASE = '/bench-assets/zork1-2/';
-    const AUTORUN = '_ZORK1.COM';
-    const PRESET = 'dos-corduroy';
+    // Cart selection. Default is Zork1-2 (dos-corduroy, boot-stabilisation
+    // test). `?cart=plasma` switches to the 44-byte Mode 13h plasma — a
+    // CPU-bound workload that writes every pixel every frame, so peak
+    // throughput actually matters. No stabilisation point — runs forever
+    // at ~uniform cycles/sec.
+    const CART_CHOICE = new URLSearchParams(location.search).get('cart') || 'zork';
+    const CARTS = {
+      zork: {
+        base: '/bench-assets/zork1-2/',
+        files: ['_ZORK1.COM', 'NNANSI.COM', 'README.TXT', 'SETUP.INF', 'ZORK1.BAT', 'DATA/ZORK1.DAT', 'DATA/ZORK1.SAV'],
+        autorun: '_ZORK1.COM',
+        preset: 'dos-corduroy',
+      },
+      plasma: {
+        // Hack preset: just the .COM, no floppy. We embed the 44 bytes
+        // as hex so no fetch is needed.
+        hex: 'b81300cd10b800a08ed831ed31ff31d231c989d001c801e888054741' +
+             '81f9400172f04281fac80072e745ebe0',
+        programName: 'PLASMA.COM',
+        preset: 'hack',
+      },
+    };
+    const CART = CARTS[CART_CHOICE];
 
-    // Fetch cart files. Missing ones (e.g. DATA/ZORK1.SAV) are skipped
-    // rather than fatal — the cart works without saves.
+    // Fetch cart files (or decode the embedded hex for plasma).
+    // Missing files (e.g. DATA/ZORK1.SAV) are skipped rather than fatal.
     async function fetchCart() {
+      if (CART.hex) {
+        // Inline cart — just decode.
+        const hex = CART.hex;
+        const bytes = new Uint8Array(hex.length / 2);
+        for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.substr(i*2, 2), 16);
+        return { programBytes: bytes, programName: CART.programName };
+      }
       const out = [];
-      for (const rel of CART_FILES) {
-        const url = CART_BASE + rel;
+      for (const rel of CART.files) {
+        const url = CART.base + rel;
         try {
           const r = await fetch(url);
           if (!r.ok) { log(`  skip ${rel} (HTTP ${r.status})`); continue; }
           const bytes = new Uint8Array(await r.arrayBuffer());
-          // Use mkfat12-compatible name (uppercase, backslash-separated).
           const name = rel.toUpperCase().replaceAll('/', '\\');
           out.push({ name, bytes });
         } catch (e) {
           log(`  skip ${rel} (${e.message})`);
         }
       }
-      return out;
+      return { files: out };
     }
 
     // Wait for the SW to be the controller. On hard refresh it can take
@@ -127,16 +142,20 @@
       log(`\n=== run ${runIndex} ===`);
 
       const t0 = performance.now();
-      log('fetching cart files...');
-      const files = await fetchCart();
-      log(`  got ${files.length} files`);
+      log(`cart: ${CART_CHOICE}`);
+      const cart = await fetchCart();
+      if (cart.files) log(`  got ${cart.files.length} files`);
 
       log('building cabinet...');
-      const blob = await buildCabinetInBrowser({
-        preset: PRESET,
-        files,
-        autorun: AUTORUN,
-      });
+      const buildOpts = { preset: CART.preset };
+      if (cart.programBytes) {
+        buildOpts.programBytes = cart.programBytes;
+        buildOpts.programName = cart.programName;
+      } else {
+        buildOpts.files = cart.files;
+        buildOpts.autorun = CART.autorun;
+      }
+      const blob = await buildCabinetInBrowser(buildOpts);
       log(`  cabinet: ${(blob.size/1024/1024).toFixed(1)} MB`);
       await saveCabinet(blob);
       log(`  saved to Cache Storage in ${(performance.now()-t0).toFixed(0)}ms`);
@@ -166,8 +185,9 @@
         });
       });
 
-      log(`run ${runIndex} DONE: ${result.totalMs.toFixed(0)}ms, ${result.avgFps.toFixed(1)} fps, ` +
-          `${(result.steadyCyclesPerSec/1000).toFixed(0)} kHz (${result.pctOf8086.toFixed(1)}% of 8086)`);
+      log(`run ${runIndex} DONE: ${result.totalMs.toFixed(0)}ms, ` +
+          `boot ${result.pctOf8086.toFixed(1)}%, idle ${result.idlePctOf8086.toFixed(1)}% of 8086, ` +
+          `${result.idleEncodedPerSec.toFixed(0)} fps`);
       return result;
     }
 
@@ -186,8 +206,6 @@
         idleCyclesPerSec:  stats(pick('idleCyclesPerSec')),
         idlePctOf8086:     stats(pick('idlePctOf8086')),
         idleEncodedPerSec: stats(pick('idleEncodedPerSec')),
-        idleSkippedPerSec: stats(pick('idleSkippedPerSec')),
-        lastEncodeMs:      stats(pick('lastEncodeMs')),
         steadyBatch:       stats(pick('steadyBatch')),
       };
     }
@@ -211,11 +229,8 @@
           bootPct: +r.pctOf8086.toFixed(1),
           idlePct: +r.idlePctOf8086.toFixed(1),
           idleEncFps: +r.idleEncodedPerSec.toFixed(1),
-          idleSkipFps: +r.idleSkippedPerSec.toFixed(1),
-          enc: +r.lastEncodeMs.toFixed(1),
           batch: r.steadyBatch,
           bridgeFrames: r.bridgeFramesEncoded,
-          bridgeSkipped: r.bridgeFramesSkipped,
         })) }, null, 2);
         window.__benchSummary = { summary, runs };
         statusEl.textContent = `done (${n} runs)`;
