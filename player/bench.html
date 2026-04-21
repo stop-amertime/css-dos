@@ -180,14 +180,15 @@
       };
       return {
         n: runs.length,
-        totalMs:      stats(pick('totalMs')),
-        avgFps:       stats(pick('avgFps')),
-        cyclesPerSec: stats(pick('steadyCyclesPerSec')),
-        pctOf8086:    stats(pick('pctOf8086')),
-        lastEncodeMs: stats(pick('lastEncodeMs')),
-        steadyBatch:  stats(pick('steadyBatch')),
-        interFrameStddev: stats(runs.map(r => r.interFrameMs.stddev)),
-        interFrameP99:    stats(runs.map(r => r.interFrameMs.p99)),
+        toTargetMs:        stats(pick('toTargetMs')),
+        cyclesPerSec:      stats(pick('steadyCyclesPerSec')),
+        pctOf8086:         stats(pick('pctOf8086')),
+        idleCyclesPerSec:  stats(pick('idleCyclesPerSec')),
+        idlePctOf8086:     stats(pick('idlePctOf8086')),
+        idleEncodedPerSec: stats(pick('idleEncodedPerSec')),
+        idleSkippedPerSec: stats(pick('idleSkippedPerSec')),
+        lastEncodeMs:      stats(pick('lastEncodeMs')),
+        steadyBatch:       stats(pick('steadyBatch')),
       };
     }
 
@@ -206,16 +207,15 @@
         }
         const summary = summarise(runs);
         resultsEl.textContent = JSON.stringify({ summary, runs: runs.map(r => ({
-          totalMs: +r.totalMs.toFixed(0),
-          avgFps: +r.avgFps.toFixed(2),
-          cps: +r.steadyCyclesPerSec.toFixed(0),
-          pct: +r.pctOf8086.toFixed(1),
+          toTargetMs: +r.toTargetMs.toFixed(0),
+          bootPct: +r.pctOf8086.toFixed(1),
+          idlePct: +r.idlePctOf8086.toFixed(1),
+          idleEncFps: +r.idleEncodedPerSec.toFixed(1),
+          idleSkipFps: +r.idleSkippedPerSec.toFixed(1),
           enc: +r.lastEncodeMs.toFixed(1),
           batch: r.steadyBatch,
-          iframeStddev: +r.interFrameMs.stddev.toFixed(1),
-          iframeP99: +r.interFrameMs.p99.toFixed(1),
           bridgeFrames: r.bridgeFramesEncoded,
-          imgFrames: r.imgFramesReceived,
+          bridgeSkipped: r.bridgeFramesSkipped,
         })) }, null, 2);
         window.__benchSummary = { summary, runs };
         statusEl.textContent = `done (${n} runs)`;

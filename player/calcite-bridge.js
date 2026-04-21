@@ -71,7 +71,30 @@ const CYCLES_PER_FRAME = 68182; // 70 Hz at 4.77 MHz 8086 timebase
 // Canary — bump this when you change this file so you can confirm the
 // browser is actually serving the new version. Shows up in every status
 // line so it's impossible to miss in the console.
-const BRIDGE_VERSION = 'v12-renamed';
+const BRIDGE_VERSION = 'v18-bmp';
+
+// Frame codec. Each convertToBlob call reads this, so you can swap
+// codecs live in devtools without reloading. Trade-offs:
+//   jpeg@0.85  — default before v13. Fast (~5ms/640x400), small, but
+//                visible chroma-subsampling smearing on text/pixel art.
+//   webp@0.95  — similar encode cost, much milder artifacts. Default.
+//   webp@1     — lossless WebP. Perfect pixels, ~15–25ms/frame.
+//   png        — lossless, slowest (~30–80ms/frame). Sharpest possible.
+//
+// Switch live: self.__frameCodec = { type:'image/png' }; etc.
+let frameCodec = { type: 'image/webp', quality: 0.95 };
+// Expose on the worker scope so it's inspectable and swappable from
+// the page via `__calciteBridge.postMessage(...)` pattern, or from
+// devtools after attaching to this worker.
+Object.defineProperty(self, '__frameCodec', {
+  get() { return frameCodec; },
+  set(v) {
+    if (v && typeof v === 'object' && typeof v.type === 'string') {
+      frameCodec = v;
+      postStatus(`codec → ${v.type}${v.quality != null ? '@' + v.quality : ''}`);
+    }
+  },
+});
 
 async function boot() {
   postStatus(`bridge boot ${BRIDGE_VERSION}`);
@@ -81,16 +104,8 @@ async function boot() {
   initCalcite = mod.default;
   CalciteEngine = mod.CalciteEngine;
   await initCalcite();
-  // 2. Fetch cabinet from SW cache. Keep the raw CSS so we can rebuild
-  //    the engine from scratch every time a viewer connects.
-  const r = await fetch('/cabinet.css');
-  if (!r.ok) throw new Error(`cabinet fetch failed: ${r.status}`);
-  cachedCss = await r.text();
-  if (!cachedCss || cachedCss.trim().length === 0) {
-    postStatus('No cabinet cached yet. Build one on this page, reopen the viewer after.');
-    return;
-  }
-  // 3. Try to grab the VGA font for text modes.
+  // 2. Try to grab the VGA font for text modes. (Before cabinet
+  //    compile so it overlaps with any in-flight build.)
   try {
     const fr = await fetch('/player/fonts/vga-8x16.bin');
     if (fr.ok) {
@@ -98,22 +113,61 @@ async function boot() {
       if (buf.length === 4096) fontAtlas = buf;
     }
   } catch {}
-  postStatus('Calcite bridge ready (waiting for viewer to connect)');
+  // 3. Listen for cabinet-ready broadcasts from the builder. Fires
+  //    whenever storage.saveCabinet() lands a new cabinet in cache.
+  //    On fire we fetch the bytes and compile. This keeps the bridge
+  //    passive until there's actually something to run.
+  try {
+    const bc = new BroadcastChannel('cssdos-cabinet');
+    bc.onmessage = (ev) => {
+      if (ev.data && ev.data.type === 'cabinet-ready') {
+        compileCabinet().catch((e) => postStatus('compile error: ' + (e.message || e)));
+      }
+    };
+  } catch {}
+  // 4. If a cabinet is ALREADY in cache (page reload, second visit),
+  //    compile it now without waiting for a fresh build.
+  try {
+    const r = await fetch('/cabinet.css');
+    if (r.ok) {
+      const css = await r.text();
+      if (css && css.trim().length > 0 && !css.startsWith('/* CSS-DOS: no cabinet')) {
+        cachedCss = css;
+        await compileCabinet();
+        return;
+      }
+    }
+  } catch {}
+  postStatus('waiting for a cabinet to be built...');
 }
 
-
-// Fresh machine. Called on every viewer connection — tears down the
-// previous engine and builds a new one from the cabinet CSS. The CPU
-// starts at the reset vector; BIOS splash plays; boot proceeds.
-function resetMachine() {
-  if (!cachedCss) return;
-  // Drop the old engine. WASM-owned memory will be freed when GC runs;
-  // the wasm-bindgen generated class has a `.free()` method if we need
-  // to be aggressive about it.
+// Parse + compile cached CSS into a CalciteEngine. Idempotent on
+// cabinet content — if the bytes match what we've already compiled
+// (same cachedCss string), no-op. Called from boot() on initial load
+// and from the cabinet-ready broadcast listener.
+async function compileCabinet() {
+  // Re-read the cache so we always compile the freshest bytes.
+  const r = await fetch('/cabinet.css');
+  if (!r.ok) { postStatus('cabinet fetch failed: ' + r.status); return; }
+  const css = await r.text();
+  if (!css || css.trim().length === 0 || css.startsWith('/* CSS-DOS: no cabinet')) {
+    postStatus('cabinet fetch returned empty placeholder');
+    return;
+  }
+  if (engine && css === cachedCss) {
+    // Already compiled this exact cabinet. Still refresh videoRegions
+    // in case we missed a detect_video() invalidation; cheap.
+    return;
+  }
+  cachedCss = css;
   if (engine && typeof engine.free === 'function') {
     try { engine.free(); } catch {}
   }
-  engine = new CalciteEngine(cachedCss);
+  engine = null;
+  postStatus('compiling cabinet (' + (css.length / 1024 / 1024).toFixed(1) + ' MB)...');
+  const t0 = performance.now();
+  engine = new CalciteEngine(css);
+  const compileMs = performance.now() - t0;
   const videoJson = engine.detect_video();
   const parsed = JSON.parse(videoJson) || {};
   videoRegions = {
@@ -122,6 +176,40 @@ function resetMachine() {
   };
   if (!videoRegions.text && !videoRegions.gfx) {
     videoRegions.text = { addr: 0xB8000, size: 4000, width: 80, height: 25 };
+  }
+  postStatus(`cabinet compiled in ${(compileMs / 1000).toFixed(1)}s (ready)`);
+}
+
+
+// Reset the machine to its power-on state. Called on every viewer
+// connection — the engine is already compiled (in boot() or a
+// previous viewer-connect), so this only resets runtime state via
+// engine.reset(). Cheap. The CPU restarts at the reset vector;
+// BIOS splash plays; boot proceeds.
+function resetMachine() {
+  if (!engine) {
+    // No engine yet — the cabinet either hasn't been fetched, or a
+    // newer cabinet has since been built. (Re)compile now.
+    if (!cachedCss) return;
+    engine = new CalciteEngine(cachedCss);
+    const videoJson = engine.detect_video();
+    const parsed = JSON.parse(videoJson) || {};
+    videoRegions = {
+      text: parsed.text || null,
+      gfx: parsed.gfx || null,
+    };
+    if (!videoRegions.text && !videoRegions.gfx) {
+      videoRegions.text = { addr: 0xB8000, size: 4000, width: 80, height: 25 };
+    }
+  } else if (typeof engine.reset === 'function') {
+    // Fast path — state-only reset, no recompile.
+    engine.reset();
+  } else {
+    // Old WASM without reset(). Fall back to rebuild.
+    if (typeof engine.free === 'function') {
+      try { engine.free(); } catch {}
+    }
+    engine = new CalciteEngine(cachedCss);
   }
   // Reset pacing + dedup state so the first frame after a restart
   // actually gets sent even if it happens to hash the same as the
@@ -174,15 +262,62 @@ function tickLoop() {
 const tickChannel = new MessageChannel();
 tickChannel.port2.onmessage = () => tickLoop();
 
-// ---------- Framebuffer extraction + encode ----------
+// ---------- Framebuffer extraction + BMP emit ----------
+//
+// No OffscreenCanvas, no convertToBlob. We build a BMP frame in-memory
+// by writing a BITMAPV4HEADER (top-down via negative height, BI_BITFIELDS
+// with RGBA channel masks) directly over the RGBA bytes. Chrome decodes
+// this natively in <img>. The only per-frame work is a single Uint8Array
+// allocation + one .set() of the pixels.
+//
+// Why not JPEG/WebP: encoding cost (~20-30 ms) was dominating the pipeline.
+// BMP costs ~0 ms to "encode"; the trade is wire size (~512 KB/frame for
+// 320x200 gfx, ~2 MB for 640x400 text-through-font). The SW→<img> path
+// is entirely in-process so wire size is cheap.
+//
+// Header layout (122 bytes total):
+//   [0..14)   BITMAPFILEHEADER      "BM" + file size + pixel offset
+//   [14..122) BITMAPV4HEADER       size, geometry, bitfield masks, colourspace
 
-function ensureEncoder(w, h) {
-  if (encWidth === w && encHeight === h && encCanvas) return;
-  encWidth = w;
-  encHeight = h;
-  encCanvas = new OffscreenCanvas(w, h);
-  encCtx = encCanvas.getContext('2d');
-  encImageData = encCtx.createImageData(w, h);
+const BMP_HEADER_SIZE = 14 + 108; // fileheader + V4
+let bmpCachedHeader = null;
+let bmpCachedGeom = { w: 0, h: 0 };
+
+function buildBmpHeader(w, h) {
+  if (bmpCachedHeader && bmpCachedGeom.w === w && bmpCachedGeom.h === h) {
+    return bmpCachedHeader;
+  }
+  const pixelBytes = w * h * 4;
+  const fileSize = BMP_HEADER_SIZE + pixelBytes;
+  const buf = new ArrayBuffer(BMP_HEADER_SIZE);
+  const dv = new DataView(buf);
+  // BITMAPFILEHEADER
+  dv.setUint8(0, 0x42); dv.setUint8(1, 0x4D);         // 'BM'
+  dv.setUint32(2, fileSize, true);                     // bfSize
+  dv.setUint32(6, 0, true);                            // reserved
+  dv.setUint32(10, BMP_HEADER_SIZE, true);             // bfOffBits
+  // BITMAPV4HEADER
+  dv.setUint32(14, 108, true);                         // biSize
+  dv.setInt32(18, w, true);                            // biWidth
+  dv.setInt32(22, -h, true);                           // biHeight (negative = top-down)
+  dv.setUint16(26, 1, true);                           // biPlanes
+  dv.setUint16(28, 32, true);                          // biBitCount
+  dv.setUint32(30, 3, true);                           // biCompression = BI_BITFIELDS
+  dv.setUint32(34, pixelBytes, true);                  // biSizeImage
+  dv.setInt32(38, 2835, true);                         // biXPelsPerMeter (72 dpi)
+  dv.setInt32(42, 2835, true);                         // biYPelsPerMeter
+  dv.setUint32(46, 0, true);                           // biClrUsed
+  dv.setUint32(50, 0, true);                           // biClrImportant
+  // Channel masks: little-endian RGBA-in-memory ⇒ byte 0 = R, byte 1 = G, etc.
+  dv.setUint32(54, 0x000000FF, true);                  // R mask
+  dv.setUint32(58, 0x0000FF00, true);                  // G mask
+  dv.setUint32(62, 0x00FF0000, true);                  // B mask
+  dv.setUint32(66, 0xFF000000, true);                  // A mask
+  dv.setUint32(70, 0x57696E20, true);                  // CSType = 'Win ' (sRGB)
+  // Remaining 36 bytes of BITMAPV4HEADER (endpoints + gammas) zeroed by default.
+  bmpCachedHeader = new Uint8Array(buf);
+  bmpCachedGeom = { w, h };
+  return bmpCachedHeader;
 }
 
 function maybeEmitFrame() {
@@ -219,32 +354,29 @@ function maybeEmitFrame() {
     return;
   }
 
-  // No checksum-dedup. Encode and ship every frame. Rationale: if
-  // the screen didn't change, we don't care about low fps — nothing
-  // would move anyway. And checksum-ing the whole framebuffer every
-  // tick is itself non-trivial work we'd rather not pay.
+  // Assemble BMP: header + RGBA pixels in one buffer. We own `rgba` for
+  // text mode (we just allocated it); for gfx mode it's a wasm-memory
+  // view we must copy out of. Single combined allocation is cleaner.
+  const header = buildBmpHeader(w, h);
+  const pixelBytes = w * h * 4;
+  const fileBytes = new Uint8Array(BMP_HEADER_SIZE + pixelBytes);
+  fileBytes.set(header, 0);
+  fileBytes.set(rgba, BMP_HEADER_SIZE);
 
-  // Encode.
-  ensureEncoder(w, h);
-  encImageData.data.set(rgba);
-  encCtx.putImageData(encImageData, 0, 0);
   encodeInFlight = true;
   lastFrameMs = now;
   const encStart = performance.now();
-  encCanvas.convertToBlob({ type: 'image/jpeg', quality: 0.85 })
-    .then(async (blob) => {
-      const encMs = performance.now() - encStart;
-      const buf = await blob.arrayBuffer();
-      frameCount++;
-      totalEncodeMs += encMs;
-      lastEncodeMs = encMs;
-      lastFrameBytes = buf.byteLength;
-      if (swPort) {
-        swPort.postMessage({ type: 'frame', bytes: buf, width: w, height: h }, [buf]);
-      }
-    })
-    .catch((e) => { postStatus('encode error: ' + e.message); })
-    .finally(() => { encodeInFlight = false; });
+  // No async encode — just the assembly cost above. Measured anyway
+  // so the stats line keeps its meaning.
+  lastEncodeMs = performance.now() - encStart;
+  frameCount++;
+  lastFrameBytes = fileBytes.byteLength;
+  if (swPort) {
+    // Transfer the underlying ArrayBuffer so the SW owns it after post.
+    const buf = fileBytes.buffer;
+    swPort.postMessage({ type: 'frame', bytes: buf, width: w, height: h, mime: 'image/bmp' }, [buf]);
+  }
+  encodeInFlight = false;
 }
 
 let frameCount = 0;
@@ -253,17 +385,42 @@ let totalEncodeMs = 0;
 let lastEncodeMs = 0;
 let lastFrameBytes = 0;
 let statsIntervalId = null;
+
+// Bench-stats channel. Anyone on the same origin can subscribe — the bench
+// page uses this to sample cycles/frames/encodeMs at 1 Hz.
+let benchChannel = null;
+try { benchChannel = new BroadcastChannel('cssdos-bridge-stats'); } catch {}
+const bridgeStartMs = performance.now();
+
 function startStatsInterval() {
   if (statsIntervalId) return;
   statsIntervalId = setInterval(() => {
     const delta = frameCount - lastReportFrames;
     lastReportFrames = frameCount;
+    const cycles = engine ? (engine.get_state_var('cycleCount') >>> 0) : 0;
     postStatus(
-      `[${BRIDGE_VERSION}] ${delta} fps | total ${frameCount} | enc ${lastEncodeMs.toFixed(1)}ms ` +
+      `[${BRIDGE_VERSION}] ${delta} fps | total frames ${frameCount} | cycles ${cycles.toLocaleString()} ` +
+      `| enc ${lastEncodeMs.toFixed(1)}ms ` +
       `| size ${(lastFrameBytes/1024).toFixed(1)}KB ` +
       `| batch ${batchMsEma.toFixed(1)}ms (${batchCount} cyc) ` +
       `| mode=0x${engine ? engine.get_video_mode().toString(16) : '?'}`
     );
+    if (benchChannel) {
+      try {
+        benchChannel.postMessage({
+          type: 'bridge-stats',
+          wallMs: performance.now() - bridgeStartMs,
+          cycles,
+          framesEncoded: frameCount,
+          lastEncodeMs,
+          lastFrameBytes,
+          batchCount,
+          batchMsEma,
+          fpsWindow: delta,
+          videoMode: engine ? engine.get_video_mode() : null,
+        });
+      } catch {}
+    }
   }, 1000);
 }
 
@@ -325,6 +482,12 @@ function rasteriseText(buf, cols, rows, outRGBA, opts) {
 self.onmessage = (ev) => {
   const d = ev.data;
   if (!d || !d.type) return;
+  if (d.type === 'set-codec') {
+    // Let the page swap codecs at runtime without reloading. Called via
+    // window.__calciteBridge.postMessage({type:'set-codec', codec: {...}}).
+    self.__frameCodec = d.codec;
+    return;
+  }
   if (d.type === 'sw-port' && ev.ports && ev.ports[0]) {
     swPort = ev.ports[0];
     swPort.onmessage = (m) => {
@@ -333,24 +496,22 @@ self.onmessage = (ev) => {
       if (mm.type === 'kbd' && engine) {
         engine.set_keyboard(mm.key | 0);
       } else if (mm.type === 'viewer-connected') {
-        // New viewer opened the stream. Re-fetch the cabinet (in case
-        // a newer one was built since we last loaded), reset the
-        // machine, and start running — they want to watch it boot.
+        // New viewer opened the stream. The engine is (usually) already
+        // compiled — compileCabinet() ran on boot if a cabinet was
+        // cached, or ran via the cabinet-ready broadcast if one got
+        // built since. Fast path here: engine.reset(), start running.
+        // If no engine yet the user is watching before a cabinet's
+        // been built; we can't show anything.
         (async () => {
-          try {
-            const r = await fetch('/cabinet.css');
-            if (r.ok) {
-              const css = await r.text();
-              if (css && css.trim().length > 0) cachedCss = css;
-              postStatus('[fetch] cabinet bytes=' + (cachedCss?.length || 0));
-            }
-          } catch {}
+          // Defensive re-fetch: if a newer cabinet landed between the
+          // broadcast and this message, recompile. Usually no-op.
+          await compileCabinet().catch(() => {});
           resetMachine();
           if (engine) {
             running = true;
             tickLoop();
           } else {
-            postStatus('no cabinet to run; build one on this page and reopen the viewer');
+            postStatus('no cabinet to run; build one first');
           }
         })();
       } else if (mm.type === 'viewer-disconnected') {

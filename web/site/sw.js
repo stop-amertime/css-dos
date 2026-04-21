@@ -68,17 +68,17 @@ function handleBridgeMessage(ev) {
   const m = ev.data;
   if (!m || !m.type) return;
   if (m.type === 'frame' && m.bytes) {
-    // bytes is an ArrayBuffer containing a complete JPEG.
-    broadcastFrame(m.bytes);
+    // bytes is an ArrayBuffer; mime defaults to image/jpeg for back-compat.
+    broadcastFrame(m.bytes, m.mime || 'image/jpeg');
   }
 }
 
-function broadcastFrame(jpegBuffer) {
+function broadcastFrame(frameBuffer, mime) {
   if (streamControllers.size === 0) return;
-  const bytes = new Uint8Array(jpegBuffer);
+  const bytes = new Uint8Array(frameBuffer);
   const header = ENC.encode(
     `--${BOUNDARY}\r\n` +
-    `Content-Type: image/jpeg\r\n` +
+    `Content-Type: ${mime}\r\n` +
     `Content-Length: ${bytes.byteLength}\r\n\r\n`
   );
   const trailer = ENC.encode(`\r\n`);
