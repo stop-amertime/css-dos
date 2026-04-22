@@ -120,7 +120,6 @@ function runKilnDos({ bios, floppy, manifest, kernelBytes, output, header }) {
   const prune = {
     gfx:     manifest.memory?.gfx === false,
     textVga: manifest.memory?.textVga === false,
-    cgaGfx:  manifest.memory?.cgaGfx !== true,
   };
 
   // embeddedData is reserved for legacy "embedded disk" mode; with
@@ -149,13 +148,8 @@ function runKilnHack({ bios, manifest, programBytes, output, header }) {
   const autofitBytes = Math.max(0x600, programOffset + programBytes.length + 0x100);
   const memBytes = resolveMemorySize(manifest.memory?.conventional ?? 'autofit', { autofitBytes });
 
-  const prune = {
-    gfx:     manifest.memory?.gfx !== true,     // opt-in for hack carts
-    cgaGfx:  manifest.memory?.cgaGfx !== true,  // opt-in for hack carts
-  };
-
   const embeddedData = [buildIVTData()];
-  const memoryZones = comMemoryZones(programBytes, programOffset, memBytes, prune);
+  const memoryZones = comMemoryZones(programBytes, programOffset, memBytes);
 
   emitCSS({
     programBytes,
