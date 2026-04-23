@@ -95,6 +95,41 @@ ${emitBitwiseNot()}
   result: calc(--readMem(var(--at)) + --readMem(calc(var(--at) + 1)) * 256);
 }
 
+/* ===== PACKED-CELL HELPERS =====
+   Memory is packed 2 bytes to a cell (cell holds b0 | b1<<8 — a 16-bit word).
+   Value range 0..65535 stays well inside i32, so calcite's sign semantics
+   don't corrupt byte extraction.
+   --extractByte reads one byte from a cell; --applySlot conditionally splices
+   a slot's write into a cell. Both take the cell-internal offset (0..1) as a
+   function parameter so style() queries match against parameter values. */
+
+@function --extractByte(--cell <integer>, --off <integer>) returns <integer> {
+  result: if(
+    style(--off: 0): mod(var(--cell), 256);
+    style(--off: 1): round(down, var(--cell) / 256);
+  else: 0);
+}
+
+@function --spliceByte(--cell <integer>, --val <integer>, --off <integer>) returns <integer> {
+  result: if(
+    style(--off: 0): calc(round(down, var(--cell) / 256) * 256 + var(--val));
+    style(--off: 1): calc(var(--val) * 256 + mod(var(--cell), 256));
+  else: var(--cell));
+}
+
+/* Conditionally splice a slot's write into a cell. --off is the slot's byte
+   offset within this cell (--memAddrN - cellBase). If --live=0 or --off is
+   outside 0..1 the cell passes through unchanged. Chained 6 times per cell
+   (slot 5 innermost, slot 0 outermost) so slot 0 wins on same-cell collisions
+   — matching the current byte-level top-down dispatch semantics. */
+@function --applySlot(--cell <integer>, --live <integer>, --off <integer>, --val <integer>) returns <integer> {
+  result: if(
+    style(--live: 0): var(--cell);
+    style(--off: 0): calc(round(down, var(--cell) / 256) * 256 + var(--val));
+    style(--off: 1): calc(var(--val) * 256 + mod(var(--cell), 256));
+  else: var(--cell));
+}
+
 /* ===== POWER OF 2 LOOKUP ===== */
 /* Used for variable-count shifts (SHL/SHR by CL).
    Maps 0..31 → 2^0..2^31. Values beyond 31 return 0. */

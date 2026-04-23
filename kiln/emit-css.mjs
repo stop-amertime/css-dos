@@ -10,7 +10,8 @@ import {
   emitClockAndCpuBase, emitDebugDisplay,
   emitKeyboardRules,
 } from './template.mjs';
-import { emitWriteSlotProperties, buildInitialMemory, buildAddressSet, NUM_WRITE_SLOTS } from './memory.mjs';
+import { emitWriteSlotProperties, buildInitialMemory, buildAddressSet, NUM_WRITE_SLOTS,
+         PACK_SIZE, buildCellSet, buildInitialMemoryPacked, cellIdxOf, cellOffOf } from './memory.mjs';
 import { emitFlagFunctions } from './patterns/flags.mjs';
 
 // Opcode emitters
@@ -442,12 +443,26 @@ const CHUNK = 8192; // lines per write() call
 
 function emitMemoryPropertiesStreaming(opts, ws) {
   const { addresses } = opts;
-  const initMem = buildInitialMemory(opts);
+  if (PACK_SIZE === 1) {
+    const initMem = buildInitialMemory(opts);
+    let buf = '';
+    let count = 0;
+    for (const addr of addresses) {
+      const init = initMem.get(addr) || 0;
+      buf += `@property --m${addr} {\n  syntax: '<integer>';\n  inherits: true;\n  initial-value: ${init};\n}\n\n`;
+      if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
+    }
+    if (buf) ws.write(buf);
+    return;
+  }
+  // Packed: one @property per cell. `--mc{cellIdx}` holds PACK_SIZE bytes.
+  const cells = buildCellSet(addresses);
+  const cellInit = buildInitialMemoryPacked(opts);
   let buf = '';
   let count = 0;
-  for (const addr of addresses) {
-    const init = initMem.get(addr) || 0;
-    buf += `@property --m${addr} {\n  syntax: '<integer>';\n  inherits: true;\n  initial-value: ${init};\n}\n\n`;
+  for (const idx of cells) {
+    const init = cellInit.get(idx) || 0;
+    buf += `@property --mc${idx} {\n  syntax: '<integer>';\n  inherits: true;\n  initial-value: ${init};\n}\n\n`;
     if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
   }
   if (buf) ws.write(buf);
@@ -465,8 +480,18 @@ function emitReadMemStreaming(opts, ws) {
       buf += `    style(--at: 1280): --lowerBytes(var(--__1keyboard), 8);\n`;
     } else if (addr === 0x0501) {
       buf += `    style(--at: 1281): --rightShift(var(--__1keyboard), 8);\n`;
-    } else {
+    } else if (PACK_SIZE === 1) {
       buf += `    style(--at: ${addr}): var(--__1m${addr});\n`;
+    } else {
+      const idx = cellIdxOf(addr);
+      const off = cellOffOf(addr);
+      // Inline byte extraction for fewer @function call frames. Chrome handles
+      // either shape; flat arithmetic is friendlier to the pattern recogniser.
+      // PACK_SIZE=2: off=0 = low byte, off=1 = high byte. Values fit in i32.
+      let expr;
+      if (off === 0) expr = `mod(var(--__1mc${idx}), 256)`;
+      else expr = `round(down, var(--__1mc${idx}) / 256)`;
+      buf += `    style(--at: ${addr}): ${expr};\n`;
     }
     if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
   }
@@ -518,12 +543,25 @@ function emitReadDiskByteStreaming(diskBytes, ws) {
 
 function emitMemoryBufferReadsStreaming(opts, ws) {
   const { addresses } = opts;
-  const initMem = buildInitialMemory(opts);
+  if (PACK_SIZE === 1) {
+    const initMem = buildInitialMemory(opts);
+    let buf = '';
+    let count = 0;
+    for (const addr of addresses) {
+      const init = initMem.get(addr) || 0;
+      buf += `  --__1m${addr}: var(--__2m${addr}, ${init});\n`;
+      if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
+    }
+    if (buf) ws.write(buf);
+    return;
+  }
+  const cells = buildCellSet(addresses);
+  const cellInit = buildInitialMemoryPacked(opts);
   let buf = '';
   let count = 0;
-  for (const addr of addresses) {
-    const init = initMem.get(addr) || 0;
-    buf += `  --__1m${addr}: var(--__2m${addr}, ${init});\n`;
+  for (const idx of cells) {
+    const init = cellInit.get(idx) || 0;
+    buf += `  --__1mc${idx}: var(--__2mc${idx}, ${init});\n`;
     if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
   }
   if (buf) ws.write(buf);
@@ -543,19 +581,44 @@ function emitMemoryWriteRulesStreaming(opts, ws) {
   // gate off and compiles the whole shape to a gated address-table lookup —
   // skipping the entire table when the gate reads 0.
   const { addresses } = opts;
+  if (PACK_SIZE === 1) {
+    let buf = '';
+    let count = 0;
+    for (const addr of addresses) {
+      const hold = `var(--__1m${addr})`;
+      buf +=
+        `  --m${addr}: if(\n` +
+        `    style(--_slot0Live: 1) and style(--memAddr0: ${addr}): var(--memVal0);\n` +
+        `    style(--_slot1Live: 1) and style(--memAddr1: ${addr}): var(--memVal1);\n` +
+        `    style(--_slot2Live: 1) and style(--memAddr2: ${addr}): var(--memVal2);\n` +
+        `    style(--_slot3Live: 1) and style(--memAddr3: ${addr}): var(--memVal3);\n` +
+        `    style(--_slot4Live: 1) and style(--memAddr4: ${addr}): var(--memVal4);\n` +
+        `    style(--_slot5Live: 1) and style(--memAddr5: ${addr}): var(--memVal5);\n` +
+        `    else: ${hold});\n`;
+      if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
+    }
+    if (buf) ws.write(buf);
+    return;
+  }
+  // Packed: each cell's value is a 6-level cascade of --applySlot calls.
+  // Slot 0 is outermost (applied last) so it wins on same-cell collisions —
+  // matching the legacy top-down byte-level dispatch semantics. Every
+  // --applySlot short-circuits to its input cell when the corresponding
+  // --_slotNLive is 0, so idle ticks pay 6 style-query gates per cell.
+  const cells = buildCellSet(addresses);
   let buf = '';
   let count = 0;
-  for (const addr of addresses) {
-    const hold = `var(--__1m${addr})`;
-    buf +=
-      `  --m${addr}: if(\n` +
-      `    style(--_slot0Live: 1) and style(--memAddr0: ${addr}): var(--memVal0);\n` +
-      `    style(--_slot1Live: 1) and style(--memAddr1: ${addr}): var(--memVal1);\n` +
-      `    style(--_slot2Live: 1) and style(--memAddr2: ${addr}): var(--memVal2);\n` +
-      `    style(--_slot3Live: 1) and style(--memAddr3: ${addr}): var(--memVal3);\n` +
-      `    style(--_slot4Live: 1) and style(--memAddr4: ${addr}): var(--memVal4);\n` +
-      `    style(--_slot5Live: 1) and style(--memAddr5: ${addr}): var(--memVal5);\n` +
-      `    else: ${hold});\n`;
+  for (const idx of cells) {
+    // Build the cascade inside-out: start with __1mcIDX, then slot5, slot4,
+    // ..., slot0.  The `${idx} * ${PACK_SIZE}` arithmetic (rather than the
+    // pre-folded `${cellBase(idx)}`) is deliberate: it keeps the per-cell
+    // digit run equal to the cell index, so the parser fast-path classifies
+    // it as an Addr hole (not a Free hole) and can template the whole run.
+    let expr = `var(--__1mc${idx})`;
+    for (let slot = NUM_WRITE_SLOTS - 1; slot >= 0; slot--) {
+      expr = `--applySlot(${expr}, var(--_slot${slot}Live), calc(var(--memAddr${slot}) - ${idx} * ${PACK_SIZE}), var(--memVal${slot}))`;
+    }
+    buf += `  --mc${idx}: ${expr};\n`;
     if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
   }
   if (buf) ws.write(buf);
@@ -563,12 +626,25 @@ function emitMemoryWriteRulesStreaming(opts, ws) {
 
 function emitMemoryStoreKeyframeStreaming(opts, ws) {
   const { addresses } = opts;
-  const initMem = buildInitialMemory(opts);
+  if (PACK_SIZE === 1) {
+    const initMem = buildInitialMemory(opts);
+    let buf = '';
+    let count = 0;
+    for (const addr of addresses) {
+      const init = initMem.get(addr) || 0;
+      buf += `    --__2m${addr}: var(--__0m${addr}, ${init});\n`;
+      if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
+    }
+    if (buf) ws.write(buf);
+    return;
+  }
+  const cells = buildCellSet(addresses);
+  const cellInit = buildInitialMemoryPacked(opts);
   let buf = '';
   let count = 0;
-  for (const addr of addresses) {
-    const init = initMem.get(addr) || 0;
-    buf += `    --__2m${addr}: var(--__0m${addr}, ${init});\n`;
+  for (const idx of cells) {
+    const init = cellInit.get(idx) || 0;
+    buf += `    --__2mc${idx}: var(--__0mc${idx}, ${init});\n`;
     if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
   }
   if (buf) ws.write(buf);
@@ -576,10 +652,21 @@ function emitMemoryStoreKeyframeStreaming(opts, ws) {
 
 function emitMemoryExecuteKeyframeStreaming(opts, ws) {
   const { addresses } = opts;
+  if (PACK_SIZE === 1) {
+    let buf = '';
+    let count = 0;
+    for (const addr of addresses) {
+      buf += `    --__0m${addr}: var(--m${addr});\n`;
+      if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
+    }
+    if (buf) ws.write(buf);
+    return;
+  }
+  const cells = buildCellSet(addresses);
   let buf = '';
   let count = 0;
-  for (const addr of addresses) {
-    buf += `    --__0m${addr}: var(--m${addr});\n`;
+  for (const idx of cells) {
+    buf += `    --__0mc${idx}: var(--mc${idx});\n`;
     if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
   }
   if (buf) ws.write(buf);

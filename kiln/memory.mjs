@@ -24,6 +24,34 @@ export const DAC_BYTES  = 768;
 // without giving up any expressible instruction.
 export const NUM_WRITE_SLOTS = 6;
 
+// Packed memory cells — pack PACK_SIZE bytes into a single @property.
+// 1 = unpacked (one byte per property, the legacy shape).
+// 2 = two bytes per cell (cell = b0 | b1<<8).  Max value 65535 — fits in i32
+//     (and in CSS's ~30-bit <integer> safe range with lots of headroom).
+// 4 = four bytes per cell is NOT safe: values with byte3 >= 0x80 exceed i32
+//     max, which calcite truncates to a negative number, corrupting
+//     byte-extraction via `mod/round(down, .../K)`.
+//
+// Reads: --readMem(addr) translates to inline byte extraction on
+// --__1mc{cellIdx} where cellIdx = addr >> 1 and off = addr & 1.
+// Writes: each cell's write rule is a 6-level cascade of --applySlot calls
+// that splice each active slot's byte into the cell; slot 0 outermost so it
+// wins on same-cell collisions (matching the old top-down byte-level
+// dispatch semantics).
+//
+// Configurable via env var KILN_PACK (1 or 2). Default is 2 now.
+export const PACK_SIZE = (() => {
+  const raw = typeof process !== 'undefined' && process.env && process.env.KILN_PACK;
+  if (!raw) return 2;
+  const n = parseInt(raw, 10);
+  if (n === 1 || n === 2) return n;
+  throw new Error(`KILN_PACK must be 1 or 2, got ${raw}`);
+})();
+
+export function cellIdxOf(addr) { return Math.floor(addr / PACK_SIZE); }
+export function cellOffOf(addr) { return addr % PACK_SIZE; }
+export function cellBase(cellIdx) { return cellIdx * PACK_SIZE; }
+
 // Standard IVT entries for gossamer.asm (must match handler offsets in gossamer.lst / ref-emu.mjs)
 const BIOS_IVT_HANDLERS = {
   0x10: 0x0000,  // INT 10h - Video services
@@ -201,6 +229,35 @@ export function emitReadMem(opts) {
   lines.push(`  else: 0);`);
   lines.push(`}`);
   return lines.join('\n');
+}
+
+/**
+ * Build the set of cell indices covering the writable address set.
+ * Returns a sorted array of cell indices (each cell covers PACK_SIZE bytes
+ * starting at cellIdx * PACK_SIZE).
+ */
+export function buildCellSet(addresses) {
+  const cells = new Set();
+  for (const addr of addresses) {
+    cells.add(cellIdxOf(addr));
+  }
+  return [...cells].sort((a, b) => a - b);
+}
+
+/**
+ * Pack initial-memory bytes into a Map<cellIdx, cellValue>.
+ * Non-zero cells only. Values are <= 2^(8*PACK_SIZE) - 1.
+ */
+export function buildInitialMemoryPacked(opts) {
+  const initMem = buildInitialMemory(opts);
+  const cells = new Map();
+  for (const [addr, byte] of initMem) {
+    const idx = cellIdxOf(addr);
+    const off = cellOffOf(addr);
+    const prev = cells.get(idx) || 0;
+    cells.set(idx, prev + byte * Math.pow(256, off));
+  }
+  return cells;
 }
 
 /**
