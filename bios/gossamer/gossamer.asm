@@ -172,12 +172,16 @@ int10h_handler:
     je .store_mode
     cmp al, 0x04           ; CGA 320x200x4 — 16 KB aperture at B8000
     je .store_mode
+    cmp al, 0x05           ; CGA 320x200x4 mono — same aperture, grey palette
+    je .store_mode
     mov al, 0x03
 .store_mode:
     mov [0x0049], al       ; store video_mode in BDA
     cmp al, 0x13
     je .set_mode_13h
     cmp al, 0x04
+    je .set_mode_04h
+    cmp al, 0x05           ; mode 5 clears the 16 KB aperture just like mode 4
     je .set_mode_04h
     ; --- Text mode clear: 2000 words of space+attr at 0xB8000 ---
     mov ax, 0xB800

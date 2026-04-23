@@ -312,7 +312,7 @@ function maybeEmitFrame() {
   } else if (mode.kind === 'cga4') {
     const vram = engine.read_memory_range(mode.vramAddr, 0x4000);
     rgba = new Uint8Array(w * h * 4);
-    decodeCga4(vram, palReg, rgba);
+    decodeCga4(vram, palReg, rgba, { mono: !!mode.mono });
     // Count non-zero bytes to tell a "blank VRAM" frame from a "decoder
     // is eating pixels" frame. Also sample a few offsets so we can see
     // whether the game is writing even-plane (0..0x1FFF) vs odd-plane

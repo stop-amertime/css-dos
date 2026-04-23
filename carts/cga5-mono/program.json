@@ -1,0 +1,9 @@
+{
+  "name": "CGA 0x05 mono stripes smoke test",
+  "preset": "hack",
+  "program": "program.com",
+  "boot": { "raw": "program.com" },
+  "memory": {
+    "cgaGfx": true
+  }
+}

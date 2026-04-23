@@ -507,6 +507,8 @@ int10h_handler:
     je .set_mode_store
     cmp al, 0x04           ; CGA 320x200x4 — 2bpp packed scanline-interleaved
     je .set_mode_store     ; framebuffer at B8000 (16 KB aperture).
+    cmp al, 0x05           ; CGA 320x200x4 mono — same layout as 0x04 but
+    je .set_mode_store     ; rendered with a forced grey palette.
     cmp al, 0x01           ; CGA 40x25 color text — same buffer at B8000,
     je .set_mode_store     ; just a different column stride.
     cmp al, 0x00           ; CGA 40x25 mono text — same layout as 0x01;
@@ -525,6 +527,8 @@ int10h_handler:
     cmp al, 0x13
     je .bda_mode_13h
     cmp al, 0x04
+    je .bda_mode_04h
+    cmp al, 0x05           ; mode 5 = mode 4 geometry + mono palette
     je .bda_mode_04h
     cmp al, 0x01
     je .bda_mode_01h
@@ -556,6 +560,8 @@ int10h_handler:
     cmp al, 0x13
     je .set_mode_13h
     cmp al, 0x04
+    je .set_mode_04h
+    cmp al, 0x05           ; mode 5 uses the same 16 KB CGA aperture clear
     je .set_mode_04h
     ; --- Text mode: clear 80x25 text buffer at 0xB8000 ---
     mov ax, VGA_SEG
