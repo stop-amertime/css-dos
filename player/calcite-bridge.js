@@ -18,7 +18,7 @@
 // that alias is absent the import fails at boot with 404 — not a silent
 // breakage. The wasm module is reached the same way at `/calcite/pkg/`.
 
-import { pickMode, decodeCga4, rasteriseText, modeName } from '/calcite/video-modes.mjs';
+import { pickMode, decodeCga4, decodeCga2, rasteriseText, modeName } from '/calcite/video-modes.mjs';
 
 let initCalcite, CalciteEngine;
 
@@ -321,6 +321,13 @@ function maybeEmitFrame() {
     for (let i = 0; i < 0x2000; i++) if (vram[i]) nzEven++;
     for (let i = 0x2000; i < 0x4000; i++) if (vram[i]) nzOdd++;
     dbgFrame(`frame: mode=0x${modeByte.toString(16)} kind=cga4 pal=0x${palReg.toString(16)} nz-even=${nzEven} nz-odd=${nzOdd} vram[0..4]=${Array.from(vram.slice(0,4)).join(',')}`);
+  } else if (mode.kind === 'cga2') {
+    // CGA 640x200x2 (hires mono): same 16 KB aperture and even/odd plane
+    // split as mode 0x04, but 1 bpp and 640 pixels wide.
+    const vram = engine.read_memory_range(mode.vramAddr, 0x4000);
+    rgba = new Uint8Array(w * h * 4);
+    decodeCga2(vram, palReg, rgba);
+    dbgFrame(`frame: mode=0x${modeByte.toString(16)} kind=cga2 pal=0x${palReg.toString(16)} vram[0..4]=${Array.from(vram.slice(0,4)).join(',')}`);
   } else if (mode.kind === 'text' && fontAtlas) {
     const vram = engine.read_memory_range(mode.vramAddr, mode.textCols * mode.textRows * 2);
     rgba = new Uint8Array(w * h * 4);

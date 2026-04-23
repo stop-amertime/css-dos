@@ -113,13 +113,19 @@ int10h_handler:
     je .tty_done
 
     ; Dispatch on video mode. Graphics modes (04/05) use the CGA 8x8 font
-    ; rasteriser; text modes use the char+attr pair path.
+    ; rasteriser; text modes use the char+attr pair path. Mode 06 is
+    ; graphics-mode too but with a different pixel layout (1 bpp, 640
+    ; wide) — we don't have a 1bpp teletype path yet, so consume the
+    ; character and advance the cursor without rasterising. Most mode-6
+    ; software writes pixels directly rather than via INT 10h AH=0Eh.
     push ax
     mov al, [video_mode]
     cmp al, 0x04
     je .tty_gfx
     cmp al, 0x05
     je .tty_gfx
+    cmp al, 0x06
+    je .tty_gfx6
     pop ax
 
     ; --- Text-mode path: write char+attr pair to B800:offset ---
@@ -380,6 +386,22 @@ int10h_handler:
     dec dh                   ; cap at row 24; no scroll in gfx mode.
     jmp short .tty_save
 
+.tty_gfx6:
+    ; Mode 06 teletype: consume the character, advance the cursor in
+    ; 80-column space, don't rasterise. When we add a 1bpp glyph path
+    ; this can turn into a proper renderer; for now keeping the cursor
+    ; state sane is enough for most software.
+    pop ax                   ; discard mode-branch save (mirrors tty_gfx)
+    inc dl
+    cmp dl, 80
+    jb .tty_save
+    xor dl, dl
+    inc dh
+    cmp dh, 25
+    jb .tty_save
+    dec dh                   ; cap at row 24; no scroll in gfx mode.
+    jmp short .tty_save
+
 .tty_cr:
     xor dl, dl
     jmp short .tty_save
@@ -509,6 +531,8 @@ int10h_handler:
     je .set_mode_store     ; framebuffer at B8000 (16 KB aperture).
     cmp al, 0x05           ; CGA 320x200x4 mono — same layout as 0x04 but
     je .set_mode_store     ; rendered with a forced grey palette.
+    cmp al, 0x06           ; CGA 640x200x2 hires mono — 1 bpp at B8000,
+    je .set_mode_store     ; same 16 KB aperture, MSB-first bit packing.
     cmp al, 0x01           ; CGA 40x25 color text — same buffer at B8000,
     je .set_mode_store     ; just a different column stride.
     cmp al, 0x00           ; CGA 40x25 mono text — same layout as 0x01;
@@ -530,6 +554,8 @@ int10h_handler:
     je .bda_mode_04h
     cmp al, 0x05           ; mode 5 = mode 4 geometry + mono palette
     je .bda_mode_04h
+    cmp al, 0x06           ; mode 6 = 640x200 → 80 char cells wide
+    je .bda_mode_06h
     cmp al, 0x01
     je .bda_mode_01h
     ; fall through for text 0x03 / default
@@ -551,6 +577,12 @@ int10h_handler:
     mov byte [video_rows],       24
     mov word [video_char_height], 8       ; CGA graphics glyph cell = 8px
     jmp short .bda_done
+.bda_mode_06h:
+    mov word [video_columns],    80       ; CGA 640x200 = 80 char cells wide
+    mov word [video_page_size],  0x4000   ; same 16 KB CGA aperture
+    mov byte [video_rows],       24
+    mov word [video_char_height], 8
+    jmp short .bda_done
 .bda_mode_13h:
     mov word [video_columns],    40       ; Mode 13h = 40 cells wide
     mov word [video_page_size],  0x4000   ; 16 KB graphics page (rounded)
@@ -562,6 +594,8 @@ int10h_handler:
     cmp al, 0x04
     je .set_mode_04h
     cmp al, 0x05           ; mode 5 uses the same 16 KB CGA aperture clear
+    je .set_mode_04h
+    cmp al, 0x06           ; mode 6 clears the same 16 KB aperture as mode 4
     je .set_mode_04h
     ; --- Text mode: clear 80x25 text buffer at 0xB8000 ---
     mov ax, VGA_SEG
