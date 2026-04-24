@@ -1,6 +1,6 @@
 # CSS-DOS Logbook
 
-Last updated: 2026-04-23
+Last updated: 2026-04-24
 
 ## Current status
 
@@ -14,6 +14,18 @@ video-modes work.
 
 ## In flight
 
+- **Disk geometry is now builder-driven.** 2026-04-24: disk.size
+  defaults to `"autofit"` in both DOS presets. The builder picks CHS
+  from content size (standard preset if content fits, fabricated
+  geometry up to ~32 MB otherwise) and patches the same values into
+  the BIOS at build time via ASCII sentinels (`DGSP`/`DGHD`/`DGCY`)
+  plus a `0xD4` sentinel in `disk_param_table`. Both corduroy and
+  muslin support it. Web builder (`web/browser-builder/*`) is plumbed
+  through too — `buildFloppyInBrowser` now takes a `sizeRequest` and
+  returns geometry, so web carts get the same behavior as Node.
+  Smoke: zork + montezuma still pass. Does NOT unblock Doom8088 —
+  same hang — or the Sokoban/LZEXE "Packed file is corrupt" (both
+  are unrelated bugs).
 - **Memory packing (2 bytes per property):** ongoing. 2026-04-23:
   found + fixed the "pack=2 freezes partway through zork boot with
   partial splash" regression. Root cause on the calcite side:

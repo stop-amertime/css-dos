@@ -201,6 +201,7 @@ export async function buildCabinetInBrowser({
       programFiles: extraFiles,
       autorun: floppyAutorun,
       args: floppyArgs,
+      sizeRequest: manifest.disk?.size ?? 'autofit',
     });
 
     // Build header after floppy so floppyLayout is available.

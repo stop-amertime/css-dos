@@ -6,6 +6,7 @@
 // Hack carts never call this (no floppy). DOS carts always do.
 
 import { buildFat12Image } from '../../tools/mkfat12.mjs';
+import { resolveFloppySize } from '../../builder/lib/sizes.mjs';
 
 /**
  * Build a FAT12 floppy image in the browser (or Node test environment).
@@ -22,7 +23,10 @@ import { buildFat12Image } from '../../tools/mkfat12.mjs';
  * @param {string|null} [opts.autorun]       If non-null, use this as SHELL= target
  *                                           (and omit COMMAND.COM from disk).
  * @param {string}     [opts.args]           Optional args appended to SHELL= line.
- * @returns {{ bytes: Uint8Array, layout: [{name, size, source}] }}
+ * @param {string|number} [opts.sizeRequest] Manifest disk.size — 'autofit',
+ *                                           a preset string like '720K', or a
+ *                                           number of bytes. Defaults to 'autofit'.
+ * @returns {{ bytes: Uint8Array, layout: [{name, size, source}], geometry: {cyls, heads, spt, totalSectors} }}
  */
 export function buildFloppyInBrowser({
   kernelBytes,
@@ -33,6 +37,7 @@ export function buildFloppyInBrowser({
   programFiles = [],
   autorun = null,
   args = '',
+  sizeRequest = 'autofit',
 }) {
   if (!(kernelBytes instanceof Uint8Array)) {
     throw new Error('buildFloppyInBrowser: kernelBytes must be Uint8Array');
@@ -86,12 +91,24 @@ export function buildFloppyInBrowser({
     layout.push({ name: 'COMMAND.COM', bytes: commandBytes, source: 'dos/bin/command.com' });
   }
 
+  // Resolve disk geometry the same way builder/stages/floppy.mjs does:
+  // autofit picks a standard floppy when content fits, fabricates a larger
+  // geometry otherwise. The BIOS is patched with this geometry in kiln.mjs,
+  // so BPB and BIOS stay in lockstep.
+  const contentBytes = layout.reduce((n, f) => n + f.bytes.length, 0);
+  const { bytes: diskBytes, geometry } = resolveFloppySize(sizeRequest, {
+    autofitBytes: contentBytes,
+  });
+  const totalSectors = diskBytes / 512;
+
   const imgBytes = buildFat12Image(
     layout.map(f => ({ name: f.name, bytes: f.bytes })),
+    { ...geometry, totalSectors },
   );
 
   return {
     bytes: imgBytes,
     layout: layout.map(f => ({ name: f.name, size: f.bytes.length, source: f.source })),
+    geometry: { ...geometry, totalSectors },
   };
 }

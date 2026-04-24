@@ -22,6 +22,9 @@ global default_handler
 global interrupt_table
 global config_table
 global disk_param_table
+global disk_geometry_spt
+global disk_geometry_heads
+global disk_geometry_cyls
 
 section _TEXT public align=1 class=CODE use16
 
@@ -37,10 +40,19 @@ KERNEL_SEG  equ 0x0060          ; DOS kernel load segment
 SECTOR_SIZE equ 512
 HALT_ADDR   equ 0x0504          ; Halt flag address (seg 0)
 
-; Disk geometry for a 1.44MB floppy
-DISK_SPT    equ 18              ; sectors per track
-DISK_HEADS  equ 2               ; heads
-DISK_CYLS   equ 80              ; cylinders
+; Disk geometry — patched at build time by patchBiosDiskGeometry() in
+; builder/stages/kiln.mjs. The init values below are sentinels the patcher
+; scans for: the patcher writes the real geometry (derived from the
+; resolved floppy size) into these bytes before the BIOS is baked into
+; the cabinet. Keeping the geometry runtime-variable lets us support
+; floppies bigger than 1.44 MB without forking the BIOS per cart.
+;
+; Reads from these words use CS-relative addressing inside INT 13h
+; (the handler does `push cs / pop ds` before indexing).
+;
+; Sentinels: SPT=0xD5D5 (unused on 8086, easy to spot), HEADS=0xD6D5,
+; CYLS=0xD7D5. All distinct so the patcher can locate them
+; unambiguously.
 
 ; BDA offsets (matching reference 8088_bios exactly)
 equip_serial        equ 0x00    ; word[4] - serial port addresses
@@ -975,12 +987,15 @@ int13h_handler:
     iret
 
 .disk_params:
-    ; Return drive parameters for 1.44MB floppy
+    ; Return drive parameters. Geometry is patched in at build time — see
+    ; disk_geometry_* words below.
     mov ah, 0
-    mov bl, 0x04           ; drive type: 1.44MB
-    mov ch, DISK_CYLS - 1  ; max cylinder (79)
-    mov cl, DISK_SPT       ; max sector (18)
-    mov dh, DISK_HEADS - 1 ; max head (1)
+    mov bl, 0x04           ; drive type: 1.44MB-class (lie to satisfy drivers)
+    mov ch, [cs:disk_geometry_cyls]
+    dec ch                 ; max cylinder = cyls - 1
+    mov cl, [cs:disk_geometry_spt]  ; max sector (1-based, equals SPT)
+    mov dh, [cs:disk_geometry_heads]
+    dec dh                 ; max head = heads - 1
     mov dl, 1              ; 1 floppy drive
     ; ES:DI = disk parameter table
     push bx
@@ -1020,18 +1035,27 @@ int13h_handler:
     push dx
     push cx
 
-    ; Compute LBA = (CH * 2 + DH) * 18 + (CL - 1)
+    ; Compute LBA = (cyl * heads + head) * spt + (sector - 1).
+    ; Geometry (heads, spt) is patched in at build time and read via CS.
+    ; Uses BX as scratch for the 16-bit geometry factors. DX must be
+    ; preserved across MUL (we save/restore it around each multiply).
+    push bx
     mov al, ch
-    xor ah, ah
-    shl ax, 1              ; AX = cyl * 2
-    mov si, ax
-    xor ah, ah
-    mov al, dh
-    add ax, si             ; AX = cyl*2 + head
-    mov si, DISK_SPT
+    xor ah, ah             ; AX = cyl
+    xor bh, bh
+    mov bl, [cs:disk_geometry_heads]
     push dx
-    mul si                 ; AX = (cyl*2+head) * 18
+    mul bx                 ; AX = cyl * heads
     pop dx
+    xor bh, bh
+    mov bl, dh
+    add ax, bx             ; AX = cyl*heads + head
+    xor bh, bh
+    mov bl, [cs:disk_geometry_spt]
+    push dx
+    mul bx                 ; AX = (cyl*heads + head) * spt
+    pop dx
+    pop bx
     mov si, ax
     xor ch, ch
     dec cl                 ; sector is 1-based
@@ -1491,13 +1515,38 @@ disk_param_table:
     db 0x02                ; head load time / DMA mode
     db 0x25                ; motor off delay (ticks)
     db 0x02                ; bytes per sector (2 = 512)
-    db DISK_SPT            ; sectors per track (18)
+disk_param_spt:
+    db 0xD4                ; sectors per track — patched at build time
+                           ; (sentinel 0xD4; paired with disk_geometry_spt)
     db 0x1B                ; gap length
     db 0xFF                ; data length
     db 0x50                ; format gap length
     db 0xF6                ; fill byte for format
     db 0x0F                ; head settle time (ms)
     db 0x08                ; motor start time (1/8 sec units)
+
+; ============================================================
+; Disk geometry — patched at build time. Each field is preceded by a
+; 4-byte anchor (distinct per field) followed by a 16-bit data word with
+; a 0x0000 placeholder. The patcher in builder/stages/kiln.mjs finds
+; the anchor and writes the real value into the word immediately after.
+; Using anchors (instead of bare sentinel values in the data word) means
+; we don't need to reserve magic numbers that no other byte pattern can
+; produce anywhere in the binary.
+;
+; Anchors are aligned to an opcode-like pattern so `nasm -cpu 8086`
+; accepts them as data and no instruction decode ever lands on them
+; (the handler never executes this region).
+; ============================================================
+    db 'DGSP'              ; anchor — disk_geometry_spt
+disk_geometry_spt:
+    dw 0x0000
+    db 'DGHD'              ; anchor — disk_geometry_heads
+disk_geometry_heads:
+    dw 0x0000
+    db 'DGCY'              ; anchor — disk_geometry_cyls
+disk_geometry_cyls:
+    dw 0x0000
 
 ; ============================================================
 ; Scancode → ASCII lookup for INT 09h.

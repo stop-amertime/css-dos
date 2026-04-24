@@ -10,13 +10,20 @@ const MEMORY_PRESETS = {
   '640K': 640 * 1024,
 };
 
+// Standard floppy sizes + their canonical CHS geometries. Used by autofit
+// when content fits in a real floppy, and as the set of accepted string
+// values for `disk.size`. For larger disks we fabricate a geometry instead
+// (see pickFloppyGeometry).
 const FLOPPY_PRESETS = {
-  '360K':  360 * 1024,
-  '720K':  720 * 1024,
-  '1200K': 1200 * 1024,
-  '1440K': 1440 * 1024,
-  '2880K': 2880 * 1024,
+  '360K':  { bytes:  360 * 1024, cyls: 40, heads: 2, spt:  9 },
+  '720K':  { bytes:  720 * 1024, cyls: 80, heads: 2, spt:  9 },
+  '1200K': { bytes: 1200 * 1024, cyls: 80, heads: 2, spt: 15 },
+  '1440K': { bytes: 1440 * 1024, cyls: 80, heads: 2, spt: 18 },
+  '2880K': { bytes: 2880 * 1024, cyls: 80, heads: 2, spt: 36 },
 };
+
+const SECTOR_SIZE = 512;
+const LBA_MAX_SECTORS = 65535; // CSS disk-byte dispatch: LBA is 16-bit
 
 export function resolveMemorySize(value, { autofitBytes } = {}) {
   if (typeof value === 'number') return value;
@@ -57,15 +64,78 @@ export function autofitHackMem(programSize) {
   return Math.max(0x600, 0x100 + programSize + 0x100);
 }
 
+// Resolve a disk size request into { bytes, geometry }.
+//
+// Value forms:
+//   'autofit'  — if autofitBytes fits in a standard preset, use that preset
+//                (preserves the look of a real period-accurate floppy). If
+//                it doesn't, size exactly to content (sector-aligned, small
+//                headroom) and fabricate a geometry — "big floppy" mode.
+//   'NNNNK'    — named preset (360K/720K/1200K/1440K/2880K). Canonical CHS.
+//   number     — exact bytes. Fabricated geometry.
+//
+// Geometry: {cyls, heads, spt}. Matches real hardware for standard sizes;
+// for fabricated sizes we keep heads=2/spt=18 (1.44 MB floppy style) and
+// scale cyls. Total addressable sectors = cyls*heads*spt.
 export function resolveFloppySize(value, { autofitBytes } = {}) {
-  if (typeof value === 'number') return value;
-  if (value === 'autofit') {
-    if (autofitBytes == null) return FLOPPY_PRESETS['1440K'];
-    // Round up to next preset that fits.
-    const presets = Object.values(FLOPPY_PRESETS).sort((a, b) => a - b);
-    for (const p of presets) if (p >= autofitBytes) return p;
-    return autofitBytes;
+  if (typeof value === 'number') {
+    return { bytes: value, geometry: pickFloppyGeometry(value) };
   }
-  if (FLOPPY_PRESETS[value] != null) return FLOPPY_PRESETS[value];
+  if (value === 'autofit') {
+    const needed = autofitBytes ?? FLOPPY_PRESETS['1440K'].bytes;
+    // Account for FAT12 overhead (boot sector + 2 FATs + root dir) plus
+    // a small slack for per-file cluster rounding. A standard 1.44 MB
+    // floppy reserves ~33 sectors for overhead; round that up to be safe
+    // and add a further 5% for cluster slack. Preset rounding uses this
+    // "effective needed" value.
+    const effectiveNeeded = Math.ceil(needed * 1.05) + 40 * SECTOR_SIZE;
+    // If content plus overhead fits in a standard floppy, round up to
+    // that preset so the cabinet looks like a real period-accurate floppy.
+    const presets = Object.entries(FLOPPY_PRESETS).sort((a, b) => a[1].bytes - b[1].bytes);
+    for (const [, p] of presets) {
+      if (p.bytes >= effectiveNeeded) return { bytes: p.bytes, geometry: { cyls: p.cyls, heads: p.heads, spt: p.spt } };
+    }
+    // Otherwise fabricate: sector-align + 10% headroom (min 64 sectors).
+    const dataSectors = Math.ceil(effectiveNeeded / SECTOR_SIZE);
+    const totalSectors = Math.max(64, dataSectors + Math.ceil(dataSectors * 0.1));
+    const bytes = totalSectors * SECTOR_SIZE;
+    return { bytes, geometry: pickFloppyGeometry(bytes) };
+  }
+  if (FLOPPY_PRESETS[value] != null) {
+    const p = FLOPPY_PRESETS[value];
+    return { bytes: p.bytes, geometry: { cyls: p.cyls, heads: p.heads, spt: p.spt } };
+  }
   throw new Error(`disk.size: unknown value ${JSON.stringify(value)}`);
+}
+
+// Pick a geometry for an arbitrary disk size. For known preset sizes, use
+// the canonical CHS. Otherwise keep heads=2/spt=18 and scale cyls so
+// cyls*heads*spt >= totalSectors. Max addressable is LBA_MAX_SECTORS
+// (16-bit LBA in the rom-disk window), which is ~32 MB — a hard cap we
+// enforce here rather than letting silent truncation bite later.
+export function pickFloppyGeometry(sizeBytes) {
+  const totalSectors = Math.ceil(sizeBytes / SECTOR_SIZE);
+  if (totalSectors > LBA_MAX_SECTORS) {
+    throw new Error(
+      `disk.size: ${sizeBytes} bytes (${totalSectors} sectors) exceeds the ` +
+      `${LBA_MAX_SECTORS}-sector rom-disk cap (~${Math.floor(LBA_MAX_SECTORS * SECTOR_SIZE / 1024 / 1024)} MB). ` +
+      `Trim the cart or widen the LBA register.`
+    );
+  }
+  for (const p of Object.values(FLOPPY_PRESETS)) {
+    if (p.bytes === sizeBytes) return { cyls: p.cyls, heads: p.heads, spt: p.spt };
+  }
+  // Fabricated floppy: keep the 1.44 MB-style heads=2/spt=18 shape, scale
+  // cylinders. CH in INT 13h CHS is one byte → max 256 cylinders. With
+  // heads=2/spt=18 that's 256*2*18 = 9216 sectors = 4.6 MB. For anything
+  // bigger we bump SPT (stays within the BPB spt word which is 16-bit).
+  let heads = 2, spt = 18;
+  let cyls = Math.ceil(totalSectors / (heads * spt));
+  if (cyls > 255) {
+    // Scale SPT up so cyls fits in a byte. Keep it even.
+    spt = Math.ceil(totalSectors / (heads * 255));
+    if (spt % 2) spt += 1;
+    cyls = Math.ceil(totalSectors / (heads * spt));
+  }
+  return { cyls, heads, spt };
 }

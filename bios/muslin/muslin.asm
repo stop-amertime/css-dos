@@ -34,10 +34,11 @@ KERNEL_SEG  equ 0x0060          ; DOS kernel load segment
 SECTOR_SIZE equ 512
 HALT_ADDR   equ 0x0504          ; Halt flag address (seg 0)
 
-; Disk geometry for a 1.44MB floppy
-DISK_SPT    equ 18              ; sectors per track
-DISK_HEADS  equ 2               ; heads
-DISK_CYLS   equ 80              ; cylinders
+; Disk geometry lives in patchable words near disk_param_table. The
+; builder (builder/stages/kiln.mjs patchBiosDiskGeometry) finds the
+; 4-byte ASCII anchors ('DGSP'/'DGHD'/'DGCY') and writes the actual
+; geometry into the words that follow. Default here is 1.44MB so the
+; raw bios.bin has working values if someone boots it unpatched.
 
 ; BDA offsets (matching reference 8088_bios exactly)
 equip_serial        equ 0x00    ; word[4] - serial port addresses
@@ -565,13 +566,17 @@ int13h_handler:
     iret
 
 .disk_params:
-    ; Return drive parameters for 1.44MB floppy
+    ; Return drive parameters. Values read from the patchable
+    ; disk_geometry_* words so this matches whatever the builder
+    ; configured the floppy with.
     mov ah, 0
-    mov bl, 0x04           ; drive type: 1.44MB
-    mov ch, DISK_CYLS - 1  ; max cylinder (79)
-    mov cl, DISK_SPT       ; max sector (18)
-    mov dh, DISK_HEADS - 1 ; max head (1)
-    mov dl, 1              ; 1 floppy drive
+    mov bl, 0x04                   ; drive type: 1.44MB
+    mov ch, [cs:disk_geometry_cyls]
+    dec ch                         ; max cylinder = cyls - 1
+    mov cl, [cs:disk_geometry_spt] ; max sector (1-based count)
+    mov dh, [cs:disk_geometry_heads]
+    dec dh                         ; max head = heads - 1
+    mov dl, 1                      ; 1 floppy drive
     ; ES:DI = disk parameter table
     push bx
     mov bx, BIOS_SEG
@@ -610,17 +615,21 @@ int13h_handler:
     push dx
     push cx
 
-    ; Compute LBA = (CH * 2 + DH) * 18 + (CL - 1)
+    ; Compute LBA = (CH * heads + DH) * spt + (CL - 1)
+    ; Geometry comes from the patchable disk_geometry_* words so this
+    ; scales from a 360K floppy up to ~32 MB rom-disks.
     mov al, ch
-    xor ah, ah
-    shl ax, 1              ; AX = cyl * 2
-    mov si, ax
-    xor ah, ah
-    mov al, dh
-    add ax, si             ; AX = cyl*2 + head
-    mov si, DISK_SPT
+    xor ah, ah             ; AX = cyl
     push dx
-    mul si                 ; AX = (cyl*2+head) * 18
+    mov bx, [cs:disk_geometry_heads]
+    mul bx                 ; AX = cyl * heads (DX:AX, DX=0 for our sizes)
+    pop dx
+    xor bh, bh
+    mov bl, dh
+    add ax, bx             ; AX = cyl*heads + head
+    push dx
+    mov bx, [cs:disk_geometry_spt]
+    mul bx                 ; AX = (cyl*heads + head) * spt
     pop dx
     mov si, ax
     xor ch, ch
@@ -1230,12 +1239,29 @@ disk_param_table:
     db 0x02                ; head load time / DMA mode
     db 0x25                ; motor off delay (ticks)
     db 0x02                ; bytes per sector (2 = 512)
-    db DISK_SPT            ; sectors per track (18)
+    db 0xD4                ; SPT sentinel — builder patches via [0x02, 0xD4, 0x1B]
     db 0x1B                ; gap length
     db 0xFF                ; data length
     db 0x50                ; format gap length
     db 0xF6                ; fill byte for format
     db 0x0F                ; head settle time (ms)
     db 0x08                ; motor start time (1/8 sec units)
+
+; ============================================================
+; Patchable disk geometry (see kiln.mjs patchBiosDiskGeometry).
+; The builder scans bios.bin for the 4-byte ASCII anchors and writes
+; the real geometry into the word that follows each anchor. Defaults
+; here are the 1.44MB floppy values; they only matter if someone runs
+; the BIOS without going through the builder patch step.
+; ============================================================
+    db 'DGSP'
+disk_geometry_spt:
+    dw 18
+    db 'DGHD'
+disk_geometry_heads:
+    dw 2
+    db 'DGCY'
+disk_geometry_cyls:
+    dw 80
 
 bios_end:

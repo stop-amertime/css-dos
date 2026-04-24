@@ -11,6 +11,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildFat12Image } from '../../tools/mkfat12.mjs';
+import { resolveFloppySize } from '../lib/sizes.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, '..', '..');
@@ -65,12 +66,23 @@ export function buildFloppy({ cart, manifest, cacheDir }) {
     layout.push({ name: 'COMMAND.COM', source: 'dos/bin/command.com', path: COMMAND_COM });
   }
 
-  // Build the FAT12 image in-process (no execSync shell-out).
+  // Build the FAT12 image in-process (no execSync shell-out). Resolve
+  // geometry first: autofit picks a standard floppy if content fits,
+  // fabricates a bigger geometry otherwise. The BIOS reads this geometry
+  // at runtime (patched in by the kiln stage), so the BPB and BIOS stay
+  // in lockstep — programs that call INT 13h AH=08h get the same CHS
+  // the disk is actually laid out with.
   const fatFiles = layout.map(f => ({
     name: f.name,
     bytes: readFileSync(f.path),
   }));
-  const bytes = buildFat12Image(fatFiles);
+  const contentBytes = fatFiles.reduce((n, f) => n + f.bytes.length, 0);
+  const { bytes: diskBytes, geometry } = resolveFloppySize(
+    manifest.disk?.size ?? 'autofit',
+    { autofitBytes: contentBytes },
+  );
+  const totalSectors = diskBytes / 512;
+  const bytes = buildFat12Image(fatFiles, { ...geometry, totalSectors });
 
   // Annotate sizes post-hoc.
   for (const f of layout) {
@@ -79,5 +91,5 @@ export function buildFloppy({ cart, manifest, cacheDir }) {
     }
   }
 
-  return { bytes, layout };
+  return { bytes, layout, geometry: { ...geometry, totalSectors } };
 }

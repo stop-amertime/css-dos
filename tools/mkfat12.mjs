@@ -26,9 +26,14 @@
  * @param {Array<{name: string, bytes: Uint8Array}>} files
  *   Files to include. `name` may use backslash for a single subdirectory
  *   level, e.g. `"DATA\\ZORK1.DAT"`. Names are uppercased automatically.
+ * @param {{cyls: number, heads: number, spt: number, totalSectors?: number}} [geometry]
+ *   Optional geometry. If provided, the disk is sized to `totalSectors *
+ *   512` (or `cyls*heads*spt*512` if totalSectors omitted) and the BPB
+ *   records this geometry. If omitted, the disk is auto-sized to fit
+ *   content and uses a generic 1.44 MB-style 2/18 geometry.
  * @returns {Uint8Array} Raw FAT12 disk image.
  */
-export function buildFat12Image(files) {
+export function buildFat12Image(files, geometry) {
   // Validate input: each file must have a string name and Uint8Array bytes.
   for (const f of files) {
     if (!f || typeof f.name !== 'string' || !(f.bytes instanceof Uint8Array)) {
@@ -70,13 +75,27 @@ export function buildFat12Image(files) {
   const FAT_SECTORS = Math.max(1, Math.ceil((dataClusters * 3 / 2) / SECTOR_SIZE));
   const DATA_START_SECTOR = RESERVED_SECTORS + NUM_FATS * FAT_SECTORS + ROOT_DIR_SECTORS;
 
-  // Total sectors = overhead + data + 10% headroom (min 64 sectors)
-  const TOTAL_SECTORS = Math.max(64, DATA_START_SECTOR + dataSectorsNeeded + Math.ceil(dataSectorsNeeded * 0.1));
+  // Total sectors: use caller-provided geometry if given (keeps BPB and
+  // BIOS geometry in lockstep), otherwise auto-size with 10% headroom.
+  let TOTAL_SECTORS, HEADS, SECTORS_PER_TRACK;
+  if (geometry) {
+    HEADS = geometry.heads;
+    SECTORS_PER_TRACK = geometry.spt;
+    TOTAL_SECTORS = geometry.totalSectors
+      ?? (geometry.cyls * geometry.heads * geometry.spt);
+    const needed = DATA_START_SECTOR + dataSectorsNeeded;
+    if (TOTAL_SECTORS < needed) {
+      throw new Error(
+        `buildFat12Image: geometry (${TOTAL_SECTORS} sectors) is too small ` +
+        `for content (${needed} sectors needed).`
+      );
+    }
+  } else {
+    TOTAL_SECTORS = Math.max(64, DATA_START_SECTOR + dataSectorsNeeded + Math.ceil(dataSectorsNeeded * 0.1));
+    HEADS = 2;
+    SECTORS_PER_TRACK = 18;
+  }
   const DISK_SIZE = TOTAL_SECTORS * SECTOR_SIZE;
-
-  // Pick a plausible floppy geometry (doesn't matter for CSS-DOS, kernel reads BPB)
-  const HEADS = 2;
-  const SECTORS_PER_TRACK = 18;
 
   // --- Create disk image ---
   const disk = new Uint8Array(DISK_SIZE);
@@ -91,13 +110,21 @@ export function buildFat12Image(files) {
   writeWord(disk, 14, RESERVED_SECTORS);
   disk[16] = NUM_FATS;
   writeWord(disk, 17, ROOT_DIR_ENTRIES);
-  writeWord(disk, 19, TOTAL_SECTORS);
+  // totalSectors: fits in the 16-bit field at offset 19 up to 65535.
+  // Beyond that the 16-bit field must be 0 and the true count goes in the
+  // 32-bit field at offset 32. FAT12 rarely exceeds 65535 sectors in
+  // practice, but this is what the spec says to do.
+  if (TOTAL_SECTORS <= 0xFFFF) {
+    writeWord(disk, 19, TOTAL_SECTORS);
+  } else {
+    writeWord(disk, 19, 0);
+  }
   disk[21] = 0xF0;                            // media descriptor
   writeWord(disk, 22, FAT_SECTORS);
   writeWord(disk, 24, SECTORS_PER_TRACK);
   writeWord(disk, 26, HEADS);
   writeDword(disk, 28, 0);
-  writeDword(disk, 32, 0);
+  writeDword(disk, 32, TOTAL_SECTORS > 0xFFFF ? TOTAL_SECTORS : 0);
 
   // Extended boot record
   disk[36] = 0x00; disk[37] = 0x00; disk[38] = 0x29;
