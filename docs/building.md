@@ -70,6 +70,14 @@ DOS carts only (skipped for hack).
 - Shells out to `tools/mkfat12.mjs` to lay out the FAT12 image.
 - Returns `{ bytes, layout }`.
 
+**FAT12 cluster cap.** `mkfat12` picks `sectorsPerCluster` based on
+total disk size so data clusters stay ≤ 4084 — above 4085, DOS
+auto-detects FAT16 and misreads our 12-bit FAT entries. SPC doubles
+from 1 until the constraint holds (hard cap 128). 1.44 MB and smaller
+disks get SPC=1; 2.88 MB disks get SPC=2. See
+`docs/debugging/known-bugs.md` for the hang symptoms (CS:IP=0x105:0x1730
+stuck loading ANSI.SYS) if SPC is wrong.
+
 ### 5. `runKiln` → `builder/stages/kiln.mjs`
 
 Resolves memory zones. Invokes `emitCSS()` from `kiln/emit-css.mjs`

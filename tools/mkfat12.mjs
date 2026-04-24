@@ -56,11 +56,15 @@ export function buildFat12Image(files, geometry) {
   const NUM_FATS = 2;
   const ROOT_DIR_ENTRIES = 224;  // standard 1.44 MB floppy root dir (14 sectors)
   const ROOT_DIR_SECTORS = Math.ceil(ROOT_DIR_ENTRIES * 32 / SECTOR_SIZE); // 14
+  // FAT12 caps out at 4084 clusters (4085+ means DOS detects FAT16). We must
+  // keep cluster count below this for every possible `dataSectors/spc`
+  // computation DOS will do. Use 4084 as the hard max.
+  const FAT12_MAX_CLUSTERS = 4084;
 
-  // --- Compute disk size from content ---
-  let dataSectorsNeeded = 0;
+  // --- Compute content size ---
+  let contentSectorsNeeded = 0;
   for (const file of normFiles) {
-    dataSectorsNeeded += Math.ceil(file.data.length / SECTOR_SIZE) || 1;
+    contentSectorsNeeded += Math.ceil(file.data.length / SECTOR_SIZE) || 1;
   }
   // Add 1 cluster per unique subdirectory
   const uniqueDirs = new Set();
@@ -68,12 +72,7 @@ export function buildFat12Image(files, geometry) {
     const backslash = file.name.indexOf('\\');
     if (backslash >= 0) uniqueDirs.add(file.name.substring(0, backslash));
   }
-  dataSectorsNeeded += uniqueDirs.size;
-
-  // FAT12: each FAT sector covers ~341 clusters (512 bytes * 2/3 entries)
-  const dataClusters = dataSectorsNeeded + 2; // +2 for reserved entries
-  const FAT_SECTORS = Math.max(1, Math.ceil((dataClusters * 3 / 2) / SECTOR_SIZE));
-  const DATA_START_SECTOR = RESERVED_SECTORS + NUM_FATS * FAT_SECTORS + ROOT_DIR_SECTORS;
+  contentSectorsNeeded += uniqueDirs.size;
 
   // Total sectors: use caller-provided geometry if given (keeps BPB and
   // BIOS geometry in lockstep), otherwise auto-size with 10% headroom.
@@ -83,18 +82,74 @@ export function buildFat12Image(files, geometry) {
     SECTORS_PER_TRACK = geometry.spt;
     TOTAL_SECTORS = geometry.totalSectors
       ?? (geometry.cyls * geometry.heads * geometry.spt);
-    const needed = DATA_START_SECTOR + dataSectorsNeeded;
-    if (TOTAL_SECTORS < needed) {
-      throw new Error(
-        `buildFat12Image: geometry (${TOTAL_SECTORS} sectors) is too small ` +
-        `for content (${needed} sectors needed).`
-      );
-    }
+    // Validation (size fits content) happens below, after SPC is picked,
+    // because SPC cluster rounding changes "sectors needed".
   } else {
-    TOTAL_SECTORS = Math.max(64, DATA_START_SECTOR + dataSectorsNeeded + Math.ceil(dataSectorsNeeded * 0.1));
+    // Auto-sized: 10% headroom over content. SPC sizing below will still
+    // apply if this happens to land past the 4085-cluster line.
+    TOTAL_SECTORS = Math.max(64, RESERVED_SECTORS + NUM_FATS + ROOT_DIR_SECTORS +
+      contentSectorsNeeded + Math.ceil(contentSectorsNeeded * 0.1));
     HEADS = 2;
     SECTORS_PER_TRACK = 18;
   }
+
+  // --- Pick sectorsPerCluster so total dataClusters stays <= FAT12 max ---
+  //
+  // The problem: DOS re-computes dataClusters = (TOTAL_SECTORS - dataStart) / SPC
+  // when it mounts the filesystem, and if dataClusters > 4085 it switches to
+  // FAT16 interpretation — reading our 12-bit entries as 16-bit, walking the
+  // wrong FAT chain, and failing any read past the first sector of a
+  // multi-cluster file. We must keep dataClusters <= 4084 for *every* total
+  // sector count, not just "clusters our content actually occupies".
+  //
+  // So SPC is driven by TOTAL_SECTORS, not by contentSectorsNeeded. We start
+  // at SPC=1 and double until dataClusters <= FAT12_MAX_CLUSTERS.
+  let SECTORS_PER_CLUSTER = 1;
+  let FAT_SECTORS, DATA_START_SECTOR, dataSectors, dataClusters;
+  for (;;) {
+    // dataClusters that DOS will compute on mount = floor((TOTAL - dataStart) / SPC).
+    // We need to keep this <= FAT12_MAX_CLUSTERS. Compute it iteratively
+    // because FAT_SECTORS depends on dataClusters and dataStart depends on
+    // FAT_SECTORS — converges in one or two passes.
+    //
+    // FAT_SECTORS is content-based, not whole-disk-based: only the clusters
+    // we actually allocate (content + 2 reserved entries) need FAT entries.
+    // The unused tail of each FAT is zero bytes, which is "free cluster" —
+    // legal FAT12 even though we'd never write there. This keeps the layout
+    // identical to the historical (working) shape for zork1 and doom.
+    const clustersNeededForContent = Math.ceil(contentSectorsNeeded / SECTORS_PER_CLUSTER);
+    const allocatedClusters = clustersNeededForContent + 2; // +2 for reserved entries
+    FAT_SECTORS = Math.max(1, Math.ceil((allocatedClusters * 3 / 2) / SECTOR_SIZE));
+    DATA_START_SECTOR = RESERVED_SECTORS + NUM_FATS * FAT_SECTORS + ROOT_DIR_SECTORS;
+    dataSectors = TOTAL_SECTORS - DATA_START_SECTOR;
+    if (dataSectors < 0) {
+      throw new Error(
+        `buildFat12Image: geometry (${TOTAL_SECTORS} sectors) is too small; ` +
+        `FAT overhead (${DATA_START_SECTOR} sectors) leaves no room for data.`
+      );
+    }
+    // The cluster count DOS computes on mount.
+    dataClusters = Math.floor(dataSectors / SECTORS_PER_CLUSTER);
+    if (dataClusters <= FAT12_MAX_CLUSTERS) break;
+    SECTORS_PER_CLUSTER *= 2;
+    // sanity cap: SPC=128 would be absurd even for huge disks.
+    if (SECTORS_PER_CLUSTER > 128) {
+      throw new Error(
+        `buildFat12Image: disk too big to stay FAT12 (${TOTAL_SECTORS} sectors); ` +
+        `needs FAT16.`
+      );
+    }
+  }
+
+  // Verify content actually fits in the data region.
+  const clustersForContent = Math.ceil(contentSectorsNeeded / SECTORS_PER_CLUSTER);
+  if (clustersForContent > dataClusters) {
+    throw new Error(
+      `buildFat12Image: content needs ${clustersForContent} clusters ` +
+      `but disk only has ${dataClusters} data clusters at SPC=${SECTORS_PER_CLUSTER}.`
+    );
+  }
+
   const DISK_SIZE = TOTAL_SECTORS * SECTOR_SIZE;
 
   // --- Create disk image ---
@@ -106,7 +161,7 @@ export function buildFat12Image(files, geometry) {
 
   // BIOS Parameter Block (BPB)
   writeWord(disk, 11, SECTOR_SIZE);
-  disk[13] = 1;                               // sectors per cluster
+  disk[13] = SECTORS_PER_CLUSTER;             // sectors per cluster
   writeWord(disk, 14, RESERVED_SECTORS);
   disk[16] = NUM_FATS;
   writeWord(disk, 17, ROOT_DIR_ENTRIES);
@@ -139,6 +194,12 @@ export function buildFat12Image(files, geometry) {
   // --- Initialize FATs ---
   const fat1Start = RESERVED_SECTORS * SECTOR_SIZE;
   const fat2Start = (RESERVED_SECTORS + FAT_SECTORS) * SECTOR_SIZE;
+
+  // Cluster indexing helpers (used by ensureSubdir / writeFileToDir closures).
+  // Defined here so they're initialized before the writer closures are invoked.
+  const CLUSTER_BYTES = SECTOR_SIZE * SECTORS_PER_CLUSTER;
+  const clusterOffset = (cluster) =>
+    (DATA_START_SECTOR + (cluster - 2) * SECTORS_PER_CLUSTER) * SECTOR_SIZE;
   disk[fat1Start + 0] = 0xF0;
   disk[fat1Start + 1] = 0xFF;
   disk[fat1Start + 2] = 0xFF;
@@ -199,14 +260,14 @@ export function buildFat12Image(files, geometry) {
 
     // Allocate one cluster for the directory
     const dirCluster = nextCluster++;
-    const dirDataOffset = (DATA_START_SECTOR + (dirCluster - 2)) * SECTOR_SIZE;
+    const dirDataOffset = clusterOffset(dirCluster);
 
     // Mark cluster as end-of-chain in FAT
     writeFAT12Entry(disk, fat1Start, dirCluster, 0xFFF);
     writeFAT12Entry(disk, fat2Start, dirCluster, 0xFFF);
 
     // Zero the cluster (already zero from Uint8Array init, but be explicit)
-    for (let i = 0; i < SECTOR_SIZE; i++) {
+    for (let i = 0; i < CLUSTER_BYTES; i++) {
       disk[dirDataOffset + i] = 0;
     }
 
@@ -239,12 +300,14 @@ export function buildFat12Image(files, geometry) {
 
   function writeFileToDir(name, data, dir) {
     const fileSize = data.length;
-    const clustersNeeded = Math.ceil(fileSize / SECTOR_SIZE) || 1;
+    // Cluster is the allocation unit, not sector — at SPC>1 a one-sector
+    // file still occupies a full cluster.
+    const clustersNeeded = Math.ceil(fileSize / CLUSTER_BYTES) || 1;
     const { name83 } = parse83Name(name);
     const startCluster = nextCluster;
 
     // Write file data to data region
-    const dataOffset = (DATA_START_SECTOR + (startCluster - 2)) * SECTOR_SIZE;
+    const dataOffset = clusterOffset(startCluster);
     for (let i = 0; i < fileSize; i++) {
       if (dataOffset + i >= DISK_SIZE) {
         throw new Error(`disk full writing ${name}`);
@@ -276,11 +339,13 @@ export function buildFat12Image(files, geometry) {
       if (!sub) {
         throw new Error(`subdirectory ${dir} not found`);
       }
-      // Check if subdir cluster has space (512 bytes / 32 = 16 entries max per cluster)
-      if (sub.entryOffset >= SECTOR_SIZE) {
-        throw new Error(`subdirectory ${dir} full (max 14 files per subdir)`);
+      // Subdir cluster holds CLUSTER_BYTES/32 dirents (16 per sector).
+      if (sub.entryOffset >= CLUSTER_BYTES) {
+        throw new Error(
+          `subdirectory ${dir} full (max ${CLUSTER_BYTES/32 - 2} files per subdir)`
+        );
       }
-      const dirDataOffset = (DATA_START_SECTOR + (sub.cluster - 2)) * SECTOR_SIZE;
+      const dirDataOffset = clusterOffset(sub.cluster);
       const entryOff = dirDataOffset + sub.entryOffset;
       writeString(disk, entryOff, name83);
       disk[entryOff + 11] = 0x20; // archive attribute

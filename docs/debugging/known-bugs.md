@@ -5,6 +5,46 @@ detailed enough that a future agent hitting a similar bug can recognize it.
 
 ## Fixed bugs
 
+### FAT12 cluster count exceeds 4085 → DOS detects FAT16 (2026-04-25)
+
+**Symptom:** Any cart whose disk had more than 4085 data clusters hung
+boot at **CS:IP=0x0105:0x1730**, partway through loading ANSI.SYS. DOS
+issued one INT 13h AL=1 read for the first sector of ANSI.SYS (LBA 133
+on the default layout), then never issued another disk read. The kernel
+sat in a loop inside the INT 13h handler return path.
+
+**Root cause:** `tools/mkfat12.mjs` hardcoded `sectorsPerCluster = 1`
+and sized `FAT_SECTORS` based on content clusters, not whole-disk
+clusters. On a 2.88 MB disk (5760 sectors) that meant `totalSectors −
+dataStart ≈ 5743` clusters. EDR-DOS's `medchk` / mount path computes
+`dataClusters = (totalSectors − dataStart) / spc` and treats anything
+over 4085 as FAT16. Our 12-bit FAT entries (low 3 bytes = F0 FF FF…)
+were then interpreted as 16-bit entries, so the first file's cluster
+chain looked valid for one sector and then walked into junk. DOS's
+`track_rw` aborted silently and the boot loop stalled.
+
+**Fix:** `mkfat12.mjs` now picks `sectorsPerCluster` iteratively:
+starts at 1, doubles until `floor((totalSectors − dataStart) / SPC) ≤
+4084`. Hard cap at 128 (throws if the disk really would need FAT16).
+File allocation is now in cluster units (`CLUSTER_BYTES = SECTOR_SIZE
+* SPC`), and the `clusterOffset(c)` helper computes the byte offset
+correctly for any SPC. zork1 default (720 sectors): unchanged (SPC=1,
+703 clusters). 2.88 MB disks: SPC=2, ~2866 clusters.
+
+**How to reproduce / verify:** build the same cart at total sectors
+4102 vs 4103. At 4102 (= 4085 data clusters) the cabinet boots. At
+4103 (= 4086 data clusters) it hangs at 0x0105:0x1730 with LBA frozen
+at the first sector of the first multi-sector file it tries to load.
+
+**Pattern to watch for:** BPB values interpreted slightly differently
+by DOS than the builder assumes. `sectorsPerCluster` and `fatSectors`
+both affect where DOS thinks the cluster table ends, and thus whether
+it picks FAT12 or FAT16 interpretation. **Always treat the builder's
+FAT layout as something DOS will independently re-derive, not as
+authoritative.** If DOS's derivation disagrees with ours, the filesystem
+looks corrupted to DOS. Same risk territory for FAT16→FAT32 (65525
+clusters) and for `MAXCLUS` in the kernel disk driver.
+
 ### Segment override prefix decode / IP advancement (2026-04-13)
 
 **Symptom:** `DS: PUSH word [BP+0x1E]` (3E FF 76 1E) advanced IP by 5 instead of 4.

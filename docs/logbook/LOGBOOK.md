@@ -1,13 +1,13 @@
 # CSS-DOS Logbook
 
-Last updated: 2026-04-24
+Last updated: 2026-04-25
 
 ## Current status
 
-Zork and Montezuma's Revenge both boot and run under dos-corduroy with
-autofit memory — video is good and performance is good as of just
-before the memory-packing merge attempt. These are the canonical
-smoke tests; carts live in `carts/`.
+Zork, Montezuma's Revenge, and sokoban boot and run under dos-corduroy
+with autofit memory. zork-big (2.88 MB disk variant) now boots too
+after the FAT12 cluster-boundary fix. Doom8088 clears its previous
+stage-2→3 hang but now hits a new stage-3→4 wall.
 
 Non-planar video modes should be working following the recent
 video-modes work.
@@ -42,10 +42,28 @@ video-modes work.
   vs pack=2 through ≥500k ticks post-fix, and pack=2 is now *slightly
   faster* than pack=1 (not slower, as the user expected). Browser
   verification pending.
-- **Doom8088:** almost there. Boot splash (mode 13h) and text-mode
-  kernel/ANSI output display correctly; hangs after the kernel DOS
-  message where the game should start. Ticks continue, but execution
-  has gone wrong.
+- **FAT12/FAT16 cluster-boundary fix (mkfat12).** 2026-04-24: any cart
+  whose disk had more than 4085 data clusters (i.e. > ~2.05 MB at
+  SPC=1) would hang boot at CS:IP=0x105:0x1730 partway through loading
+  ANSI.SYS — DOS auto-detects FAT16 when `dataClusters > 4085`, reads
+  our 12-bit FAT entries as 16-bit garbage, walks the wrong cluster
+  chain, and fails any read past sector 1 of a multi-cluster file.
+  `tools/mkfat12.mjs` now picks `sectorsPerCluster` (doubling from 1)
+  so `floor((totalSectors - dataStart) / SPC) <= 4084` always. zork1
+  default is unchanged (SPC=1, 703 clusters); 2.88 MB disks now use
+  SPC=2 (~2866 clusters). Threshold was pinpointed by binary search:
+  4102 total sectors (= 4085 data clusters) boots, 4103 (= 4086 data
+  clusters) hangs. File writer uses `clusterOffset(c) = dataStart +
+  (c-2)*SPC` and allocates in `CLUSTER_BYTES = SECTOR_SIZE * SPC`
+  units. User-verified: zork1 + sokoban still boot; zork-big (2.88 MB)
+  now boots; doom8088 clears its old stage-2→3 hang and now hits a
+  separate stage-3→4 hang instead.
+- **Doom8088:** stage-3→4 hang. 2026-04-24: after the FAT12 fix, doom
+  now displays the mode-13h splash and the kernel/ANSI text output
+  (stages 1–3) but freezes before the game starts. calcite cycleCount
+  stops advancing (~14.6M) while tick counter continues — true CPU
+  halt, not an idle loop. CS=0 IP=0x4C when stuck, which is inside the
+  IVT. Needs investigation. Previous stage-2→3 hang is fixed.
 
 ## Boot sequence (dos-corduroy)
 
