@@ -60,3 +60,11 @@ builder emits. If calcite disagrees with the ref, **calcite is wrong**
 | Bisecting a divergence | `tests/harness/pipeline.mjs fulldiff`, then MCP debugger to dig |
 | Visual sanity | `tests/harness/pipeline.mjs shoot` |
 | Regression check | `tests/harness/pipeline.mjs cabinet-diff` or `baseline-verify` |
+
+The full MCP tool surface (including agent-oriented additions like
+`inspect_packed_cell`, `compare_paths`, `watchpoint`, async `run_until`,
+multi-session diffs, `trace_property`, `execution_summary`) lives in the
+calcite docs:
+[Agent-oriented tooling](../../calcite/docs/debugger.md#agent-oriented-tooling).
+The harness wraps each tool in
+[`tests/harness/lib/debugger-client.mjs`](../tests/harness/README.md).

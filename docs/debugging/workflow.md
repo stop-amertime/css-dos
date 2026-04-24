@@ -39,8 +39,14 @@ For CSS bugs: check the emitter in the relevant pattern file. Common causes:
 - uOp holding when it should advance (or vice versa)
 - Missing register update in a multi-uOp sequence
 
-For calcite bugs: use `/trace-property` and `/dump-ops` to trace the compiled
-execution path. See `docs/debugging/calcite-debugger.md`.
+For calcite bugs: use `trace_property` and `dump_ops` to trace the compiled
+execution path. See [`docs/debugging/calcite-debugger.md`](calcite-debugger.md)
+for the quick reference, and the
+[Agent-oriented tooling](../../../calcite/docs/debugger.md#agent-oriented-tooling)
+section of the calcite debugger docs for the full tool inventory
+(`inspect_packed_cell`, `compare_paths`, `watchpoint`, async `run_until`,
+multi-session side-by-side, etc.). Harness wrappers are in
+[`tests/harness/lib/debugger-client.mjs`](../../tests/harness/lib/debugger-client.mjs).
 
 ### 4. Verify
 

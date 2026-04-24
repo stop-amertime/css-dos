@@ -1,6 +1,14 @@
 # Calcite Debugger Quick Reference
 
-Full documentation: `../calcite/docs/debugger.md`
+Full documentation: [`../../../calcite/docs/debugger.md`](../../../calcite/docs/debugger.md).
+
+**Driving the debugger from an agent or the test harness? Jump straight
+to the [Agent-oriented tooling](../../../calcite/docs/debugger.md#agent-oriented-tooling)
+section.** It lists the MCP tools added specifically for agentic debugging
+(`inspect_packed_cell`, `compare_paths`, `watchpoint`, async `run_until`,
+multi-session side-by-side diffs, etc.) and the workflow that goes with
+them. Harness wrappers for each tool live in
+[`tests/harness/lib/debugger-client.mjs`](../../tests/harness/lib/debugger-client.mjs).
 
 ## Starting
 
