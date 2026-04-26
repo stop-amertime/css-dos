@@ -446,10 +446,10 @@ export function emitGroup_FF(dispatch) {
     `if(` +
     `style(--reg: 0) and style(--mod: 3) and style(--rm: 4): --lowerBytes(calc(var(--rmVal16) + 1), 16); ` +
     `style(--reg: 1) and style(--mod: 3) and style(--rm: 4): --lowerBytes(calc(var(--rmVal16) - 1 + 65536), 16); ` +
-    `style(--reg: 2): calc(var(--__1SP) - 2); ` +
-    `style(--reg: 3): calc(var(--__1SP) - 4); ` +
-    `style(--reg: 6): calc(var(--__1SP) - 2); ` +
-    `else: var(--__1SP))`,
+    `style(--reg: 2): --lowerBytes(calc(var(--__1SP) - 2), 16); ` +
+    `style(--reg: 3): --lowerBytes(calc(var(--__1SP) - 4), 16); ` +
+    `style(--reg: 6): --lowerBytes(calc(var(--__1SP) - 2), 16); ` +
+    `else: --lowerBytes(var(--__1SP), 16))`,
     `Group FF SP`);
 
   // CS: only CALL FAR indirect (reg=3) and JMP FAR indirect (reg=5) change CS.
@@ -477,9 +477,9 @@ export function emitGroup_FF(dispatch) {
     `style(--mod: 3) and style(--reg: 1): -1; ` +
     `style(--reg: 0): var(--ea); ` +
     `style(--reg: 1): var(--ea); ` +
-    `style(--reg: 2): calc(${ssBase} + var(--__1SP) - 2); ` +
-    `style(--reg: 3): calc(${ssBase} + var(--__1SP) - 2); ` +
-    `style(--reg: 6): calc(${ssBase} + var(--__1SP) - 2); ` +
+    `style(--reg: 2): calc(${ssBase} + --lowerBytes(calc(var(--__1SP) - 2), 16)); ` +
+    `style(--reg: 3): calc(${ssBase} + --lowerBytes(calc(var(--__1SP) - 2), 16)); ` +
+    `style(--reg: 6): calc(${ssBase} + --lowerBytes(calc(var(--__1SP) - 2), 16)); ` +
     `else: -1)`,
     `if(` +
     `style(--reg: 0): --lowerBytes(calc(var(--rmVal16) + 1), 8); ` +
@@ -497,9 +497,9 @@ export function emitGroup_FF(dispatch) {
     `style(--mod: 3) and style(--reg: 1): -1; ` +
     `style(--reg: 0): calc(var(--ea) + 1); ` +
     `style(--reg: 1): calc(var(--ea) + 1); ` +
-    `style(--reg: 2): calc(${ssBase} + var(--__1SP) - 1); ` +
-    `style(--reg: 3): calc(${ssBase} + var(--__1SP) - 1); ` +
-    `style(--reg: 6): calc(${ssBase} + var(--__1SP) - 1); ` +
+    `style(--reg: 2): calc(${ssBase} + --lowerBytes(calc(var(--__1SP) - 1), 16)); ` +
+    `style(--reg: 3): calc(${ssBase} + --lowerBytes(calc(var(--__1SP) - 1), 16)); ` +
+    `style(--reg: 6): calc(${ssBase} + --lowerBytes(calc(var(--__1SP) - 1), 16)); ` +
     `else: -1)`,
     `if(` +
     `style(--reg: 0): --rightShift(--lowerBytes(calc(var(--rmVal16) + 1), 16), 8); ` +
@@ -512,12 +512,12 @@ export function emitGroup_FF(dispatch) {
 
   // Slots 2-3: CALL FAR indirect push return IP (only reg=3 uses these)
   dispatch.addMemWrite(0xFF,
-    `if(style(--reg: 3): calc(${ssBase} + var(--__1SP) - 4); else: -1)`,
+    `if(style(--reg: 3): calc(${ssBase} + --lowerBytes(calc(var(--__1SP) - 4), 16)); else: -1)`,
     `if(style(--reg: 3): --lowerBytes(${retIP}, 8); else: 0)`,
     `Group FF CALL FAR push IP lo`);
 
   dispatch.addMemWrite(0xFF,
-    `if(style(--reg: 3): calc(${ssBase} + var(--__1SP) - 3); else: -1)`,
+    `if(style(--reg: 3): calc(${ssBase} + --lowerBytes(calc(var(--__1SP) - 3), 16)); else: -1)`,
     `if(style(--reg: 3): --rightShift(${retIP}, 8); else: 0)`,
     `Group FF CALL FAR push IP hi`);
 

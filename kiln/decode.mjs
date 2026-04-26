@@ -298,9 +298,9 @@ export function emitDecodeProperties() {
   --segRegVal: --getSegReg(var(--reg), var(--__1ES), var(--__1CS), var(--__1SS), var(--__1DS));
 
   /* Pre-computed stack word reads for POP/IRET (avoids nested --and(--read2(...))) */
-  --_stackBase: calc(var(--__1SS) * 16 + var(--__1SP));
+  --_stackBase: calc(var(--__1SS) * 16 + --lowerBytes(var(--__1SP), 16));
   --_stackWord0: --read2(var(--_stackBase));
-  --_stackWord2: --read2(calc(var(--_stackBase) + 4));
+  --_stackWord2: --read2(calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) + 4), 16)));
 
   /* Pre-computed signed operands for IMUL/IDIV (avoids deep nesting in dispatch) */
   --_sAX: calc(var(--__1AX) - --bit(var(--__1AX), 15) * 65536);

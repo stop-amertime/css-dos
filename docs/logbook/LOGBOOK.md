@@ -1,13 +1,14 @@
 # CSS-DOS Logbook
 
-Last updated: 2026-04-25
+Last updated: 2026-04-26
 
 ## Current status
 
 Zork, Montezuma's Revenge, and sokoban boot and run under dos-corduroy
 with autofit memory. zork-big (2.88 MB disk variant) now boots too
 after the FAT12 cluster-boundary fix. Doom8088 clears its previous
-stage-2→3 hang but now hits a new stage-3→4 wall.
+14.6M-cycle CS=0:IP=4C IVT-jump hang after the SP-wrap fix and now
+runs into Doom's WAD/sound init (fails W_GetNumForName: DPPISTOL).
 
 Non-planar video modes should be working following the recent
 video-modes work.
@@ -64,6 +65,35 @@ video-modes work.
   stops advancing (~14.6M) while tick counter continues — true CPU
   halt, not an idle loop. CS=0 IP=0x4C when stuck, which is inside the
   IVT. Needs investigation. Previous stage-2→3 hang is fixed.
+- **SP 16-bit wrap fix in kiln.** 2026-04-26: identified and fixed the
+  14.6M-cycle "CS=0 IP=0x4C IVT-jump" hang. Root cause: kiln's emitted
+  CSS computed stack memory addresses as `SS*16 + SP - N` with SP and
+  the offset evaluated as i32, no 16-bit wrap. When DOOM's Watcom
+  trampoline set SP=0 and INT 21h fired, the CPU push wrote IP/CS/FLAGS
+  at linear `SS*16 - 6 .. SS*16 - 1` (negative offsets, *below* the
+  segment base) instead of the spec-correct `SS*16 + 0xFFFA .. SS*16 +
+  0xFFFF`. Then DOS's INT 21h handler restored SS:SP from a
+  16-bit-truncated saved value (so SP came back as 0xFFE8, positive),
+  the POPs and IRET read from `SS*16 + 0xFFE8 ..` which was zero memory,
+  IRET popped (IP=0,CS=0,FLAGS=0), CPU jumped to 0:0 and walked the IVT.
+  Fix: wrap every `var(--__1SP) ± N` used as a memory-address offset
+  with `--lowerBytes(..., 16)`, and mask every SP register store with
+  the same. Touched `kiln/{patterns/{stack,control,misc,group,
+  extended186}.mjs, decode.mjs, emit-css.mjs}`. After rebuild Doom
+  advances past 14.6M cycles cleanly: tested to 30M cycles, CPU stays
+  in mode 0x03 running DOS / DOOM init code. Zork still boots fine.
+  Doom now reaches its own startup, prints `Z_Init`/`W_Init` etc, then
+  fails on `W_GetNumForName: DPPISTOL not found` and exits — separate
+  issue, probably -nosound not skipping the lump cache, or a memory-
+  layout mismatch reading WAD lumps.
+- **walk_doom probe.** 2026-04-26: new
+  `calcite/crates/calcite-cli/src/bin/walk_doom.rs` runs a cabinet in
+  fast batches (~220k ticks/s), dumps reg+memory snapshots per chunk,
+  optional code/stack peek + per-chunk PNG/TXT screenshots. Used to
+  pinpoint the SP-wrap bug between ticks 838,520-838,525 and confirm
+  the fix. Build with `cargo build --release -p calcite-cli --bin
+  walk_doom`. Useful flags: `--chunk N`, `--fine-after T --fine-chunk M`
+  for two-stage zoom-in, `--dump-code`, `--screenshot`.
 
 ## Boot sequence (dos-corduroy)
 

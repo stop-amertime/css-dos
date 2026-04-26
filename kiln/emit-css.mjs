@@ -180,12 +180,12 @@ class DispatchTable {
     // dispatch through the same expressions.
     const ssBase = 'calc(var(--__1SS) * 16)';
     const intAddr = [
-      `calc(${ssBase} + var(--__1SP) - 2)`,   // slot 0: FLAGS lo
-      `calc(${ssBase} + var(--__1SP) - 1)`,   // slot 1: FLAGS hi
-      `calc(${ssBase} + var(--__1SP) - 4)`,   // slot 2: CS lo
-      `calc(${ssBase} + var(--__1SP) - 3)`,   // slot 3: CS hi
-      `calc(${ssBase} + var(--__1SP) - 6)`,   // slot 4: IP lo
-      `calc(${ssBase} + var(--__1SP) - 5)`,   // slot 5: IP hi
+      `calc(${ssBase} + --lowerBytes(calc(var(--__1SP) - 2), 16))`,   // slot 0: FLAGS lo
+      `calc(${ssBase} + --lowerBytes(calc(var(--__1SP) - 1), 16))`,   // slot 1: FLAGS hi
+      `calc(${ssBase} + --lowerBytes(calc(var(--__1SP) - 4), 16))`,   // slot 2: CS lo
+      `calc(${ssBase} + --lowerBytes(calc(var(--__1SP) - 3), 16))`,   // slot 3: CS hi
+      `calc(${ssBase} + --lowerBytes(calc(var(--__1SP) - 6), 16))`,   // slot 4: IP lo
+      `calc(${ssBase} + --lowerBytes(calc(var(--__1SP) - 5), 16))`,   // slot 5: IP hi
     ];
     const flagsPush = `var(--__1flags)`;
     const intVal = [

@@ -434,22 +434,22 @@ export function emitPOP_RM(dispatch) {
   for (let r = 0; r < 8; r++) {
     if (r === 4) continue; // SP handled separately
     dispatch.addEntry(REG16[r], 0x8F,
-      `if(style(--mod: 3) and style(--rm: ${r}): --read2(calc(var(--__1SS) * 16 + var(--__1SP))); else: var(--__1${REG16[r]}))`,
+      `if(style(--mod: 3) and style(--rm: ${r}): --read2(calc(var(--__1SS) * 16 + --lowerBytes(var(--__1SP), 16))); else: var(--__1${REG16[r]}))`,
       `POP r/m16 → ${REG16[r]}`);
   }
   // SP: gets popped value if rm=4, otherwise SP+=2
   dispatch.addEntry('SP', 0x8F,
-    `if(style(--mod: 3) and style(--rm: 4): --read2(calc(var(--__1SS) * 16 + var(--__1SP))); else: calc(var(--__1SP) + 2))`,
+    `if(style(--mod: 3) and style(--rm: 4): --read2(calc(var(--__1SS) * 16 + --lowerBytes(var(--__1SP), 16))); else: --lowerBytes(calc(var(--__1SP) + 2), 16))`,
     `POP r/m16 SP`);
 
   // Memory write: when mod!=3, write popped value to EA
   dispatch.addMemWrite(0x8F,
     `if(style(--mod: 3): -1; else: var(--ea))`,
-    `--lowerBytes(--read2(calc(var(--__1SS) * 16 + var(--__1SP))), 8)`,
+    `--lowerBytes(--read2(calc(var(--__1SS) * 16 + --lowerBytes(var(--__1SP), 16))), 8)`,
     `POP r/m16 → mem lo`);
   dispatch.addMemWrite(0x8F,
     `if(style(--mod: 3): -1; else: calc(var(--ea) + 1))`,
-    `--rightShift(--read2(calc(var(--__1SS) * 16 + var(--__1SP))), 8)`,
+    `--rightShift(--read2(calc(var(--__1SS) * 16 + --lowerBytes(var(--__1SP), 16))), 8)`,
     `POP r/m16 → mem hi`);
 
   dispatch.addEntry('IP', 0x8F, `calc(var(--__1IP) + 2 + var(--modrmExtra))`, `POP r/m16`);
@@ -943,7 +943,7 @@ export function emitXLAT(dispatch) {
  * Same as INT 0xCD but interrupt number = 3, return IP = IP + 1.
  */
 export function emitINT3(dispatch) {
-  dispatch.addEntry('SP', 0xCC, `calc(var(--__1SP) - 6)`, `INT 3 (SP-=6)`);
+  dispatch.addEntry('SP', 0xCC, `--lowerBytes(calc(var(--__1SP) - 6), 16)`, `INT 3 (SP-=6)`);
 
   // Load new IP from IVT[3*4] = IVT[12]
   dispatch.addEntry('IP', 0xCC,
@@ -965,31 +965,31 @@ export function emitINT3(dispatch) {
 
   // Push FLAGS at SP-2/SP-1 (highest address, pushed first)
   dispatch.addMemWrite(0xCC,
-    `calc(${ssBase} + var(--__1SP) - 2)`,
+    `calc(${ssBase} + --lowerBytes(calc(var(--__1SP) - 2), 16))`,
     `--lowerBytes(var(--__1flags), 8)`,
     `INT 3 push FLAGS lo`);
   dispatch.addMemWrite(0xCC,
-    `calc(${ssBase} + var(--__1SP) - 1)`,
+    `calc(${ssBase} + --lowerBytes(calc(var(--__1SP) - 1), 16))`,
     `--rightShift(var(--__1flags), 8)`,
     `INT 3 push FLAGS hi`);
 
   // Push CS at SP-4/SP-3
   dispatch.addMemWrite(0xCC,
-    `calc(${ssBase} + var(--__1SP) - 4)`,
+    `calc(${ssBase} + --lowerBytes(calc(var(--__1SP) - 4), 16))`,
     `--lowerBytes(var(--__1CS), 8)`,
     `INT 3 push CS lo`);
   dispatch.addMemWrite(0xCC,
-    `calc(${ssBase} + var(--__1SP) - 3)`,
+    `calc(${ssBase} + --lowerBytes(calc(var(--__1SP) - 3), 16))`,
     `--rightShift(var(--__1CS), 8)`,
     `INT 3 push CS hi`);
 
   // Push return IP at SP-6/SP-5 (lowest address, pushed last)
   dispatch.addMemWrite(0xCC,
-    `calc(${ssBase} + var(--__1SP) - 6)`,
+    `calc(${ssBase} + --lowerBytes(calc(var(--__1SP) - 6), 16))`,
     `--lowerBytes(${retIP}, 8)`,
     `INT 3 push IP lo`);
   dispatch.addMemWrite(0xCC,
-    `calc(${ssBase} + var(--__1SP) - 5)`,
+    `calc(${ssBase} + --lowerBytes(calc(var(--__1SP) - 5), 16))`,
     `--rightShift(${retIP}, 8)`,
     `INT 3 push IP hi`);
 }
@@ -1007,7 +1007,7 @@ export function emitINTO(dispatch) {
 
   // SP: if OF, SP -= 6; else unchanged
   dispatch.addEntry('SP', 0xCE,
-    `calc(var(--__1SP) - ${ofBit} * 6)`,
+    `--lowerBytes(calc(var(--__1SP) - ${ofBit} * 6), 16)`,
     `INTO (SP-=6 if OF)`);
 
   // IP: if OF, load from IVT[16]; else IP + 1
@@ -1027,27 +1027,27 @@ export function emitINTO(dispatch) {
 
   // Memory pushes — addr uses arithmetic mux: of*real_addr + (1-of)*(-1)
   dispatch.addMemWrite(0xCE,
-    `calc(${ofBit} * (${ssBase} + var(--__1SP) - 2) + (1 - ${ofBit}) * (-1))`,
+    `calc(${ofBit} * (${ssBase} + --lowerBytes(calc(var(--__1SP) - 2), 16)) + (1 - ${ofBit}) * (-1))`,
     `--lowerBytes(var(--__1flags), 8)`,
     `INTO push FLAGS lo`);
   dispatch.addMemWrite(0xCE,
-    `calc(${ofBit} * (${ssBase} + var(--__1SP) - 1) + (1 - ${ofBit}) * (-1))`,
+    `calc(${ofBit} * (${ssBase} + --lowerBytes(calc(var(--__1SP) - 1), 16)) + (1 - ${ofBit}) * (-1))`,
     `--rightShift(var(--__1flags), 8)`,
     `INTO push FLAGS hi`);
   dispatch.addMemWrite(0xCE,
-    `calc(${ofBit} * (${ssBase} + var(--__1SP) - 4) + (1 - ${ofBit}) * (-1))`,
+    `calc(${ofBit} * (${ssBase} + --lowerBytes(calc(var(--__1SP) - 4), 16)) + (1 - ${ofBit}) * (-1))`,
     `--lowerBytes(var(--__1CS), 8)`,
     `INTO push CS lo`);
   dispatch.addMemWrite(0xCE,
-    `calc(${ofBit} * (${ssBase} + var(--__1SP) - 3) + (1 - ${ofBit}) * (-1))`,
+    `calc(${ofBit} * (${ssBase} + --lowerBytes(calc(var(--__1SP) - 3), 16)) + (1 - ${ofBit}) * (-1))`,
     `--rightShift(var(--__1CS), 8)`,
     `INTO push CS hi`);
   dispatch.addMemWrite(0xCE,
-    `calc(${ofBit} * (${ssBase} + var(--__1SP) - 6) + (1 - ${ofBit}) * (-1))`,
+    `calc(${ofBit} * (${ssBase} + --lowerBytes(calc(var(--__1SP) - 6), 16)) + (1 - ${ofBit}) * (-1))`,
     `--lowerBytes(${retIP}, 8)`,
     `INTO push IP lo`);
   dispatch.addMemWrite(0xCE,
-    `calc(${ofBit} * (${ssBase} + var(--__1SP) - 5) + (1 - ${ofBit}) * (-1))`,
+    `calc(${ofBit} * (${ssBase} + --lowerBytes(calc(var(--__1SP) - 5), 16)) + (1 - ${ofBit}) * (-1))`,
     `--rightShift(${retIP}, 8)`,
     `INTO push IP hi`);
 }

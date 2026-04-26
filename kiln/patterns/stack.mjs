@@ -14,7 +14,7 @@ export function emitPUSH_reg(dispatch) {
 
     // SP always decrements
     dispatch.addEntry('SP', opcode,
-      `calc(var(--__1SP) - 2)`,
+      `--lowerBytes(calc(var(--__1SP) - 2), 16)`,
       `PUSH ${reg} (SP-=2)`);
 
     // Value to push: for PUSH SP, it's SP-2 (post-decrement value)
@@ -24,11 +24,11 @@ export function emitPUSH_reg(dispatch) {
 
     // Memory write: low byte at SS:SP-2, high byte at SS:SP-1
     dispatch.addMemWrite(opcode,
-      `calc(var(--__1SS) * 16 + var(--__1SP) - 2)`,
+      `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2), 16))`,
       `--lowerBytes(${pushVal}, 8)`,
       `PUSH ${reg} lo`);
     dispatch.addMemWrite(opcode,
-      `calc(var(--__1SS) * 16 + var(--__1SP) - 1)`,
+      `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 1), 16))`,
       `--rightShift(${pushVal}, 8)`,
       `PUSH ${reg} hi`);
 
@@ -48,13 +48,13 @@ export function emitPOP_reg(dispatch) {
 
     // Read from stack
     dispatch.addEntry(reg, opcode,
-      `--read2(calc(var(--__1SS) * 16 + var(--__1SP)))`,
+      `--read2(calc(var(--__1SS) * 16 + --lowerBytes(var(--__1SP), 16)))`,
       `POP ${reg}`);
 
     // SP += 2 (but if we're popping into SP, the popped value wins)
     if (r !== 4) {
       dispatch.addEntry('SP', opcode,
-        `calc(var(--__1SP) + 2)`,
+        `--lowerBytes(calc(var(--__1SP) + 2), 16)`,
         `POP ${reg} (SP+=2)`);
     }
     // For POP SP (0x5C), SP gets the popped value directly (already handled above)
@@ -76,14 +76,14 @@ export function emitPUSH_seg(dispatch) {
   ];
   for (const { opcode, reg } of segs) {
     dispatch.addEntry('SP', opcode,
-      `calc(var(--__1SP) - 2)`,
+      `--lowerBytes(calc(var(--__1SP) - 2), 16)`,
       `PUSH ${reg} (SP-=2)`);
     dispatch.addMemWrite(opcode,
-      `calc(var(--__1SS) * 16 + var(--__1SP) - 2)`,
+      `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2), 16))`,
       `--lowerBytes(var(--__1${reg}), 8)`,
       `PUSH ${reg} lo`);
     dispatch.addMemWrite(opcode,
-      `calc(var(--__1SS) * 16 + var(--__1SP) - 1)`,
+      `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 1), 16))`,
       `--rightShift(var(--__1${reg}), 8)`,
       `PUSH ${reg} hi`);
     dispatch.addEntry('IP', opcode, `calc(var(--__1IP) + 1)`, `PUSH ${reg}`);
@@ -102,10 +102,10 @@ export function emitPOP_seg(dispatch) {
   ];
   for (const { opcode, reg } of segs) {
     dispatch.addEntry(reg, opcode,
-      `--read2(calc(var(--__1SS) * 16 + var(--__1SP)))`,
+      `--read2(calc(var(--__1SS) * 16 + --lowerBytes(var(--__1SP), 16)))`,
       `POP ${reg}`);
     dispatch.addEntry('SP', opcode,
-      `calc(var(--__1SP) + 2)`,
+      `--lowerBytes(calc(var(--__1SP) + 2), 16)`,
       `POP ${reg} (SP+=2)`);
     dispatch.addEntry('IP', opcode, `calc(var(--__1IP) + 1)`, `POP ${reg}`);
   }
@@ -116,14 +116,14 @@ export function emitPOP_seg(dispatch) {
  */
 export function emitPUSHF(dispatch) {
   dispatch.addEntry('SP', 0x9C,
-    `calc(var(--__1SP) - 2)`,
+    `--lowerBytes(calc(var(--__1SP) - 2), 16)`,
     `PUSHF (SP-=2)`);
   dispatch.addMemWrite(0x9C,
-    `calc(var(--__1SS) * 16 + var(--__1SP) - 2)`,
+    `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2), 16))`,
     `--lowerBytes(var(--__1flags), 8)`,
     `PUSHF lo`);
   dispatch.addMemWrite(0x9C,
-    `calc(var(--__1SS) * 16 + var(--__1SP) - 1)`,
+    `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 1), 16))`,
     `--rightShift(var(--__1flags), 8)`,
     `PUSHF hi`);
   dispatch.addEntry('IP', 0x9C, `calc(var(--__1IP) + 1)`, `PUSHF`);
@@ -138,7 +138,7 @@ export function emitPOPF(dispatch) {
     `calc(--and(var(--_stackWord0), 4053) + 2)`,
     `POPF`);
   dispatch.addEntry('SP', 0x9D,
-    `calc(var(--__1SP) + 2)`,
+    `--lowerBytes(calc(var(--__1SP) + 2), 16)`,
     `POPF (SP+=2)`);
   dispatch.addEntry('IP', 0x9D, `calc(var(--__1IP) + 1)`, `POPF`);
 }
