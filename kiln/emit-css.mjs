@@ -121,7 +121,7 @@ class DispatchTable {
     const TF_OVERRIDES = {
       'IP':    'var(--_tfIP)',
       'CS':    'var(--_tfCS)',
-      'SP':    'calc(var(--__1SP) - 6)',
+      'SP':    '--lowerBytes(calc(var(--__1SP) - 6), 16)',
       'flags': '--and(var(--__1flags), 64767)',  // & 0xFCFF = clear TF+IF
     };
 
@@ -134,7 +134,7 @@ class DispatchTable {
     // bit (while still latching any new edges); picInService sets it so that
     // lower-priority IRQs block until EOI.
     const IRQ_OVERRIDES = {
-      'SP':       'calc(var(--__1SP) - 6)',
+      'SP':       '--lowerBytes(calc(var(--__1SP) - 6), 16)',
       'IP':       '--read2(calc(var(--picVector) * 4))',
       'CS':       '--read2(calc(var(--picVector) * 4 + 2))',
       'flags':    '--and(var(--__1flags), 64767)',
