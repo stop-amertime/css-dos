@@ -5,6 +5,51 @@ detailed enough that a future agent hitting a similar bug can recognize it.
 
 ## Fixed bugs
 
+### kiln D0 ROL/ROR missing → libc memcmp returns garbage (2026-04-26)
+
+**Symptom:** Doom8088 reports `W_GetNumForName: DPPISTOL not found` on
+the very first WAD lump lookup. Smoke programs (zork, montezuma)
+unaffected. Looks like WAD loading broke or `repe cmpsw` is wrong —
+both red herrings.
+
+**Root cause:** `kiln/patterns/shift.mjs::emitShift_D0` (group `D0 /r`,
+shift/rotate r/m8 by 1) implemented SHL (reg=4), SHR (5), SAR (7), RCL
+(2), RCR (3) — but not ROL (0) or ROR (1). They fell through to
+`else: var(--__1${regName})`, a no-op. The companion `emitShift_D1`
+(word version) had all 7 cases.
+
+Watcom's libc memcmp (linked into Doom8088 and Prince of Persia) ends
+with `lahf; ror ah, 1; and ax, 0xa000; xor ax, 0x2000` to convert the
+post-cmpsw flags into a -1/0/+1 result. With ROR a no-op, AH stayed at
+the lahf value (0x46 for ZF=1), the and/xor sequence yielded AX=0x6000
+instead of 0, every memcmp reported "not equal" even when bytes
+matched, and any libc string/memory comparison silently lied.
+
+**Fix:** added ROL+ROR to `emitShift_D0`'s result and flags
+dispatches, mirroring `emitShift_D1`. Reorganised the dispatch into a
+small `RESULTS` table keyed by reg field so all seven cases live in
+one obvious place.
+
+**How to reproduce / verify:** the smallest test is `lahf; ror ah, 1`
+right after `repe cmpsw` of two equal byte sequences and check whether
+the subsequent `and/xor` yields 0. If `--ROR ah, 1` is a no-op,
+that whole sequence yields 0x6000.
+
+**Pattern to watch for:**
+
+- *Always test the suspected primitive in isolation before
+  binary-patching the caller.* I spent hours patching DOOM.EXE's
+  memcmp to use a manual byte loop on the assumption `repe cmpsw` was
+  broken. A 30-line repe-cmpsw `.COM` test would have ruled cmpsw out
+  in two minutes — the bug was 4 instructions later in the lahf/ror
+  conversion.
+- *Treat instruction-emitter dispatch tables with skepticism.* Ours
+  are written as long if-chain expressions; a missing case is silent
+  and looks like the register just doesn't change. Scan the chain for
+  every `--reg: N` from 0..7 (or every relevant value) when adding
+  new instructions. The fix here was to factor the seven cases into a
+  table so a missing one is visually obvious.
+
 ### FAT12 cluster count exceeds 4085 → DOS detects FAT16 (2026-04-25)
 
 **Symptom:** Any cart whose disk had more than 4085 data clusters hung
@@ -133,8 +178,6 @@ bug but in memory write address computation rather than IP.
 
 **How to reproduce:**
 ```sh
-node transpiler/generate-dos.mjs ../calcite/programs/bootle.com -o ../calcite/output/bootle.css
-cd ../calcite
-target/release/calcite-debugger.exe -i output/bootle.css &
-node tools/fulldiff.mjs --ticks=5000
+node builder/build.mjs ../calcite/programs/bootle.com -o /tmp/bootle.css
+node tests/harness/pipeline.mjs fulldiff /tmp/bootle.css --max-ticks=5000
 ```

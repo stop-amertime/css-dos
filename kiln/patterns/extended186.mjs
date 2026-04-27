@@ -24,15 +24,17 @@ const sImmByte = `--u2s1(var(--immByte))`;
  * Encoding: 68 lo hi
  */
 export function emit68_PUSH_imm16(dispatch) {
+  // SP wrap: --lowerBytes(SP - 2 + 65536, 16) so PUSH at SP=0 lands at
+  // SS:0xFFFE rather than SS-1:0xFFFE. See kiln/patterns/stack.mjs.
   dispatch.addEntry('SP', 0x68,
-    `calc(var(--__1SP) - 2)`,
+    `--lowerBytes(calc(var(--__1SP) - 2 + 65536), 16)`,
     `PUSH imm16 (SP-=2)`);
   dispatch.addMemWrite(0x68,
-    `calc(var(--__1SS) * 16 + var(--__1SP) - 2)`,
+    `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16))`,
     `var(--q1)`,
     `PUSH imm16 lo`);
   dispatch.addMemWrite(0x68,
-    `calc(var(--__1SS) * 16 + var(--__1SP) - 1)`,
+    `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 1 + 65536), 16))`,
     `var(--q2)`,
     `PUSH imm16 hi`);
   dispatch.addEntry('IP', 0x68, `calc(var(--__1IP) + 3)`, `PUSH imm16`);
@@ -45,15 +47,16 @@ export function emit68_PUSH_imm16(dispatch) {
 export function emit6A_PUSH_imm8(dispatch) {
   // Sign-extended 16-bit value: if imm8 >= 0x80, high byte = 0xFF, else 0x00
   const hiByte = `calc(--bit(var(--q1), 7) * 255)`;
+  // SP wrap as in PUSH imm16 above.
   dispatch.addEntry('SP', 0x6A,
-    `calc(var(--__1SP) - 2)`,
+    `--lowerBytes(calc(var(--__1SP) - 2 + 65536), 16)`,
     `PUSH imm8 sx (SP-=2)`);
   dispatch.addMemWrite(0x6A,
-    `calc(var(--__1SS) * 16 + var(--__1SP) - 2)`,
+    `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16))`,
     `var(--q1)`,
     `PUSH imm8 sx lo`);
   dispatch.addMemWrite(0x6A,
-    `calc(var(--__1SS) * 16 + var(--__1SP) - 1)`,
+    `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 1 + 65536), 16))`,
     hiByte,
     `PUSH imm8 sx hi`);
   dispatch.addEntry('IP', 0x6A, `calc(var(--__1IP) + 2)`, `PUSH imm8`);

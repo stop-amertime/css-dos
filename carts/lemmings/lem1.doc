@@ -1,0 +1,18 @@
+Lemmings Documentation
+----------------------
+
+Keys
+----
+
+The keys within the game are as follows :-
+
+At front end
+	F1		- Start game
+	F2		- New Level (enter access code to access a new level)
+	F3		- Select Sound Options
+	F4		- Select new input type (presents menu for selection)
+	ESC		- Exit to DOS
+	Up arrow	- Change Rating to higher level
+	Down arrow	- Change rating to lower level
+
+

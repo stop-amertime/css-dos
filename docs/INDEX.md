@@ -64,7 +64,7 @@ Start at the top, go as deep as you need.
 | Path | For |
 |---|---|
 | `../calcite/CLAUDE.md` | Calcite's architecture and cardinal rule. |
-| `../calcite/docs/debugger.md` | HTTP debug server API. |
-| `../calcite/docs/conformance-testing.md` | `fulldiff.mjs`, `diagnose.mjs`, `ref-dos.mjs`. |
+| `../calcite/docs/debugger.md` | MCP debug server API. |
+| `../calcite/docs/conformance-testing.md` | Conformance concepts. The legacy `tools/fulldiff.mjs` / `diagnose.mjs` / `ref-dos.mjs` are broken — use `tests/harness/pipeline.mjs fulldiff` instead. |
 | `../calcite/docs/codebug.md` | Co-execution debugger for side-by-side JS/calcite comparison. |
 | `../calcite/docs/benchmarking.md` | Performance numbers, Chrome comparison. |

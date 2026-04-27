@@ -446,9 +446,9 @@ export function emitGroup_FF(dispatch) {
     `if(` +
     `style(--reg: 0) and style(--mod: 3) and style(--rm: 4): --lowerBytes(calc(var(--rmVal16) + 1), 16); ` +
     `style(--reg: 1) and style(--mod: 3) and style(--rm: 4): --lowerBytes(calc(var(--rmVal16) - 1 + 65536), 16); ` +
-    `style(--reg: 2): calc(var(--__1SP) - 2); ` +
-    `style(--reg: 3): calc(var(--__1SP) - 4); ` +
-    `style(--reg: 6): calc(var(--__1SP) - 2); ` +
+    `style(--reg: 2): --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16); ` +
+    `style(--reg: 3): --lowerBytes(calc(var(--__1SP) - 4 + 65536), 16); ` +
+    `style(--reg: 6): --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16); ` +
     `else: var(--__1SP))`,
     `Group FF SP`);
 
@@ -469,6 +469,11 @@ export function emitGroup_FF(dispatch) {
 
   const ssBase = `var(--__1SS) * 16`;
   const retIP = `calc(var(--__1IP) + var(--prefixLen) + 2 + var(--modrmExtra))`;
+  // Wrap SP-K to 16 bits before adding to SS*16 — same SP=0 wrap fix as
+  // stack.mjs / control.mjs. Critical when reg=2/3/6 (CALL/PUSH variants)
+  // pushes onto a fresh stack with SP=0, e.g. EDR-DOS exec'ing an .EXE
+  // whose header sets SP=0x0000 (DOOM8088 hits this).
+  const sa = (k) => `calc(${ssBase} + --lowerBytes(calc(var(--__1SP) - ${k} + 65536), 16))`;
 
   // Slot 0: INC/DEC mem lo, CALL near push lo, CALL FAR push CS lo, PUSH push lo
   dispatch.addMemWrite(0xFF,
@@ -477,9 +482,9 @@ export function emitGroup_FF(dispatch) {
     `style(--mod: 3) and style(--reg: 1): -1; ` +
     `style(--reg: 0): var(--ea); ` +
     `style(--reg: 1): var(--ea); ` +
-    `style(--reg: 2): calc(${ssBase} + var(--__1SP) - 2); ` +
-    `style(--reg: 3): calc(${ssBase} + var(--__1SP) - 2); ` +
-    `style(--reg: 6): calc(${ssBase} + var(--__1SP) - 2); ` +
+    `style(--reg: 2): ${sa(2)}; ` +
+    `style(--reg: 3): ${sa(2)}; ` +
+    `style(--reg: 6): ${sa(2)}; ` +
     `else: -1)`,
     `if(` +
     `style(--reg: 0): --lowerBytes(calc(var(--rmVal16) + 1), 8); ` +
@@ -497,9 +502,9 @@ export function emitGroup_FF(dispatch) {
     `style(--mod: 3) and style(--reg: 1): -1; ` +
     `style(--reg: 0): calc(var(--ea) + 1); ` +
     `style(--reg: 1): calc(var(--ea) + 1); ` +
-    `style(--reg: 2): calc(${ssBase} + var(--__1SP) - 1); ` +
-    `style(--reg: 3): calc(${ssBase} + var(--__1SP) - 1); ` +
-    `style(--reg: 6): calc(${ssBase} + var(--__1SP) - 1); ` +
+    `style(--reg: 2): ${sa(1)}; ` +
+    `style(--reg: 3): ${sa(1)}; ` +
+    `style(--reg: 6): ${sa(1)}; ` +
     `else: -1)`,
     `if(` +
     `style(--reg: 0): --rightShift(--lowerBytes(calc(var(--rmVal16) + 1), 16), 8); ` +
@@ -512,12 +517,12 @@ export function emitGroup_FF(dispatch) {
 
   // Slots 2-3: CALL FAR indirect push return IP (only reg=3 uses these)
   dispatch.addMemWrite(0xFF,
-    `if(style(--reg: 3): calc(${ssBase} + var(--__1SP) - 4); else: -1)`,
+    `if(style(--reg: 3): ${sa(4)}; else: -1)`,
     `if(style(--reg: 3): --lowerBytes(${retIP}, 8); else: 0)`,
     `Group FF CALL FAR push IP lo`);
 
   dispatch.addMemWrite(0xFF,
-    `if(style(--reg: 3): calc(${ssBase} + var(--__1SP) - 3); else: -1)`,
+    `if(style(--reg: 3): ${sa(3)}; else: -1)`,
     `if(style(--reg: 3): --rightShift(${retIP}, 8); else: 0)`,
     `Group FF CALL FAR push IP hi`);
 

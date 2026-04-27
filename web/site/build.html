@@ -57,6 +57,10 @@
               <option value="">(none — drop to COMMAND.COM prompt)</option>
             </select>
           </div>
+          <div class="row" id="run-cmd-row" hidden>
+            <label for="run-cmd" title="If set, the cabinet boots into COMMAND.COM and runs this exact command line. Useful for programs that expect mode flags (e.g. 'prince cga', 'doom -timedemo demo1'). Leave empty to use the Autorun dropdown above.">Run command:</label>
+            <input type="text" id="run-cmd" class="field" placeholder="e.g. prince cga" autocomplete="off" spellcheck="false" style="flex:1; min-width:200px">
+          </div>
           <div class="row" id="memory-row">
             <label for="memory">Memory:</label>
             <select id="memory" class="field">

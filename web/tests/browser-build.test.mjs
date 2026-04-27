@@ -12,13 +12,14 @@ const repoRoot = resolve(__dirname, '..', '..');
 
 test('hack: builds bcd.com into a Blob', async () => {
   const comBytes = new Uint8Array(readFileSync(resolve(repoRoot, 'tests', 'bcd.com')));
-  const blob = await buildCabinetInBrowser({
+  const { blob, diskBytes } = await buildCabinetInBrowser({
     preset: 'hack',
     programBytes: comBytes,
     programName: 'BCD.COM',
   });
   assert.ok(blob instanceof Blob);
   assert.ok(blob.size > 100_000, `hack cabinet size suspicious: ${blob.size}`);
+  assert.equal(diskBytes, null, 'hack preset should have no floppy bytes');
   const text = await blob.text();
   assert.match(text, /animation: anim-play 400ms/);
   assert.match(text, /--readMem/);
@@ -40,13 +41,15 @@ test('hack: progress callback fires', async () => {
 
 test('dos-muslin: builds a minimal DOS cart', async () => {
   const comBytes = new Uint8Array(readFileSync(resolve(repoRoot, 'tests', 'bcd.com')));
-  const blob = await buildCabinetInBrowser({
+  const { blob, diskBytes } = await buildCabinetInBrowser({
     preset: 'dos-muslin',
     programBytes: comBytes,
     programName: 'BCD.COM',
   });
   assert.ok(blob instanceof Blob);
   assert.ok(blob.size > 100_000_000, `DOS cabinet size suspicious: ${blob.size}`);
+  assert.ok(diskBytes instanceof Uint8Array, 'DOS preset should expose floppy bytes');
+  assert.ok(diskBytes.length >= 512, `floppy size suspicious: ${diskBytes.length}`);
   const text = await blob.text();
   assert.match(text, /animation: anim-play 400ms/);
 });

@@ -1,0 +1,37 @@
+This game has been tested in DOSBox 0.74 on a Raspberry Pi3 via Recalbox Version 18.02.09 
+
+Installation instructions.
+
+You can drop the .PC folder directly into the following folder on your Raspberry Pi:
+
+\\RECALBOX\share\roms\dos\
+
+Reboot the Pi.
+
+The folder will be listed under the IBM tab in Recalbox.
+
+Rename the folder
+
+Enjoy the game on your big screen tv :)
+
+It is unknown who provided the software but this game was repackaged by DJ Grom (SubSpace Radio's ONLY Ferengi DJ) and configured for the Raspberry Pi. 
+
+If it was an older game that originally ran on a Tandy 1000 it's been slowed down via the Dosbox.Bat file. Feel free to edit this file if you find that it runs too slow for your liking.
+
+If you'd like to show your appreciation for DJ Grom's awesomeness and foolish generosity, you can catch his live broadcast each and every Tuesday night on the following websites:
+
+http://subspace-radio.net/
+http://eve-radio.com/
+https://www.twitch.tv/subspaceradio
+
+Maybe pop into the live chat and let him know that you're enjoying what he did for YOU for no reason whatsoever. OMG no one ever appreciates all the things he does. He's like an MS-DOS god and he made YOUR life a whole lot easier. 
+
+
+Three hours of live improv comedy every Tuesday night since 2010.
+
+You're welcome, HUMON!
+
+DJ Grom
+https://www.twitch.tv/gromulan
+https://twitter.com/Gromulan
+https://www.reverbnation.com/gromulanstation

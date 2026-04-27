@@ -2,6 +2,10 @@
 #include "bios_init.h"
 #include "splash.h"
 
+/* Inline OUT instruction; avoids the libc dependency we don't link with. */
+extern void out_byte(unsigned int port, unsigned char val);
+#pragma aux out_byte = "out dx, al" parm [dx] [al] modify exact []
+
 /* BDA offsets -- mirror css-emu-bios.asm:40-72 exactly. */
 #define BDA_EQUIPMENT_LIST    0x10
 #define BDA_MEMORY_SIZE       0x13
@@ -46,6 +50,8 @@ extern void int16h_handler(void);
 extern void int19h_handler(void);
 extern void int1ah_handler(void);
 extern void int20h_handler(void);
+extern void int2fh_handler(void);
+extern void int67h_handler(void);
 extern void default_handler(void);
 
 #pragma aux int_dummy       "*"
@@ -61,6 +67,8 @@ extern void default_handler(void);
 #pragma aux int19h_handler  "*"
 #pragma aux int1ah_handler  "*"
 #pragma aux int20h_handler  "*"
+#pragma aux int2fh_handler  "*"
+#pragma aux int67h_handler  "*"
 #pragma aux default_handler "*"
 
 #define HANDLER_OFF(fn) ((unsigned int)(void __near *)(fn))
@@ -94,6 +102,19 @@ static void install_ivt(void) {
     ivt[0x1A * 2] = HANDLER_OFF(int1ah_handler);
     ivt[0x20 * 2] = HANDLER_OFF(int20h_handler);
     ivt[0x21 * 2] = HANDLER_OFF(default_handler);
+    /* INT 2Fh — DOS multiplex / XMS detection. We DON'T hook this
+       currently — when we did, EDR-DOS tried to use our fake XMS driver
+       for kernel init (HMA alloc) and it failed in subtle ways. Real
+       XMS support is a TODO. DOOM8088 uses an EMMXXXX0 device-driver
+       open() check instead, so a fake INT 2F isn't needed for it. */
+    /* INT 67h — EMS (Expanded Memory Specification). DOOM8088 detects
+       EMS by `open("EMMXXXX0", O_RDWR)` (a DOS device-driver name
+       lookup), not the IVT-segment magic check. The actual EMS
+       function dispatcher is int67h_handler — DOOM may call it after
+       detection, and we want to respond with success so the program
+       proceeds. Detection happens via the EMSDRV.SYS device driver
+       loaded from CONFIG.SYS (opt-in via boot.ems = true). */
+    ivt[0x67 * 2] = HANDLER_OFF(int67h_handler);
 }
 
 /* Conventional memory size in KB, written into BDA so INT 12h and any
@@ -143,8 +164,20 @@ static void install_bda(void) {
     poke_w(BDA_SEG, BDA_WARM_BOOT, 0);
 }
 
+/* Unmask IRQ 0 (PIT/timer) and IRQ 1 (keyboard) on the PIC.
+   On real hardware the BIOS sets the PIC IMR (port 0x21) at boot to
+   unmask IRQs the BIOS uses. CSS-DOS's PIC starts with all IRQs masked
+   (0xFF), and EDR-DOS doesn't touch the IMR at startup either. Without
+   this, programs that rely on the timer interrupt (like Doom8088, which
+   uses INT 8 -> custom timer ISR via i_taskmn) hang in their main loop
+   waiting for `ticcount` to advance. 0xFC = unmask IRQ 0 + IRQ 1. */
+static void install_pic(void) {
+    out_byte(0x21, 0xFC);
+}
+
 void bios_init(void) {
     install_ivt();
     install_bda();
+    install_pic();
     splash_show();
 }

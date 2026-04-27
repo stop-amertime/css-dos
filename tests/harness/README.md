@@ -40,7 +40,14 @@ node tests/harness/pipeline.mjs cabinet-diff \
 ### I want to see what's on screen at tick N
 
 ```sh
-# Build + screenshot at tick N. PNG goes to the configured --out path.
+# Fast path — runs cabinet → tick N → PNG, ~10s for 3M-tick boot screens.
+# Use this for any tick past ~200K; the slow path can't reach further inside
+# a 2-minute budget. No daemon, fresh compile each call.
+node tests/harness/pipeline.mjs fast-shoot cabinet.css --tick=3000000 --out=shot.png
+
+# Slow path — drives calcite-debugger, ~1500 ticks/s. Worth it only when you
+# already have a daemon attached and want to take many shots from the same
+# session, or when you need late screenshots after interactive input.
 node tests/harness/pipeline.mjs shoot cabinet.css --tick=100000 --out=shot.png
 ```
 
@@ -88,7 +95,8 @@ they're the visual oracle for future agents.
 | `pipeline.mjs build <cart>` | "Can this cart build?" Prints timings + meta. |
 | `pipeline.mjs inspect <cabinet>` | "What's inside this cabinet?" No daemon needed. |
 | `pipeline.mjs run <cabinet>` | "Can it run N seconds without hanging?" Wall-clock + stall-rate budgets. |
-| `pipeline.mjs shoot <cabinet>` | "What's on screen at tick X?" PNG + phash. |
+| `pipeline.mjs shoot <cabinet>` | "What's on screen at tick X?" Slow path via daemon — ~1500 ticks/s. |
+| `pipeline.mjs fast-shoot <cabinet>` | Same, but via calcite-cli — ~375K ticks/s. The right tool for late ticks. |
 | `pipeline.mjs full <cart>` | build → load → run → shoot, all in one. |
 | `pipeline.mjs fulldiff <cabinet>` | "Where does calcite first disagree with the JS reference emulator?" |
 | `pipeline.mjs triage <cabinet>` | Same as fulldiff but wraps the result with "what to do next." |
@@ -98,14 +106,19 @@ they're the visual oracle for future agents.
 | `pipeline.mjs consistency <cabinet> --tick=N` | Run compare-paths (compiled vs interpreter) at a tick. *Note: limited after seek — see "compare_paths caveat" below.* |
 | `run.mjs <preset>` | Run one of smoke/conformance/visual/full. Report at `tests/harness/results/latest.json`. |
 
-## Budgets, not hopes
+## Budgets, not hopes — every command needs an explicit ≤2-minute cap
 
 Every long-running subcommand accepts `--wall-ms=N` (wall-clock ceiling),
 `--max-ticks=N` (tick count), and `--stall-rate=F --stall-seconds=N` (ticks/s
-floor and for how long). Runs that don't terminate on their own get killed
-with a `reason` field on the JSON result so you know why. Don't set
-ambitious limits and walk away hoping — the harness will tell you what
-actually happened.
+floor and for how long). **Use them.** Runs that don't terminate on their own
+get killed with a `reason` field on the JSON result so you know why.
+
+Boot reaches `A:\>` at tick 2-4M. The `shoot` path advances the daemon at
+~1500 ticks/s, which means it will *not* terminate inside two minutes for any
+late-tick screenshot — use `fast-shoot` (~375K ticks/s via `calcite-cli`)
+instead. If no path fits the budget, build a faster one rather than firing
+and hoping; the right answer for the slow-shoot case was building
+`fast-shoot` + the `--dump-mem-range` flag on `calcite-cli` it depends on.
 
 The debugger's native `run_until` has a tick ceiling but **no wall-clock
 ceiling and no stall detection**. If you find yourself reaching for
@@ -219,7 +232,8 @@ hashes and human sanity-checks.
 - `lib/ref-machine.mjs` — JS reference 8086 set up from cabinet sidecars
 - `lib/cabinet-header.mjs` — builder emits a `/*!HARNESS v1 ...!*/` JSON block; this reads it
 - `lib/timed-run.mjs` — wall-clock + tick-count + stall-rate budgets
-- `lib/shoot.mjs` — framebuffer → PNG for all video modes
+- `lib/shoot.mjs` — framebuffer → PNG for all video modes (slow path, via debugger)
+- `lib/fast-shoot.mjs` — framebuffer → PNG via `calcite-cli --dump-mem-range`. ~250x faster than `shoot` for late-tick screenshots; the only path that reaches boot completion (2-4M ticks) inside a 2-minute budget. Pays a fresh ~2s parse+compile per call (no compile cache yet — would be a meaningful follow-up if you're taking many shots from the same cabinet).
 - `lib/png.mjs` — pure-JS PNG encoder + perceptual hash
 - `lib/baseline.mjs` — record + verify golden baselines
 - `lib/cabinet-diff.mjs` — diff two cabinets at sample ticks

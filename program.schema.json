@@ -103,7 +103,8 @@
           "description": "DOS carts only. Default: if the cart contains exactly one .COM/.EXE, autorun it; otherwise null (prompt)."
         },
         "args": { "type": "string", "default": "", "description": "DOS carts only. Appended to the SHELL= line. e.g. 'ZORK1.Z3' for 'SHELL=\\FROTZ.EXE ZORK1.Z3'." },
-        "raw":  { "type": "string", "description": "Hack carts only. Filename of the .COM to load raw at 0x100. Mutually exclusive with boot.autorun." }
+        "raw":  { "type": "string", "description": "Hack carts only. Filename of the .COM to load raw at 0x100. Mutually exclusive with boot.autorun." },
+        "ems":  { "type": "boolean", "default": false, "description": "DOS carts only. When true, load a fake EMS device driver (EMSDRV.SYS) so programs that detect EMS via open(\"EMMXXXX0\") see EMS as available. Doesn't provide real EMS pages — gates only. Needed for DOOM8088 and similar EMS-required programs." }
       }
     }
   },

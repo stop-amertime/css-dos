@@ -42,6 +42,10 @@ let running = false;      // tick loop gate — true only while a viewer is watc
 // we stash the Blob here and defer parse/compile until the first viewer
 // connects. Cleared after it's consumed. In eager mode this stays null.
 let pendingLazyBlob = null;
+// Disk image bytes paired with the lazy blob (DOS preset only). Passed to
+// engine.set_disk_image() right after compile so calcite can fast-forward
+// REP MOVS from the rom-disk window.
+let pendingDiskBytes = null;
 
 
 // Batch pacing — start small (200 cycles) and let the EMA grow
@@ -61,7 +65,7 @@ let batchMsEma = TARGET_MS;
 // Canary — bump this when you change this file so you can confirm the
 // browser is actually serving the new version. Shows up in every status
 // line so it's impossible to miss in the console.
-const BRIDGE_VERSION = 'v28-lazy-toggle';
+const BRIDGE_VERSION = 'v29-disk-image';
 
 async function boot() {
   postStatus(`bridge boot ${BRIDGE_VERSION}`);
@@ -87,7 +91,13 @@ async function boot() {
 // comes from awaiting `blob.arrayBuffer()` on the Blob that build.js posts
 // to us — all off the main thread, no SW round-trip, no JS-string
 // intermediate.
-async function compileCabinetBytes(arrayBuffer) {
+//
+// `diskBytes` (optional, DOS preset only) is the FAT12 floppy image —
+// same bytes embedded in the cabinet's `--readDiskByte` dispatch. Passing
+// them in lets calcite fast-forward REP MOVS from the rom-disk window in
+// O(1) instead of bailing to per-byte CSS evaluation. Without it, calcite
+// falls back to the (correct but slow) CSS path. See calcite::set_disk_image.
+async function compileCabinetBytes(arrayBuffer, diskBytes = null) {
   if (engine && typeof engine.free === 'function') {
     try { engine.free(); } catch {}
   }
@@ -97,7 +107,16 @@ async function compileCabinetBytes(arrayBuffer) {
   const t0 = performance.now();
   engine = CalciteEngine.new_from_bytes(bytes);
   const compileMs = performance.now() - t0;
-  postStatus(`cabinet compiled in ${(compileMs / 1000).toFixed(1)}s (ready)`);
+  if (diskBytes && engine && typeof engine.set_disk_image === 'function') {
+    try {
+      engine.set_disk_image(diskBytes);
+      postStatus(`cabinet compiled in ${(compileMs / 1000).toFixed(1)}s (disk: ${diskBytes.length} bytes)`);
+    } catch (e) {
+      postStatus(`cabinet compiled in ${(compileMs / 1000).toFixed(1)}s (set_disk_image failed: ${e.message || e})`);
+    }
+  } else {
+    postStatus(`cabinet compiled in ${(compileMs / 1000).toFixed(1)}s (ready)`);
+  }
 }
 
 
@@ -389,13 +408,35 @@ function startStatsInterval() {
 self.onmessage = (ev) => {
   const d = ev.data;
   if (!d || !d.type) return;
+  // Debug peek-mem: read N bytes from a guest linear address. Reply on the
+  // transferred MessagePort. Used by Playwright tests to verify keyboard
+  // shadow + IRQ state.
+  if (d.type === 'peek-mem' && engine && ev.ports && ev.ports[0]) {
+    try {
+      const bytes = engine.read_memory_range(d.addr | 0, d.len | 0);
+      ev.ports[0].postMessage({ ok: true, bytes: Array.from(bytes) });
+    } catch (e) {
+      ev.ports[0].postMessage({ ok: false, err: String(e) });
+    }
+    return;
+  }
+  if (d.type === 'peek-state' && engine && ev.ports && ev.ports[0]) {
+    try {
+      const v = engine.get_state_var(d.name);
+      ev.ports[0].postMessage({ ok: true, value: v });
+    } catch (e) {
+      ev.ports[0].postMessage({ ok: false, err: String(e) });
+    }
+    return;
+  }
   if (d.type === 'cabinet-blob' && d.blob) {
     // Eager: compile NOW, in the background, off the main thread.
     pendingLazyBlob = null;
+    pendingDiskBytes = null;
     (async () => {
       try {
         const buf = await d.blob.arrayBuffer();
-        await compileCabinetBytes(buf);
+        await compileCabinetBytes(buf, d.diskBytes ?? null);
       } catch (e) {
         postStatus('compile error: ' + (e.message || e));
       }
@@ -406,6 +447,7 @@ self.onmessage = (ev) => {
     // Lazy: hold the blob; compile on first viewer-connect. Drop any
     // previously-compiled engine so the next viewer sees the new cabinet.
     pendingLazyBlob = d.blob;
+    pendingDiskBytes = d.diskBytes ?? null;
     if (engine && typeof engine.free === 'function') {
       try { engine.free(); } catch {}
     }
@@ -431,9 +473,11 @@ self.onmessage = (ev) => {
           if (!engine && pendingLazyBlob) {
             try {
               const blob = pendingLazyBlob;
+              const disk = pendingDiskBytes;
               pendingLazyBlob = null;
+              pendingDiskBytes = null;
               const buf = await blob.arrayBuffer();
-              await compileCabinetBytes(buf);
+              await compileCabinetBytes(buf, disk);
             } catch (e) {
               postStatus('compile error: ' + (e.message || e));
               return;

@@ -23,7 +23,34 @@ group DGROUP CONST CONST2 _DATA
 
 section _TEXT public align=1 class=CODE use16
 
+; ============================================================
+; BIOS entry at F000:0000.
+;
+; The first 18 bytes of _start are a fixed-layout preamble that
+; doubles as an EMS detection magic block:
+;
+;   0x00..0x01  short JMP +16 — skip over the magic to real init.
+;   0x02..0x09  NOP padding (8 bytes).
+;   0x0A..0x11  "EMMXXXX0" — EMS driver name. DOOM8088 (and any
+;               EMS-aware DOS program) detects EMS by reading INT 67h's
+;               IVT segment and checking offset 0x0A for this magic.
+;               INT 67h is hooked into BIOS_SEG (= F000) by install_ivt,
+;               so the magic at F000:000A is what gets read. The
+;               actual EMS function dispatcher is int67h_handler in
+;               handlers.asm.
+;   0x12+       Real init: stack setup, install_ivt, etc.
+;
+; This is a faked installation — no real EMS pages. The dispatcher
+; returns success for the calls DOOM8088 makes during init, with no
+; actual backing storage. Without this block, DOOM aborts at "Not
+; enough XMS available" (DOOM8088's loosely-named EMS check) and
+; never reaches mode 13h.
+; ============================================================
 _start:
+    jmp short .real_start
+    times 0x0A-($-_start) nop
+    db 'EMMXXXX0'
+.real_start:
     cli
     cld
 

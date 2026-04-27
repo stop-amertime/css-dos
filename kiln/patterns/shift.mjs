@@ -80,43 +80,64 @@ export function emitShift_D1(dispatch) {
 
 /**
  * Group 0xD0: shift/rotate r/m8 by 1
+ *
+ * reg field selects: 0=ROL, 1=ROR, 2=RCL, 3=RCR, 4=SHL, 5=SHR, 6=-(unused), 7=SAR
+ *
+ * 8-bit ROL (reg=0): new = ((rm << 1) | (rm >> 7)) & 0xFF.
+ *   Equivalent: (rm * 2 + bit(rm, 7)) & 0xFF.
+ * 8-bit ROR (reg=1): new = (rm >> 1) | ((rm & 1) << 7).
+ *   Equivalent: (rm / 2) + bit(rm, 0) * 128.
+ *
+ * Without ROL/ROR doom8088's libc memcmp returns garbage: it does
+ * `lahf; ror ah, 1; and ax, 0xa000; xor ax, 0x2000` to convert the
+ * cmpsw flags into a -1/0/+1 result. If ROR is a no-op, every memcmp
+ * returns non-zero even for equal input, which manifests as
+ * "DPPISTOL not found" on the first WAD lookup.
  */
 export function emitShift_D0(dispatch) {
+  // Per-shift-type result expression (input is rmVal8). Match the
+  // emitShift_D1 layout — same formulas, just narrowed to 8 bits.
+  const shl8 = `--lowerBytes(calc(var(--rmVal8) * 2), 8)`;
+  const shr8 = `round(down, var(--rmVal8) / 2)`;
+  const sar8 = `calc(round(down, var(--rmVal8) / 2) + --bit(var(--rmVal8), 7) * 128)`;
+  const rol8 = `--lowerBytes(calc(var(--rmVal8) * 2 + --bit(var(--rmVal8), 7)), 8)`;
+  const ror8 = `calc(round(down, var(--rmVal8) / 2) + --bit(var(--rmVal8), 0) * 128)`;
+  const rcl8 = `--lowerBytes(calc(var(--rmVal8) * 2 + var(--_cf)), 8)`;
+  const rcr8 = `calc(round(down, var(--rmVal8) / 2) + var(--_cf) * 128)`;
+  const RESULTS = { 0: rol8, 1: ror8, 2: rcl8, 3: rcr8, 4: shl8, 5: shr8, 7: sar8 };
+
   for (const { reg: regName, lowIdx, highIdx } of SPLIT_REGS) {
+    const branches = [];
+    for (const [r, expr] of Object.entries(RESULTS)) {
+      branches.push(`style(--mod: 3) and style(--rm: ${lowIdx}) and style(--reg: ${r}): --mergelow(var(--__1${regName}), ${expr})`);
+      branches.push(`style(--mod: 3) and style(--rm: ${highIdx}) and style(--reg: ${r}): --mergehigh(var(--__1${regName}), ${expr})`);
+    }
     dispatch.addEntry(regName, 0xD0,
-      `if(` +
-      `style(--mod: 3) and style(--rm: ${lowIdx}) and style(--reg: 4): --mergelow(var(--__1${regName}), --lowerBytes(calc(var(--rmVal8) * 2), 8)); ` +
-      `style(--mod: 3) and style(--rm: ${lowIdx}) and style(--reg: 5): --mergelow(var(--__1${regName}), round(down, var(--rmVal8) / 2)); ` +
-      `style(--mod: 3) and style(--rm: ${lowIdx}) and style(--reg: 7): --mergelow(var(--__1${regName}), calc(round(down, var(--rmVal8) / 2) + --bit(var(--rmVal8), 7) * 128)); ` +
-      `style(--mod: 3) and style(--rm: ${lowIdx}) and style(--reg: 2): --mergelow(var(--__1${regName}), --lowerBytes(calc(var(--rmVal8) * 2 + var(--_cf)), 8)); ` +
-      `style(--mod: 3) and style(--rm: ${lowIdx}) and style(--reg: 3): --mergelow(var(--__1${regName}), calc(round(down, var(--rmVal8) / 2) + var(--_cf) * 128)); ` +
-      `style(--mod: 3) and style(--rm: ${highIdx}) and style(--reg: 4): --mergehigh(var(--__1${regName}), --lowerBytes(calc(var(--rmVal8) * 2), 8)); ` +
-      `style(--mod: 3) and style(--rm: ${highIdx}) and style(--reg: 5): --mergehigh(var(--__1${regName}), round(down, var(--rmVal8) / 2)); ` +
-      `style(--mod: 3) and style(--rm: ${highIdx}) and style(--reg: 7): --mergehigh(var(--__1${regName}), calc(round(down, var(--rmVal8) / 2) + --bit(var(--rmVal8), 7) * 128)); ` +
-      `style(--mod: 3) and style(--rm: ${highIdx}) and style(--reg: 2): --mergehigh(var(--__1${regName}), --lowerBytes(calc(var(--rmVal8) * 2 + var(--_cf)), 8)); ` +
-      `style(--mod: 3) and style(--rm: ${highIdx}) and style(--reg: 3): --mergehigh(var(--__1${regName}), calc(round(down, var(--rmVal8) / 2) + var(--_cf) * 128)); ` +
-      `else: var(--__1${regName}))`,
+      `if(${branches.join('; ')}; else: var(--__1${regName}))`,
       `Shift D0 → ${regName}`);
   }
 
   // Memory write
+  const memBranches = Object.entries(RESULTS).map(
+    ([r, expr]) => `style(--reg: ${r}): ${expr}`,
+  );
   dispatch.addMemWrite(0xD0,
     `if(style(--mod: 3): -1; else: var(--ea))`,
-    `if(` +
-    `style(--reg: 4): --lowerBytes(calc(var(--rmVal8) * 2), 8); ` +
-    `style(--reg: 5): round(down, var(--rmVal8) / 2); ` +
-    `style(--reg: 7): calc(round(down, var(--rmVal8) / 2) + --bit(var(--rmVal8), 7) * 128); ` +
-    `style(--reg: 2): --lowerBytes(calc(var(--rmVal8) * 2 + var(--_cf)), 8); ` +
-    `style(--reg: 3): calc(round(down, var(--rmVal8) / 2) + var(--_cf) * 128); ` +
-    `else: 0)`,
+    `if(${memBranches.join('; ')}; else: 0)`,
     `Shift D0 → mem`);
 
-  // RCL/RCR: only CF changes; leave PF/ZF/SF unchanged
+  // Flags. SHL/SHR/SAR get the regular 8-bit flag helpers. RCL/RCR
+  // touch only CF (new CF = the bit that wrapped). ROL/ROR also touch
+  // only CF — for ROL the new CF = old bit 7 (the bit that wrapped to
+  // bit 0); for ROR the new CF = old bit 0 (the bit that wrapped to
+  // bit 7). PF/ZF/SF/AF are preserved by all rotates per Intel.
   dispatch.addEntry('flags', 0xD0,
     `if(` +
     `style(--reg: 4): calc(--shlFlags8(var(--rmVal8)) + --and(var(--__1flags), 3856)); ` +
     `style(--reg: 5): calc(--shrFlags8(var(--rmVal8)) + --and(var(--__1flags), 3856)); ` +
     `style(--reg: 7): calc(--sarFlags8(var(--rmVal8)) + --and(var(--__1flags), 3856)); ` +
+    `style(--reg: 0): calc(var(--__1flags) - --bit(var(--__1flags), 0) + --bit(var(--rmVal8), 7)); ` +  // ROL: new CF = old bit 7
+    `style(--reg: 1): calc(var(--__1flags) - --bit(var(--__1flags), 0) + --bit(var(--rmVal8), 0)); ` +  // ROR: new CF = old bit 0
     `style(--reg: 2): calc(var(--__1flags) - --bit(var(--__1flags), 0) + --bit(var(--rmVal8), 7)); ` +  // RCL: new CF = old bit 7
     `style(--reg: 3): calc(var(--__1flags) - --bit(var(--__1flags), 0) + --bit(var(--rmVal8), 0)); ` +  // RCR: new CF = old bit 0
     `else: var(--__1flags))`,

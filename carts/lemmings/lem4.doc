@@ -1,0 +1,25 @@
+Command Line Switches
+---------------------
+
+	-a	Switches off the adlib board autodetect
+	-m	Mono monitor being used
+	-n	Switches off the mouse autodetect
+		Note:- Lemmings will not work on a few older machines because
+		they do not take mice into consideration, switching off the
+		mouse autodetect should cure the problem.
+
+Requirements
+------------
+
+ Lemmings Demo requires 512k of memory and either CGA, TANDY, EGA, or VGA 
+display adapter (EGA, VGA require at least 256k of Video memory).
+
+ Mouse driver must be installed before starting Lemmings before Mouse can
+be used within the game (Consult your mouse documentation on how to
+install your mouse).
+
+
+
+
+
+

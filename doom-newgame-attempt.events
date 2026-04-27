@@ -1,0 +1,18 @@
+# Get DOOM to start a new game
+# Inject Enter at 8M (advance title to menu)
+# Wait, then Enter to select NEW GAME
+# Wait, then Enter to pick first difficulty
+# Then dump screenshots
+
+8000000:kbd:0x1c0d
+12000000:dump:0xa0000:64000:vga@12m.bin
+12000000:dump:0x100000:768:dac@12m.bin
+14000000:kbd:0x1c0d
+17000000:dump:0xa0000:64000:vga@17m.bin
+17000000:dump:0x100000:768:dac@17m.bin
+20000000:kbd:0x1c0d
+23000000:dump:0xa0000:64000:vga@23m.bin
+23000000:dump:0x100000:768:dac@23m.bin
+27000000:dump:0xa0000:64000:vga@27m.bin
+27000000:dump:0x100000:768:dac@27m.bin
+27000000:halt

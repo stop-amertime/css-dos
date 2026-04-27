@@ -263,6 +263,11 @@ points at a real program, so the autorun can shell out / EXIT back to
 a prompt and so users can override with `boot.autorun: "COMMAND.COM"`
 to drop straight to DOS.
 
+If the cart already supplies a `COMMAND.COM` (e.g. you're testing your
+own shell, or running a bare `command.com` straight as a cart), the
+builder skips the bundled one — duplicate root-dir entries break the
+FAT12 lookup and DOS reports "Bad or missing command interpreter".
+
 ### `boot.autorun` · implemented
 
 DOS carts only. Either a filename on the floppy or `null`.

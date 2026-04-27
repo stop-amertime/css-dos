@@ -3,6 +3,20 @@
 // Flag bit positions for condition checks
 // CF=bit0, PF=bit2, AF=bit4, ZF=bit6, SF=bit7, OF=bit11
 
+// Stack-write address: SS*16 + (SP - offset) wrapped to 16 bits.
+// SP is unsigned 16-bit on x86; without the wrap, SP=0 (PUSH) or
+// small values give a negative offset and the address slips into the
+// previous segment. See kiln/patterns/stack.mjs for the full rationale.
+function stackAddrMinus(offset) {
+  return `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - ${offset} + 65536), 16))`;
+}
+function spDecBy(n) {
+  return `--lowerBytes(calc(var(--__1SP) - ${n} + 65536), 16)`;
+}
+function spIncBy(n) {
+  return `--lowerBytes(calc(var(--__1SP) + ${n}), 16)`;
+}
+
 /**
  * Conditional jump condition expressions.
  * Each maps an opcode to a CSS expression that evaluates to 1 if the jump
@@ -86,18 +100,18 @@ export function emitJMP_near(dispatch) {
 export function emitCALL_near(dispatch) {
   // Return address = IP + 3 (after the 3-byte CALL instruction)
   const retAddr = `calc(var(--__1IP) + 3)`;
-  // New SP = SP - 2
+  // New SP = SP - 2 (wrapped to 16 bits)
   dispatch.addEntry('SP', 0xE8,
-    `calc(var(--__1SP) - 2)`,
+    spDecBy(2),
     `CALL near (SP-=2)`);
   // Push return address to stack: write at SS:SP (after decrement)
   // low byte at SS*16 + SP-2, high byte at SS*16 + SP-1
   dispatch.addMemWrite(0xE8,
-    `calc(var(--__1SS) * 16 + var(--__1SP) - 2)`,
+    stackAddrMinus(2),
     `--lowerBytes(${retAddr}, 8)`,
     `CALL near push ret lo`);
   dispatch.addMemWrite(0xE8,
-    `calc(var(--__1SS) * 16 + var(--__1SP) - 1)`,
+    stackAddrMinus(1),
     `--rightShift(${retAddr}, 8)`,
     `CALL near push ret hi`);
   // Jump
@@ -115,7 +129,7 @@ export function emitRET(dispatch) {
     `--read2(calc(var(--__1SS) * 16 + var(--__1SP)))`,
     `RET near`);
   dispatch.addEntry('SP', 0xC3,
-    `calc(var(--__1SP) + 2)`,
+    spIncBy(2),
     `RET near (SP+=2)`);
 }
 
@@ -127,7 +141,7 @@ export function emitRET_imm(dispatch) {
     `--read2(calc(var(--__1SS) * 16 + var(--__1SP)))`,
     `RET imm16`);
   dispatch.addEntry('SP', 0xC2,
-    `calc(var(--__1SP) + 2 + var(--q1) + var(--q2) * 256)`,
+    `--lowerBytes(calc(var(--__1SP) + 2 + var(--q1) + var(--q2) * 256), 16)`,
     `RET imm16 (SP+=2+imm16)`);
 }
 
@@ -141,7 +155,7 @@ export function emitINT(dispatch) {
   // IVT entry at intNum * 4: 2 bytes IP, 2 bytes CS
   // Stack: SP -= 6 (push FLAGS, CS, IP+2)
 
-  dispatch.addEntry('SP', 0xCD, `calc(var(--__1SP) - 6)`, `INT (SP-=6)`);
+  dispatch.addEntry('SP', 0xCD, spDecBy(6), `INT (SP-=6)`);
 
   // New IP from IVT: read2(intNum * 4)
   dispatch.addEntry('IP', 0xCD,
@@ -161,7 +175,6 @@ export function emitINT(dispatch) {
     `INT clear IF+TF`);
   // 64767 = 0xFCFF = ~(IF|TF) & 0xFFFF
 
-  const ssBase = `calc(var(--__1SS) * 16)`;
   const retIP = `calc(var(--__1IP) + 2)`;
 
   // 8086 INT pushes: FLAGS first (to highest addr), then CS, then IP (to lowest addr)
@@ -169,34 +182,35 @@ export function emitINT(dispatch) {
   //   [SP+0, SP+1] = return IP   (pushed last)
   //   [SP+2, SP+3] = CS          (pushed second)
   //   [SP+4, SP+5] = FLAGS       (pushed first)
+  // All offsets are wrapped to 16-bit unsigned via stackAddrMinus().
 
   // Push FLAGS (at SP-2, SP-1) — pushed first, goes to highest address
   dispatch.addMemWrite(0xCD,
-    `calc(${ssBase} + var(--__1SP) - 2)`,
+    stackAddrMinus(2),
     `--lowerBytes(var(--__1flags), 8)`,
     `INT push FLAGS lo`);
   dispatch.addMemWrite(0xCD,
-    `calc(${ssBase} + var(--__1SP) - 1)`,
+    stackAddrMinus(1),
     `--rightShift(var(--__1flags), 8)`,
     `INT push FLAGS hi`);
 
   // Push CS (at SP-4, SP-3)
   dispatch.addMemWrite(0xCD,
-    `calc(${ssBase} + var(--__1SP) - 4)`,
+    stackAddrMinus(4),
     `--lowerBytes(var(--__1CS), 8)`,
     `INT push CS lo`);
   dispatch.addMemWrite(0xCD,
-    `calc(${ssBase} + var(--__1SP) - 3)`,
+    stackAddrMinus(3),
     `--rightShift(var(--__1CS), 8)`,
     `INT push CS hi`);
 
   // Push return IP (at SP-6, SP-5) — pushed last, goes to lowest address
   dispatch.addMemWrite(0xCD,
-    `calc(${ssBase} + var(--__1SP) - 6)`,
+    stackAddrMinus(6),
     `--lowerBytes(${retIP}, 8)`,
     `INT push IP lo`);
   dispatch.addMemWrite(0xCD,
-    `calc(${ssBase} + var(--__1SP) - 5)`,
+    stackAddrMinus(5),
     `--rightShift(${retIP}, 8)`,
     `INT push IP hi`);
 }
@@ -223,7 +237,7 @@ export function emitIRET(dispatch) {
     `calc(--and(var(--_stackWord2), 4053) + 2)`,
     `IRET pop FLAGS`);
   dispatch.addEntry('SP', 0xCF,
-    `calc(var(--__1SP) + 6)`,
+    spIncBy(6),
     `IRET (SP+=6)`);
 }
 
@@ -276,7 +290,7 @@ export function emitJCXZ(dispatch) {
  * Format: 0x9A, IP_lo, IP_hi, CS_lo, CS_hi (5 bytes)
  */
 export function emitCALL_far(dispatch) {
-  dispatch.addEntry('SP', 0x9A, `calc(var(--__1SP) - 4)`, `CALL far (SP-=4)`);
+  dispatch.addEntry('SP', 0x9A, spDecBy(4), `CALL far (SP-=4)`);
 
   // New IP = q1 + q2*256, new CS = q3 + q4*256
   dispatch.addEntry('IP', 0x9A,
@@ -286,25 +300,24 @@ export function emitCALL_far(dispatch) {
     `calc(var(--q3) + var(--q4) * 256)`,
     `CALL far load CS`);
 
-  const ssBase = `calc(var(--__1SS) * 16)`;
   const retIP = `calc(var(--__1IP) + 5)`;
 
   // Push old CS at SP-2 (pushed first, higher address)
   dispatch.addMemWrite(0x9A,
-    `calc(${ssBase} + var(--__1SP) - 2)`,
+    stackAddrMinus(2),
     `--lowerBytes(var(--__1CS), 8)`,
     `CALL far push CS lo`);
   dispatch.addMemWrite(0x9A,
-    `calc(${ssBase} + var(--__1SP) - 1)`,
+    stackAddrMinus(1),
     `--rightShift(var(--__1CS), 8)`,
     `CALL far push CS hi`);
   // Push return IP at SP-4 (pushed second, lower address)
   dispatch.addMemWrite(0x9A,
-    `calc(${ssBase} + var(--__1SP) - 4)`,
+    stackAddrMinus(4),
     `--lowerBytes(${retIP}, 8)`,
     `CALL far push IP lo`);
   dispatch.addMemWrite(0x9A,
-    `calc(${ssBase} + var(--__1SP) - 3)`,
+    stackAddrMinus(3),
     `--rightShift(${retIP}, 8)`,
     `CALL far push IP hi`);
 }
@@ -321,7 +334,7 @@ export function emitRET_far(dispatch) {
     `--read2(calc(${ssBase} + var(--__1SP) + 2))`,
     `RET far pop CS`);
   dispatch.addEntry('SP', 0xCB,
-    `calc(var(--__1SP) + 4)`,
+    spIncBy(4),
     `RET far (SP+=4)`);
 }
 
@@ -337,7 +350,7 @@ export function emitRET_far_imm(dispatch) {
     `--read2(calc(${ssBase} + var(--__1SP) + 2))`,
     `RET far imm pop CS`);
   dispatch.addEntry('SP', 0xCA,
-    `calc(var(--__1SP) + 4 + var(--q1) + var(--q2) * 256)`,
+    `--lowerBytes(calc(var(--__1SP) + 4 + var(--q1) + var(--q2) * 256), 16)`,
     `RET far imm (SP+=4+imm16)`);
 }
 

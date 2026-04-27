@@ -61,6 +61,13 @@ Another huge failure mode is rushing to conclusions or unchecked assumptions, or
   if what you need doesn't exist.
 - **DO NOT take shortcuts** that accrue tech debt or leave debris in the repo.
 - **PREFER creating or updating debugging infrastructure** over speculative individual fixes.
+- **Every command needs an explicit ≤2-minute wall-clock cap.** Boot reaches the
+  A:\> prompt around tick 2-4M; the slow `pipeline.mjs shoot` path does
+  ~1500 ticks/s and will not terminate inside that budget. Use `fast-shoot`
+  (calcite-cli, ~375K ticks/s) for late-tick screenshots, or pick a tick
+  count the chosen path can reach. Never fire-and-forget a tool hoping it'll
+  come back — if there's no path that fits the budget, build one (that's
+  how `fast-shoot` and `--dump-mem-range` came to exist).
 
 ## The cardinal rule
 
@@ -98,6 +105,14 @@ When you're about to run tests, diff against a reference emulator, or
 check whether a cart still works: `tests/harness/` is the unified
 entrypoint. Start with `node tests/harness/run.mjs smoke` and read
 [`docs/TESTING.md`](docs/TESTING.md) for the full tool list.
+
+For "what's on screen at tick N?" against a fresh cabinet, use
+`pipeline.mjs fast-shoot <cabinet> --tick=N` — drives `calcite-cli`
+directly, ~375K ticks/s, fits boot-completion ticks (2-4M) inside a
+~10s budget. The older `pipeline.mjs shoot` path goes through
+`calcite-debugger` at ~1500 ticks/s and only terminates for early ticks.
+For raw byte dumps without rendering, `calcite-cli --dump-mem-range=ADDR:LEN:PATH`
+writes guest memory to a file at end-of-run (repeatable for multiple regions).
 
 In particular: **do not reach for the old `fulldiff.mjs` / `ref-dos.mjs`
 / `compare-dos.mjs` scripts** under `tools/` or `../calcite/tools/` —

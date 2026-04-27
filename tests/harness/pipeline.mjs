@@ -52,6 +52,7 @@ import { DebuggerClient } from './lib/debugger-client.mjs';
 import { readCabinetFromPath, readCabinetMeta, normalizeMeta } from './lib/cabinet-header.mjs';
 import { timedRun, predicates } from './lib/timed-run.mjs';
 import { shoot } from './lib/shoot.mjs';
+import { fastShoot } from './lib/fast-shoot.mjs';
 import { recordBaseline, verifyBaseline } from './lib/baseline.mjs';
 import { triageDivergence, runCompareAtTick } from './lib/oracles.mjs';
 import { cabinetDiff } from './lib/cabinet-diff.mjs';
@@ -283,6 +284,37 @@ async function cmdShoot({ args, flags }) {
   }
 }
 
+// --- Subcommand: fast-shoot --------------------------------------------
+//
+// Same I/O contract as `shoot` but bypasses calcite-debugger and drives
+// calcite-cli directly. Hundreds of times faster for late-tick screenshots
+// because there's no per-tick delta logging or chunked-IPC seek. Use this
+// for "what's on screen at tick N?" against a fresh cabinet — it's the
+// only option that fits inside a 2-minute budget for boot-completion ticks.
+//
+// Trade-off: no daemon means each invocation pays the ~2s parse+compile cost.
+// For multiple ticks against the same cabinet, the slow-path daemon will
+// eventually win out — but only after several samples.
+
+async function cmdFastShoot({ args, flags }) {
+  const [cssPath] = args;
+  if (!cssPath) fail('fast-shoot: cabinet path required');
+  if (flags.tick == null) fail('fast-shoot: --tick=N required (the screenshot is taken at this tick)');
+  const tick = flagInt(flags, 'tick');
+  const wallMs = flagInt(flags, 'wall-ms', 120_000);
+
+  const shot = await fastShoot({ cabinetPath: resolve(cssPath), tick, wallMs });
+
+  const outPath = flags.out ?? join(HARNESS_ROOT, 'results', `fast-shot-${Date.now()}.png`);
+  if (shot.png) {
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, shot.png);
+  }
+
+  const { rgba: _rgba, png: _png, ...light } = shot;
+  ok({ shot: { ...light, outPath: shot.png ? outPath : null } });
+}
+
 // --- Subcommand: diff ---------------------------------------------------
 
 async function cmdDiff({ args, flags }) {
@@ -454,6 +486,7 @@ async function main() {
       case 'load':     await cmdLoad({ args, flags });     break;
       case 'run':      await cmdRun({ args, flags });      break;
       case 'shoot':    await cmdShoot({ args, flags });    break;
+      case 'fast-shoot': await cmdFastShoot({ args, flags }); break;
       case 'diff':     await cmdDiff({ args, flags });     break;
       case 'full':     await cmdFull({ args, flags });     break;
       case 'baseline-record':  await cmdBaselineRecord({ args, flags });  break;
@@ -500,8 +533,16 @@ Subcommands:
   run <cabinet>           Run forward with budgets.
     Flags: --wall-ms=N --max-ticks=N --stall-rate=F --stall-seconds=N
            --until-cs=0xXXXX --until-tick=N --until-program-entered
-  shoot <cabinet>         Screenshot at current/specified tick.
+  shoot <cabinet>         Screenshot at current/specified tick (slow path,
+                          via calcite-debugger; ~1500 ticks/s — fine for
+                          early ticks, times out for boot-completion ticks).
     Flags: --tick=N --mode=0xXX --out=path
+  fast-shoot <cabinet>    Screenshot via calcite-cli (~375k ticks/s). The
+                          right tool for "what's on screen at tick N"
+                          against a fresh cabinet — runs to N, dumps VRAM,
+                          rasterises, exits. Boots to A:\> (~3M ticks) in
+                          ~10s. No daemon — pays parse+compile each call.
+    Flags: --tick=N (required) --wall-ms=N (default 120000) --out=path
   diff <cabinet>          Compile vs interp path diff at current tick.
   full <cart>             Build + load + run + shot all in one.
   fulldiff <cabinet>      Delegate to fulldiff.mjs — streaming calcite-vs-ref

@@ -57,6 +57,9 @@ function refreshAutorunDropdown() {
   // DOS presets always show the picker (COMMAND.COM is available even
   // without user uploads, since the builder fetches it from /assets/dos/).
   $('autorun-row').hidden = !isDos;
+  // Run-command field is only meaningful on DOS — hack carts run the .com
+  // directly with no shell to type into.
+  $('run-cmd-row').hidden = !isDos;
   // Video row: only shown for DOS presets. Hack gets text-only (matches
   // the hack preset's memory defaults and the fact that hack.json has
   // always been text-only — no per-build override exposed). Reset the
@@ -177,7 +180,14 @@ $('start').addEventListener('click', async () => {
   $('log').textContent = '';
 
   const preset = $('preset').value;
-  const autorun = $('autorun').value || null;
+  // "Run command" field overrides Autorun — boots into COMMAND.COM and
+  // hands it `/P /K <cmd>` so the shell stays running after the command
+  // exits. Useful for programs that expect mode flags (`prince cga`,
+  // `doom -timedemo demo1`) or that want to be invoked from a real shell
+  // rather than as the SHELL= entry themselves.
+  const runCmd = ($('run-cmd')?.value || '').trim();
+  const autorun = runCmd ? 'COMMAND.COM' : ($('autorun').value || null);
+  const argsOverride = runCmd ? `/P /K ${runCmd}` : '';
   const memorySel = $('memory').value;
   // Empty = auto-fit (let the preset's "autofit" default win); otherwise
   // the dropdown value is a preset string the sizes.mjs resolver understands.
@@ -197,11 +207,13 @@ $('start').addEventListener('click', async () => {
     : {};
 
   let blob;
+  let diskBytes = null;
   try {
-    blob = await buildCabinetInBrowser({
+    const built = await buildCabinetInBrowser({
       preset,
       files: cartFiles,
       autorun,
+      args: argsOverride,
       manifest: extraManifest,
       onProgress: ({ stage, message }) => {
         // Add a stage <li> to the ordered list.
@@ -220,6 +232,8 @@ $('start').addEventListener('click', async () => {
         $('log').textContent += message + '\n';
       },
     });
+    blob = built.blob;
+    diskBytes = built.diskBytes;
   } catch (err) {
     const li = document.createElement('li');
     li.textContent = 'Error: ' + err.message;
@@ -277,9 +291,15 @@ $('start').addEventListener('click', async () => {
   const eager = $('eager-compile').checked;
   try {
     if (window.__calciteBridge) {
+      // Pass `diskBytes` alongside the cabinet so the bridge can call
+      // engine.set_disk_image() — without it, REP MOVS from the rom-disk
+      // window at 0xD0000 returns zeros (no native disk_image, falls
+      // through to packed-cell lookup which has no entries there) and
+      // the kernel never finds the boot partition.
       window.__calciteBridge.postMessage({
         type: eager ? 'cabinet-blob' : 'cabinet-blob-lazy',
         blob,
+        diskBytes,
       });
     }
   } catch (e) {

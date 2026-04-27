@@ -30,19 +30,43 @@ node tests/harness/pipeline.mjs full carts/dos-smoke
 # JS reference 8086 emulator. This is the main debugging tool.
 node tests/harness/pipeline.mjs fulldiff <cabinet>.css --max-ticks=10000
 
-# Screenshot at a specific tick — actually see what the cart is showing.
-node tests/harness/pipeline.mjs shoot <cabinet>.css --tick=500000 --out=shot.png
+# Screenshot at a late tick — `fast-shoot` drives calcite-cli directly
+# (~375K ticks/s); use this for any tick past ~200K. The slower `shoot`
+# path goes through calcite-debugger at ~1500 ticks/s and won't reach
+# boot completion (2-4M ticks) inside a 2-minute budget.
+node tests/harness/pipeline.mjs fast-shoot <cabinet>.css --tick=3000000 --out=shot.png
+
+# Slow-path screenshot (early ticks only, or when sharing a daemon).
+node tests/harness/pipeline.mjs shoot <cabinet>.css --tick=100000 --out=shot.png
+
+# Raw byte dump from guest memory at end of run (no rendering).
+# Repeatable for multiple regions in one invocation.
+../calcite/target/release/calcite-cli.exe -i <cabinet>.css \
+    --speed 0 --dump-tick 1000000 \
+    --dump-mem-range=0xB8000:4000:vram.bin \
+    --dump-mem-range=0x449:1:mode.bin \
+    --sample-cells=0
 ```
 
 Everything is documented in more detail in
 [`tests/harness/README.md`](../tests/harness/README.md) — the harness's
 own README has workflow recipes for common debugging scenarios.
 
-## Budgets beat hopes
+## Budgets beat hopes — every command needs an explicit ≤2-minute cap
 
 Every long-running command accepts `--wall-ms`, `--max-ticks`, and
-`--stall-rate`. Use them. The native `run_until` tool has no wall-clock
-ceiling; it'll run forever if the condition never triggers.
+`--stall-rate`. **Use them.** Cabinets and the JS daemon can run effectively
+forever; firing-and-forgetting a tool that doesn't terminate burns real
+time. Boot reaches the `A:\>` prompt around tick 2-4M, which is *not*
+reachable inside a 2-minute budget on the slow `shoot`/`run` paths
+(~1500 ticks/s through `calcite-debugger`). Use `fast-shoot` (`calcite-cli`,
+~375K ticks/s) for late-tick screenshots, or pick a tick count the chosen
+path can reach. If no path fits the budget, **build a faster one** rather
+than launching and hoping — that's how `fast-shoot`, `--dump-mem-range`,
+and the `CALCITE_REP_DIAG=1` fast-forward diagnostics all came to exist.
+
+The native `run_until` tool has no wall-clock ceiling; it'll run forever if
+the condition never triggers.
 
 ## Reference emulator = ground truth
 
@@ -58,7 +82,9 @@ builder emits. If calcite disagrees with the ref, **calcite is wrong**
 | Exploratory: "what's going on at tick X?" | MCP debugger (interactive) |
 | Scripted: "does this pass?" | `tests/harness/run.mjs` |
 | Bisecting a divergence | `tests/harness/pipeline.mjs fulldiff`, then MCP debugger to dig |
-| Visual sanity | `tests/harness/pipeline.mjs shoot` |
+| Visual sanity (early ticks, daemon active) | `tests/harness/pipeline.mjs shoot` |
+| Visual sanity (late ticks / fresh cabinet) | `tests/harness/pipeline.mjs fast-shoot` |
+| Raw guest memory dump | `calcite-cli --dump-mem-range=ADDR:LEN:PATH` |
 | Regression check | `tests/harness/pipeline.mjs cabinet-diff` or `baseline-verify` |
 
 The full MCP tool surface (including agent-oriented additions like

@@ -19,6 +19,7 @@ const repoRoot = resolve(__dirname, '..', '..');
 const KERNEL_SYS  = resolve(repoRoot, 'dos', 'bin', 'kernel.sys');
 const COMMAND_COM = resolve(repoRoot, 'dos', 'bin', 'command.com');
 const ANSI_SYS    = resolve(repoRoot, 'dos', 'bin', 'ansi.sys');
+const EMSDRV_SYS  = resolve(repoRoot, 'dos', 'bin', 'emsdrv.sys');
 
 export function buildFloppy({ cart, manifest, cacheDir }) {
   if (!manifest.disk) {
@@ -37,30 +38,46 @@ export function buildFloppy({ cart, manifest, cacheDir }) {
   // any BBS-era software) rely on an ANSI driver being present. Without it the
   // escape bytes go straight to VRAM as literal text. NANSI is ~5 KB resident —
   // negligible given our default memory sizing.
+  // DEVICE=\EMSDRV.SYS registers a fake EMMXXXX0 character device so EMS-gated
+  // programs (DOOM8088, anything that does open("EMMXXXX0",...)) detect EMS
+  // and proceed past their initial check. The driver doesn't actually back EMS
+  // pages — it's enough for detection but not for real expanded-memory use.
+  // Opt-in via `boot.ems = true` in program.json.
+  const wantsEms = manifest.boot?.ems === true;
+  const emsLine = wantsEms ? `DEVICE=\\EMSDRV.SYS\n` : '';
   const shellLine = args
     ? `SHELL=\\${shellTarget} ${args}\n`
     : `SHELL=\\${shellTarget}\n`;
-  const configContent = `SWITCHES=/F\nDEVICE=\\ANSI.SYS\n${shellLine}`;
+  const configContent = `SWITCHES=/F\nDEVICE=\\ANSI.SYS\n${emsLine}${shellLine}`;
   const configPath = join(cacheDir, 'CONFIG.SYS');
   writeFileSync(configPath, configContent);
 
-  // Assemble the file list: KERNEL.SYS + ANSI.SYS + CONFIG.SYS + COMMAND.COM
-  // + cart files. ANSI.SYS must be on the disk before CONFIG.SYS loads it,
-  // but file order within the FAT image doesn't matter — files are located
-  // by name, not position.
+  // Assemble the file list: KERNEL.SYS + ANSI.SYS + CONFIG.SYS + cart files
+  // + COMMAND.COM (unless the cart already supplied one). ANSI.SYS must be
+  // on the disk before CONFIG.SYS loads it, but file order within the FAT
+  // image doesn't matter — files are located by name, not position.
   //
-  // COMMAND.COM is always included (even when autorun is set), so:
+  // COMMAND.COM is included so:
   //   - users can set SHELL=\COMMAND.COM explicitly via boot.autorun
   //     (e.g. to drop to a prompt and run a program with custom flags)
   //   - autorun batch files / programs can shell out or EXIT back to DOS
   //   - Ctrl-C from a hung autorun program lands somewhere sane
   // It's ~30 KB on a disk that's typically 1-3 MB; not worth the asymmetry.
+  //
+  // If the cart itself ships a COMMAND.COM (e.g. you're testing your own
+  // shell, or running the bare `dos/bin/command.com` as a cart), skip the
+  // bundled one — duplicate root-dir entries break the FAT12 lookup and
+  // surface as "Bad or missing command interpreter" because DOS finds the
+  // bundled (potentially packed) COMMAND.COM ahead of the user's copy.
   const layout = [
     { name: 'KERNEL.SYS',  source: 'dos/bin/kernel.sys',   path: KERNEL_SYS },
     { name: 'ANSI.SYS',    source: 'dos/bin/ansi.sys',     path: ANSI_SYS },
-    { name: 'COMMAND.COM', source: 'dos/bin/command.com',  path: COMMAND_COM },
     { name: 'CONFIG.SYS',  source: `synthesized: ${configContent.trimEnd()}`, path: configPath },
   ];
+
+  if (wantsEms) {
+    layout.push({ name: 'EMSDRV.SYS', source: 'dos/bin/emsdrv.sys', path: EMSDRV_SYS });
+  }
 
   for (const f of manifest.disk.files ?? []) {
     layout.push({
@@ -68,6 +85,10 @@ export function buildFloppy({ cart, manifest, cacheDir }) {
       source: f.source,
       path: resolve(cart.root, f.source),
     });
+  }
+
+  if (!layout.some(f => f.name === 'COMMAND.COM')) {
+    layout.push({ name: 'COMMAND.COM', source: 'dos/bin/command.com', path: COMMAND_COM });
   }
 
   // Build the FAT12 image in-process (no execSync shell-out). Resolve

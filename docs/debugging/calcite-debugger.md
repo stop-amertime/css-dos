@@ -31,33 +31,51 @@ binary open. From `../calcite`:
 That kills all `calcite-debugger.exe` processes and rebuilds. MCP
 clients respawn the debugger on the next tool call.
 
-## Key endpoints
+## Tools (MCP-first; HTTP still works)
 
-| Endpoint | Description |
-|----------|-------------|
-| `POST /tick {"count":N}` | Advance N ticks |
-| `POST /seek {"tick":N}` | Jump to tick N (uses checkpoints) |
-| `GET /state` | All registers + computed properties |
-| `POST /memory {"addr":N,"len":N}` | Hex dump of memory region |
-| `POST /screen` | Render VGA text buffer |
-| `GET /compare-paths` | Diff compiled vs interpreted at current tick |
-| `POST /trace-property {"property":"--memAddr"}` | Trace compiled execution of a property |
-| `POST /dump-ops {"start":N,"end":M}` | Dump raw compiled ops in range |
-| `POST /keyboard {"value":N}` | Set keyboard CSS property |
-| `POST /shutdown` | Stop the server |
+The debugger speaks both MCP (stdio + TCP) and HTTP. Agents and the test
+harness drive it via MCP through
+[`tests/harness/lib/debugger-client.mjs`](../../tests/harness/lib/debugger-client.mjs);
+the HTTP endpoints below are the same operations exposed for `curl`-style
+exploration.
+
+| MCP tool | HTTP endpoint | Description |
+|----------|----------|-------------|
+| `tick` | `POST /tick {"count":N}` | Advance N ticks |
+| `seek` | `POST /seek {"tick":N}` | Jump to tick N (uses checkpoints) |
+| `get_state` | `GET /state` | All registers + computed properties |
+| `read_memory` | `POST /memory {"addr":N,"len":N}` | Hex dump of memory region |
+| `render_screen` | `POST /screen` | Render VGA text buffer |
+| `compare_paths` | `GET /compare-paths` | Diff compiled vs interpreted at current tick |
+| `trace_property` | `POST /trace-property` | Trace compiled execution of a property |
+| `dump_ops` | `POST /dump-ops` | Dump raw compiled ops in range |
+| `send_key` | `POST /keyboard` | Set keyboard CSS property |
+| `watchpoint` | — | Block until a memory address takes a value (or max_ticks) |
+| `inspect_packed_cell` | — | Decode a packed memory cell |
+| `run_until` | — | Async run-until-condition with tick ceiling. **No wall-clock cap** — see Budgets in [TESTING.md](../TESTING.md) |
 
 ## Typical workflow
 
+Through the harness wrapper (preferred):
+
 ```sh
-# Step to the diverging tick
+# Stop at the diverging tick and check compiled vs interpreted in one go.
+node tests/harness/pipeline.mjs consistency <cabinet>.css --tick=3740
+```
+
+Direct over HTTP for ad-hoc exploration:
+
+```sh
 curl -X POST localhost:3333/seek -d '{"tick":3740}'
-
-# Check compiled vs interpreted
 curl -s localhost:3333/compare-paths | python3 -m json.tool
-
-# If they disagree, trace the diverging property
 curl -X POST localhost:3333/trace-property -d '{"property":"--memAddr"}'
-
-# Inspect memory around the problem
 curl -X POST localhost:3333/memory -d '{"addr":1024,"len":64}'
 ```
+
+## When NOT to drive the debugger
+
+For "what's on screen at tick N" against a fresh cabinet, the daemon path is
+the wrong tool — it does ~1500 ticks/s and won't reach late ticks inside a
+2-minute budget. Use `pipeline.mjs fast-shoot` (~375K ticks/s via
+`calcite-cli`) instead. See [TESTING.md](../TESTING.md) and the harness
+README for the budget rule.

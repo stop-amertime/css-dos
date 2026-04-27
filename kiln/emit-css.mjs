@@ -179,13 +179,17 @@ class DispatchTable {
     // shape. intAddr/intVal expresses those pushes; both --_tf and --_irqActive
     // dispatch through the same expressions.
     const ssBase = 'calc(var(--__1SS) * 16)';
+    // Wrap SP-K to 16 bits — without this, IRQ/TF push at SP=0 lands one
+    // segment too low (SS:0xFFFE != SS-1:0xFFFE). Same fix as PUSH/CALL/INT
+    // in kiln/patterns/{stack,control,misc,group}.mjs.
+    const sa = (k) => `calc(${ssBase} + --lowerBytes(calc(var(--__1SP) - ${k} + 65536), 16))`;
     const intAddr = [
-      `calc(${ssBase} + var(--__1SP) - 2)`,   // slot 0: FLAGS lo
-      `calc(${ssBase} + var(--__1SP) - 1)`,   // slot 1: FLAGS hi
-      `calc(${ssBase} + var(--__1SP) - 4)`,   // slot 2: CS lo
-      `calc(${ssBase} + var(--__1SP) - 3)`,   // slot 3: CS hi
-      `calc(${ssBase} + var(--__1SP) - 6)`,   // slot 4: IP lo
-      `calc(${ssBase} + var(--__1SP) - 5)`,   // slot 5: IP hi
+      sa(2),   // slot 0: FLAGS lo
+      sa(1),   // slot 1: FLAGS hi
+      sa(4),   // slot 2: CS lo
+      sa(3),   // slot 3: CS hi
+      sa(6),   // slot 4: IP lo
+      sa(5),   // slot 5: IP hi
     ];
     const flagsPush = `var(--__1flags)`;
     const intVal = [

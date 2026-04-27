@@ -64,7 +64,12 @@ async function loadPresets() {
  * @param {string}   [opts.args]          Extra args for SHELL= line (DOS path only)
  * @param {object}   [opts.manifest]      Extra manifest fields (merged on top of preset)
  * @param {Function} [opts.onProgress]    Called with {stage, message} at each stage
- * @returns {Promise<Blob>}               The CSS cabinet as a Blob
+ * @returns {Promise<{ blob: Blob, diskBytes: Uint8Array | null }>}
+ *          The CSS cabinet as a Blob, plus the FAT12 floppy bytes (DOS path)
+ *          or `null` (hack path / no floppy). The disk bytes are the same
+ *          ones embedded in the cabinet's `--readDiskByte` dispatch; calcite
+ *          uses them via `engine.set_disk_image()` to fast-forward REP MOVS
+ *          from the rom-disk window without invoking the per-byte CSS path.
  */
 export async function buildCabinetInBrowser({
   preset,
@@ -171,6 +176,8 @@ export async function buildCabinetInBrowser({
       output: writer,
       header,
     });
+    // Hack path has no floppy.
+    var floppyDiskBytes = null;
   } else {
     // DOS path: fetch kernel + command.com + ansi.sys, assemble FAT12 floppy,
     // run Kiln. ansi.sys is NANSI (GPLv2), loaded by DEVICE=\ANSI.SYS in the
@@ -221,10 +228,13 @@ export async function buildCabinetInBrowser({
       output: writer,
       header,
     });
+    // DOS path: hand the floppy bytes back so the caller can pass them
+    // into calcite via engine.set_disk_image().
+    var floppyDiskBytes = floppy.bytes;
   }
 
   onProgress({ stage: 'done', message: `Cabinet ready: ${writer.bytesWritten} bytes` });
-  return writer.finish();
+  return { blob: writer.finish(), diskBytes: floppyDiskBytes };
 }
 
 // 16-row half-block rendering of icons/css-dos-logo-32x32.png. Hand-touched

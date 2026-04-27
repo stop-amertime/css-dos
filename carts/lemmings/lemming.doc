@@ -1,0 +1,206 @@
+   --------------------------------------------------------------------------
+
+                           LEMMINGS - Complete Docs!
+
+   --------------------------------------------------------------------------
+
+
+A lemming can do the following:  Climb
+                                 Float
+                                 Blow Up Blockers (he he)
+                                 Block
+                                 Build Bridges
+                                 Dig Tunnels - across, diagonally and down
+
+
+The Game
+--------
+
+Lemmings is an intriguing one or two player game in which you help hordes of
+otherwise-mindless creatures - knows as walkers - escape over 100 hostile
+environments.
+
+Lemmings drop through a trapdoor onto each screen and, as they're creatures
+of very little brain, they need all the help they can get to survive the
+dangers that lie within.
+
+To assist these cuddly, yet suicidally stupid creatures you use your mouse
+(similar to a lemming but i has buttons) to select a skill from the panel
+of icons at the base of the screen, to perform that skill. You have a strict
+time limit in which to get a required percentage of the little perishers
+through each level.
+
+A quick brain, the ability to plan ahead and lifetime's dedication to save a
+Lemming Campaign are required to get the right Lemming to perform the right
+action at the right time. A forgotten Blocker or a misplaced bridge could
+spell disaster for every lemming on screen.
+
+
+Before Play Commences
+---------------------
+
+Lemmings is organised into four increasingly difficult game categories: FUN,
+TRICKY, TAXING and MAYHEM. The FUN category consists of 30 levels and is
+designed to familiarise you with the game concept and how to work with
+Lemmings skill attributes. You don't have to start with this category: You
+can go directly to any of the higher skill categories but we suggest that you
+begin with at least a few of the levels in the FUN category to get the feel
+of the game before proceeding to the more difficult categories. TRICKY,
+TAXING
+and MAYHEM increase in difficulty with the MAYHEM level being the most
+difficult. Each of the game categories has 30 levels.
+
+
+PASSWORDS
+---------
+
+After you complete each level you are shown a password on screen. Make a note
+of it, as you will be able to go directly to that level when you play
+Lemmings
+again and dont wish to re-play a level you have already mastered.
+
+
+Starting the game
+-----------------
+
+Click on the One-Player icon to begin a One-player game.
+
+Click on the Two-Player icon to begin a Two-player game.
+
+Click on the New Level icon to select a level that you've reached before.
+Enter the password then select a one- or two-player game.
+
+Click on the Music/FX icon to toggle between playing with music and limited
+sound effects or no music but full sound effects.
+
+Click on the up/down arrows icon (on the right hand side of the screen) to
+select a style of play: FUN is the easiest mode, followed by TRICKY, TAXING
+aand MAYHEM (MAYHEM being the hardest). Each style features 30 levels,
+complete them all and youre taken to the next style up in play.
+
+Style has no effect in a two-player game.
+
+
+CONTROLS
+--------
+
+Mouse (A second Mouse is required for a two-player game)
+
+Point and click on your chosen icon (or use Z, X or the cursor keys) to
+highlight it then - if required - point and click on selected Lemming.
+
+Pushing your mouse left or right to the screen edge scrolls the play area -
+simultaneously holding the right mouse button scrolls faster. You may also
+scroll the screen by dragging the cursor over the small map (right of icon
+panel) or instantly zoom to any area of the level by clicking in the map.
+
+P pauses the game
+
+Each level displays an access password when completed/
+
+
+ICONS (FROM LEFT TO RIGHT ON THE SCREEN):
+-----------------------------------------
+
+ 1  * Decrease flow of Lemmings on to the level
+ 2  * Increase flow of Lemmings on to the level
+ The following are the skills you can give to Lemmings
+ 3    Climber - Climbs vertical surfaces
+ 4    Floater - A brolly opens to ensure a safe descent
+ 5    Bomb to dispatch single Lemmings ( one way to get rid of Blockers )
+ 6    Blocker - stands with arms outstretched to block the passage of fellow
+      Lemmings
+ 7    Bridge Builder - builds bridges, each limited to twelve building
+bricks.
+      When a Lemming has laid his twelfth brick he turns to look at you for a
+      moment . . . if you click on him again he will lay another twelve
+bricks
+      and so on, otherwise he stops building and becomes a Walker once again.
+ 8    Basher - digs horizontally, will only dig when a suitible surface is
+      directly ahead of him
+ 9    Miner - uses a pick to dig diagonally down
+10    Digger - burrows vertically
+11  * Pause - gives you time to think
+12    Nuke 'Em destroys all lemmings - should you find yourself in a 'no-win'
+      situation (double click ot activate)
+
+The green display to the right of the icons depicts the whole level.
+
+The square cursor on that display depicts the current area shown on-screen.
+
+Each skill may only be used a limited number of times (shown above eacch
+icon).
+
+* (one-player mode only)
+
+
+Directly above the icon panel are (left to right):
+--------------------------------------------------
+
+Lemming identifier, plus the number of Lemmings currently under the cursor
+
+Number fo Lemmings currently occupying the level
+
+% of rescued Lemmings
+
+Time remaining to complete level
+
+
+The Two-Player Game
+-------------------
+
+in two-player mode the screen is vertically divided in two by a Lemming level
+indicator. This indicator displays the amount of Lemmings each player has
+successfully rescued from the level.
+
+The left player controls blue Lemmings the right, green. Each player has his
+own exit and competes to get as many Lemmings (either his or his opponents)
+safely through it.
+
+Each player has 40 Lemmings in his team on the first level but on later
+levels
+this number is dependent on how many Lemmings were saved by individual
+players
+the previous level.
+
+i.e. Lemmings saved are added to players' initial 40 for the next level.
+
+lemmings instinctively head off in the direction of their own exit as soon as
+they enter the level.
+
+Each player has his own set of skill icons.
+
+Pressing the 'P' key pauses the game.
+
+Both players have to click on Nuke 'Em for Lemming annihilatiohn to take
+place.
+
+The two-player game consists of 20 levels and is played until both players
+fail
+to rescue any Lemmings.
+
+
+Some Points to Note
+-------------------
+
+Metal (shown as square plates and usually used to contain liquids) can not be
+dug through or exploded away.
+
+Builders stop contstructing bridges:
+(I) When they run out of blocks
+(II) If the bridge hits a solid object
+(III) If the Lemming hits his head untill they fall
+
+Miners and diggers keep digging untill they fall.
+
+Bashers keep digging until there is no more land in front of them.
+
+A Climber or Floater retain these skills untill the current level is won (or
+lost) or untill they die - a Lemming given both these skills becomes an
+Athlete.
+
+All other skill icons take effect as soon as you click on a Lemming - care
+must be taken that there is something to dig in front of a basher or he
+will be give up straight away and you will have wasted a skill.
+
+

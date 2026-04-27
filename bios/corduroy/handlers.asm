@@ -17,6 +17,9 @@ global int16h_handler
 global int19h_handler
 global int1ah_handler
 global int20h_handler
+global int2fh_handler
+global int67h_handler
+global xms_driver_entry
 global int_dummy
 global default_handler
 global interrupt_table
@@ -1413,7 +1416,187 @@ int20h_handler:
     jmp int20h_handler
 
 ; ============================================================
-; INT 01h — Single-step trap handler
+; INT 2Fh — DOS Multiplex Interrupt (XMS detection only).
+; ============================================================
+; AX=4300h: detect HIMEM. We respond with AL=0x80 (installed) so
+; programs like DOOM8088 think XMS is available.
+; AX=4310h: get driver entry point. We return ES:BX = far ptr to
+; xms_driver_entry below.
+;
+; All other AX values fall through to default behavior (CF set =
+; not handled), since CSS-DOS doesn't ship a TSR multiplex registry.
+;
+; This is a *fake* XMS implementation — see xms_driver_entry for the
+; minimum-viable behavior. Real moves don't happen; allocations always
+; return success. Without this, DOOM8088 hard-aborts at "Not enough
+; XMS available" and never reaches the title screen.
+int2fh_handler:
+    cmp ax, 0x4300
+    je .install_check
+    cmp ax, 0x4310
+    je .get_entry
+    ; Unhandled multiplex sub-function — set CF and return.
+    push bp
+    mov bp, sp
+    or word [bp+6], 0x0001
+    pop bp
+    iret
+.install_check:
+    ; AL = 0x80 = HIMEM driver installed.
+    mov al, 0x80
+    iret
+.get_entry:
+    ; Return ES:BX = BIOS_SEG : offset of xms_driver_entry.
+    push cs
+    pop es
+    mov bx, xms_driver_entry
+    iret
+
+; ============================================================
+; XMS driver entry point.
+; ============================================================
+; Called via FAR CALL with AH = function number. Each function returns
+; AX=1 on success, AX=0 + BL=error on failure. We return success for
+; everything DOOM8088 cares about. Memory moves are no-ops — DOOM
+; thinks the WAD is loaded but it actually isn't. Lump cache reads
+; will return zeros, so visuals will be wrong, but execution proceeds
+; far enough to leave the W_GetNumForName error path and reach mode
+; 13h init / TITLEPIC display attempts.
+;
+; This is intentionally minimal. A correct implementation would back
+; the moves with real >1MB memory cells; that's a larger feature
+; (see logbook). For now, getting past the gate is the goal.
+xms_driver_entry:
+    ; Dispatch on AH. All functions: AX=1, BL=0 success.
+    cmp ah, 0x00            ; Get version
+    je .ver
+    cmp ah, 0x08            ; Query free memory
+    je .free
+    cmp ah, 0x09            ; Allocate XMS block
+    je .alloc
+    cmp ah, 0x0A            ; Free XMS block
+    je .ok
+    cmp ah, 0x0B            ; Move XMS memory (the no-op)
+    je .ok
+    cmp ah, 0x0C            ; Lock block
+    je .lock
+    cmp ah, 0x0D            ; Unlock block
+    je .ok
+    cmp ah, 0x0E            ; Get handle info
+    je .handle_info
+    cmp ah, 0x0F            ; Realloc block
+    je .ok
+    ; Unknown — claim success anyway.
+    mov ax, 1
+    mov bl, 0
+    retf
+.ver:
+    ; AX = XMS version (BCD), BX = driver internal version, DX = HMA exists
+    mov ax, 0x0300          ; XMS 3.0
+    mov bx, 0x0300
+    mov dx, 1               ; HMA exists
+    retf
+.free:
+    ; AX = largest free block in KB, DX = total free in KB
+    mov ax, 65535           ; max u16
+    mov dx, 65535
+    retf
+.alloc:
+    ; DX = handle (just return 1 — DOOM doesn't care about the value)
+    mov ax, 1
+    mov dx, 1
+    retf
+.lock:
+    ; DX:BX = 32-bit linear address of the locked block. We return
+    ; 0x00000000 since we don't actually have backing storage.
+    mov ax, 1
+    mov dx, 0
+    mov bx, 0
+    retf
+.handle_info:
+    ; BH = lock count, BL = free handles, DX = block size in KB
+    mov ax, 1
+    mov bh, 0
+    mov bl, 32
+    mov dx, 2048
+    retf
+.ok:
+    mov ax, 1
+    mov bl, 0
+    retf
+
+; ============================================================
+; INT 67h — Expanded Memory Specification (EMS) handler.
+; ============================================================
+; Faked just enough for DOOM8088. The detection magic "EMMXXXX0" lives
+; at offset 0x0A of BIOS_SEG (see entry.asm ems_magic_block). When DOOM
+; reads INT 67h's IVT segment and finds the magic, it concludes EMS is
+; installed and proceeds.
+;
+; Function dispatch via AH. We respond success for the calls DOOM uses
+; during init — get status, get version, get page count, allocate
+; pages, map handle to physical page. Real backing storage is not
+; provided; reads from "EMS pages" return whatever happens to be in
+; the conventional memory page that was last mapped, which is enough
+; for DOOM to proceed past its allocation check (after which it tries
+; mode 13h init / TITLEPIC display).
+int67h_handler:
+    cmp ah, 0x40            ; Get manager status
+    je .ok
+    cmp ah, 0x41            ; Get page frame address
+    je .pageframe
+    cmp ah, 0x42            ; Get number of pages
+    je .pages
+    cmp ah, 0x43            ; Allocate pages
+    je .alloc
+    cmp ah, 0x44            ; Map handle page to physical page
+    je .map
+    cmp ah, 0x45            ; Deallocate handle
+    je .ok
+    cmp ah, 0x46            ; Get EMM version
+    je .ver
+    cmp ah, 0x47            ; Save mapping context
+    je .ok
+    cmp ah, 0x48            ; Restore mapping context
+    je .ok
+    ; Unknown EMS function — return error code 0x80 ("internal error").
+    mov ah, 0x80
+    iret
+.ok:
+    mov ah, 0
+    iret
+.ver:
+    mov ah, 0
+    mov al, 0x40            ; EMS version 4.0 (BCD: 4.0)
+    iret
+.pageframe:
+    ; BX = page frame segment. EMS page frame is conventionally at
+    ; 0xE000 — a 64 KB window split into four 16 KB pages. We claim
+    ; 0xE000 even though we don't actually back it; DOOM may try to
+    ; map and write there. Conventional memory at 0xE000 isn't
+    ; declared in our memory zones today, so writes go nowhere — DOOM
+    ; will see whatever zeros come back.
+    mov ah, 0
+    mov bx, 0xE000
+    iret
+.pages:
+    ; BX = unallocated pages (16 KB each), DX = total pages.
+    ; 128 * 16 KB = 2 MB — generous, well above what DOOM asks for.
+    mov ah, 0
+    mov bx, 128
+    mov dx, 128
+    iret
+.alloc:
+    ; DX = handle (just return 1)
+    mov ah, 0
+    mov dx, 1
+    iret
+.map:
+    mov ah, 0
+    iret
+
+; ============================================================
+; INT 01h — Single-step trap handler.
 ; Clears TF from stacked FLAGS so execution resumes normally.
 ; ============================================================
 int01h_handler:

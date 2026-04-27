@@ -1,0 +1,24 @@
+# Try to wake DOOM out of title screen with keypresses
+# Scancode << 8 | ascii. Common keys:
+#   Enter:    0x1C0D
+#   Space:    0x3920
+#   Y:        0x1579
+#   Esc:      0x011B
+#   Up arrow: 0x4800
+
+# Try one early to see if it's accepted
+5000000:regs:t5m
+8000000:kbd:0x1c0d
+9000000:regs:t9m-after-enter
+12000000:kbd:0x1579
+13000000:regs:t13m-after-y
+16000000:kbd:0x3920
+17000000:regs:t17m-after-space
+20000000:dump:0xa0000:64000:vga@20m.bin
+20000000:dump:0x100000:768:dac@20m.bin
+20000000:regs:t20m
+24000000:kbd:0x1c0d
+25000000:dump:0xa0000:64000:vga@25m.bin
+25000000:dump:0x100000:768:dac@25m.bin
+25000000:regs:t25m
+27000000:halt
