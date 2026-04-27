@@ -133,15 +133,25 @@ export function buildMemoryImage(sidecars) {
     if (!program) throw new Error('hack cart missing program sidecar');
     mem.set(program, 0x100);
   } else {
-    // DOS cart: load kernel at 0x600, disk at 0xD0000. Corduroy's entry
-    // stub runs first (at entrySegment:entryOffset = F000:0000) and
-    // initializes IVT, BDA, timer, PIC, etc. from its install_bda code.
+    // DOS cart: load kernel at 0x600. The disk DOES NOT live in linear
+    // RAM — calcite implements the rom-disk window at 0xD0000..0xD01FF
+    // as a virtual sliding sector. Reads from that window go through
+    // `--readDiskByte(lba*512 + offset)` where lba is the word at 0x4F0,
+    // written by corduroy's INT 13h handler. js8086 has no such hook
+    // natively, but `createRefMachine` wraps `m_read` with the same
+    // dispatch (see DISK_WINDOW_BASE/SIZE handling there). Cabinets
+    // larger than ~190KB (e.g. doom8088 at 2.88MB) would overflow the
+    // 1MB linear array if memmapped here.
     if (kernel) mem.set(kernel, 0x600);
-    if (disk)   mem.set(disk, 0xD0000);
   }
 
   return mem;
 }
+
+const DISK_WINDOW_BASE = 0xD0000;
+const DISK_SECTOR_SIZE = 512;
+const DISK_WINDOW_END  = DISK_WINDOW_BASE + DISK_SECTOR_SIZE; // 0xD0200
+const DISK_LBA_LATCH   = 0x4F0; // word: linear address holding current LBA
 
 // Construct a stepping emulator. Returns { cpu, mem, step, reset, regs }.
 // `regs()` returns a plain-object snapshot of every standard register
@@ -160,7 +170,18 @@ export function createRefMachine(sidecars, { initialCS, initialIP, peripherals =
   // populated when writeLog is non-null.
   let writeLog = null;
 
+  // Virtual rom-disk: reads from 0xD0000..0xD01FF return bytes from the
+  // cabinet's disk image at sector LBA = read16(0x4F0). Mirrors calcite's
+  // `--readDiskByte` dispatch so DOS programs that page sectors via INT 13h
+  // (e.g. doom8088 at 2.88MB, well beyond the 1MB linear RAM) work without
+  // memmapping the whole disk.
+  const diskBytes = sidecars.disk;
   const read = (addr) => {
+    if (diskBytes && addr >= DISK_WINDOW_BASE && addr < DISK_WINDOW_END) {
+      const lba = mem[DISK_LBA_LATCH] | (mem[DISK_LBA_LATCH + 1] << 8);
+      const off = lba * DISK_SECTOR_SIZE + (addr - DISK_WINDOW_BASE);
+      return off < diskBytes.length ? diskBytes[off] : 0;
+    }
     if (addr < 0 || addr >= mem.length) return 0;
     return mem[addr];
   };
@@ -170,11 +191,53 @@ export function createRefMachine(sidecars, { initialCS, initialIP, peripherals =
     if (writeLog) writeLog.push({ addr, value: val & 0xFF });
   };
 
+  // VGA DAC shadow — js8086 dispatches OUT to peripherals via isConnected,
+  // but no peripheral handles 0x3C7/0x3C8/0x3C9 by default. Without this,
+  // every DAC byte the program writes (and Doom reprograms the entire 256-
+  // entry palette during title fade-in) goes nowhere, and screen renders
+  // come out with junk colours. Wrap PIT to also claim the DAC ports;
+  // bytes land in `dacBytes` so the screen renderer can read them.
+  const dacBytes = new Uint8Array(768);
+  let dacWriteIndex = 0, dacWriteSub = 0;
+  let dacReadIndex = 0, dacReadSub = 0;
+
   let pic, pit;
   if (peripherals === 'real') {
     const { PIC, PIT } = loadPeripherals();
     pic = new PIC();
-    pit = new PIT(pic);
+    const realPit = new PIT(pic);
+    // Composite peripheral: PIT for ports 0x40-0x43, VGA DAC for 0x3C7-0x3C9.
+    pit = {
+      isConnected(port) {
+        return realPit.isConnected(port)
+          || port === 0x3C7 || port === 0x3C8 || port === 0x3C9;
+      },
+      portOut(w, port, val) {
+        if (port === 0x3C8) { dacWriteIndex = val & 0xFF; dacWriteSub = 0; return; }
+        if (port === 0x3C7) { dacReadIndex  = val & 0xFF; dacReadSub  = 0; return; }
+        if (port === 0x3C9) {
+          dacBytes[dacWriteIndex * 3 + dacWriteSub] = val & 0x3F;
+          dacWriteSub++;
+          if (dacWriteSub === 3) { dacWriteSub = 0; dacWriteIndex = (dacWriteIndex + 1) & 0xFF; }
+          return;
+        }
+        realPit.portOut(w, port, val);
+      },
+      portIn(w, port) {
+        if (port === 0x3C7) return 0;
+        if (port === 0x3C8) return dacWriteIndex;
+        if (port === 0x3C9) {
+          const b = dacBytes[dacReadIndex * 3 + dacReadSub];
+          dacReadSub++;
+          if (dacReadSub === 3) { dacReadSub = 0; dacReadIndex = (dacReadIndex + 1) & 0xFF; }
+          return b;
+        }
+        return realPit.portIn(w, port);
+      },
+      tick() { realPit.tick(); },
+      hasInt() { return realPit.hasInt(); },
+      nextInt() { return realPit.nextInt(); },
+    };
   } else {
     const stub = {
       isConnected: () => false,
@@ -226,6 +289,7 @@ export function createRefMachine(sidecars, { initialCS, initialIP, peripherals =
   return {
     cpu,
     mem,
+    dacBytes, // VGA DAC palette shadow (256 entries x RGB, 6-bit values)
     step: () => cpu.step(),
     regs: () => snapshotRegs(cpu),
     applyRegs,
