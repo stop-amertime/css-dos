@@ -1,0 +1,65 @@
+{
+  "cabinet": "C:\\Users\\AdmT9N0CX01V65438A\\Documents\\src\\CSS-DOS\\tmp\\doom8088.css",
+  "cli": "C:\\Users\\AdmT9N0CX01V65438A\\Documents\\src\\calcite\\target\\release\\calcite-cli.exe",
+  "exitCode": 0,
+  "pollStride": 50000,
+  "maxTicks": 80000000,
+  "spamEvery": 250000,
+  "totalWallMs": 93623,
+  "stages": {
+    "stage_text_drdos": {
+      "wallMsAbs": 1126,
+      "wallMsDelta": 1126,
+      "ticks": 450000,
+      "ticksDelta": 450000,
+      "cycles": 9097319,
+      "cyclesDelta": 9097319
+    },
+    "stage_text_doom": {
+      "wallMsAbs": 3869,
+      "wallMsDelta": 2743,
+      "ticks": 1550000,
+      "ticksDelta": 1100000,
+      "cycles": 24082197,
+      "cyclesDelta": 14984878
+    },
+    "stage_title": {
+      "wallMsAbs": 9972,
+      "wallMsDelta": 6103,
+      "ticks": 3850000,
+      "ticksDelta": 2300000,
+      "cycles": 48073241,
+      "cyclesDelta": 23991044
+    },
+    "stage_menu": {
+      "wallMsAbs": 10754,
+      "wallMsDelta": 782,
+      "ticks": 4150000,
+      "ticksDelta": 300000,
+      "cycles": 56809469,
+      "cyclesDelta": 8736228
+    },
+    "stage_loading": {
+      "wallMsAbs": 14203,
+      "wallMsDelta": 3449,
+      "ticks": 5500000,
+      "ticksDelta": 1350000,
+      "cycles": 74356488,
+      "cyclesDelta": 17547019
+    },
+    "stage_ingame": {
+      "wallMsAbs": 89250,
+      "wallMsDelta": 75047,
+      "ticks": 35000000,
+      "ticksDelta": 29500000,
+      "cycles": 397458534,
+      "cyclesDelta": 323102046
+    }
+  },
+  "headline": {
+    "runMsToInGame": 89250,
+    "ticksToInGame": 35000000,
+    "cyclesToInGame": 397458534
+  },
+  "reachedIngame": true
+}
