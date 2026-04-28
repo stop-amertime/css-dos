@@ -111,6 +111,76 @@ Files (calcite repo): `crates/calcite-core/src/pattern/byte_period.rs`,
 (10 byte_period + 9 fusion_sim). Smoke gate not re-run; this is
 diagnostic infrastructure that doesn't touch any execution path.
 
+### 2026-04-28 (followup) — Body-composition probe + simulator extensions
+
+Added `probe-fusion-compose`: simulates every dispatch table's entries
+across the full 21-byte doom column-drawer body in sequence (threading
+slot env forward) and reports per-table FULL / partial / BAIL.
+
+Extended fusion_sim's supported-Op set to include `Bit`, `Div`, `Round`,
+`Min`, `Max`, `Abs`, `Sign`, `Clamp`, `CmpEq`, and `DispatchFlatArray`
+(const-key path). Added `Assumptions` machinery for resolving
+`LoadState`/`LoadStateAndBranchIfNotEqLit` against compile-time-known
+flag values (e.g. `--df=0` after CLD).
+
+**Results on doom8088 column-drawer body (44 tables fire for the body
+bytes):**
+
+  - Initial cut:    14/44 tables FULL compose (32%)
+  - +CFG/assumptions: 14/44 (no change — bails were on non-LoadState slots)
+  - +Bit/Div/Round/Min/Max/Abs/Sign/Clamp/CmpEq:  23/44 (52%)
+  - +DispatchFlatArray (const-key):  23/44 (no change — keys are symbolic)
+
+Examples of the non-trivial composed expressions yielded by the FULL
+tables:
+
+```
+table 40: LowerBytes(BitOr16(Slot(49), Add(Slot(46), Mul(BitExtract(Slot(46), Const(7)), Const(...)))))
+table 42: LowerBytes(Add(Floor(Div(Slot(49), Const(2))), Mul(BitExtract(Slot(49), Const(0)), Const(...))))
+table 50: Shr(LowerBytes(Add(Floor(Div(Slot(49), Max([Const(1), Slot(81)]))), ...
+```
+
+These are real, fully-composed post-body register/flag states
+expressed against entry-state slots. Exactly the symbolic
+intermediate fusion needs.
+
+**Remaining 16 partial + 5 bail tables:** mostly hit
+`Branch (non-const)` on byte 4 (0x89 — `mov r/m, r` with non-const
+register comparison) or `DispatchFlatArray (non-const key)` on byte 18
+(0x00 in the immediate). These bail because the comparator/key slot
+holds a non-Const symbolic expression. Pushing past 52% requires the
+simulator to either:
+
+  (a) Track which slots are "register-shaped" and reason about them
+      symbolically at a higher level (essentially a partial register
+      lattice), or
+  (b) Add SymExpr nodes for symbolic array indexing.
+
+Both push this lead into the territory of real compiler work.
+
+**Strategic assessment.** Even at 100% compose, this lead targets the
+column-drawer hot path (most of segment 0x55, ~50% of level-load CPU)
+with maybe 5-15× per-tick speedup IF the simulator and CSS wiring
+land cleanly. The calcite-v2 compiler road already has a measured
+**184× ceiling on dispatch shape** (Phase 0 result, this date), and
+the work needed there overlaps significantly with what this lead
+would need next.
+
+**Decision: pause this lead.** Code stays in main as committed —
+correct, well-tested, and useful diagnostic infrastructure. Resume if
+calcite-v2's Phase 0.5/1 work uncovers a need for byte-period
+detection or per-entry symbolic composition, or if a future cabinet
+needs fusion as a tactical perf win.
+
+Files added/extended:
+  - `crates/calcite-core/src/pattern/fusion_sim.rs` — symbolic
+    interpreter with CFG, assumptions, flat-array support
+  - `crates/calcite-cli/src/bin/probe_byte_periods.rs` — byte-period scan
+  - `crates/calcite-cli/src/bin/probe_fusion_sim.rs` — per-entry compose probe
+  - `crates/calcite-cli/src/bin/probe_fusion_compose.rs` — full-body compose probe
+
+Smoke not re-run (no execution-path changes).
+
 ## 2026-04-28 — Replicated-body recogniser: built, dead lead
 
 Built a generic recogniser in calcite-core that detects unrolled
