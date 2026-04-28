@@ -81,6 +81,100 @@ decide whether the >=10x ceiling is real.
   <3x → abandon, go back to peephole road. Logbook entry on completion
   states the gate fired and which branch.
 
+### 2026-04-28 — Calcite compiler Phase 0 result
+
+**Decision: gate fires at >=10x. Commit to the compiler road.**
+
+**Headline number: ~184x ceiling on the dispatch-elimination shape.**
+
+The plan-level region pick (0x2D96) didn't survive contact: at the
+`stage_loading.snap` moment the CPU is deep inside segment 0x55, and
+stepping forward to find a 0x2D96 tick takes >200K ticks at REP-
+fastfwd-off pace (>100s startup, possibly never reaches it within the
+budget). Switching the bench's input tick to 0x55 (which is where state
+sits, and which is the bigger ceiling-relevant region anyway) gave a
+working baseline but doesn't admit hand-derivation cleanly: "one tick
+of work at CS=0x55, IP=0xa2bc" is thousands of executed Op steps,
+not a tractable hand-rewrite for a few-day Phase 0 budget.
+
+Took the orthogonal probe the spec also allows: pick one structurally-
+typical CSS shape — a function with a dispatch on its first parameter
+(real shape, lifted from `--getReg16` in `doom8088.css`) — and
+microbench `interpreter.tick(synthetic_program)` against a free-function
+Rust `match` doing the same work. This is what the LOGBOOK 2026-04-28
+op-mix actually says is dominant: load-then-compare-then-branch chains
+are >60% of ops, and dispatch tables are exactly that shape. So the
+ceiling on this shape is a useful upper-bound estimate.
+
+**Numbers** (median of 3 cargo bench invocations, current laptop;
+thermal noise window per LOGBOOK 2026-04-16). `phase0_dispatch.rs`:
+
+| Group                       | time    | ratio vs handcoded |
+|-----------------------------|--------:|-------------------:|
+| `interpreter_tick`          | 263 ns  | (1x baseline)      |
+| `handcoded_tick_equivalent` | 1.43 ns | **184x faster**    |
+
+The handcoded path is bit-identical for r in 1..=8 (verified by
+`tests/phase0_dispatch_conformance.rs`); see commit log for the bench
+code itself. Both paths do the same work the CSS dictates: increment
+`--frame` mod 8, look up one of 8 register values by index, store the
+result. The interpreter pays per-tick state-vars cloning, dispatch
+hashmap lookup, sub-program execution, change-detection scan, writeback
+loop. The handcoded path does an i32 match and two stores. Compiler-
+emitted Rust would be very close to the handcoded path.
+
+**Sanity from the doom8088 side** (`phase0_tick.rs`, REP fastfwd off
+because the cabinet trips a contract panic on a REP MOVSW with
+src-rom-disk overlap and no descriptor — pre-existing known-incomplete
+area per LOGBOOK § Open work):
+
+| Group               | time      |
+|---------------------|----------:|
+| `restore_only`      |  80.4 µs  |
+| `interpreter_tick`  | 444 µs    |
+
+Net per-tick interpreter cost = ~364 µs at CS=0x55, IP=0xa2bc, on a
+358 MB cabinet with REP fastfwd off. This number isn't comparable to
+the headline 405K ticks/s (which is REP-fastfwd-on, amortizing bulk
+copies into the per-tick average) — it's per-instruction CSS-tick cost,
+which is the unit a compiler operates on. At ~2400 ops/tick (LOGBOOK
+op count), 364 µs implies ~150 ns per op, dominated by interpreter
+dispatch overhead — consistent with the synthetic dispatch ceiling
+above.
+
+**What this answers for Phase 1+.**
+- The DAG vocabulary will need to lower at minimum: dispatch tables,
+  load-compare-branch chains (the 60%-of-ops shape), broadcast writes,
+  function calls. The synthetic ceiling probe covers dispatch only;
+  other shapes' ceilings TBD per Phase 1.
+- The 30-100x mission-doc estimate is consistent with this probe at
+  the dispatch-shape level. First-cut compiler quality (capturing
+  5-15x of the 30-100x ceiling) hits the headline target's lower
+  bound without heroics.
+
+**What this does NOT answer (Phase 1+ work).**
+- Whole-cabinet compilation cost. Doom8088 is 358 MB of CSS; today's
+  parse + eval-build is ~6s native, fits the spec's 60s soft budget,
+  but Phase 1's DAG construction is unbenchmarked.
+- Other op-shape ceilings. Broadcast writes in particular are likely
+  to land lower (they're already partially recognised; less room).
+- Mixed-mode validity (Phase 3 fallback to interpreter on un-recognised
+  shapes). Spec says this must produce bit-identical results.
+
+**Caveats.** (a) The synthetic-program approach abstracts away
+inter-shape interactions. Real cabinets have ~2400 ops/tick of mixed
+shapes; some will yield less than 184x. (b) Thermal noise is a known
+issue per LOGBOOK 2026-04-16; the 263/1.43 ns numbers were stable
+across 3 runs (256-274 / 1.42-1.44 ns) so probably real, but lab-grade
+they aren't. (c) The doom8088 phase0_tick number is REP-fastfwd-off,
+which inflates per-tick cost vs the production figure — relevant
+caveat when comparing to the 405K ticks/s headline.
+
+**Next steps.**
+- Phase 0.5: build the CSS-primitive conformance suite (mission doc
+  § Phase 0.5). Spec budget 1-2 weeks.
+- Phase 1: DAG extraction. Foundation for everything after.
+
 ## Current status
 
 Working carts: zork, montezuma, sokoban, zork-big (2.88 MB), command-bare,
