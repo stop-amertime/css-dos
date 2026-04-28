@@ -2,6 +2,70 @@
 
 Last updated: 2026-04-28
 
+## 2026-04-28 — Calcite Phase 0.5: CSS-primitive conformance suite
+
+49 fixtures under `calcite/.claude/worktrees/calcite-v2/tests/conformance/
+primitives/`. Each is a `<name>.css` + `<name>.expect.json`. Two
+runners diff against the same expected_str values: a Node + Playwright
+runner (`run-primitives.mjs`) that loads each `.css` against headless
+Chromium, and a cargo integration test
+(`crates/calcite-core/tests/primitive_conformance.rs`) that parses +
+ticks + reads State.
+
+Both green. **41 PASS / 5 SKIP / 3 XFAIL** on the calcite side; 49/49
+PASS on the Chrome side. SKIPs are string-typed reads (`State::get_var`
+is i32-only — a test-side limitation, not a calcite bug). XFAILs are
+real divergences carrying `xfail_v1` markers with reasons; Phase 1+
+should fix them.
+
+**Three real divergences captured:**
+
+1. `var_undefined_no_fallback` — Chrome preserves --dst's initial-value
+   when `--dst: var(--undef);` has no fallback (declaration becomes
+   invalid at computed-value time). Calcite v1 writes 0 unconditionally.
+2. `calc_div_zero` — Chrome serialises `calc(1 / 0)` as `1.79769e+308`
+   (f64::MAX) for an `<integer>`-typed property. Calcite v1 returns 0.
+3. `ignored_selector` — Chrome scopes :hover/::before declarations away
+   from documentElement. Calcite parses every qualified-rule body
+   regardless of selector, so the later :hover write to --r wins over
+   the :root write. Computational CSS only authors :root/.cpu so this
+   is dormant in cabinets, but the divergence is real.
+
+**One bug fixed live during fixture authoring:**
+
+- `CalcOp::Mod` was using Rust's `%` (sign of dividend); CSS `mod()`
+  takes the sign of the divisor (Knuth/floor mod). Fixed in
+  `eval.rs::Mod`, `compile.rs::const_fold`, `Op::Mod`, `Op::ModLit`.
+  doom8088 only does mod(positive, positive) so no behaviour change
+  there; matters for any negative-operand CSS that ever shows up.
+
+**Tooling decisions:**
+
+- Fixture authoring loop: write `.css` + skeleton `.expect.json` with
+  empty `expected_str`, run `node run-primitives.mjs --capture
+  --filter=<group>`, review the diff, commit.
+- Chrome path: tiny http.createServer in `run-primitives.mjs` serves
+  the conformance dir on an ephemeral port (file:// is blocked by
+  Playwright). One-time `npm install` + `npx playwright install
+  chromium` (~150 MB binary).
+- Calcite test: walks up from `CARGO_MANIFEST_DIR` to find
+  `tests/conformance/primitives/`, so works in both main checkout and
+  worktrees. Honours `xfail_v1` (failure → XFAIL, success on xfail →
+  XPASS panic so the marker gets removed).
+
+**Branch:** `calcite-v2` on calcite. Commits: d8da2d8 (0.5.1 enumerate
+primitives), 6e775fd (0.5.2 fixture format + Chrome path proof), 7c7a304
+(0.5.4 Node Playwright runner), a5f21ec (0.5.3 first 25 fixtures), aab1f7e
+(0.5.5 cargo conformance test + first xfail), 76d32ed (mod fix), 939d787
+(0.5.3+0.5.6 remaining 24 fixtures + reconciled doc).
+
+**Next:** Phase 1 — DAG IR. The conformance suite gates Phase 1's
+correctness: 41 PASS today, all should still PASS against the v2
+implementation. The 3 XFAILs are work for Phase 1+ — closing any of
+them flips the marker to XPASS and forces the operator to remove it.
+
+---
+
 ## 2026-04-28 — Load-time fusion: byte-period detector + fusion-sim landed
 
 Built the bottom two layers of the load-time fusion pipeline as a
