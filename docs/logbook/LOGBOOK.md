@@ -2,27 +2,6 @@
 
 Last updated: 2026-04-28
 
-## 2026-04-28 — Doom8088 baseline recorded for fusion bench
-
-Recorded as the comparison baseline for the fusion lead before I
-attempt the runtime wiring. `bench-doom-stages-cli.mjs` against
-`tmp/doom8088.css`, no fusion (i.e. master calcite as of 06d8cc6):
-
-- **runMsToInGame: 89,250 ms**
-- **ticksToInGame: 35,000,000**
-- **stage_loading → stage_ingame delta: 75,047 ms / 29.5M ticks**
-
-Json saved at `tmp/bench-doom-baseline-pre-fusion.json`.
-
-For the fusion infrastructure that's already in main but not yet
-wired into the runtime, see the entry below this one. Wiring fusion
-into `execute()` so it actually fires on this cabinet is the next
-session's work — it needs (a) runtime CS:IP detection of fused-region
-entry, (b) memory-write-side-effect simulation in addition to the
-slot-only composer that's in main, (c) correctness verification
-without breaking doom's level-load. I sized that as 2-3 focused
-sessions, not deliverable in one shot.
-
 ## 2026-04-28 — Calcite Phase 1: DAG extraction (CFG + walker)
 
 Per `calcite/docs/compiler-mission.md` § Phase 1 and the design in
