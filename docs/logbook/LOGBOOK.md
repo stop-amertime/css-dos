@@ -2,6 +2,54 @@
 
 Last updated: 2026-04-28
 
+## 2026-04-28 — Replicated-body recogniser: built, dead lead
+
+Built a generic recogniser in calcite-core that detects unrolled
+straight-line regions in the compiled op stream and folds them into
+`Op::ReplicatedBody`. Period detector + per-Op-variant operand stride
+classifier + eval arm in all three runners (production, profiled,
+traced) + pipeline wiring after `compact_slots`. 34 unit tests covering
+period detection, operand classification, apply-strides round-trip, and
+end-to-end conformance against the unrolled equivalent. CSS-DOS smoke
+green (7 carts).
+
+**Empirical result on doom8088: zero regions folded.** Diagnostic
+`CALCITE_DBG_REPL=1` showed the largest straight-line region in the
+405K-op main array is **32 ops**; only 11 regions across 24,596 reach
+the 16-op threshold; period-detector finds no period in any of them.
+
+Why the lead failed: the asm-level "16× unrolled XLAT body" lives in
+`i_vv13ha.asm` etc. as 16 back-to-back 6-op pixel kernels, but
+**Kiln compiles each x86 instruction into its own CSS dispatch entry**
+(one entry per opcode). The repetition is at runtime — the dispatch
+loop fires opcodes 1..6 sixteen times — not in the static op stream.
+Calcite's per-array op sequences are short fragments, not unrolled
+kernels. To recognise the repetition we'd need a dispatch-trace
+analyser that detects cycles at execution time, which is a different
+problem (and starts to overfit toward "calcite knows about
+emitter-shaped opcodes" in a way the cardinal rule discourages).
+
+What I should have done first: capture an unrolled region and verify
+its CSS shape before committing the design. The 5-hour build is
+reusable code (the recogniser is generic and correct), but it doesn't
+fire on this cabinet, so the perf needle didn't move. Lesson logged for
+future leads — *measure the static shape calcite actually sees before
+designing a recogniser around the asm shape*.
+
+Code stays in main: it's correct, costs ~0ms at compile time when
+nothing matches, and may fire on future cabinets whose emitters do
+produce flat unrolled bodies. Not reverted.
+
+Files: `crates/calcite-core/src/pattern/replicated_body.rs` (new,
+~750 LoC including tests), `crates/calcite-core/src/compile.rs`
+(Op::ReplicatedBody variant, eval arms in all three runners,
+`recognise_replicated_bodies` pass, `unreachable!` arms in slot
+utilities, conformance tests).
+
+Next: redirect to either calcite-v2 Phase 0 (compiler road) or back
+to a fresh perf lead grounded in actual op-stream measurements rather
+than asm intuition.
+
 ## 2026-04-28 — XLAT segment-override fix (kiln correctness)
 
 Kiln was emitting `--_xlatByte` with DS hard-coded as the segment, ignoring
