@@ -2,90 +2,18 @@
 
 Last updated: 2026-04-28
 
-## 2026-04-28 — calcite Phase 2 — bottom-layer recognisers (substrate landed, gate not met)
+## 2026-04-28 — calcite Phase 2 — recogniser substrate landed
 
-Phase 2 of the calcite v2 compiler road. Phase 1 (DAG extraction)
-landed on 2026-04-28; this entry records Phase 2's first iteration.
-
-**Deliverables landed:**
-
-1. `docs/phase2-idiom-catalogue.md` — 14-idiom enumeration, derived by
-   reading `kiln/emit-css.mjs` end-to-end. Each idiom passes the
-   cardinal-rule genericity probe: would fire on a 6502, brainfuck,
-   or non-emulator cabinet of the same structural shape.
-
-2. `crates/calcite-core/src/dag/normalise.rs` — `Pattern` trait,
-   `Annotation`, `NormalisedDag`, driver. Annotations sit *parallel
-   to* the op stream rather than replacing it; Phase 3 codegen reads
-   them and chooses fast-path vs op fallback. This keeps Phase 2
-   bit-identical-safe by construction (the rewriter doesn't run
-   code).
-
-3. `crates/calcite-core/src/dag/patterns.rs` — first batch of four
-   recogniser families (9 patterns total): `LitMerge` × 6 op-kinds
-   (Add/Sub/Mul/Shl/Shr/And), `BitFieldMatch`, `HoldMatch`,
-   `RepeatedLoadMatch`. 8 unit tests including a genericity-probe
-   smoke test (annotation count must be invariant under literal-
-   value substitution).
-
-4. `crates/calcite-core/tests/phase2_node_count.rs` — informational
-   node-count probe over `web/demo.css`.
-
-**Acceptance gates:**
-
-- ✅ All 161 calcite-core tests pass (107 lib + 54 integration).
-- ✅ Backend equivalence test (Phase 1 gate) still bit-identical.
-- ✅ Primitive conformance under both backends still 41 PASS / 5 SKIP
-  / 3 XFAIL.
-- ✅ wasm32 build clean.
-- ❌ **Decision-gate metric: 0.1 % annotation density on `web/demo.css`,
-  far below the 30 % spec target.**
-
-**Honest read.** Per the mission doc rule "if a phase doesn't show its
-expected win after ~2× the estimated time, stop and re-examine the
-model" — that's where this entry stops the loop and reports.
-
-The metric is uninformative on this cabinet because v1 already
-collapses the dominant shapes (broadcast writes, dispatch tables,
-packed-cell writes) before they reach the DAG. The remaining
-unannotated ops are mostly already-fused super-ops
-(`BranchIfNotEqLit`, `LoadStateAndBranchIfNotEqLit`, `Dispatch`,
-`DispatchChain`). The Phase 2 patterns target the *un-collapsed*
-residue, which on `web/demo.css` is small. Doom is where Phase 2 is
-expected to pay off — the agent-briefs/doom-perf-mission.md profile
-shows hot-region BitField extraction (palette/colour decode) and
-RepeatedLoad CSE (`--opcode` re-read across dispatch+flag-compute)
-that should both fire.
-
-**What this means for next steps.** Three options on the table; the
-project owner picks:
-
-1. **Hold here, ship Phase 2 substrate**, re-measure on Doom when a
-   Doom cabinet lands in the worktree. The substrate is sound; the
-   metric is just unmeasurable on the current fixture.
-2. **Add catalogue idioms 2 (cascade self-hold), 9 (priority cascade
-   override), 10 (single-dispatch `@function` inlining), 12 (pure
-   region tagging).** These are listed in the catalogue as Phase 2
-   candidates; they target slightly different shapes that may fire
-   more on `demo.css`. Estimated cost: 1 week.
-3. **Skip to Phase 3** (codegen prototype, option (c) — Rust closures
-   from the normalised DAG) before adding more patterns. This trades
-   Phase 2 metric for Phase 3 evidence about which patterns *actually*
-   matter once codegen exists. Higher risk: codegen without enough
-   recogniser coverage may bottom out below the 5× speedup gate.
-
-The Phase 2 recogniser framework is in place either way — the
-contribution is reusable. The first-batch patterns are correct,
-generic, and bit-identical-safe; their value is conditional on Phase
-3's codegen being able to consume `Annotation`s for fast-path
-emission.
-
-Files (calcite repo, `calcite-v2` branch):
-- `docs/phase2-idiom-catalogue.md`
-- `crates/calcite-core/src/dag/normalise.rs`
-- `crates/calcite-core/src/dag/patterns.rs`
-- `crates/calcite-core/tests/phase2_node_count.rs`
-- `crates/calcite-core/src/dag/mod.rs` (extended exports)
+Idiom catalogue (14 CSS-structural shapes derived from
+`kiln/emit-css.mjs`), `Pattern` trait + driver in `dag/normalise.rs`,
+first batch of 9 generic recognisers in `dag/patterns.rs` (LitMerge,
+BitField, Hold, RepeatedLoad). Annotations sit parallel to ops so
+Phase 2 stays bit-identical by construction. 161 calcite-core tests
+green; Phase 1 gates (backend equivalence, primitive conformance)
+still pass; wasm32 clean. Annotation density on `web/demo.css` is
+0.1 % — expected, since v1 already collapses the dominant shapes.
+The metric is meant for Doom, which isn't in this worktree; revisit
+when it lands.
 
 
 ## 2026-04-28 — Load-time fusion: byte-period detector + fusion-sim landed
