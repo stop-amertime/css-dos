@@ -24,7 +24,7 @@ agents and CI to parse). Exit code: 0 = all passed, 2 = test failures,
 
 ```sh
 # Build + run + screenshot — the one-command "does this cart work?" check.
-node tests/harness/pipeline.mjs full carts/dos-smoke
+node tests/harness/pipeline.mjs full carts/test-carts/dos-smoke
 
 # Run fulldiff to find the first tick where calcite disagrees with the
 # JS reference 8086 emulator. This is the main debugging tool.

@@ -354,8 +354,11 @@ export function emitDecodeProperties() {
   --_strDstByte: --readMem(calc(var(--__1ES) * 16 + var(--__1DI)));
   --_strDstHiByte: --readMem(calc(var(--__1ES) * 16 + var(--__1DI) + 1));
 
-  /* Pre-computed XLAT byte — DS:BX+AL (avoids readMem inside dispatch entry) */
-  --_xlatByte: --readMem(calc(var(--__1DS) * 16 + var(--__1BX) + var(--AL)));
+  /* Pre-computed XLAT byte: (segOverride|DS):BX+AL.
+     XLAT honors segment-override prefixes (SS/ES/CS XLAT). The 8086 manual
+     lists XLAT as a string-table op whose default segment is DS, replaceable
+     by a 26/2E/36/3E prefix. Doom8088 uses SS-XLAT to read the colormap. */
+  --_xlatByte: --readMem(calc(var(--directSeg) + var(--__1BX) + var(--AL)));
 
   /* Pre-computed MOV AL,[mem] byte — directSeg + imm16 address (avoids readMem inside dispatch entry) */
   --_movAlMemByte: --readMem(calc(var(--directSeg) + var(--q1) + var(--q2) * 256));

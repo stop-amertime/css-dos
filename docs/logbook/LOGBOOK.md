@@ -2,6 +2,85 @@
 
 Last updated: 2026-04-28
 
+## 2026-04-28 — XLAT segment-override fix (kiln correctness)
+
+Kiln was emitting `--_xlatByte` with DS hard-coded as the segment, ignoring
+any 0x26/0x2E/0x36/0x3E prefix. Doom8088's column drawer uses `ss xlat`
+twice per pixel to read the colormap from SS:BX (see `i_vv13ha.asm`,
+`i_vv13ma.asm`, `i_vv13la.asm`, `i_vegaa.asm`, `i_vmodya.asm`,
+`i_vcgaa.asm`) — so every textured wall/sprite/sky pixel was reading from
+DS:BX+AL, returning whatever happened to live at that DS offset rather
+than the colormap entry. Fix: use `--directSeg` (override-or-DS, same
+helper MOV AL,[mem] uses) at `kiln/decode.mjs:362`.
+
+Verified: smoke (7 carts) green; Doom8088 reaches in-game on the web
+bench (`stage_ingame` at tick 34.4M, `runMsToInGame` 110s) and the
+gameplay frame renders correctly. Title splash unaffected (uses
+V_DrawRaw, no XLAT).
+
+Also rewired the smoke list — small carts moved to `carts/test-carts/`
+so the harness was silently running only zork+montezuma; now all 7 fire.
+
+## Strategic shift — calcite v2 (compiler) being explored in a worktree
+
+Doom-perf work is being redirected from peephole fusion to a load-time
+compiler. Strategic doc:
+[`../../calcite/docs/compiler-mission.md`](../../../calcite/docs/compiler-mission.md);
+pointer at [`../agent-briefs/calcite-compiler-mission.md`](../agent-briefs/calcite-compiler-mission.md).
+Cardinal-rule sharpening landed in [`../../CLAUDE.md`](../../CLAUDE.md).
+
+The work is being **tried in a git worktree** so master stays on the
+v1 interpreter while v2 is being explored. If Phase 0 / 0.5 say the
+ceiling is real, the worktree branch becomes the path forward; if
+not, master is unaffected and we return to the peephole road.
+
+### 2026-04-28 — Calcite compiler Phase 0 starting
+
+Worktree: `calcite/.claude/worktrees/calcite-v2` on branch `calcite-v2`,
+forked from `main` at 23c01df. Spec:
+[`../../calcite/docs/compiler-spec.md`](../../../calcite/docs/compiler-spec.md).
+
+**Pre-flight.** Baseline `cargo test --workspace` was red on a clean tree:
+four `calcite-core` tests panicked in `rep_fast_forward` with "no `--opcode`
+slot." Root cause: 23c01df tightened the REP fast-forward contract to
+"every variant must fast-forward — no slow path," but didn't gate the
+caller against cabinets that aren't x86 emulators at all (toy unit-test
+programs that have no `--opcode` property anywhere). Fix landed in
+da41841: a new `CompiledProgram.has_rep_machinery` flag, set at compile
+time iff `--opcode` is in `property_slots`, gates the call. Five other
+tests that asserted silent bail for conditions the same commit promoted
+to hard panic (DF set, seg override, MOVS source overlapping rom-disk,
+STOS dest overlapping BIOS, DI wrap) were deleted — they encoded the
+old contract and the new one is "extend the bulk path or panic, never
+silently fall back." Tree is now green (144 tests pass).
+
+**Plan.** Phase 0 is a measurement: hand-code the normal form for one
+hot region, microbench it against the interpreter on the same snapshot,
+decide whether the >=10x ceiling is real.
+
+- **Region pick:** segment 0x2D96 (BIOS dispatch, ~15 % of Doom8088
+  level-load CPU, 46 distinct IPs in a 256-byte page — small, uniform,
+  cleanly bounded). Picked over the bigger 0x55 (67.8 %, 110 distinct
+  IPs) because the decision gate is "is the ceiling >=10x?" — that
+  question is answered just as well by a smaller region, and the
+  smaller region has less room for hand-derivation correctness bugs to
+  confound the speed number. If 0x2D96 shows >=10x, road is committed
+  and 0x55 becomes Phase 1+ work.
+- **Snapshot strategy:** capture state at a tick where the next batch
+  is dominated by 0x2D96. Use existing `State::snapshot` /
+  `State::restore`. Fixture goes under
+  `crates/calcite-core/benches/fixtures/phase0/` (or wherever existing
+  Criterion benches keep inputs).
+- **Microbench:** Criterion bench `phase0_seg2d96.rs` with two groups
+  (`interpreter`, `handcoded`) sharing the snapshot. Conformance check
+  in a separate `#[test]` asserts state-vars + memory bit-identical
+  after an equivalent run. Median of three full bench invocations on a
+  cooled machine.
+- **Decision gate (mission doc):** >=10x → commit to road, proceed to
+  Phase 0.5; 3-10x → road viable, recalibrate ceiling expectations;
+  <3x → abandon, go back to peephole road. Logbook entry on completion
+  states the gate fired and which branch.
+
 ## Current status
 
 Working carts: zork, montezuma, sokoban, zork-big (2.88 MB), command-bare,

@@ -116,11 +116,11 @@ When debugging, take a second to think what you would advise a senior engineer t
 
 ## The cardinal rule
 
-The CSS is a working program that theoretically runs in Chrome - at least, it's CSS spec-compliant (in reality it crashes Chrome, but that's because it wasn't designed to handle massive CSS files). 
+The CSS is a working program that theoretically runs in Chrome - at least, it's CSS spec-compliant (in reality it crashes Chrome, but that's because it wasn't designed to handle massive CSS files).
 
-The fun of the project comes from doing it in a full-CSS source code. Therefore, Calcite must produce the same results Chrome would (or a theoretically spec-compliant CSS evaluator), just faster. 
+The fun of the project comes from doing it in a full-CSS source code. Therefore, Calcite must produce the same results Chrome would (or a theoretically spec-compliant CSS evaluator), just faster.
 
-This means that 
+This means that
 
 - **The CSS must work in Chrome.** If Chrome can't evaluate it, it's wrong.
 - **Calcite can't change the CSS.** Only faster evaluation of the same expressions.
@@ -131,6 +131,46 @@ This means that
   metadata properties, or side-channels whose only purpose is to 'signal' to calcite or sneak
   information to calcite. The CSS must pay for itself in Chrome.
 - **If calcite runs CSS differently to a reference interpreter e.g. Chrome, calcite is wrong.**
+
+### Calcite knows nothing above the CSS layer
+
+Calcite reasons about CSS structural shape and nothing else. The
+moment a recogniser, rewrite rule, codegen path, or optimisation knows
+about something *above* the CSS — x86, BIOS, DOS, Doom, a specific
+cabinet's addresses, Kiln's current emit choices, what `program.json`
+says, what the cart is *trying to do* — it has crossed the line.
+
+Operational test: could a calcite engineer who has never seen a CPU
+emulator, never read Kiln's source, and doesn't know what a cabinet
+contains, derive this rule / recogniser / pass by staring at CSS shape
+alone? If yes, fair. If no, it's overfit and one-way-doors the engine
+toward Doom. Pattern recognition is welcome — pattern recognition over
+*shapes CSS forces emitters into* generalises across cabinets.
+Recognition tied to *what those shapes mean upstream* does not.
+
+Genericity probe: would the same rule fire on a 6502 cabinet, a
+brainfuck cabinet, a non-emulator cabinet whose CSS happens to share
+the structural shape? If no on all three, you've encoded a specific
+program into calcite, and every future cabinet will have to fight that
+bias.
+
+This is a sharpening of "calcite can't know about x86", not a
+replacement. x86 is one example of an upstream layer; the rule covers
+all of them.
+
+### The workflow is sacred: load-time compilation only
+
+Calcite must accept any spec-compliant `.css` cabinet at load time and
+make it fast — in the browser, on the user's machine, with no build
+step on the cabinet author's side, no pre-baked artifact, no allowlist,
+no asset pipeline. "Open a `.css` URL, it runs" is the contract.
+
+Compile-once-per-load, run-many is allowed (and is how calcite gets
+fast). Distributing pre-compiled cabinets is not — that breaks the
+contract. The compile budget is bounded by user patience (a cold open
+that takes minutes loses the user) and by the runtime floor it has to
+unlock (steady-state must clear playability). Within those, the
+compile/run tradeoff is a knob.
 
 ## Vocabulary
 

@@ -28,7 +28,7 @@ node tests/harness/pipeline.mjs fulldiff tests/harness/cache/<cart>.css --max-ti
 
 ```sh
 # Build a cabinet with your change.
-node tests/harness/pipeline.mjs build carts/dos-smoke
+node tests/harness/pipeline.mjs build carts/test-carts/dos-smoke
 
 # Compare state at sample ticks against a reference cabinet you saved earlier.
 node tests/harness/pipeline.mjs cabinet-diff \

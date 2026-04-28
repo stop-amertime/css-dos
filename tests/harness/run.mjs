@@ -110,11 +110,11 @@ function runPipeline(subcommand, ...rest) {
 
 // Cart paths we can smoke-test. Only carts that actually exist in carts/.
 const REFERENCE_CARTS = [
-  'carts/dos-smoke',
-  'carts/hello-text',
-  'carts/cga4-stripes',
-  'carts/cga5-mono',
-  'carts/cga6-hires',
+  'carts/test-carts/dos-smoke',
+  'carts/test-carts/hello-text',
+  'carts/test-carts/cga4-stripes',
+  'carts/test-carts/cga5-mono',
+  'carts/test-carts/cga6-hires',
   'carts/zork1',
   'carts/montezuma',
 ];
