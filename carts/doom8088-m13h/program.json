@@ -1,0 +1,8 @@
+{
+  "schema": "cart@1",
+  "name": "Doom8088 (Mode 13h, high detail)",
+  "description": "FrenkelS/Doom8088 v20260304 - MCGA 320x200 256-color, 8088 high-detail build (D8M13H.EXE, effective 240x128). WAD: shareware DOOM1.",
+  "preset": "dos-corduroy",
+  "memory": { "conventional": "640K", "gfx": true, "cgaGfx": false, "textVga": true },
+  "boot": { "runCommand": "DOOM -noxms -noems -nosound" }
+}

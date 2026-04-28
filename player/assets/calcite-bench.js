@@ -8,9 +8,13 @@
 // 'bridge-stats' message (not page load). We're measuring the CPU +
 // stream loop in steady state, not one-time WASM compile.
 
-const TARGET_CYCLES = 23_000_000; // Zork1 `>` prompt stabilisation
-const IDLE_PHASE_MS = 6_000;      // how long to measure after hitting target
-const STATS_TIMEOUT_MS = 120_000; // hard ceiling; abort if we stall
+// Defaults are tuned for Zork1's boot-stabilisation test. Override via
+// URL params for heavier carts (e.g., doom8088 needs ~410M cycles to
+// reach in-game and a much longer stall ceiling).
+const _q = new URLSearchParams(location.search);
+const TARGET_CYCLES = parseInt(_q.get('targetCycles') ?? '23000000', 10);
+const IDLE_PHASE_MS = parseInt(_q.get('idlePhaseMs') ?? '6000', 10);
+const STATS_TIMEOUT_MS = parseInt(_q.get('statsTimeoutMs') ?? '120000', 10);
 
 const hud = document.createElement('div');
 hud.style.cssText = [

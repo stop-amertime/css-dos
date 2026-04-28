@@ -46,11 +46,67 @@ node tests/harness/pipeline.mjs shoot <cabinet>.css --tick=100000 --out=shot.png
     --dump-mem-range=0xB8000:4000:vram.bin \
     --dump-mem-range=0x449:1:mode.bin \
     --sample-cells=0
+
+# Snapshot the engine state mid-run, then resume from it later. Pairs
+# with --script-event to land on a specific moment (e.g. just-reached-
+# in-game) and freeze it; later --restore skips the boot/menu cost.
+# See ../calcite/docs/benchmarking.md "Snapshot / restore" for the full
+# workflow and limits (same-cabinet only).
+../calcite/target/release/calcite-cli.exe -i <cabinet>.css \
+    --ticks=60000000 --snapshot-out=in-game.snap
+../calcite/target/release/calcite-cli.exe -i <cabinet>.css \
+    --restore=in-game.snap --ticks=10000000
 ```
 
 Everything is documented in more detail in
 [`tests/harness/README.md`](../tests/harness/README.md) — the harness's
 own README has workflow recipes for common debugging scenarios.
+
+## Web-side benchmarking — `tests/harness/bench-web.mjs`
+
+The native CLI/bench numbers in `../calcite/docs/benchmarking.md` answer
+"how fast is the rust evaluator on this workload?" The browser is the
+real product though, so when CLI and web disagree (or when you're
+chasing a wasm-only regression) you measure the web path directly:
+
+```sh
+# Start the dev server (needed for the player + bridge to load assets).
+node web/scripts/dev.mjs                       # serves on :5173
+
+# In another shell, drive the existing /player/bench.html page through
+# headless Chrome. Builds the Zork1-2 cabinet IN-BROWSER (same code path
+# the site uses) and reports steady-state cycles/sec.
+node tests/harness/bench-web.mjs               # 1 zork run
+node tests/harness/bench-web.mjs --runs=3      # 3 runs (reports min/median/max)
+node tests/harness/bench-web.mjs --cart=plasma # CPU-bound Mode 13h plasma
+node tests/harness/bench-web.mjs --headed      # show the Chrome window
+```
+
+Output is JSON on stdout — the same `window.__benchSummary` object that
+`/player/bench.html?n=N` builds when you load it manually. Key fields:
+
+- `summary.pctOf8086.median` — % of a real 4.77 MHz 8086 sustained over
+  the boot phase (parse → `>` prompt). The honest "is this fast enough
+  to ship?" number.
+- `summary.idlePctOf8086.median` — same metric over the post-boot idle
+  loop. Different question: "how smooth is interaction?"
+- `summary.toTargetMs` — wall-clock to reach the 23M-cycle stabilisation
+  target.
+
+How it works: spawns `/player/calcite-bridge.js` exactly like the site
+does (SW + worker + iframe), subscribes to the
+`cssdos-bridge-stats` BroadcastChannel for 1 Hz cycle samples, and
+returns when cycleCount crosses TARGET_CYCLES + IDLE_PHASE_MS has
+elapsed. There is no benchmark-only code path — the engine, bridge,
+worker pacing, and frame-encode loop are all the ones the user runs.
+
+The driver uses the system Chrome at `C:\Program Files\Google\Chrome`
+to avoid the heavy `npx playwright install` step. If that path is
+absent it falls back to whatever Playwright finds.
+
+The bench page itself (`/player/bench.html`) also has a UI — open it in
+a browser and click "Run 1×" or "Run 3×" if you'd rather drive
+interactively. Same numbers, same JSON written to `window.__benchSummary`.
 
 ## Budgets beat hopes — every command needs an explicit ≤2-minute cap
 

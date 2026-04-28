@@ -1,0 +1,8 @@
+{
+  "schema": "cart@1",
+  "name": "Prince of Persia",
+  "description": "Prince of Persia 1.0 (1989). Classic platformer. Original DOS release.",
+  "preset": "dos-corduroy",
+  "memory": { "conventional": "640K", "gfx": true, "textVga": true },
+  "boot": { "runCommand": "PRINCE" }
+}

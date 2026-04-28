@@ -25,12 +25,17 @@ import { encodePng, phash } from './png.mjs';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..', '..', '..');
 
-// Default location for the calcite-cli release binary, override with
-// CALCITE_CLI_BIN. Mirrors `defaultDebuggerBinary` in debugger-client.mjs
-// — sibling repo at ../calcite from the CSS-DOS repo root.
+// Default location for the calcite-cli release binary. Resolution order:
+//   1. CALCITE_CLI_BIN — direct path to the binary, wins over everything.
+//   2. CALCITE_REPO — calcite repo root; binary is target/release/calcite-cli.exe under it.
+//   3. ../calcite from CSS-DOS repo root — the legacy sibling-repo default.
+// Mirrors `defaultDebuggerBinary` in debugger-client.mjs.
 export function defaultCalciteCliBinary() {
-  return process.env.CALCITE_CLI_BIN
-    ?? resolve(REPO_ROOT, '..', 'calcite', 'target', 'release', 'calcite-cli.exe');
+  if (process.env.CALCITE_CLI_BIN) return process.env.CALCITE_CLI_BIN;
+  const calciteRoot = process.env.CALCITE_REPO
+    ? resolve(process.env.CALCITE_REPO)
+    : resolve(REPO_ROOT, '..', 'calcite');
+  return resolve(calciteRoot, 'target', 'release', 'calcite-cli.exe');
 }
 
 // 16 standard CGA/VGA text-attribute colours.

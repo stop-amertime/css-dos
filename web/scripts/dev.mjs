@@ -20,6 +20,16 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, '..', '..');
 const siteRoot = resolve(__dirname, '..', 'site');
 
+// CALCITE_REPO: override path to the calcite sibling repo. Defaults to
+// `../calcite` from the CSS-DOS repo root. Set this when running from a
+// git worktree whose calcite lives somewhere other than the default
+// sibling location (e.g. CSS-DOS/.claude/worktrees/3slot expects calcite
+// at .../worktrees/calcite by default — set CALCITE_REPO to point at the
+// real calcite worktree).
+const calciteRoot = process.env.CALCITE_REPO
+  ? resolve(process.env.CALCITE_REPO)
+  : resolve(repoRoot, '..', 'calcite');
+
 const MIME = {
   '.html': 'text/html',
   '.css':  'text/css',
@@ -39,11 +49,14 @@ const ALIASES = [
   ['/assets/dos/',      resolve(repoRoot, 'dos', 'bin')],
   ['/player/',          resolve(repoRoot, 'player')],
   ['/presets/',         resolve(repoRoot, 'builder', 'presets')],
-  ['/calcite/',         resolve(repoRoot, '..', 'calcite', 'web')],
+  ['/calcite/',         resolve(calciteRoot, 'web')],
   ['/tests/',           resolve(__dirname, '..', 'tests')],
   ['/tmp/',             resolve(repoRoot, 'tmp')],
-  ['/bench-assets/',    resolve(repoRoot, '..', 'calcite', 'programs')],
+  ['/bench-assets/',    resolve(calciteRoot, 'programs')],
+  ['/carts/',           resolve(repoRoot, 'carts')],
 ];
+
+const cartsDir = resolve(repoRoot, 'carts');
 
 const ALLOWED_ROOTS = [siteRoot, ...ALIASES.map(([, dir]) => dir)];
 
@@ -64,7 +77,6 @@ const ALLOWED_ROOTS = [siteRoot, ...ALIASES.map(([, dir]) => dir)];
 // way to do it from the server; the page just runs the standard SW +
 // Cache Storage unregister + nuke idiom.
 
-const calciteRoot = resolve(repoRoot, '..', 'calcite');
 const wasmPkgDir  = resolve(calciteRoot, 'web', 'pkg');
 const prebakeDir  = resolve(repoRoot, 'web', 'prebake');
 const calciteWasmCrate = resolve(calciteRoot, 'crates', 'calcite-wasm');
@@ -230,6 +242,42 @@ const server = createServer(async (req, res) => {
   if (path === '/_clear') {
     res.writeHead(200, { 'Content-Type': 'text/html', 'Cache-Control': 'no-store', ...COI_HEADERS });
     return res.end(CLEAR_PAGE);
+  }
+  // /_carts.json — directory listing of carts/, used by the build UI's
+  // cart picker. Each entry: { name, files: [...], program }, where
+  // `program` is the parsed program.json (or null), and `files` is the
+  // flat list of relative paths inside the cart (no recursion deeper than
+  // one subdir, matching what the browser builder accepts).
+  if (path === '/_carts.json') {
+    const out = [];
+    let entries;
+    try { entries = readdirSync(cartsDir, { withFileTypes: true }); }
+    catch { entries = []; }
+    for (const ent of entries) {
+      if (!ent.isDirectory()) continue;
+      const dir = join(cartsDir, ent.name);
+      const files = [];
+      // One level deep — same as the browser builder's relativeCartName flatten.
+      for (const f of readdirSync(dir, { withFileTypes: true })) {
+        if (f.isFile()) {
+          if (f.name === 'program.json') continue;
+          files.push(f.name);
+        } else if (f.isDirectory()) {
+          for (const g of readdirSync(join(dir, f.name), { withFileTypes: true })) {
+            if (g.isFile()) files.push(`${f.name}/${g.name}`);
+          }
+        }
+      }
+      let program = null;
+      const pjPath = join(dir, 'program.json');
+      if (existsSync(pjPath)) {
+        try { program = JSON.parse(readFileSync(pjPath, 'utf8')); }
+        catch { program = null; }
+      }
+      out.push({ name: ent.name, files, program });
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...COI_HEADERS });
+    return res.end(JSON.stringify(out));
   }
 
   let file = resolvePath(path);

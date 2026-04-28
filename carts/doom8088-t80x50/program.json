@@ -1,0 +1,8 @@
+{
+  "schema": "cart@1",
+  "name": "Doom8088 (Text 80x50, 16-color)",
+  "description": "FrenkelS/Doom8088 v20260304 - Text mode 80x50 16-color, 8088 build (D8T80X50.EXE). WAD: DOOM16DT (text-mode-preprocessed shareware).",
+  "preset": "dos-corduroy",
+  "memory": { "conventional": "640K", "gfx": false, "cgaGfx": false, "textVga": true },
+  "boot": { "runCommand": "DOOM -noxms -noems -nosound" }
+}

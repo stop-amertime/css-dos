@@ -4,5 +4,5 @@
   "description": "CGA Mode 4 platformer",
   "preset": "dos-corduroy",
   "memory": { "conventional": "autofit", "gfx": true, "cgaGfx": true, "textVga": true },
-  "boot": { "autorun": "MONT.COM" }
+  "boot": { "runCommand": "MONT" }
 }

@@ -1,6 +1,6 @@
 // Composes a FAT12 floppy for the browser DOS path.
-// Input:  { kernelBytes, commandBytes, programName, programBytes,
-//           programFiles?, autorun?, args? }
+// Input:  { kernelBytes, commandBytes, ansiBytes, programName, programBytes,
+//           programFiles?, runCommand?, ems? }
 // Output: { bytes: Uint8Array, layout: [{name, size, source}] }
 //
 // Hack carts never call this (no floppy). DOS carts always do.
@@ -15,17 +15,21 @@ import { resolveFloppySize } from '../../builder/lib/sizes.mjs';
  * @param {Uint8Array} opts.kernelBytes      dos/bin/kernel.sys
  * @param {Uint8Array} opts.commandBytes     dos/bin/command.com
  * @param {Uint8Array} opts.ansiBytes        dos/bin/ansi.sys (NANSI, GPLv2)
+ * @param {Uint8Array} [opts.emsdrvBytes]    dos/bin/emsdrv.sys (only used if `ems` true)
  * @param {string}     opts.programName      Filename on disk (e.g. "BCD.COM")
  * @param {Uint8Array} opts.programBytes     The .COM/.EXE to put on disk
  * @param {Array}      [opts.programFiles]   Extra {name, bytes, source} entries
- *                                           from manifest.disk.files (not yet
- *                                           supported in browser v1 — ignored).
- * @param {string|null} [opts.autorun]       SHELL= target. null → COMMAND.COM
- *                                           (drop to DOS prompt). COMMAND.COM
- *                                           is always added to the disk image
- *                                           regardless, so autorun programs can
- *                                           shell out / EXIT back to a prompt.
- * @param {string}     [opts.args]           Optional args appended to SHELL= line.
+ *                                           from manifest.disk.files.
+ * @param {string}     [opts.runCommand]     Command line passed to COMMAND.COM /K.
+ *                                           Empty string (default) → bare prompt.
+ *                                           CONFIG.SYS always boots COMMAND.COM
+ *                                           as the shell; the cart never runs as
+ *                                           the shell directly.
+ * @param {boolean}    [opts.ems]            When true, emit DEVICE=\EMSDRV.SYS so
+ *                                           programs that detect EMS via
+ *                                           open("EMMXXXX0") see EMS as
+ *                                           available. Caller must also pass
+ *                                           emsdrvBytes; otherwise this throws.
  * @param {string|number} [opts.sizeRequest] Manifest disk.size — 'autofit',
  *                                           a preset string like '720K', or a
  *                                           number of bytes. Defaults to 'autofit'.
@@ -35,11 +39,12 @@ export function buildFloppyInBrowser({
   kernelBytes,
   commandBytes,
   ansiBytes,
+  emsdrvBytes = null,
   programName,
   programBytes,
   programFiles = [],
-  autorun = null,
-  args = '',
+  runCommand = '',
+  ems = false,
   sizeRequest = 'autofit',
 }) {
   if (!(kernelBytes instanceof Uint8Array)) {
@@ -51,17 +56,23 @@ export function buildFloppyInBrowser({
   if (!(ansiBytes instanceof Uint8Array)) {
     throw new Error('buildFloppyInBrowser: ansiBytes must be Uint8Array');
   }
+  if (ems && !(emsdrvBytes instanceof Uint8Array)) {
+    throw new Error('buildFloppyInBrowser: ems=true requires emsdrvBytes (Uint8Array)');
+  }
 
   // Synthesize CONFIG.SYS (mirror builder/stages/floppy.mjs logic). The
   // DEVICE=\ANSI.SYS line loads NANSI so programs that emit terminal
   // escapes (Zork+FROTZ, SVARCOM colored prompt) render correctly
   // instead of dumping raw ESC sequences to VRAM.
-  const shellTarget = autorun ?? 'COMMAND.COM';
+  // The shell is always COMMAND.COM /P (permanent); /K runs the cart's
+  // command and stays at the prompt afterwards.
   // SWITCHES=/F skips the ~2s F5/F8 startup delay — we don't need it in the emulator.
-  const shellLine = args
-    ? `SHELL=\\${shellTarget} ${args}\n`
-    : `SHELL=\\${shellTarget}\n`;
-  const configContent = `SWITCHES=/F\nDEVICE=\\ANSI.SYS\n${shellLine}`;
+  const trimmed = (runCommand ?? '').trim();
+  const shellLine = trimmed
+    ? `SHELL=\\COMMAND.COM /P /K ${trimmed}\n`
+    : `SHELL=\\COMMAND.COM /P\n`;
+  const emsLine = ems ? `DEVICE=\\EMSDRV.SYS\n` : '';
+  const configContent = `SWITCHES=/F\nDEVICE=\\ANSI.SYS\n${emsLine}${shellLine}`;
   const configBytes = new TextEncoder().encode(configContent);
 
   const layout = [
@@ -69,6 +80,9 @@ export function buildFloppyInBrowser({
     { name: 'ANSI.SYS',   bytes: ansiBytes,   source: 'dos/bin/ansi.sys' },
     { name: 'CONFIG.SYS', bytes: configBytes, source: `synthesized: ${configContent.trimEnd()}` },
   ];
+  if (ems) {
+    layout.push({ name: 'EMSDRV.SYS', bytes: emsdrvBytes, source: 'dos/bin/emsdrv.sys' });
+  }
 
   // The user's program.
   const progName = (programName || 'PROG.COM').toUpperCase();

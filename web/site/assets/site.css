@@ -1,270 +1,409 @@
 /* web/site/assets/site.css
-   DOS-beige / Windows 95 visual style.
-   Adapted from calcite/web/index.html. */
+   MS-DOS EDIT.COM TUI look — full-blue background, gray dialogs with
+   black drop shadow, sticky top menu bar + bottom F-key status line.
 
+   Reference: icons/ms-dos-edit-2025-01-21_01-08-05-original-size.png. */
+
+/* Web437 IBM VGA 8x16 — int10h.org's classic VGA font, CC-BY-SA-4.0.
+   Served by jsDelivr from a redistribution of the v2.2 pack. The font
+   is metric-locked to an 8x16 grid; the page uses 16-px line-height to
+   keep glyphs crisp. font-display:block prevents the FOUT-into-fallback
+   that would otherwise reflow the whole TUI grid. */
 @font-face {
-  font-family: 'DOS';
-  src: local('Perfect DOS VGA 437'), local('Fixedsys'), local('Terminal');
+  font-family: 'WebVGA';
+  src: url('https://cdn.jsdelivr.net/gh/Izzy3110/oldschool_pc_font_pack_v2.2_FULL/woff%20-%20Web%20(webfonts)/Web437_IBM_VGA_8x16.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-body {
-  font-family: 'DOS', 'Fixedsys', 'Terminal', monospace;
-  font-size: 13px;
-  background: #008080;
-  color: #000;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 16px 8px;
-  cursor: default;
+:root {
+  /* EGA palette, matching what the cabinets emit. */
+  --edit-blue:    #0000aa;   /* desktop background */
+  --edit-gray:    #aaaaaa;   /* dialog fill */
+  --edit-black:   #000000;
+  --edit-white:   #ffffff;
+  --edit-red:     #aa0000;   /* alt accent (Default / Help in EDIT) */
+  --edit-yellow:  #ffff55;
+  --edit-cyan:    #55ffff;
+
+  /* The 8x16 grid the font is locked to. */
+  --cell-w: 8px;
+  --cell-h: 16px;
 }
 
-/* ── Main window ── */
+html, body { height: 100%; }
+
+body {
+  font-family: 'WebVGA', 'Perfect DOS VGA 437', 'Fixedsys', 'Terminal', monospace;
+  font-size: 16px;
+  line-height: 16px;
+  background: var(--edit-blue);
+  color: var(--edit-white);
+  min-height: 100vh;
+  cursor: default;
+  /* Rooms for the fixed top bar and bottom status line. */
+  padding: 16px 0 16px;
+  /* The top menu bar sits above; pad accordingly. */
+  padding-top: calc(16px + 16px);
+  padding-bottom: calc(16px + 16px);
+}
+
+/* ── Sticky top menu bar (File / Edit / Search / View / Options / Help) ── */
+.menu-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 16px;
+  background: var(--edit-gray);
+  color: var(--edit-black);
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  gap: 24px;
+  z-index: 10;
+  user-select: none;
+  font-size: 16px;
+  line-height: 16px;
+}
+
+.menu-bar .menu-item {
+  cursor: default;
+}
+.menu-bar .menu-item .hot {
+  color: var(--edit-red);
+}
+.menu-bar .menu-title {
+  margin-left: auto;
+  /* No accelerator for the title segment. */
+}
+
+/* ── Bottom status line (F1=Help / F10=Build / Esc=Cancel) ── */
+.status-line {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 16px;
+  background: var(--edit-gray);
+  color: var(--edit-black);
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  padding: 0 8px;
+  z-index: 10;
+  user-select: none;
+  font-size: 16px;
+  line-height: 16px;
+}
+.status-line .skey { color: var(--edit-black); }
+.status-line .skey b { font-weight: normal; color: var(--edit-red); }
+
+/* ── Dialog "window" — flat gray panel with a 1-char black drop shadow ── */
+/*
+   EDIT.COM dialogs sit on the blue desktop with a hard black shadow
+   offset by one character cell (8x16 px). Border is drawn by the font
+   in real EDIT, but a 1px black outline reads close enough at this
+   zoom and saves us drawing box-glyph rows in HTML.
+*/
 .window {
-  background: #c0c0c0;
-  border-top: 2px solid #fff;
-  border-left: 2px solid #fff;
-  border-right: 2px solid #808080;
-  border-bottom: 2px solid #808080;
-  box-shadow: 1px 1px 0 #000;
+  background: var(--edit-gray);
+  color: var(--edit-black);
+  /* Drop shadow — offset is ~1/4 of the dialog edge thickness so the
+     shadow visibly tucks under the panel rather than floating away. */
+  box-shadow: 6px 6px 0 var(--edit-black);
+  border: 1px solid var(--edit-black);
   width: 720px;
-  max-width: 100%;
+  max-width: calc(100% - 32px);
+  margin: 0 auto 24px;
 }
 
 .title-bar {
-  background: #000080;
-  color: #fff;
-  padding: 2px 4px;
-  font-size: 13px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  /* Title bar in EDIT is just centered text on the dialog's gray;
+     no separate color band. */
+  background: var(--edit-gray);
+  color: var(--edit-black);
+  text-align: center;
+  padding: 0 8px;
   user-select: none;
+  height: 16px;
+  line-height: 16px;
+  border-bottom: 1px solid var(--edit-black);
 }
 
 .window-body {
-  padding: 8px;
+  padding: 16px 16px 8px;
 }
 
-/* ── Group box ── */
+/* ── Group box — a simple inset frame with a label notch on top ── */
 .group {
-  border: 1px solid #808080;
-  padding: 10px 8px 8px;
-  margin-bottom: 8px;
+  border: 1px solid var(--edit-black);
+  padding: 16px 12px 8px;
+  margin-bottom: 16px;
   position: relative;
+  background: var(--edit-gray);
 }
 
 .group-label {
   position: absolute;
   top: -8px;
-  left: 8px;
-  background: #c0c0c0;
-  padding: 0 4px;
-  font-size: 11px;
+  left: 12px;
+  background: var(--edit-gray);
+  padding: 0 6px;
+  color: var(--edit-black);
+  font-size: 16px;
+  line-height: 16px;
 }
 
-/* ── DOS-era buttons ── */
+/* ── EDIT-style buttons: gray bar with a 1-cell black drop shadow ── */
+/*
+   Reference: the OK / Cancel / Default / Help buttons in the Colors
+   dialog. Text reads `▶ OK ◀` on the focused one; we render the markers
+   as plain brackets so they survive any font fallback.
+*/
 .btn {
-  background: #c0c0c0;
-  border-top: 2px solid #fff;
-  border-left: 2px solid #fff;
-  border-right: 2px solid #808080;
-  border-bottom: 2px solid #808080;
-  font-family: inherit;
-  font-size: 12px;
-  padding: 3px 10px;
-  cursor: pointer;
-  color: #000;
-  min-width: 70px;
-  text-decoration: none;
   display: inline-block;
+  background: var(--edit-white);
+  color: var(--edit-black);
+  border: none;
+  /* Bigger than 1 cell tall so the dialog buttons read as "buttons"
+     and the drop shadow has somewhere to overlap. EDIT.COM's OK/Cancel
+     are roughly 1.5x taller than a cell — same here. */
+  padding: 4px 16px;
+  min-height: 24px;
+  line-height: 16px;
+  font-family: inherit;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: none;
   text-align: center;
-  line-height: 1.4;
+  user-select: none;
+  /* Drop shadow — small offset so the shadow visibly tucks under the
+     button (overlapping by ~2/3 of the offset). 16px tall + 12px shadow
+     = the shadow ends 4px past the button edge. */
+  box-shadow: 4px 4px 0 var(--edit-black);
+  /* Reserve the shadow's footprint so adjacent rows don't overlap it. */
+  margin: 0 6px 6px 0;
+  position: relative;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--edit-gray);
 }
 
 .btn:active:not(:disabled) {
-  border-top: 2px solid #808080;
-  border-left: 2px solid #808080;
-  border-right: 2px solid #fff;
-  border-bottom: 2px solid #fff;
-  padding: 4px 9px 2px 11px;
+  /* Press: shadow collapses, button slides into where the shadow was. */
+  transform: translate(4px, 4px);
+  box-shadow: none;
 }
 
 .btn:disabled {
-  color: #808080;
-  text-shadow: 1px 1px 0 #fff;
+  color: #555;
   cursor: default;
 }
 
 .btn:focus {
-  outline: 1px dotted #000;
-  outline-offset: -4px;
+  outline: none;
 }
 
-/* File label styled as a button — actual <input type=file> is hidden */
-.file-label {
-  cursor: pointer;
-}
+/* The accelerator letter — colored red, EDIT-style. */
+.btn .hot { color: var(--edit-red); }
 
-input[type="file"] {
-  display: none;
-}
+/* File-input label styled as a button — the actual input is hidden. */
+.file-label { cursor: pointer; }
+input[type="file"] { display: none; }
 
-/* ── Sunken fields / inputs ── */
+/* ── Inputs — sunken white "type-here" rectangles inside the dialog ── */
 .field {
-  border-top: 1px solid #808080;
-  border-left: 1px solid #808080;
-  border-right: 1px solid #fff;
-  border-bottom: 1px solid #fff;
-  background: #fff;
-  color: #000;
+  background: var(--edit-white);
+  color: var(--edit-black);
+  border: 1px solid var(--edit-black);
   font-family: inherit;
-  font-size: 12px;
-  padding: 2px 4px;
+  font-size: 16px;
+  line-height: 16px;
+  padding: 0 4px;
+  height: 16px;
 }
 
-select.field {
-  min-width: 200px;
+select.field { min-width: 220px; }
+
+/* ── Radio + checkbox: drawn as ( ) / (●) and [ ] / [X] ── */
+/*
+   Native control replaced by ::before glyphs, matching EDIT's look.
+   Hidden input keeps keyboard + a11y behavior; click on the label
+   toggles, and we paint the marker via the sibling-checked selector.
+*/
+.radio, .check {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+  height: 16px;
+  line-height: 16px;
+}
+.radio input[type="radio"],
+.check input[type="checkbox"] {
+  /* Keep them in the layout for keyboard focus, but invisible. */
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.radio .marker,
+.check .marker {
+  display: inline-block;
+  font-family: inherit;
+  color: var(--edit-black);
+  white-space: pre;
+}
+.radio .marker::before  { content: '( )'; }
+.radio input:checked ~ .marker::before { content: '(\2022)'; }
+.check .marker::before  { content: '[ ]'; }
+.check input:checked ~ .marker::before { content: '[X]'; }
+.radio input:focus ~ .marker,
+.check input:focus ~ .marker {
+  /* Subtle focus highlight: invert the marker. */
+  background: var(--edit-black);
+  color: var(--edit-white);
 }
 
 /* ── Layout helpers ── */
 .row {
   display: flex;
-  gap: 6px;
+  gap: 12px;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   flex-wrap: wrap;
+  min-height: 16px;
 }
-
-.row:last-child {
-  margin-bottom: 0;
-}
+.row:last-child { margin-bottom: 0; }
+.row label { white-space: nowrap; }
 
 .dim {
-  font-size: 11px;
-  color: #808080;
+  color: #444;
+}
+
+/* Stacked radio group: one option per row. Used for Preset / Memory. */
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.radio-group .radio { margin-bottom: 0; }
+
+/* Inline radio group: options on one row, used for short choices. */
+.radio-group.inline {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+/* ── Cart picker (the new section above "Pick your program") ── */
+.cart-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0 16px;
+  max-height: calc(16px * 12);
+  overflow-y: auto;
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+  padding: 4px 8px;
+}
+.cart-list .radio {
+  height: 16px;
+  line-height: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cart-list .radio .label-text {
+  color: var(--edit-black);
+}
+.cart-list .radio .label-desc {
+  color: #555;
+  margin-left: 8px;
 }
 
 /* ── Progress: stage list ── */
 #stages {
-  margin: 6px 0 6px 20px;
-  font-size: 12px;
-  line-height: 1.6;
+  margin: 8px 0 8px 24px;
+  font-size: 16px;
+  line-height: 16px;
+  color: var(--edit-black);
 }
-
-#stages li.in-progress {
-  color: #000080;
-}
-
+#stages li { margin-bottom: 2px; }
+#stages li.in-progress { color: var(--edit-red); }
 #stages li.in-progress::after {
   content: ' ...';
   animation: blink 0.8s step-start infinite;
 }
-
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
 }
+#stages li.done { color: #006600; }
+#stages li.done::before { content: '\2713 '; }
+#stages li.stage-error { color: var(--edit-red); font-weight: bold; }
 
-#stages li.done {
-  color: #008000;
-}
-
-#stages li.done::before {
-  content: '\2713 ';
-}
-
-#stages li.stage-error {
-  color: #800000;
-}
-
-/* Raw log pre (hidden by default — only shown while building) */
+/* Raw build log — looks like the kernel scrollback in DOS. */
 .log-pre {
-  font-size: 10px;
-  color: #808080;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 16px;
+  color: var(--edit-black);
   white-space: pre-wrap;
-  max-height: 80px;
+  max-height: 96px;
   overflow-y: auto;
-  margin-top: 4px;
-  border-top: 1px solid #808080;
-  border-left: 1px solid #808080;
-  border-right: 1px solid #fff;
-  border-bottom: 1px solid #fff;
-  padding: 4px;
-  background: #d4d0c8;
+  margin-top: 8px;
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+  padding: 4px 8px;
 }
 
-/* ── Source viewer ── */
+/* ── Source viewer — terminal black/green, like a `TYPE` redirect ── */
 .pager-info {
-  font-size: 11px;
-  color: #000;
+  color: var(--edit-black);
   margin-bottom: 4px;
 }
+.pager-controls { margin-bottom: 8px; }
+.page-jump-input { width: 64px; text-align: right; }
 
-.pager-controls {
-  margin-bottom: 6px;
-}
-
-.page-jump-input {
-  width: 60px;
-  text-align: right;
-}
-
-/* The big <pre> showing cabinet CSS source. Terminal look: black bg / green text. */
 .source-pre {
   height: 400px;
   overflow: auto;
   white-space: pre;
-  font-family: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Consolas', monospace;
-  font-size: 11px;
-  line-height: 1.15;
-  background: #000;
-  color: #33ff33;
+  font-family: 'WebVGA', 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  font-size: 16px;
+  line-height: 16px;
+  background: var(--edit-black);
+  color: #55ff55;
   padding: 8px;
-  border-top: 1px solid #808080;
-  border-left: 1px solid #808080;
-  border-right: 1px solid #fff;
-  border-bottom: 1px solid #fff;
-  /* Don't wrap — let long lines scroll horizontally. */
+  border: 1px solid var(--edit-black);
   overflow-x: auto;
 }
 
-/* Prism token colours, tuned to the green-terminal background.
-   Tokens Prism emits for CSS: comment, selector, property,
-   punctuation, function, atrule, rule, keyword, number, url, string. */
+/* Prism token colours, tuned to the green-terminal background. */
 .source-pre code[class*="language-"] { font: inherit; color: inherit; background: transparent; }
-.source-pre .token.comment     { color: #dddddd; }
+.source-pre .token.comment     { color: #aaaaaa; }
 .source-pre .token.selector,
-.source-pre .token.atrule      { color: #66ff66; }
+.source-pre .token.atrule      { color: #55ff55; }
 .source-pre .token.property    { color: #aaffaa; }
-.source-pre .token.function    { color: #33ffcc; }
+.source-pre .token.function    { color: #55ffff; }
 .source-pre .token.string,
-.source-pre .token.url         { color: #ffff66; }
+.source-pre .token.url         { color: #ffff55; }
 .source-pre .token.number,
 .source-pre .token.unit,
-.source-pre .token.hexcode     { color: #ff9966; }
-.source-pre .token.punctuation { color: #33aa33; }
+.source-pre .token.hexcode     { color: #ffaa55; }
+.source-pre .token.punctuation { color: #55aa55; }
 .source-pre .token.important,
-.source-pre .token.keyword     { color: #ff66ff; font-weight: bold; }
-.source-pre .token.variable    { color: #66ccff; }
-
-/* ── Groove separator ── */
-hr.groove {
-  border: none;
-  border-top: 1px solid #808080;
-  border-bottom: 1px solid #fff;
-  margin: 6px 0;
-}
+.source-pre .token.keyword     { color: #ff55ff; font-weight: bold; }
+.source-pre .token.variable    { color: #55aaff; }
 
 /* ── Result section links ── */
-#result .row a.btn {
-  color: #000;
-}
+#result .row a.btn { color: var(--edit-black); }
 
-/* ── Sections without group box (plain spacing) ── */
-section + section {
-  margin-top: 0;
-}
+/* Sections without group box (plain spacing). */
+section + section { margin-top: 0; }

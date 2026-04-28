@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Tiny static server for the player. Serves two roots:
+// OLD DEPRECATED Tiny static server for the player. Serves two roots:
 //
 //   /           → CSS-DOS/player/   (the player HTML + CSS)
 //   /cabinets/  → CSS-DOS/..         (anywhere under the parent of CSS-DOS,

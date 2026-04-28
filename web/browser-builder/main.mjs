@@ -50,9 +50,9 @@ async function loadPresets() {
  *
  * Two input shapes:
  *   1. Single program: pass `programBytes` + optional `programName`.
- *   2. Folder / multi-file: pass `files: [{ name, bytes }]`. If `autorun` is set,
- *      that's the SHELL= target. Otherwise COMMAND.COM is dropped in and the
- *      user gets a DOS prompt.
+ *   2. Folder / multi-file: pass `files: [{ name, bytes }]`. The cabinet
+ *      always boots `SHELL=\COMMAND.COM /P /K <runCommand>`; an empty or
+ *      missing runCommand drops to a bare prompt.
  *
  * @param {object}   opts
  * @param {string}   opts.preset          'hack', 'dos-muslin', or 'dos-corduroy'
@@ -60,16 +60,20 @@ async function loadPresets() {
  * @param {string}   [opts.programName]   Filename for single-file mode
  * @param {Array}    [opts.files]         Multi-file mode: [{ name, bytes }]
  * @param {string}   [opts.bios]          Override BIOS flavor
- * @param {string}   [opts.autorun]       SHELL= target (DOS). Null = COMMAND.COM.
- * @param {string}   [opts.args]          Extra args for SHELL= line (DOS path only)
+ * @param {string}   [opts.runCommand]    Command line passed to COMMAND.COM /K.
+ *                                        Empty string = bare prompt. Undefined
+ *                                        = let resolveManifest infer (uses the
+ *                                        single .com/.exe runnable, if any).
  * @param {object}   [opts.manifest]      Extra manifest fields (merged on top of preset)
  * @param {Function} [opts.onProgress]    Called with {stage, message} at each stage
  * @returns {Promise<{ blob: Blob, diskBytes: Uint8Array | null }>}
- *          The CSS cabinet as a Blob, plus the FAT12 floppy bytes (DOS path)
- *          or `null` (hack path / no floppy). The disk bytes are the same
- *          ones embedded in the cabinet's `--readDiskByte` dispatch; calcite
- *          uses them via `engine.set_disk_image()` to fast-forward REP MOVS
- *          from the rom-disk window without invoking the per-byte CSS path.
+ *          The CSS cabinet as a Blob, plus (for backward compatibility)
+ *          the FAT12 floppy bytes on the DOS path. As of calcite v30 the
+ *          disk-bytes payload is no longer required — the cabinet
+ *          self-describes its rom-disk via the `--readDiskByte` dispatch
+ *          and calcite installs a fast-path descriptor on State at compile
+ *          time. The field is kept on the return shape so existing callers
+ *          (build.js, bench.html, ref-machine.mjs) keep working.
  */
 export async function buildCabinetInBrowser({
   preset,
@@ -77,8 +81,7 @@ export async function buildCabinetInBrowser({
   programName = 'PROG.COM',
   files = null,
   bios: biosFlavorOverride = null,
-  autorun = null,
-  args = '',
+  runCommand,
   manifest: extraManifest = {},
   onProgress = () => {},
 }) {
@@ -138,21 +141,19 @@ export async function buildCabinetInBrowser({
   // We're always treating the input as a "bare" single-file cart.
   const rawManifest = { preset, ...extraManifest };
   if (biosFlavorOverride) rawManifest.bios = biosFlavorOverride;
-  // Always set boot.autorun explicitly (even to null) so resolveManifest's
-  // auto-infer doesn't silently pick the game .com when the user asked for
-  // the COMMAND.COM prompt.
-  rawManifest.boot = {
-    ...(rawManifest.boot ?? {}),
-    autorun: autorun ? autorun.toUpperCase() : null,
-  };
-  if (args) {
-    rawManifest.boot = { ...(rawManifest.boot ?? {}), args };
+  // Pass through runCommand if the caller supplied one. `undefined` means
+  // "let resolveManifest infer from the cart's runnables" — same default
+  // path the Node builder takes when program.json doesn't set runCommand.
+  // An explicit empty string means "boot to a bare prompt", and overrides
+  // any inference.
+  if (runCommand !== undefined) {
+    rawManifest.boot = { ...(rawManifest.boot ?? {}), runCommand };
   }
 
   // Construct the files list (same shape as cart.mjs::discoverFiles produces).
   const cartFiles = cartFileList.map(f => ({ name: f.name, source: f.name, ext: f.ext }));
 
-  // resolveManifest fills in boot.raw (hack) or boot.autorun + disk.files (DOS).
+  // resolveManifest fills in boot.raw (hack) or boot.runCommand + disk.files (DOS).
   const manifest = resolveManifest(rawManifest, cartFiles, presets, { bare: true });
 
   // Default BIOS is already baked into the preset and resolved by resolveManifest.
@@ -182,17 +183,23 @@ export async function buildCabinetInBrowser({
     // DOS path: fetch kernel + command.com + ansi.sys, assemble FAT12 floppy,
     // run Kiln. ansi.sys is NANSI (GPLv2), loaded by DEVICE=\ANSI.SYS in the
     // synthesized CONFIG.SYS so programs emitting terminal escapes work.
-    onProgress({ stage: 'dos', message: 'Loading DOS kernel, command.com, and ansi.sys...' });
-    const [kernelArr, commandArr, ansiArr] = await Promise.all([
+    const floppyEms = manifest.boot?.ems === true;
+    onProgress({
+      stage: 'dos',
+      message: floppyEms
+        ? 'Loading DOS kernel, command.com, ansi.sys, emsdrv.sys...'
+        : 'Loading DOS kernel, command.com, and ansi.sys...',
+    });
+    const [kernelArr, commandArr, ansiArr, emsdrvArr] = await Promise.all([
       fetchBytes('/assets/dos/kernel.sys'),
       fetchBytes('/assets/dos/command.com'),
       fetchBytes('/assets/dos/ansi.sys'),
+      floppyEms ? fetchBytes('/assets/dos/emsdrv.sys') : Promise.resolve(null),
     ]);
 
     onProgress({ stage: 'floppy', message: 'Assembling FAT12 floppy image...' });
     await new Promise(resolve => setTimeout(resolve, 0));
-    const floppyAutorun = manifest.boot?.autorun ?? null;
-    const floppyArgs = manifest.boot?.args ?? '';
+    const floppyRunCommand = manifest.boot?.runCommand ?? '';
 
     // Everything except the primary program goes in as extra disk files.
     const extraFiles = cartFileList
@@ -203,11 +210,12 @@ export async function buildCabinetInBrowser({
       kernelBytes: kernelArr,
       commandBytes: commandArr,
       ansiBytes: ansiArr,
+      emsdrvBytes: emsdrvArr,
       programName: progName,
       programBytes: progArr,
       programFiles: extraFiles,
-      autorun: floppyAutorun,
-      args: floppyArgs,
+      runCommand: floppyRunCommand,
+      ems: floppyEms,
       sizeRequest: manifest.disk?.size ?? 'autofit',
     });
 

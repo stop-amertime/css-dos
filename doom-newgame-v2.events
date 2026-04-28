@@ -1,7 +1,0 @@
-# Multi-step DOOM navigation with extended holds
-8000000:tap:0x1c0d:50000
-14000000:tap:0x1c0d:50000
-20000000:tap:0x1c0d:50000
-24000000:dump:0xa0000:64000:vga@24m.bin
-24000000:dump:0x100000:768:dac@24m.bin
-25000000:halt

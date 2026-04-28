@@ -32,14 +32,27 @@ export function resolveManifest(manifest, files, presets = {}) {
   const merged = deepMerge(preset, manifest);
   merged.preset = presetName;
 
-  // Auto-infer disk.files and boot.autorun for DOS carts if not explicit.
+  // Reject the pre-2026-04-27 boot fields up-front. The cabinet now always
+  // boots SHELL=\COMMAND.COM /P /K <runCommand>; there is no SHELL=GAME.EXE
+  // shortcut. Anything that still uses boot.autorun / boot.args needs to
+  // migrate to a single boot.runCommand string.
+  if (manifest.boot?.autorun !== undefined) {
+    errors.push('boot.autorun was removed; use boot.runCommand (e.g. "DOOM -noxms") instead');
+  }
+  if (manifest.boot?.args !== undefined) {
+    errors.push('boot.args was removed; fold the args into boot.runCommand instead');
+  }
+
+  // Auto-infer disk.files and boot.runCommand for DOS carts if not explicit.
   if (presetName !== 'hack') {
     if (merged.disk && merged.disk.files == null) {
       merged.disk.files = files.map(f => ({ name: f.name, source: f.source }));
     }
-    if (merged.boot && merged.boot.autorun === undefined) {
+    if (merged.boot && merged.boot.runCommand === undefined) {
       const runnables = files.filter(f => f.ext === '.com' || f.ext === '.exe');
-      merged.boot.autorun = runnables.length === 1 ? runnables[0].name : null;
+      merged.boot.runCommand = runnables.length === 1
+        ? runnables[0].name.replace(/\.(com|exe)$/i, '')
+        : '';
     }
   } else {
     // Hack cart: boot.raw required; default to the single .COM if any.
@@ -62,8 +75,8 @@ export function resolveManifest(manifest, files, presets = {}) {
     if (merged.disk != null) {
       errors.push(`preset "hack" forbids disk; got ${JSON.stringify(merged.disk)}`);
     }
-    if (merged.boot?.autorun != null) {
-      errors.push(`preset "hack" uses boot.raw, not boot.autorun`);
+    if (merged.boot?.runCommand != null && merged.boot.runCommand !== '') {
+      errors.push(`preset "hack" uses boot.raw, not boot.runCommand`);
     }
     if (merged.boot?.raw == null) {
       errors.push(`preset "hack" requires boot.raw (filename of .COM to load at 0x100)`);
@@ -71,6 +84,9 @@ export function resolveManifest(manifest, files, presets = {}) {
   } else {
     if (merged.boot?.raw != null) {
       errors.push(`boot.raw is only valid on hack carts`);
+    }
+    if (typeof merged.boot?.runCommand !== 'string') {
+      errors.push(`boot.runCommand must be a string (got ${JSON.stringify(merged.boot?.runCommand)})`);
     }
   }
 

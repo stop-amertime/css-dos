@@ -3,91 +3,107 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CSS-DOS · Calcite</title>
-  <!--
-    The cabinet CSS is not <link>'d or @import'd on this page. Even
-    with media="not all" Chrome still downloads and parses the file,
-    which at ~273 MB blocks page load for seconds. Calcite (running
-    in the bridge worker spawned by build.html) is what actually
-    evaluates the cabinet and streams its framebuffer into the <img>
-    below. See player/raw.html for a cabinet-linking theoretical
-    runner that demonstrates what Chrome would do if left to render
-    the CSS directly.
-  -->
+  <title>CSS-DOS · Running...</title>
   <!--
     Pure HTML + CSS runner. No <script> tag anywhere in this file.
-    The calcite-bridge worker (engine + JPEG encoder) runs on build.html
-    and posts frames to the service worker at /sw.js, which streams
-    them into the <img> below via multipart/x-mixed-replace.
-
-    For this runner to have anything to show, build.html must
-    be open in another tab.
-
-    Keyboard input: GET /_kbd?key=0xNNNN targeted at a hidden iframe
-    so the main page never navigates. The service worker forwards the
-    keycode to the driver.
+    In CSS mode, the CSS just runs. In theory. 
+    In Calcite mode, it has frames posted to it by the Calcite worker. 
   -->
   <style>
     @font-face {
-      font-family: 'DOS';
-      src: local('Perfect DOS VGA 437'), local('Fixedsys'), local('Terminal');
+      font-family: 'WebVGA';
+      src: url('https://cdn.jsdelivr.net/gh/Izzy3110/oldschool_pc_font_pack_v2.2_FULL/woff%20-%20Web%20(webfonts)/Web437_IBM_VGA_8x16.woff') format('woff');
+      font-display: block;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --edit-blue:    #0000aa;
+      --edit-gray:    #aaaaaa;
+      --edit-black:   #000000;
+      --edit-white:   #ffffff;
+      --edit-red:     #aa0000;
+    }
     body {
-      font-family: 'DOS', 'Fixedsys', 'Terminal', monospace;
-      font-size: 14px;
-      background: #008080;
-      color: #000;
+      font-family: 'WebVGA', 'Perfect DOS VGA 437', 'Fixedsys', 'Terminal', monospace;
+      font-size: 16px;
+      line-height: 16px;
+      background: var(--edit-blue);
+      color: var(--edit-white);
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 8px;
       cursor: default;
       image-rendering: pixelated;
+      padding: calc(16px + 16px) 0 calc(16px + 16px);
     }
+    /* Sticky top menu bar — flavour text only. */
+    .menu-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 16px;
+      background: var(--edit-gray);
+      color: var(--edit-black);
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 24px;
+      z-index: 10;
+      user-select: none;
+      line-height: 16px;
+    }
+    .menu-bar .menu-item .hot { color: var(--edit-red); }
+    .menu-bar .menu-title { margin-left: auto; }
+    /* Sticky bottom status line. */
+    .status-line {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 16px;
+      background: var(--edit-gray);
+      color: var(--edit-black);
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 32px;
+      z-index: 10;
+      user-select: none;
+      line-height: 16px;
+    }
+    .status-line .skey b { font-weight: normal; color: var(--edit-red); }
+    /* Dialog window — flat gray with a hard 1-cell black drop shadow. */
     .window {
-      background: #c0c0c0;
-      border-top: 2px solid #fff;
-      border-left: 2px solid #fff;
-      border-right: 2px solid #808080;
-      border-bottom: 2px solid #808080;
-      box-shadow: 1px 1px 0 #000;
+      background: var(--edit-gray);
+      color: var(--edit-black);
+      box-shadow: 6px 6px 0 var(--edit-black);
+      border: 1px solid var(--edit-black);
       width: 720px;
-      max-width: 100%;
+      max-width: calc(100% - 32px);
+      margin: 0 auto;
     }
     .title-bar {
-      background: #000080;
-      color: #fff;
-      padding: 2px 4px;
-      font-size: 13px;
+      background: var(--edit-gray);
+      color: var(--edit-black);
+      text-align: center;
+      padding: 0 8px;
       user-select: none;
+      height: 16px;
+      line-height: 16px;
+      border-bottom: 1px solid var(--edit-black);
     }
-    .window-body { padding: 6px; }
-    /* The Calcite screen. <img> gets an infinite multipart JPEG stream
-       from the service worker. Each arriving part replaces the image
-       atomically — no tearing. image-rendering: pixelated keeps the
-       upscale sharp for the chunky CGA/VGA aesthetic.
+    .window-body { padding: 12px; }
 
-       Loading state: before the first frame arrives the <img> has no
-       pixels, so the cell's black background shows through with a
-       plain-text loading message underneath. The moment frames start
-       streaming the JPEG covers the text entirely. No JS needed. */
+
     .screen-cell {
       width: 640px;
       height: 400px;
-      border-top: 1px solid #808080;
-      border-left: 1px solid #808080;
-      border-right: 1px solid #fff;
-      border-bottom: 1px solid #fff;
-      background-color: #000;
+      border: 1px solid var(--edit-black);
+      background-color: var(--edit-black);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #c0c0c0;
-      font-family: 'DOS', 'Fixedsys', 'Terminal', monospace;
-      font-size: 14px;
+      color: var(--edit-gray);
+      font-family: inherit;
+      font-size: 16px;
+      line-height: 16px;
       position: relative;
+      margin: 0 auto;
     }
     .loading-msg {
       position: absolute;
@@ -98,7 +114,7 @@
       align-items: center;
       justify-content: center;
       text-align: center;
-      line-height: 1.5;
+      gap: 4px;
       padding: 0 16px;
     }
     .screen {
@@ -110,26 +126,23 @@
       z-index: 1;
     }
     .status-bar {
-      border-top: 1px solid #808080;
-      border-left: 1px solid #808080;
-      border-right: 1px solid #fff;
-      border-bottom: 1px solid #fff;
-      background: #c0c0c0;
-      padding: 2px 4px;
-      font-size: 11px;
-      margin-top: 4px;
-      color: #000;
+      background: var(--edit-gray);
+      color: var(--edit-black);
+      border: 1px solid var(--edit-black);
+      padding: 0 8px;
+      height: 16px;
+      line-height: 16px;
+      margin-top: 8px;
+      text-align: center;
     }
     .note {
-      margin-top: 4px;
-      border-top: 2px solid #fff;
-      border-left: 2px solid #fff;
-      border-right: 2px solid #808080;
-      border-bottom: 2px solid #808080;
-      background: #ffffc0;
-      color: #404000;
-      padding: 4px 6px;
-      font-size: 12px;
+      margin-top: 8px;
+      background: #ffff55;
+      color: var(--edit-black);
+      border: 1px solid var(--edit-black);
+      padding: 4px 8px;
+      box-shadow: 6px 6px 0 var(--edit-black);
+      margin-bottom: 16px;
     }
     .keyboard {
       display: grid;
@@ -139,69 +152,65 @@
       user-select: none;
       width: 100%;
     }
-    .kb-main { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; }
-    .kb-right-stack { display: grid; grid-template-rows: auto 1fr auto; gap: 2px; justify-items: end; }
-    .kb-modifiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
+    .kb-main { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; }
+    .kb-right-stack { display: grid; grid-template-rows: auto 1fr auto; gap: 4px; justify-items: end; }
+    .kb-modifiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
     .kb-arrows {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      grid-template-rows: 34px 34px;
-      gap: 2px;
-      width: 165px;
+      grid-template-rows: 32px 32px;
+      gap: 4px;
+      width: 168px;
       grid-row: 3;
     }
-    /* Anchor-buttons targeting the hidden sink iframe. Styled to look
-       like the other players' kb-keys. Each click GETs /_kbd?key=... */
+    /* EDIT-style key buttons: gray bar with a 1-cell black drop shadow. */
     .kb-key {
-      background: #c0c0c0;
-      border-top: 2px solid #fff;
-      border-left: 2px solid #fff;
-      border-right: 2px solid #808080;
-      border-bottom: 2px solid #808080;
+      background: var(--edit-white);
+      color: var(--edit-black);
+      border: none;
       font-family: inherit;
-      font-size: 13px;
+      font-size: 16px;
+      line-height: 16px;
       padding: 0;
-      height: 34px;
+      height: 32px;
       cursor: pointer;
-      color: #000;
       text-decoration: none;
       display: flex;
       align-items: center;
       justify-content: center;
       user-select: none;
+      box-shadow: 4px 4px 0 var(--edit-black);
     }
+    .kb-key:hover { background: var(--edit-gray); }
     .kb-key:active {
-      border-top: 2px solid #808080;
-      border-left: 2px solid #808080;
-      border-right: 2px solid #fff;
-      border-bottom: 2px solid #fff;
+      transform: translate(4px, 4px);
+      box-shadow: none;
     }
-    .kb-enter { background: #d8c898; }
-    .kb-space { grid-column: 1 / -1; height: 28px; font-size: 11px; }
+    .kb-enter { background: #ffff55; }
+    .kb-space { grid-column: 1 / -1; height: 24px; }
     .kb-up    { grid-column: 2; grid-row: 1; }
     .kb-left  { grid-column: 1; grid-row: 2; }
     .kb-down  { grid-column: 2; grid-row: 2; }
     .kb-right { grid-column: 3; grid-row: 2; }
-    .kb-arrow { font-size: 16px; }
-    /* The sink iframe swallows every keyboard GET so the main page
+    /* The sink iframe swallows every keyboard link so page
        doesn't navigate. 0px/hidden keeps it invisible. */
+
     .kbd-sink { width: 0; height: 0; border: 0; position: absolute; visibility: hidden; }
   </style>
 </head>
 <body>
-  <div class="window">
-    <div class="title-bar">
-      <span>CSS-DOS &middot; Calcite img output</span>
-    </div>
-    <div class="window-body">
-      <!-- The Calcite framebuffer stream. Source served by the SW at
-           /sw.js as multipart/x-mixed-replace JPEG frames.
+  <!-- Sticky top menu bar — flavour text only. -->
+  <div class="menu-bar">
+    <span class="menu-item"><span class="hot">F</span>ile</span>
+    <span class="menu-item"><span class="hot">E</span>dit</span>
+    <span class="menu-item"><span class="hot">V</span>iew</span>
+    <span class="menu-item"><span class="hot">O</span>ptions</span>
+    <span class="menu-item"><span class="hot">H</span>elp</span>
+    <span class="menu-title">CSS-DOS - PLAYING</span>
+  </div>
 
-           The <img> sits on top of an animated CSS background cell.
-           Before the first frame arrives the img has no pixels so the
-           loading pattern shows through; once JPEGs start streaming
-           they cover the background completely. Pure CSS — no JS
-           toggling visibility. -->
+  <div class="window">
+    <div class="window-body">
       <div class="screen-cell">
         <div class="loading-msg">
           <div>Parsing 50-100MB of CSS text (a lot)...</div>
@@ -213,14 +222,6 @@
              src="/_stream/fb"
              alt=""
              width="640" height="400">
-      </div>
-      <div class="status-bar">
-        <span>Calcite img output &middot; frames streamed from the driver worker</span>
-      </div>
-      <div class="note">
-        <strong>Keep build.html open in another tab.</strong>
-        The driver worker runs there and produces frames; if that tab
-        is closed, this stream freezes on its last frame.
       </div>
       <div class="keyboard">
         <div class="kb-main">
@@ -283,6 +284,13 @@
     </div>
   </div>
   <iframe name="kbd-sink" class="kbd-sink"></iframe>
+  <!-- Sticky bottom status line. -->
+  <div class="status-line">
+    <span class="skey"><b>F1</b>=Help</span>
+    <span class="skey"><b>F5</b>=Reload</span>
+    <span class="skey"><b>Esc</b>=Cancel</span>
+    <span class="skey" style="margin-left:auto">CALCITE</span>
+  </div>
   <!-- Bench mode: ?bench=1 loads a tiny HUD + measurement script. No JS
        is loaded otherwise; the default pure-HTML runner stays pure. -->
   <script>

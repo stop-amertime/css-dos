@@ -28,10 +28,13 @@ export function buildFloppy({ cart, manifest, cacheDir }) {
 
   mkdirSync(cacheDir, { recursive: true });
 
-  // Synthesize CONFIG.SYS from boot.autorun.
-  const autorun = manifest.boot?.autorun ?? null;
-  const args = manifest.boot?.args ?? '';
-  const shellTarget = autorun ?? 'COMMAND.COM';
+  // Synthesize CONFIG.SYS. Every DOS cabinet boots COMMAND.COM as the
+  // shell; the cart's program (if any) runs as a /K argument so the
+  // shell stays alive after it exits. The cart never runs as the shell
+  // directly — that path used to exist (SHELL=\GAME.EXE) but stripped
+  // the program of COMSPEC, the environment block, and a re-entry point,
+  // so it was deleted on 2026-04-27.
+  const runCommand = (manifest.boot?.runCommand ?? '').trim();
   // SWITCHES=/F skips the ~2s F5/F8 startup delay — we don't need it in the emulator.
   // DEVICE=\ANSI.SYS loads NANSI (a GPLv2 DOS ANSI driver shipped in dos/bin/).
   // Programs that emit terminal escapes (Zork via FROTZ, SVARCOM's colored prompt,
@@ -45,9 +48,11 @@ export function buildFloppy({ cart, manifest, cacheDir }) {
   // Opt-in via `boot.ems = true` in program.json.
   const wantsEms = manifest.boot?.ems === true;
   const emsLine = wantsEms ? `DEVICE=\\EMSDRV.SYS\n` : '';
-  const shellLine = args
-    ? `SHELL=\\${shellTarget} ${args}\n`
-    : `SHELL=\\${shellTarget}\n`;
+  // /P keeps the shell permanent (handles CONFIG/AUTOEXEC, never exits).
+  // /K runs the cart's command and stays at the prompt afterwards.
+  const shellLine = runCommand
+    ? `SHELL=\\COMMAND.COM /P /K ${runCommand}\n`
+    : `SHELL=\\COMMAND.COM /P\n`;
   const configContent = `SWITCHES=/F\nDEVICE=\\ANSI.SYS\n${emsLine}${shellLine}`;
   const configPath = join(cacheDir, 'CONFIG.SYS');
   writeFileSync(configPath, configContent);
@@ -58,7 +63,7 @@ export function buildFloppy({ cart, manifest, cacheDir }) {
   // image doesn't matter — files are located by name, not position.
   //
   // COMMAND.COM is included so:
-  //   - users can set SHELL=\COMMAND.COM explicitly via boot.autorun
+  //   - the synthesized SHELL=\COMMAND.COM /P /K line targets it
   //     (e.g. to drop to a prompt and run a program with custom flags)
   //   - autorun batch files / programs can shell out or EXIT back to DOS
   //   - Ctrl-C from a hung autorun program lands somewhere sane

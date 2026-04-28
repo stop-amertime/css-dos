@@ -40,6 +40,7 @@ Start at the top, go as deep as you need.
 | [`debugging/known-bugs.md`](debugging/known-bugs.md) | Known bugs + patterns to watch for. |
 | [`reference/kernel-boot-sequence.md`](reference/kernel-boot-sequence.md) | What EDR-DOS does during boot; what BIOS services it needs. |
 | [`reference/tick-benchmarks.md`](reference/tick-benchmarks.md) | Rough tick counts for boot milestones — size debugger runs, spot stalls. |
+| [`TESTING.md#web-side-benchmarking`](TESTING.md#web-side-benchmarking--testsharnessbench-webmjs) | `tests/harness/bench-web.mjs` — drive `/player/bench.html` headlessly to measure the wasm bridge end-to-end (Zork1 boot to `>` prompt by default). |
 | [`reference/debugging-dos-kernel.md`](reference/debugging-dos-kernel.md) | EDR-DOS internals, map file, Ralf Brown's, edrdos source. |
 | `../conformance/README.md` | Reference emulators for diff testing. |
 

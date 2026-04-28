@@ -1,0 +1,8 @@
+{
+  "schema": "cart@1",
+  "name": "Doom8088 (CGA 2-color B&W)",
+  "description": "FrenkelS/Doom8088 v20260304 - CGA 640x200 2-color, 8088 build (D8088CBW.EXE). WAD: DOOM4 (CGA-preprocessed shareware).",
+  "preset": "dos-corduroy",
+  "memory": { "conventional": "640K", "gfx": true, "cgaGfx": true, "textVga": true },
+  "boot": { "runCommand": "DOOM -noxms -noems -nosound" }
+}

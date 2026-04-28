@@ -26,12 +26,17 @@ import { ChildMcpClient, TcpMcpClient } from './mcp-client.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Locate the debugger binary. Overridable for CI or unusual layouts.
+// Locate the debugger binary. Resolution order:
+//   1. CALCITE_DEBUGGER_BIN — direct path to the binary.
+//   2. CALCITE_REPO — calcite repo root; binary at target/release/calcite-debugger.exe under it.
+//   3. ../calcite from CSS-DOS repo root — the legacy sibling-repo default.
 export function defaultDebuggerBinary() {
   const envPath = process.env.CALCITE_DEBUGGER_BIN;
   if (envPath) return envPath;
-  const siblingCalcite = resolve(__dirname, '..', '..', '..', '..', 'calcite', 'target', 'release', 'calcite-debugger.exe');
-  return siblingCalcite;
+  const calciteRoot = process.env.CALCITE_REPO
+    ? resolve(process.env.CALCITE_REPO)
+    : resolve(__dirname, '..', '..', '..', '..', 'calcite');
+  return resolve(calciteRoot, 'target', 'release', 'calcite-debugger.exe');
 }
 
 export class DebuggerClient {

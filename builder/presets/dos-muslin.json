@@ -2,5 +2,5 @@
   "bios": "muslin",
   "memory":  { "conventional": "autofit", "gfx": true, "textVga": true, "cgaGfx": false },
   "disk":    { "mode": "rom", "size": "autofit", "writable": true },
-  "boot":    { "args": "" }
+  "boot":    {}
 }

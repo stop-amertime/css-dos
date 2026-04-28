@@ -5,19 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CSS-DOS · build</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <style>
-    /* Self-host JetBrains Mono from jsDelivr so block-drawing glyphs
-       (U+2580-U+259F) load from the font instead of being substituted
-       by the system fallback -- Google Fonts' subsetting drops them. */
-    @font-face {
-      font-family: 'JetBrains Mono';
-      font-style: normal;
-      font-weight: 400;
-      font-display: swap;
-      src: url('https://cdn.jsdelivr.net/gh/JetBrains/JetBrainsMono@master/fonts/webfonts/JetBrainsMono-Regular.woff2') format('woff2');
-      unicode-range: U+0000-10FFFF;
-    }
-  </style>
   <link rel="stylesheet" href="/assets/site.css">
   <!-- Prism.js for CSS syntax highlighting in the source viewer.
        Core + CSS grammar only -- about 8 KB total.
@@ -26,62 +13,140 @@
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-css.min.js"></script>
 </head>
 <body>
+  <!-- Sticky top menu bar — flavour text only, no menus drop down yet. -->
+  <div class="menu-bar">
+    <span class="menu-item"><span class="hot">F</span>ile</span>
+    <span class="menu-item"><span class="hot">E</span>dit</span>
+    <span class="menu-item"><span class="hot">S</span>earch</span>
+    <span class="menu-item"><span class="hot">V</span>iew</span>
+    <span class="menu-item"><span class="hot">O</span>ptions</span>
+    <span class="menu-item"><span class="hot">H</span>elp</span>
+    <span class="menu-title">CSS-DOS BUILDER</span>
+  </div>
+
   <div class="window">
     <div class="title-bar">
-      <span>CSS-DOS builder</span>
+      <span>Build cabinet</span>
     </div>
     <div class="window-body">
+
+      <!-- Step 0: cart picker (loads /carts/<name>/program.json + files) -->
+      <section id="cart-picker">
+        <div class="group">
+          <span class="group-label">Cart</span>
+          <p class="dim" style="margin-bottom:8px">
+            Pick a built-in cart to prefill the form, or use Open file/Open
+            folder below to load your own.
+          </p>
+          <div id="cart-list" class="cart-list">
+            <label class="radio">
+              <input type="radio" name="cart" value="" checked>
+              <span class="marker"></span>
+              <span class="label-text">(custom — load file or folder)</span>
+            </label>
+            <!-- Filled in by build.js once /_carts.json is fetched. -->
+          </div>
+        </div>
+      </section>
 
       <!-- Step 1: upload -->
       <section id="upload">
         <div class="group">
-          <span class="group-label">1. Pick your program</span>
+          <span class="group-label">Program</span>
           <div class="row">
-            <label class="btn file-label" for="com-file">Open file</label>
+            <label class="btn file-label" for="com-file"><span class="hot">O</span>pen file</label>
             <input type="file" id="com-file" accept=".com,.exe">
-            <label class="btn file-label" for="dir-file">Open folder</label>
+            <label class="btn file-label" for="dir-file">Open f<span class="hot">o</span>lder</label>
             <input type="file" id="dir-file" webkitdirectory directory multiple>
             <span id="file-name" class="dim">No file selected</span>
           </div>
+
           <div class="row">
-            <label for="preset">Preset:</label>
-            <select id="preset" class="field">
-              <option value="dos-corduroy" selected>DOS + Corduroy BIOS</option>
-              <option value="dos-muslin">DOS + Muslin BIOS</option>
-              <option value="hack">hack (.com direct, no DOS)</option>
-            </select>
+            <label>Preset:</label>
+            <div id="preset-group" class="radio-group inline">
+              <label class="radio">
+                <input type="radio" name="preset" value="dos-corduroy" checked>
+                <span class="marker"></span>
+                <span>DOS + Corduroy BIOS</span>
+              </label>
+              <label class="radio">
+                <input type="radio" name="preset" value="dos-muslin">
+                <span class="marker"></span>
+                <span>DOS + Muslin BIOS</span>
+              </label>
+              <label class="radio">
+                <input type="radio" name="preset" value="hack">
+                <span class="marker"></span>
+                <span>hack (.com direct, no DOS)</span>
+              </label>
+            </div>
           </div>
-          <div class="row" id="autorun-row" hidden>
-            <label for="autorun">Autorun:</label>
-            <select id="autorun" class="field">
-              <option value="">(none — drop to COMMAND.COM prompt)</option>
-            </select>
-          </div>
+
           <div class="row" id="run-cmd-row" hidden>
-            <label for="run-cmd" title="If set, the cabinet boots into COMMAND.COM and runs this exact command line. Useful for programs that expect mode flags (e.g. 'prince cga', 'doom -timedemo demo1'). Leave empty to use the Autorun dropdown above.">Run command:</label>
-            <input type="text" id="run-cmd" class="field" placeholder="e.g. prince cga" autocomplete="off" spellcheck="false" style="flex:1; min-width:200px">
+            <label for="run-cmd" title="The exact command COMMAND.COM runs at boot. Empty = drop to a bare A:\> prompt. The shell stays alive after the command exits, so you land at the prompt either way.">Run:</label>
+            <input type="text" id="run-cmd" class="field" placeholder="e.g. DOOM -noxms -noems -nosound, or empty for prompt" autocomplete="off" spellcheck="false" style="flex:1; min-width:280px">
           </div>
+
           <div class="row" id="memory-row">
-            <label for="memory">Memory:</label>
-            <select id="memory" class="field">
-              <option value="" selected>Auto-fit (smallest cabinet that fits the program)</option>
-              <option value="128K">128 KB</option>
-              <option value="256K">256 KB</option>
-              <option value="512K">512 KB</option>
-              <option value="640K">640 KB (full PC)</option>
-            </select>
+            <label>Memory:</label>
+            <div id="memory-group" class="radio-group inline">
+              <label class="radio">
+                <input type="radio" name="memory" value="" checked>
+                <span class="marker"></span>
+                <span>Auto-fit</span>
+              </label>
+              <label class="radio">
+                <input type="radio" name="memory" value="128K">
+                <span class="marker"></span>
+                <span>128K</span>
+              </label>
+              <label class="radio">
+                <input type="radio" name="memory" value="256K">
+                <span class="marker"></span>
+                <span>256K</span>
+              </label>
+              <label class="radio">
+                <input type="radio" name="memory" value="512K">
+                <span class="marker"></span>
+                <span>512K</span>
+              </label>
+              <label class="radio">
+                <input type="radio" name="memory" value="640K">
+                <span class="marker"></span>
+                <span>640K (full PC)</span>
+              </label>
+            </div>
           </div>
+
           <div class="row" id="video-row">
             <label>Video:</label>
-            <label><input type="checkbox" id="mem-textVga" checked> Text (0xB8000, 4 KB)</label>
-            <label><input type="checkbox" id="mem-gfx" checked> Mode 13h (0xA0000, 64 KB)</label>
-            <label><input type="checkbox" id="mem-cgaGfx"> CGA 0x04 (0xB8000, 16 KB)</label>
+            <label class="check">
+              <input type="checkbox" id="mem-textVga" checked>
+              <span class="marker"></span>
+              <span>Text (B8000)</span>
+            </label>
+            <label class="check">
+              <input type="checkbox" id="mem-gfx" checked>
+              <span class="marker"></span>
+              <span>Mode 13h (A0000)</span>
+            </label>
+            <label class="check">
+              <input type="checkbox" id="mem-cgaGfx">
+              <span class="marker"></span>
+              <span>CGA 0x04 (B8000)</span>
+            </label>
           </div>
+
           <div class="row">
-            <label title="When on, the cabinet starts parsing/compiling in the background as soon as it's built. When off (default), compile is deferred until you open the player — the build tab stays snappy, but clicking Play will pause ~10s while the cabinet compiles."><input type="checkbox" id="eager-compile"> Compile in background after build</label>
+            <label class="check" title="When on, the cabinet starts parsing/compiling in the background as soon as it's built. When off (default), compile is deferred until you open the player — the build tab stays snappy, but clicking Play will pause ~10s while the cabinet compiles.">
+              <input type="checkbox" id="eager-compile">
+              <span class="marker"></span>
+              <span>Compile in background after build</span>
+            </label>
           </div>
+
           <div class="row">
-            <button id="start" class="btn" disabled>Build cabinet</button>
+            <button id="start" class="btn" disabled><span class="hot">B</span>uild cabinet</button>
           </div>
         </div>
       </section>
@@ -89,7 +154,7 @@
       <!-- Step 2: progress -->
       <section id="progress" hidden>
         <div class="group">
-          <span class="group-label">2. Assembling your cabinet</span>
+          <span class="group-label">Assembling</span>
           <ol id="stages"></ol>
           <pre id="log" class="log-pre"></pre>
         </div>
@@ -98,11 +163,11 @@
       <!-- Step 3: result -->
       <section id="result" hidden>
         <div class="group">
-          <span class="group-label">3. Your cabinet is ready</span>
+          <span class="group-label">Cabinet ready</span>
           <p id="size" class="dim"></p>
           <div class="row">
-            <a id="play-link" class="btn" href="/player/calcite.html" target="_blank">Play (Calcite)</a>
-            <a id="play-canvas-link" class="btn" href="/player/calcite-canvas.html" target="_blank">Play (Calcite canvas)</a>
+            <a id="play-link" class="btn" href="/player/calcite.html" target="_blank"><span class="hot">P</span>lay (Calcite)</a>
+            <a id="play-canvas-link" class="btn" href="/player/calcite-canvas.html" target="_blank">Play (canvas)</a>
             <a id="play-raw-link" class="btn" href="/player/raw.html" target="_blank">Play (raw CSS)</a>
             <a id="download" class="btn" download="cabinet.css">Download .css</a>
           </div>
@@ -112,7 +177,7 @@
       <!-- Step 4: paginated source viewer -->
       <section id="source-viewer" hidden>
         <div class="group">
-          <span class="group-label">4. Source (paginated)</span>
+          <span class="group-label">Source</span>
           <p class="pager-info">
             Page <span id="page-num">1</span> of <span id="page-total">0</span>
             &middot; <span id="page-bytes"></span>
@@ -128,6 +193,14 @@
 
     </div><!-- /window-body -->
   </div><!-- /window -->
+
+  <!-- Sticky bottom status line — F-key hints. -->
+  <div class="status-line">
+    <span class="skey"><b>F1</b>=Help</span>
+    <span class="skey"><b>F10</b>=Build</span>
+    <span class="skey"><b>Esc</b>=Cancel</span>
+    <span class="skey" style="margin-left:auto" id="status-msg">Ready.</span>
+  </div>
 
   <!-- build.js references #split-frame and #split-reload; provide harmless
        stubs so the module doesn't blow up when it looks for them. -->

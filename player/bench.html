@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>CSS-DOS · Calcite bench (Zork1 stabilisation)</title>
+  <title>CSS-DOS · Calcite bench</title>
   <style>
     * { box-sizing: border-box; }
     body { font-family: monospace; font-size: 13px; background: #111; color: #eee; padding: 8px; margin: 0; }
@@ -17,17 +17,17 @@
   </style>
 </head>
 <body>
-  <h1>CSS-DOS · Calcite bench — Zork1 to <code>&gt;</code> prompt (23M cycles)</h1>
+  <h1>CSS-DOS · Calcite bench</h1>
   <div>
     <button id="run1">Run 1×</button>
     <button id="run3">Run 3×</button>
     <span id="status">idle</span>
   </div>
+  <iframe id="frame" width="720" height="460"></iframe>
   <div class="row">
     <div id="log">(log)</div>
     <div id="results">(no results yet)</div>
   </div>
-  <iframe id="frame" width="720" height="460"></iframe>
 
   <script type="module">
     import { buildCabinetInBrowser } from '/browser-builder/main.mjs';
@@ -54,7 +54,7 @@
       zork: {
         base: '/bench-assets/zork1-2/',
         files: ['_ZORK1.COM', 'NNANSI.COM', 'README.TXT', 'SETUP.INF', 'ZORK1.BAT', 'DATA/ZORK1.DAT', 'DATA/ZORK1.SAV'],
-        autorun: '_ZORK1.COM',
+        runCommand: '_ZORK1',
         preset: 'dos-corduroy',
       },
       plasma: {
@@ -65,10 +65,47 @@
         programName: 'PLASMA.COM',
         preset: 'hack',
       },
+      doom8088: {
+        // CPU-heavy cart: ~28M ticks (~410M cycles) just to reach the
+        // first in-game frame — exercises rep_fast_forward, dispatch
+        // tables, and the BIOS path. Used to measure WASM throughput
+        // on a workload where bridge pacing genuinely matters.
+        base: '/carts/doom8088/',
+        files: ['DOOM.EXE', 'DOOM1.WAD'],
+        runCommand: 'DOOM',
+        preset: 'dos-corduroy',
+        // Override calcite-bench.js defaults: target = title screen
+        // (~20M cycles), and a long stall ceiling so the bench has time
+        // to actually get there even if WASM runs at 0.1x of native.
+        targetCycles: 20_000_000,
+        statsTimeoutMs: 600_000,
+        idlePhaseMs: 3_000,
+      },
+      'doom8088-load': {
+        // Cart is `carts/doom8088/`; read program.json for everything
+        // (preset, memory, runCommand). Bench-only knobs (target cycles,
+        // stall ceilings) stay here. Files have to be enumerated because
+        // the browser can't list a server directory.
+        base: '/carts/doom8088/',
+        files: ['DOOM.EXE', 'DOOM1.WAD'],
+        readProgramJson: true,
+        targetCycles: 410_000_000,
+        statsTimeoutMs: 600_000,
+        idlePhaseMs: 1_000,
+      },
     };
     const CART = CARTS[CART_CHOICE];
 
     // Fetch cart files (or decode the embedded hex for plasma).
+    //
+    // For carts with `readProgramJson: true` we GET <base>/program.json
+    // and use it as the source of truth for preset / boot.runCommand /
+    // memory / etc. — exactly what the Node builder reads. The cart's
+    // file list is auto-discovered by listing the cart directory; we
+    // don't have a directory-listing API in the browser, so the bench
+    // just declares which files to fetch (sticking to the same lay-of-
+    // the-land as the Node builder's discoverFiles).
+    //
     // Missing files (e.g. DATA/ZORK1.SAV) are skipped rather than fatal.
     async function fetchCart() {
       if (CART.hex) {
@@ -78,8 +115,27 @@
         for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.substr(i*2, 2), 16);
         return { programBytes: bytes, programName: CART.programName };
       }
+      // Read program.json if requested.
+      let programJson = null;
+      if (CART.readProgramJson) {
+        try {
+          const r = await fetch(CART.base + 'program.json');
+          if (r.ok) {
+            programJson = await r.json();
+            log(`  program.json: preset=${programJson.preset} runCommand=${JSON.stringify(programJson?.boot?.runCommand)}`);
+          } else {
+            log(`  program.json HTTP ${r.status} — falling back to CART defaults`);
+          }
+        } catch (e) {
+          log(`  program.json fetch failed: ${e.message} — falling back to CART defaults`);
+        }
+      }
+      // File list: program.json doesn't enumerate them (the Node builder
+      // discovers files by listing the cart directory). The bench can't
+      // do that in the browser, so each cart entry declares its files.
+      const fileList = CART.files ?? [];
       const out = [];
-      for (const rel of CART.files) {
+      for (const rel of fileList) {
         const url = CART.base + rel;
         try {
           const r = await fetch(url);
@@ -91,7 +147,7 @@
           log(`  skip ${rel} (${e.message})`);
         }
       }
-      return { files: out };
+      return { files: out, programJson };
     }
 
     // Wait for the SW to be the controller. On hard refresh it can take
@@ -132,6 +188,10 @@
         sw.postMessage({ type: 'register-calcite-bridge' }, [ch.port2]);
       }
       bridgeWorker = bridge;
+      // Expose to test harnesses (bench-doom-stages.mjs) so they can
+      // peek-mem / peek-state via MessageChannel without owning the
+      // worker themselves.
+      try { window.__bridgeWorker = bridge; } catch {}
       return bridge;
     }
 
@@ -147,25 +207,45 @@
       if (cart.files) log(`  got ${cart.files.length} files`);
 
       log('building cabinet...');
-      const buildOpts = { preset: CART.preset };
+      // Source of truth for preset / runCommand / memory etc.: the
+      // cart's program.json (if it exists). CART entries provide
+      // overrides only when no program.json is present (e.g. inline
+      // hex carts like plasma).
+      const pj = cart.programJson || {};
+      const preset = pj.preset || CART.preset;
+      const runCommand = pj.boot?.runCommand ?? CART.runCommand;
+      // Pass through every other program.json field as `manifest`, so
+      // memory / boot.* / autorun / etc. all reach resolveManifest the
+      // same way the Node builder feeds them.
+      const { preset: _p, boot: _b, ...restManifest } = pj;
+      const buildOpts = {
+        preset,
+        runCommand,
+        manifest: { ...restManifest, ...(pj.boot ? { boot: { ...pj.boot, runCommand } } : {}) },
+      };
+      log(`  preset=${preset} runCommand=${JSON.stringify(runCommand)}`);
       if (cart.programBytes) {
         buildOpts.programBytes = cart.programBytes;
         buildOpts.programName = cart.programName;
       } else {
         buildOpts.files = cart.files;
-        buildOpts.autorun = CART.autorun;
       }
-      const blob = await buildCabinetInBrowser(buildOpts);
+      const built = await buildCabinetInBrowser(buildOpts);
+      const blob = built.blob;
+      const diskBytes = built.diskBytes ?? null; // may be absent on builds that derive disk from cabinet
       log(`  cabinet: ${(blob.size/1024/1024).toFixed(1)} MB`);
-      await saveCabinet(blob);
-      log(`  saved to Cache Storage in ${(performance.now()-t0).toFixed(0)}ms`);
+      // Don't saveCabinet — Cache Storage chokes on >256MB blobs (doom8088
+      // is 269MB) and the bridge gets the bytes via postMessage below
+      // anyway. The Cache write was a leftover from the older
+      // BroadcastChannel + SW-fetch path.
+      log(`  built in ${(performance.now()-t0).toFixed(0)}ms`);
 
       // Spawn the bridge (once per page), then hand it the cabinet bytes
       // directly. The old path relied on a BroadcastChannel from
       // saveCabinet() + a SW-fetch inside the bridge; we now post the
       // Blob so the bridge can arrayBuffer() it off the main thread.
       const bridge = await spawnBridgeOnce();
-      bridge.postMessage({ type: 'cabinet-blob', blob });
+      bridge.postMessage({ type: 'cabinet-blob', blob, diskBytes });
 
       // Point the iframe at the runner with bench mode on. The iframe's
       // <img> fetch triggers 'viewer-connected' → the bridge resets + ticks.
@@ -173,11 +253,20 @@
       frameEl.src = '';
       // Tiny delay so the iframe reload is unambiguous.
       await new Promise(r => setTimeout(r, 50));
-      frameEl.src = '/player/calcite.html?bench=1&_t=' + Date.now();
+      // Forward cart-specific bench overrides to calcite-bench.js.
+      const benchParams = new URLSearchParams({ bench: '1', _t: String(Date.now()) });
+      if (CART.targetCycles)    benchParams.set('targetCycles',   String(CART.targetCycles));
+      if (CART.statsTimeoutMs)  benchParams.set('statsTimeoutMs', String(CART.statsTimeoutMs));
+      if (CART.idlePhaseMs)     benchParams.set('idlePhaseMs',    String(CART.idlePhaseMs));
+      frameEl.src = '/player/calcite.html?' + benchParams.toString();
 
-      // Await the bench-result postMessage from the iframe.
+      // Await the bench-result postMessage from the iframe. Cart-specific
+      // statsTimeoutMs governs the in-page stall ceiling; the outer guard
+      // here just adds a small grace period beyond it so the iframe can
+      // post its result.
+      const outerTimeoutMs = (CART.statsTimeoutMs ?? 120_000) + 30_000;
       const result = await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('bench timeout (180s)')), 180000);
+        const timeout = setTimeout(() => reject(new Error(`bench timeout (${outerTimeoutMs}ms)`)), outerTimeoutMs);
         window.addEventListener('message', function handler(ev) {
           if (ev.data && ev.data.type === 'bench-result') {
             clearTimeout(timeout);

@@ -1,5 +1,5 @@
 // web/site/assets/build.js
-// Build UI logic: file picker → preset → build → save to cache → play/download.
+// Build UI logic: cart picker + file picker → form → build → save → play.
 // Also drives the paginated source viewer.
 
 import { buildCabinetInBrowser } from '/browser-builder/main.mjs';
@@ -12,11 +12,30 @@ window.addEventListener('pagehide', () => { purgeCabinets(); });
 
 const $ = (id) => document.getElementById(id);
 
-// ── File / folder picker ─────────────────────────────────────────────────────
-// Track which input was last used so Build knows which source to read.
-// Picking from one clears the other so we never have both active.
+// ── Form helpers (radio groups + status line) ────────────────────────────────
 
-let activeSource = null; // 'file' | 'folder' | null
+function radioValue(name) {
+  const el = document.querySelector(`input[name="${name}"]:checked`);
+  return el ? el.value : '';
+}
+function setRadioValue(name, value) {
+  const el = document.querySelector(`input[name="${name}"][value="${value}"]`);
+  if (el) el.checked = true;
+}
+function setStatus(msg) {
+  const el = $('status-msg');
+  if (el) el.textContent = msg;
+}
+
+// ── Source state: where the bytes for the next build come from ───────────────
+//   'file'   — single .com/.exe via #com-file
+//   'folder' — webkitdirectory upload via #dir-file
+//   'cart'   — a built-in cart from /carts/<name>/, fetched server-side
+//   null     — nothing picked yet
+let activeSource = null;
+// When activeSource === 'cart', this holds { name, files: [{name,bytes}],
+// program: <parsed program.json or null> }.
+let activeCart = null;
 
 // For folder uploads, derive the on-floppy name from webkitRelativePath.
 // We strip the user-picked folder (first segment) and keep ONE level of
@@ -25,98 +44,180 @@ let activeSource = null; // 'file' | 'folder' | null
 function relativeCartName(file) {
   const rel = file.webkitRelativePath || file.name;
   const parts = rel.split('/').filter(Boolean);
-  // Drop the top-level folder name the user picked.
   const inside = parts.length > 1 ? parts.slice(1) : parts;
   if (inside.length === 1) return inside[0];
-  // Keep first subdir, flatten the rest into its basename.
   return inside[0] + '\\' + inside[inside.length - 1];
 }
 
-function runnableNames() {
-  // Returns an array of uppercase filenames (.com/.exe) from the active input.
-  const out = [];
+// Show/hide the rows that only matter for DOS presets (Run command, Video
+// memory). Hack carts run a bare .COM at 0x100 with no shell.
+function refreshDosOnlyRows() {
+  const isDos = radioValue('preset') !== 'hack';
+  $('run-cmd-row').hidden = !isDos;
+  const videoRow = $('video-row');
+  if (videoRow) videoRow.hidden = !isDos;
+}
+
+// Suggest a default Run command for the current source if the field is
+// blank. We don't overwrite what the user typed.
+function suggestDefaultRunCommand() {
+  const field = $('run-cmd');
+  if (!field || field.value.trim() !== '') return;
+  let runnable = null;
   if (activeSource === 'file') {
     const f = $('com-file').files[0];
-    if (f) out.push(f.name.toUpperCase());
+    if (f) runnable = f.name;
   } else if (activeSource === 'folder') {
     for (const f of $('dir-file').files || []) {
-      const n = f.name.toUpperCase();
-      if (n.endsWith('.COM') || n.endsWith('.EXE')) out.push(n);
+      const u = f.name.toUpperCase();
+      if (u.endsWith('.COM') || u.endsWith('.EXE')) { runnable = f.name; break; }
+    }
+  } else if (activeSource === 'cart' && activeCart) {
+    for (const f of activeCart.files) {
+      const u = f.name.toUpperCase();
+      if (u.endsWith('.COM') || u.endsWith('.EXE')) { runnable = f.name; break; }
     }
   }
-  return out;
+  if (runnable) {
+    field.value = runnable.replace(/\.(com|exe)$/i, '').toUpperCase();
+  }
 }
 
-function refreshAutorunDropdown() {
-  const sel = $('autorun');
-  const preset = $('preset').value;
-  const runnables = runnableNames();
-  const isDos = preset !== 'hack';
+// ── Cart picker — fetch /_carts.json, render radios, prefill form ────────────
 
-  // Hack preset: autorun is driven by the single .com — hide the picker.
-  // DOS presets always show the picker (COMMAND.COM is available even
-  // without user uploads, since the builder fetches it from /assets/dos/).
-  $('autorun-row').hidden = !isDos;
-  // Run-command field is only meaningful on DOS — hack carts run the .com
-  // directly with no shell to type into.
-  $('run-cmd-row').hidden = !isDos;
-  // Video row: only shown for DOS presets. Hack gets text-only (matches
-  // the hack preset's memory defaults and the fact that hack.json has
-  // always been text-only — no per-build override exposed). Reset the
-  // boxes to the current preset's defaults each time the preset changes.
-  const videoRow = $('video-row');
-  if (videoRow) {
-    videoRow.hidden = !isDos;
-    $('mem-textVga').checked = true;
-    $('mem-gfx').checked = isDos;
-    $('mem-cgaGfx').checked = false;
+async function loadCartList() {
+  let carts = [];
+  try {
+    const res = await fetch('/_carts.json');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    carts = await res.json();
+  } catch (e) {
+    console.warn('[build] failed to fetch /_carts.json:', e);
+    return;
   }
-
-  // Preserve the user's current choice if it's still valid.
-  const previous = sel.value;
-  sel.innerHTML = '';
-
-  // Ordered list: user-uploaded runnables first (most specific = most
-  // likely the user's actual target), then COMMAND.COM as the fallback.
-  // Deduplicate in case the user uploaded their own COMMAND.COM.
-  const seen = new Set();
-  const ordered = [];
-  for (const n of runnables) {
-    if (!seen.has(n)) { seen.add(n); ordered.push(n); }
+  const list = $('cart-list');
+  // Sort: carts with a program.json first (alpha), then those without.
+  carts.sort((a, b) => {
+    const ap = a.program ? 0 : 1, bp = b.program ? 0 : 1;
+    if (ap !== bp) return ap - bp;
+    return a.name.localeCompare(b.name);
+  });
+  for (const c of carts) {
+    const lab = document.createElement('label');
+    lab.className = 'radio';
+    const displayName = c.program?.name || c.name;
+    lab.innerHTML =
+      `<input type="radio" name="cart" value="${c.name}">` +
+      `<span class="marker"></span>` +
+      `<span class="label-text">${escapeHtml(displayName)}</span>` +
+      (c.program?.name && c.program.name !== c.name
+        ? `<span class="label-desc">${escapeHtml(c.name)}</span>`
+        : '');
+    list.appendChild(lab);
   }
-  if (isDos && !seen.has('COMMAND.COM')) ordered.push('COMMAND.COM');
-
-  for (const n of ordered) {
-    const opt = document.createElement('option');
-    opt.value = n;
-    opt.textContent = n;
-    sel.appendChild(opt);
-  }
-
-  // Prefer the first user-runnable (e.g. ROGUE.COM) over a stale
-  // COMMAND.COM selection. Only preserve the previous pick if it was a
-  // real user choice — i.e. not the fallback.
-  const firstUserRunnable = ordered.find(n => n !== 'COMMAND.COM');
-  if (firstUserRunnable) {
-    if (previous && previous !== 'COMMAND.COM' && [...sel.options].some(o => o.value === previous)) {
-      sel.value = previous;
-    } else {
-      sel.value = firstUserRunnable;
+  // Wire change handler: any radio in the cart-list group.
+  list.addEventListener('change', async (ev) => {
+    if (ev.target?.name !== 'cart') return;
+    const name = ev.target.value;
+    if (!name) {
+      // (custom) selected — clear cart state, leave file/folder pickers untouched.
+      activeCart = null;
+      if (activeSource === 'cart') {
+        activeSource = null;
+        $('file-name').textContent = 'No file selected';
+        $('start').disabled = true;
+      }
+      refreshDosOnlyRows();
+      setStatus('Custom: pick a file or folder.');
+      return;
     }
-  } else if (ordered.length > 0) {
-    // No user files uploaded — COMMAND.COM is the only option.
-    sel.value = ordered[0];
+    await selectCart(name, carts);
+  });
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+async function selectCart(name, carts) {
+  const meta = carts.find(c => c.name === name);
+  if (!meta) return;
+  setStatus(`Loading cart "${name}"...`);
+  // Fetch every file the cart lists.
+  const fetched = await Promise.all(
+    meta.files.map(async (rel) => {
+      const url = `/carts/${encodeURIComponent(name)}/${rel.split('/').map(encodeURIComponent).join('/')}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`fetch ${url} failed: ${res.status}`);
+      const buf = new Uint8Array(await res.arrayBuffer());
+      // Browser builder accepts at most one subdir level — same as
+      // relativeCartName above. Use backslash join to match the FAT path.
+      const onDisk = rel.includes('/') ? rel.replace('/', '\\') : rel;
+      return { name: onDisk, bytes: buf };
+    }),
+  );
+  activeSource = 'cart';
+  activeCart = { name, files: fetched, program: meta.program };
+  // Clear the manual pickers so we don't accidentally read them on Build.
+  $('com-file').value = '';
+  $('dir-file').value = '';
+  $('file-name').textContent = `${name} (${fetched.length} file${fetched.length === 1 ? '' : 's'})`;
+  $('start').disabled = false;
+  // Apply program.json defaults to the form.
+  applyProgramJsonToForm(meta.program);
+  setStatus(`Loaded "${meta.program?.name ?? name}". Tweak options or Build.`);
+}
+
+// Map a parsed program.json's fields onto the form controls. Anything
+// the cart doesn't specify is left at the form's current value, so the
+// user's manual edits (e.g. switching preset) survive a re-application.
+function applyProgramJsonToForm(program) {
+  if (!program) return;
+  if (typeof program.preset === 'string') {
+    setRadioValue('preset', program.preset);
+  }
+  const mem = program.memory ?? {};
+  if (mem.conventional !== undefined) {
+    // "autofit" or unspecified → "" (auto-fit radio).
+    const v = mem.conventional === 'autofit' ? '' : (mem.conventional ?? '');
+    setRadioValue('memory', v);
+  }
+  if (typeof mem.textVga === 'boolean') $('mem-textVga').checked = mem.textVga;
+  if (typeof mem.gfx     === 'boolean') $('mem-gfx').checked     = mem.gfx;
+  if (typeof mem.cgaGfx  === 'boolean') $('mem-cgaGfx').checked  = mem.cgaGfx;
+  refreshDosOnlyRows();
+  // boot.runCommand drops verbatim into the Run field. Empty string means
+  // "drop to bare prompt"; we render that as a blank field so the user can
+  // see they're getting a prompt.
+  if (typeof program.boot?.runCommand === 'string') {
+    $('run-cmd').value = program.boot.runCommand;
+  } else {
+    $('run-cmd').value = '';
+    suggestDefaultRunCommand();
   }
 }
+
+// ── File / folder pickers ────────────────────────────────────────────────────
 
 $('com-file').addEventListener('change', () => {
   const file = $('com-file').files[0];
   if (!file) return;
   $('dir-file').value = '';
   activeSource = 'file';
+  activeCart = null;
+  setRadioValue('cart', '');
   $('file-name').textContent = file.name;
   $('start').disabled = false;
-  refreshAutorunDropdown();
+  refreshDosOnlyRows();
+  // Custom file uploads don't carry a program.json, so seed the Run
+  // field from the file name. The user can override before clicking Build.
+  $('run-cmd').value = '';
+  suggestDefaultRunCommand();
+  setStatus(`File loaded: ${file.name}`);
 });
 
 $('dir-file').addEventListener('change', () => {
@@ -124,13 +225,33 @@ $('dir-file').addEventListener('change', () => {
   if (!files || files.length === 0) return;
   $('com-file').value = '';
   activeSource = 'folder';
+  activeCart = null;
+  setRadioValue('cart', '');
   $('file-name').textContent = `${files.length} file${files.length === 1 ? '' : 's'} from folder`;
   $('start').disabled = false;
-  refreshAutorunDropdown();
+  refreshDosOnlyRows();
+  // If the user dropped a folder containing a program.json, absorb it —
+  // matches the cart-picker flow.
+  const pj = [...files].find(f => f.name === 'program.json');
+  if (pj) {
+    pj.text().then(t => {
+      try { applyProgramJsonToForm(JSON.parse(t)); }
+      catch (e) { console.warn('[build] folder program.json parse failed:', e); }
+    });
+  } else {
+    $('run-cmd').value = '';
+    suggestDefaultRunCommand();
+  }
+  setStatus(`Folder loaded: ${files.length} files.`);
 });
 
-$('preset').addEventListener('change', refreshAutorunDropdown);
-refreshAutorunDropdown();
+// Re-render dependent UI when preset radio changes.
+document.querySelectorAll('input[name="preset"]').forEach(r => {
+  r.addEventListener('change', refreshDosOnlyRows);
+});
+
+refreshDosOnlyRows();
+loadCartList();
 
 // Split-mode reload button.
 const splitReload = document.getElementById('split-reload');
@@ -141,11 +262,12 @@ if (splitReload) {
   });
 }
 
-// ── Build button ──────────────────────────────────────────────────────────────
+// ── Build button ─────────────────────────────────────────────────────────────
 
 $('start').addEventListener('click', async () => {
-  // Collect files from whichever input was used.
+  // Collect files from whichever source was last picked.
   let cartFiles = []; // [{ name, bytes }]
+  let cartProgram = null;
   if (activeSource === 'file') {
     const f = $('com-file').files[0];
     if (!f) { alert('Pick a file or folder first.'); return; }
@@ -154,18 +276,29 @@ $('start').addEventListener('click', async () => {
     const list = $('dir-file').files;
     if (!list || list.length === 0) { alert('Pick a file or folder first.'); return; }
     cartFiles = await Promise.all(
-      [...list].map(async f => ({
-        name: relativeCartName(f),
-        bytes: new Uint8Array(await f.arrayBuffer()),
-      })),
+      [...list]
+        .filter(f => f.name !== 'program.json')
+        .map(async f => ({
+          name: relativeCartName(f),
+          bytes: new Uint8Array(await f.arrayBuffer()),
+        })),
     );
+    const pj = [...list].find(f => f.name === 'program.json');
+    if (pj) {
+      try { cartProgram = JSON.parse(await pj.text()); }
+      catch (e) { console.warn('[build] folder program.json parse failed:', e); }
+    }
+  } else if (activeSource === 'cart' && activeCart) {
+    cartFiles = activeCart.files.map(f => ({ name: f.name, bytes: f.bytes }));
+    cartProgram = activeCart.program;
   } else {
-    alert('Pick a file or folder first.');
+    alert('Pick a cart, file, or folder first.');
     return;
   }
 
   // Disable build button while running.
   $('start').disabled = true;
+  setStatus('Building...');
 
   // Evict any cabinet left over from a previous build before we start — if
   // this build fails partway the player tab must not pick up stale bytes.
@@ -179,21 +312,12 @@ $('start').addEventListener('click', async () => {
   stages.innerHTML = '';
   $('log').textContent = '';
 
-  const preset = $('preset').value;
-  // "Run command" field overrides Autorun — boots into COMMAND.COM and
-  // hands it `/P /K <cmd>` so the shell stays running after the command
-  // exits. Useful for programs that expect mode flags (`prince cga`,
-  // `doom -timedemo demo1`) or that want to be invoked from a real shell
-  // rather than as the SHELL= entry themselves.
-  const runCmd = ($('run-cmd')?.value || '').trim();
-  const autorun = runCmd ? 'COMMAND.COM' : ($('autorun').value || null);
-  const argsOverride = runCmd ? `/P /K ${runCmd}` : '';
-  const memorySel = $('memory').value;
-  // Empty = auto-fit (let the preset's "autofit" default win); otherwise
-  // the dropdown value is a preset string the sizes.mjs resolver understands.
-  // Video checkboxes: on DOS presets, override memory.{textVga,gfx,cgaGfx}.
-  // On hack preset the row is hidden and we leave the preset's defaults
-  // (text-only) alone.
+  const preset = radioValue('preset');
+  // The Run field is the literal command line CONFIG.SYS hands to
+  // COMMAND.COM via /K. Empty = bare prompt. The cart never runs as the
+  // shell directly — that path was deleted on 2026-04-27.
+  const runCommand = ($('run-cmd')?.value || '').trim();
+  const memorySel = radioValue('memory');
   const isDos = preset !== 'hack';
   const memoryOverride = {};
   if (memorySel) memoryOverride.conventional = memorySel;
@@ -202,9 +326,18 @@ $('start').addEventListener('click', async () => {
     memoryOverride.gfx     = $('mem-gfx').checked;
     memoryOverride.cgaGfx  = $('mem-cgaGfx').checked;
   }
-  const extraManifest = Object.keys(memoryOverride).length
-    ? { memory: memoryOverride }
-    : {};
+  // Build extraManifest by deep-merging cart program.json under the form's
+  // explicit overrides — so the form always wins over what the cart says.
+  // The browser builder will deep-merge this on top of the preset.
+  const extraManifest = mergeManifest(cartProgram ?? {}, {
+    ...(Object.keys(memoryOverride).length ? { memory: memoryOverride } : {}),
+  });
+  // buildCabinetInBrowser uses its own params for `preset` and `runCommand`,
+  // so strip those from extraManifest to avoid double-binding.
+  delete extraManifest.preset;
+  if (extraManifest.boot) {
+    delete extraManifest.boot.runCommand;
+  }
 
   let blob;
   let diskBytes = null;
@@ -212,14 +345,11 @@ $('start').addEventListener('click', async () => {
     const built = await buildCabinetInBrowser({
       preset,
       files: cartFiles,
-      autorun,
-      args: argsOverride,
+      runCommand: isDos ? runCommand : undefined,
       manifest: extraManifest,
       onProgress: ({ stage, message }) => {
-        // Add a stage <li> to the ordered list.
         const li = document.createElement('li');
         li.textContent = message;
-        // Mark the previous item done, this one in-progress.
         const prev = stages.querySelector('li.in-progress');
         if (prev) {
           prev.classList.remove('in-progress');
@@ -228,7 +358,6 @@ $('start').addEventListener('click', async () => {
         if (stage !== 'done') li.classList.add('in-progress');
         else li.classList.add('done');
         stages.appendChild(li);
-        // Also append to raw log.
         $('log').textContent += message + '\n';
       },
     });
@@ -240,14 +369,15 @@ $('start').addEventListener('click', async () => {
     li.classList.add('stage-error');
     stages.appendChild(li);
     $('log').textContent += 'Error: ' + err.message + '\n';
-    // Re-enable Build so the user can retry.
     $('start').disabled = false;
+    setStatus('Build failed.');
     return;
   }
 
   // Show result section.
   $('result').hidden = false;
   $('size').textContent = `Cabinet: ${(blob.size / 1024 / 1024).toFixed(1)} MB`;
+  setStatus(`Cabinet ready (${(blob.size / 1024 / 1024).toFixed(1)} MB).`);
 
   // Download link: revoke old blob URL to avoid memory leak on rebuild.
   if (window._prevBlobUrl) URL.revokeObjectURL(window._prevBlobUrl);
@@ -255,17 +385,9 @@ $('start').addEventListener('click', async () => {
   const dl = $('download');
   dl.href = window._prevBlobUrl;
 
-  // Wire up paginated source viewer. Prism highlights page 1 synchronously
-  // on the main thread (~50 KB chunk). We run it BEFORE handing cabinet
-  // bytes to the bridge worker so the user sees the source immediately,
-  // while the parse/compile happens in the background.
   setupSourceViewer(blob);
 
-  // Let the browser paint the result + the highlighted source page before
-  // we kick off the background parse/compile. Prefer requestAnimationFrame
-  // (waits for an actual composited frame), but fall back to a short
-  // setTimeout so a backgrounded tab — where rAF is throttled to ~0 Hz —
-  // still progresses. Whichever fires first unblocks us.
+  // Let the browser paint before kicking off the background parse/compile.
   await new Promise((resolve) => {
     let done = false;
     const once = () => { if (!done) { done = true; resolve(); } };
@@ -273,29 +395,10 @@ $('start').addEventListener('click', async () => {
     setTimeout(once, 100);
   });
 
-  // Hand the cabinet blob directly to the bridge worker. Blobs are
-  // structured-cloned by reference (no byte copy), so this costs ~0 on
-  // the main thread. The worker does the `arrayBuffer()` materialisation
-  // itself — off the main thread, where the compile was already going to
-  // run. This replaces the old broadcast→SW-fetch→text() round-trip,
-  // which materialised the whole cabinet as a JS string.
-  //
-  // Two modes:
-  //   - eager  (checkbox on): bridge compiles NOW, in the background, so
-  //       clicking Play is instant. Cost is renderer-process memory/GC
-  //       pressure for the compile window, which can make the build tab
-  //       feel sluggish. Fine when the user intends to play next.
-  //   - lazy   (checkbox off): bridge just holds the blob and compiles
-  //       on viewer-connect. Build tab stays snappy; Play button pays
-  //       the compile wait.
+  // Hand the cabinet blob directly to the bridge worker.
   const eager = $('eager-compile').checked;
   try {
     if (window.__calciteBridge) {
-      // Pass `diskBytes` alongside the cabinet so the bridge can call
-      // engine.set_disk_image() — without it, REP MOVS from the rom-disk
-      // window at 0xD0000 returns zeros (no native disk_image, falls
-      // through to packed-cell lookup which has no entries there) and
-      // the kernel never finds the boot partition.
       window.__calciteBridge.postMessage({
         type: eager ? 'cabinet-blob' : 'cabinet-blob-lazy',
         blob,
@@ -306,39 +409,44 @@ $('start').addEventListener('click', async () => {
     console.warn('[build] failed to post cabinet blob to bridge:', e);
   }
 
-  // Save to Cache Storage so /player/calcite.html can load it via the
-  // service worker on a cold page load. The bridge already has the
-  // bytes; this is just for the player's later fetch.
   saveCabinet(blob).catch((e) =>
     console.warn('[build] saveCabinet failed:', e)
   );
 
-  // Split mode (?split=1): (re)load the calcite player iframe so it
-  // picks up the freshly-cached /cabinet.css.
   if (document.body.classList.contains('split')) {
     const frame = document.getElementById('split-frame');
     frame.src = '/player/calcite.html?t=' + Date.now();
   }
 
-  // Re-enable build button (allow rebuild).
   $('start').disabled = false;
 });
 
-// ── Paginated source viewer ───────────────────────────────────────────────────
+// ── Manifest deep-merge (b wins) ─────────────────────────────────────────────
+// Same shape as builder/lib/config.mjs's deepMerge, kept here so we don't
+// have to plumb config.mjs through the asset pipeline.
+function mergeManifest(a, b) {
+  if (b === null) return null;
+  if (Array.isArray(b) || typeof b !== 'object') return b;
+  const out = { ...(a ?? {}) };
+  for (const k of Object.keys(b)) {
+    const av = out[k], bv = b[k];
+    if (bv && typeof bv === 'object' && !Array.isArray(bv) && av && typeof av === 'object' && !Array.isArray(av)) {
+      out[k] = mergeManifest(av, bv);
+    } else {
+      out[k] = bv;
+    }
+  }
+  return out;
+}
+
+// ── Paginated source viewer ──────────────────────────────────────────────────
 // Cabinets are 100+ MB. Prism on a single 50KB page can still lock the main
 // thread for seconds because cabinet CSS has pathologically long lines
 // (packed-cell dispatch tables). So we paginate by LINE COUNT, not bytes.
 //
-// To avoid scanning the whole blob upfront (which would itself stall the
-// tab), page offsets are discovered lazily: page 1 starts at byte 0; the
-// start of page N is found by streaming forward from the last known
-// offset, counting newlines, and caching the result. Navigation to page N
-// walks just enough bytes to find page N's start.
-//
-// Total page count starts as an upper bound (blob.size / avg bytes per
-// page, clamped to ≥ pages discovered so far) and narrows as we index
-// further. When EOF is hit during a forward scan, the exact count is
-// locked in.
+// Page offsets are discovered lazily: page 1 starts at byte 0; the start
+// of page N is found by streaming forward from the last known offset,
+// counting newlines, and caching the result.
 
 const LINES_PER_PAGE = 200;
 
@@ -353,33 +461,22 @@ async function setupSourceViewer(blob) {
 
   $('source-viewer').hidden = false;
 
-  // pageStarts[i] = byte offset of page (i+1)'s first character.
-  // Always at least [0]; extended lazily. If exactPageCount is set,
-  // pageStarts has length = exactPageCount + 1 with a trailing sentinel
-  // equal to blob.size (so page i spans [pageStarts[i], pageStarts[i+1])).
   const pageStarts = [0];
   let exactPageCount = null;
   let currentPage = 1;
 
-  // Rough upper-bound estimate for the total page count until we've
-  // scanned the full file. Assumes ~avg line length of 40 bytes; we
-  // always show at least (pages discovered so far).
   function estimateTotalPages() {
     if (exactPageCount != null) return exactPageCount;
     const est = Math.max(1, Math.ceil(blob.size / (LINES_PER_PAGE * 40)));
     return Math.max(est, pageStarts.length);
   }
 
-  // Extend pageStarts until it contains at least (targetPage+1) entries
-  // or we hit EOF. Streams in 256KB chunks from the last known offset.
   async function ensurePage(targetPage) {
     if (targetPage < pageStarts.length) return;
     if (exactPageCount != null) return;
 
     const CHUNK = 256 * 1024;
     let offset = pageStarts[pageStarts.length - 1];
-    // We're looking for the START of page (pageStarts.length + 1), i.e.
-    // the byte after the LINES_PER_PAGE-th newline counting from `offset`.
     let linesSinceLastMark = 0;
 
     while (pageStarts.length <= targetPage && offset < blob.size) {
@@ -400,9 +497,8 @@ async function setupSourceViewer(blob) {
     }
 
     if (offset >= blob.size) {
-      // EOF: lock in the exact page count. The last page may be short.
       exactPageCount = pageStarts.length;
-      pageStarts.push(blob.size); // trailing sentinel
+      pageStarts.push(blob.size);
     }
   }
 
@@ -412,8 +508,6 @@ async function setupSourceViewer(blob) {
     currentPage = n;
 
     const startByte = pageStarts[n - 1];
-    // End byte: if we know the next page's start, use it; else slice to
-    // EOF (last page, still indexing).
     const endByte = pageStarts[n] != null ? pageStarts[n] : blob.size;
     const slice = blob.slice(startByte, endByte);
     const text = await slice.text();

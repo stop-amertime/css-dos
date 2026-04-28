@@ -37,15 +37,13 @@ let engine = null;
 let fontAtlas = null;
 let swPort = null;
 let running = false;      // tick loop gate — true only while a viewer is watching
+let bootPromise;          // assigned below once boot() is kicked off
+let viewerWaiting = false; // a viewer fetched /_stream/fb before compile finished
 
 // Lazy-mode holding pen: when the build tab posts a 'cabinet-blob-lazy'
 // we stash the Blob here and defer parse/compile until the first viewer
 // connects. Cleared after it's consumed. In eager mode this stays null.
 let pendingLazyBlob = null;
-// Disk image bytes paired with the lazy blob (DOS preset only). Passed to
-// engine.set_disk_image() right after compile so calcite can fast-forward
-// REP MOVS from the rom-disk window.
-let pendingDiskBytes = null;
 
 
 // Batch pacing — start small (200 cycles) and let the EMA grow
@@ -53,10 +51,10 @@ let pendingDiskBytes = null;
 // steady state is a few thousand cycles per batch; for sparse ones it
 // walks up to MAX. Hardcoding a large MIN starves the adapter and forces
 // hundreds of milliseconds per batch on any cabinet calcite finds expensive.
-const TARGET_MS = 14;
+const TARGET_MS = 50;
 const EMA_ALPHA = 0.3;
 const MIN_BATCH = 50;
-const MAX_BATCH = 50000;
+const MAX_BATCH = 200000;
 let batchCount = 200;
 let batchMsEma = TARGET_MS;
 
@@ -65,7 +63,7 @@ let batchMsEma = TARGET_MS;
 // Canary — bump this when you change this file so you can confirm the
 // browser is actually serving the new version. Shows up in every status
 // line so it's impossible to miss in the console.
-const BRIDGE_VERSION = 'v29-disk-image';
+const BRIDGE_VERSION = 'v38-revert-timing';
 
 async function boot() {
   postStatus(`bridge boot ${BRIDGE_VERSION}`);
@@ -92,12 +90,12 @@ async function boot() {
 // to us — all off the main thread, no SW round-trip, no JS-string
 // intermediate.
 //
-// `diskBytes` (optional, DOS preset only) is the FAT12 floppy image —
-// same bytes embedded in the cabinet's `--readDiskByte` dispatch. Passing
-// them in lets calcite fast-forward REP MOVS from the rom-disk window in
-// O(1) instead of bailing to per-byte CSS evaluation. Without it, calcite
-// falls back to the (correct but slow) CSS path. See calcite::set_disk_image.
-async function compileCabinetBytes(arrayBuffer, diskBytes = null) {
+// The cabinet self-describes its rom-disk: disk bytes are embedded in the
+// cabinet's `--readDiskByte` flat dispatch and calcite recognises the
+// `--readMem` window pattern at compile time, installing a fast-path
+// descriptor on State automatically. No separate disk-bytes payload is
+// needed (engine.set_disk_image was removed in calcite v30).
+async function compileCabinetBytes(arrayBuffer) {
   if (engine && typeof engine.free === 'function') {
     try { engine.free(); } catch {}
   }
@@ -107,15 +105,33 @@ async function compileCabinetBytes(arrayBuffer, diskBytes = null) {
   const t0 = performance.now();
   engine = CalciteEngine.new_from_bytes(bytes);
   const compileMs = performance.now() - t0;
-  if (diskBytes && engine && typeof engine.set_disk_image === 'function') {
-    try {
-      engine.set_disk_image(diskBytes);
-      postStatus(`cabinet compiled in ${(compileMs / 1000).toFixed(1)}s (disk: ${diskBytes.length} bytes)`);
-    } catch (e) {
-      postStatus(`cabinet compiled in ${(compileMs / 1000).toFixed(1)}s (set_disk_image failed: ${e.message || e})`);
+  postStatus(`cabinet compiled in ${(compileMs / 1000).toFixed(1)}s (ready)`);
+  // Publish the compile time on the bench-stats channel so harnesses can
+  // record it without parsing the status text.
+  try {
+    if (benchChannel) {
+      benchChannel.postMessage({
+        type: 'compile-done',
+        compileMs,
+        cabinetBytes: bytes.length,
+      });
     }
-  } else {
-    postStatus(`cabinet compiled in ${(compileMs / 1000).toFixed(1)}s (ready)`);
+  } catch {}
+  // If a viewer fetched /_stream/fb while we were compiling, fire the
+  // start sequence now. The viewer-connected handler that ran during
+  // compile saw engine=null and bailed; this is the recovery path.
+  if (viewerWaiting && engine) {
+    startRunning();
+  }
+}
+
+// Reset engine state to power-on, start the tick loop, mark the bridge
+// as actively running. Idempotent — calling twice is harmless.
+function startRunning() {
+  resetMachine();
+  if (engine) {
+    running = true;
+    tickLoop();
   }
 }
 
@@ -130,6 +146,17 @@ function resetMachine() {
   // Reset pacing so the adapter relearns for the new run.
   batchCount = MIN_BATCH;
   batchMsEma = TARGET_MS;
+  // Tear down the existing stats interval so no stale stats sample
+  // (with the previous run's cycleCount) leaks through to a viewer
+  // that reconnects on top of an existing bridge. startStatsInterval
+  // below re-arms it; the first sample post-reset reflects fresh
+  // (cycleCount=0) state.
+  if (statsIntervalId) {
+    clearInterval(statsIntervalId);
+    statsIntervalId = null;
+    frameCount = 0;
+    lastReportFrames = 0;
+  }
   postStatus('machine reset; running');
   startStatsInterval();
 }
@@ -146,7 +173,15 @@ function tickLoop() {
   if (!running || !engine) return;
   const batchStart = performance.now();
   try {
-    engine.tick_batch(batchCount);
+    // run_batch_silent skips the per-batch state-var diff + JSON
+    // serialization that tick_batch does. The bridge doesn't read the
+    // JSON; we observe state via direct get_state_var / read_*
+    // calls below.
+    if (engine.run_batch_silent) {
+      engine.run_batch_silent(batchCount);
+    } else {
+      engine.tick_batch(batchCount);
+    }
   } catch (e) {
     postStatus('engine error: ' + (e.message || String(e)));
     running = false;
@@ -387,10 +422,12 @@ function startStatsInterval() {
     );
     if (benchChannel) {
       try {
+        const ticks = engine && engine.get_tick ? (engine.get_tick() >>> 0) : 0;
         benchChannel.postMessage({
           type: 'bridge-stats',
           wallMs: performance.now() - bridgeStartMs,
           cycles,
+          ticks,
           framesEncoded: frameCount,
           lastFrameBytes,
           batchCount,
@@ -429,14 +466,41 @@ self.onmessage = (ev) => {
     }
     return;
   }
+  // Snapshot the engine's runtime state for later restore. Returns the
+  // raw bytes via the transferred MessagePort. Same-cabinet only; the
+  // blob is meaningless against any other cabinet.
+  if (d.type === 'snapshot-out' && engine && ev.ports && ev.ports[0]) {
+    try {
+      const bytes = engine.snapshot();
+      const ab = new ArrayBuffer(bytes.length);
+      new Uint8Array(ab).set(bytes);
+      ev.ports[0].postMessage({ ok: true, bytes: ab }, [ab]);
+    } catch (e) {
+      ev.ports[0].postMessage({ ok: false, err: String(e) });
+    }
+    return;
+  }
+  if (d.type === 'restore-in' && engine && d.bytes && ev.ports && ev.ports[0]) {
+    try {
+      engine.restore(new Uint8Array(d.bytes));
+      ev.ports[0].postMessage({ ok: true });
+    } catch (e) {
+      ev.ports[0].postMessage({ ok: false, err: String(e) });
+    }
+    return;
+  }
   if (d.type === 'cabinet-blob' && d.blob) {
     // Eager: compile NOW, in the background, off the main thread.
+    // Wait for boot() to finish (initCalcite must complete before
+    // CalciteEngine.new_from_bytes can run — without this gate, a fast
+    // cabinet-blob message arriving during the wasm fetch fails with
+    // "Cannot read properties of undefined (reading '__wbindgen_malloc')").
     pendingLazyBlob = null;
-    pendingDiskBytes = null;
     (async () => {
       try {
+        await bootPromise;
         const buf = await d.blob.arrayBuffer();
-        await compileCabinetBytes(buf, d.diskBytes ?? null);
+        await compileCabinetBytes(buf);
       } catch (e) {
         postStatus('compile error: ' + (e.message || e));
       }
@@ -447,7 +511,6 @@ self.onmessage = (ev) => {
     // Lazy: hold the blob; compile on first viewer-connect. Drop any
     // previously-compiled engine so the next viewer sees the new cabinet.
     pendingLazyBlob = d.blob;
-    pendingDiskBytes = d.diskBytes ?? null;
     if (engine && typeof engine.free === 'function') {
       try { engine.free(); } catch {}
     }
@@ -461,34 +524,54 @@ self.onmessage = (ev) => {
       const mm = m.data;
       if (!mm || !mm.type) return;
       if (mm.type === 'kbd' && engine) {
-        engine.set_keyboard(mm.key | 0);
+        // Press: write the key value. Release: schedule a set_keyboard(0)
+        // after a short hold so the cabinet sees both edges. Without the
+        // release edge, --_kbdRelease never fires (so DOOM never sees a
+        // break code, and a follow-up press of the SAME key produces no
+        // 0→non-zero edge → no IRQ 1 → silently dropped). Programs that
+        // poll INT 16h via the BDA buffer (the corduroy ISR appends on
+        // press) would also miss subsequent identical keys.
+        //
+        // 100 ms wall-time matches a fast typist's keypress and is well
+        // above any sane polling interval. The CSS edge-detection runs
+        // every tick, so even a single CSS tick of `--keyboard != 0`
+        // followed by `--keyboard == 0` is enough to fire the press IRQ
+        // and the release IRQ in turn — but DOOM's ISR queues the scan
+        // code and `I_StartTic()` (which drains the queue into events)
+        // runs on the next game tick, so we want enough wall-time for
+        // at least one game tick (~28 ms at 36 fps) before release.
+        const v = mm.key | 0;
+        engine.set_keyboard(v);
+        setTimeout(() => {
+          if (engine) {
+            try { engine.set_keyboard(0); } catch {}
+          }
+        }, 100);
       } else if (mm.type === 'viewer-connected') {
-        // New viewer opened the stream. Two entry paths:
-        //  - Eager-mode build: the engine is already compiled. We just
-        //    reset runtime state and start ticking — Play is instant.
-        //  - Lazy-mode build: we're still holding the blob. Compile it
-        //    now (the player tab shows "compiling..." until we're done).
-        //  - No cabinet at all: nothing to show.
+        // New viewer opened the stream. Three entry paths:
+        //  - Eager-mode build, engine ready: reset + tick — Play is instant.
+        //  - Lazy-mode build: we're still holding the blob. Compile it now.
+        //  - Eager-mode build, compile in flight: mark `viewerWaiting`;
+        //    when compile finishes the cabinet-blob handler kicks off
+        //    reset + tick. Without this, large-cabinet eager builds
+        //    (e.g. doom8088, 24s compile) silently dropped the viewer
+        //    that fetched /_stream/fb before compile completed.
+        viewerWaiting = true;
         (async () => {
           if (!engine && pendingLazyBlob) {
             try {
+              await bootPromise;
               const blob = pendingLazyBlob;
-              const disk = pendingDiskBytes;
               pendingLazyBlob = null;
-              pendingDiskBytes = null;
               const buf = await blob.arrayBuffer();
-              await compileCabinetBytes(buf, disk);
+              await compileCabinetBytes(buf);
             } catch (e) {
               postStatus('compile error: ' + (e.message || e));
               return;
             }
           }
-          resetMachine();
           if (engine) {
-            running = true;
-            tickLoop();
-          } else {
-            postStatus('no cabinet to run; build one first');
+            startRunning();
           }
         })();
       } else if (mm.type === 'viewer-disconnected') {
@@ -496,9 +579,21 @@ self.onmessage = (ev) => {
         // around so a fast reconnect doesn't have to rebuild it, but
         // the next viewer-connected will reset it anyway.
         running = false;
+        viewerWaiting = false;
       }
     };
   }
 };
 
-boot().catch((e) => postStatus('boot failed: ' + (e.message || String(e))));
+// `bootPromise` is set by the boot() invocation below. Module-scoped so
+// message handlers can `await bootPromise` before touching the wasm-backed
+// CalciteEngine. Without this gate, any cabinet-blob message that arrives
+// during the wasm fetch races into `CalciteEngine.new_from_bytes` and
+// explodes on `wasm.__wbindgen_malloc undefined`. (See the let at module
+// top.)
+bootPromise = boot().catch((e) => {
+  postStatus('boot failed: ' + (e.message || String(e)));
+  // Re-throw so awaiters surface the failure rather than silently
+  // running against a broken engine.
+  throw e;
+});

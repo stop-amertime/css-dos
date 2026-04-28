@@ -63,7 +63,7 @@
             },
             "files": {
               "type": "array",
-              "description": "Explicit disk contents. If omitted, the builder auto-discovers files from the cart folder (every file except program.json). KERNEL.SYS and CONFIG.SYS are always added automatically; COMMAND.COM is added when boot.autorun is null.",
+              "description": "Explicit disk contents. If omitted, the builder auto-discovers files from the cart folder (every file except program.json). KERNEL.SYS, COMMAND.COM, ANSI.SYS, and CONFIG.SYS are always added automatically.",
               "items": {
                 "type": "object",
                 "additionalProperties": false,
@@ -95,16 +95,12 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "autorun": {
-          "oneOf": [
-            { "type": "string", "description": "Filename on the floppy. Becomes 'SHELL=\\<name>' in CONFIG.SYS." },
-            { "type": "null", "description": "Drop to the COMMAND.COM prompt." }
-          ],
-          "description": "DOS carts only. Default: if the cart contains exactly one .COM/.EXE, autorun it; otherwise null (prompt)."
+        "runCommand": {
+          "type": "string",
+          "description": "DOS carts only. The exact command line passed to COMMAND.COM via /K, e.g. 'DOOM -noxms -nosound'. Empty string drops to the COMMAND.COM prompt with no command run. CONFIG.SYS always emits SHELL=\\COMMAND.COM /P /K <runCommand>; the cart never runs as the shell directly. Default: if the cart contains exactly one .COM/.EXE, defaults to its name (no extension); otherwise empty."
         },
-        "args": { "type": "string", "default": "", "description": "DOS carts only. Appended to the SHELL= line. e.g. 'ZORK1.Z3' for 'SHELL=\\FROTZ.EXE ZORK1.Z3'." },
-        "raw":  { "type": "string", "description": "Hack carts only. Filename of the .COM to load raw at 0x100. Mutually exclusive with boot.autorun." },
-        "ems":  { "type": "boolean", "default": false, "description": "DOS carts only. When true, load a fake EMS device driver (EMSDRV.SYS) so programs that detect EMS via open(\"EMMXXXX0\") see EMS as available. Doesn't provide real EMS pages — gates only. Needed for DOOM8088 and similar EMS-required programs." }
+        "raw": { "type": "string", "description": "Hack carts only. Filename of the .COM to load raw at 0x100. Mutually exclusive with boot.runCommand." },
+        "ems": { "type": "boolean", "default": false, "description": "DOS carts only. When true, load a fake EMS device driver (EMSDRV.SYS) so programs that detect EMS via open(\"EMMXXXX0\") see EMS as available. Doesn't provide real EMS pages — gates only. Needed for DOOM8088 and similar EMS-required programs." }
       }
     }
   },
@@ -112,7 +108,7 @@
   "allOf": [
     {
       "if":   { "properties": { "preset": { "const": "hack" } }, "required": ["preset"] },
-      "then": { "properties": { "disk": { "const": null }, "boot": { "required": ["raw"], "not": { "required": ["autorun"] } } } }
+      "then": { "properties": { "disk": { "const": null }, "boot": { "required": ["raw"], "not": { "required": ["runCommand"] } } } }
     }
   ]
 }

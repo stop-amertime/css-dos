@@ -17,6 +17,23 @@ import { resolveMemorySize, autofitDosMem, DOS_MAX_MEM } from '../lib/sizes.mjs'
 
 const KERNEL_LINEAR = 0x600; // DOS kernel load address
 
+// Resolve the floppy file referenced by the first token of boot.runCommand.
+// Used for memory autofit — the cabinet's RAM size is sized to the program
+// the cart will actually run, not the largest file on the disk. The token
+// can be bare ("DOOM") or include an extension ("DOOM.EXE"); we try the
+// raw name first, then "<name>.EXE" and "<name>.COM" — same lookup order
+// COMMAND.COM uses for an unqualified command line.
+export function autorunFileFromRunCommand(manifest, floppyLayout) {
+  if (!floppyLayout) return null;
+  const cmd = (manifest.boot?.runCommand ?? '').trim();
+  if (!cmd) return null;
+  const tok = cmd.split(/\s+/)[0].toUpperCase();
+  return floppyLayout.find(f => f.name === tok)
+      ?? floppyLayout.find(f => f.name === `${tok}.EXE`)
+      ?? floppyLayout.find(f => f.name === `${tok}.COM`)
+      ?? null;
+}
+
 export function runKiln({ bios, floppy, manifest, kernelBytes, programBytes, output, header }) {
   const isHack = manifest.preset === 'hack';
   return isHack
@@ -140,11 +157,8 @@ function runKilnDos({ bios, floppy, manifest, kernelBytes, output, header }) {
   if (!kernelBytes) throw new Error('runKilnDos: kernelBytes is required');
 
   let autofitBytes = DOS_MAX_MEM;
-  const autorun = manifest.boot?.autorun;
-  if (autorun && floppy?.layout) {
-    const prog = floppy.layout.find(f => f.name === autorun.toUpperCase());
-    if (prog?.size != null) autofitBytes = autofitDosMem(prog.size);
-  }
+  const progFile = autorunFileFromRunCommand(manifest, floppy?.layout);
+  if (progFile?.size != null) autofitBytes = autofitDosMem(progFile.size);
   const memBytes = resolveMemorySize(manifest.memory?.conventional ?? 'autofit', { autofitBytes });
   if (bios.meta?.flavor === 'corduroy') {
     patchBiosMemSize(bios.bytes, memBytes);

@@ -5,7 +5,7 @@ A complete Intel 8086 PC implemented in pure CSS. The CSS runs in Chrome (in the
 [Calcite](../calcite) is a JIT compiler that
 makes it fast enough to be usable.
 
-## Before you do ANYTHING
+## Before starting. 
 
 1. Read the logbook and doc index (auto-loaded below via @ links)
 2. Understand the current status, active blocker, and priority list
@@ -18,46 +18,91 @@ makes it fast enough to be usable.
 
 ### The checkpoint system
 
-Try to be autonomous and not stop working unless you either reach a checkpoint or have a
+If your task and success criteria are clear, try to be autonomous and not stop working unless you either reach a checkpoint or have a
 blocking question for the user. 
-
-Trust the user in general - they are highly technical. 
 
 A checkpoint requires ALL of:
 
-- [x] Task complete and tested (or user confirmed they tested it)
+- [x] Task complete and tested *properly* from a user perspective via web, end-to-end (or user confirmed they tested it)
 - [x] Logbook updated (status, entry, what's next)
 - [x] New code/features documented in the appropriate docs/ file
 - [x] No leftover debris (debug logging, temp files, unclear names)
 - [x] GitHub issues updated if relevant
 
-Only then may you commit and push.
+Only then may you stop looping - your task is not finished unless these things are done, just because the code works. 
+
+### Coding Guidelines
+
+Tradeoff: These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+
+1. Think Before Coding
+Don't assume. Don't hide confusion. Surface tradeoffs.
+
+Before implementing:
+
+State your assumptions explicitly. If uncertain, ask.
+If multiple interpretations exist, present them - don't pick silently.
+If a simpler approach exists, say so. Push back when warranted.
+If something is unclear, stop. Name what's confusing. Ask.
+
+2. Simplicity First
+Minimum code that solves the problem. 
+No error handling for impossible scenarios.
+If you write 200 lines and it could be 50, rewrite it.
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+3. Goal-Driven Execution
+Define success criteria. Loop until verified.
+
+Transform tasks into verifiable goals:
+"Add validation" → "Write tests for invalid inputs, then make them pass"
+"Fix the bug" → "Write a test that reproduces it, then make it pass"
+"Refactor X" → "Ensure tests pass before and after"
+For multi-step tasks, state a brief plan:
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+4. - **DO NOT GUESS OR ASSUME FUNCTIONALITY, or unnecessarily reverse-engineer** We have the source code for DOS, 8086 manual, BIOS interrupts,
+  FAT12, or kernel behavior in documentation, Doom8088 itself, and so on. Consult the right documentation. Try NOT to reverse-engineer assembly for debugging Use the kernel map file, edrdos source (`../edrdos/`), and Ralf Brown's Interrupt List.
 
 ### Git and collaborative coding rules
 
-You should commit frequently, committing is cheap and non-destructive. Leaving commits to stack up makes merge conflicts and issues more likely. 
+**Commit and push frequently — it's encouraged.** Plain
+`git commit` and `git push` of your own changes don't disturb other
+agents' working trees, and stacking up uncommitted work just makes
+merge conflicts and lost-work scenarios more likely. Always push to
+origin once you've committed.
 
-But, actions that interfere with other agents working on the same repo should be done with great care, often requiring explicit permission. Often, other agents will be working in the same repo at the same time. 
+What requires explicit permission, especially when running
+autonomously, is anything that mutates shared state another agent
+might be in the middle of using. These commands can wipe their
+uncommitted work, rewrite history they've built on, or pollute the
+shared index:
 
-This includes stashing, git -add, rebase/checkout, etc.
+- `git stash` (their uncommitted changes vanish into your stash)
+- `git add` of files you didn't author / didn't intend
+- `git rebase`, `git reset --hard`, `git checkout --` / `git restore`
+- `git clean -f`, `git branch -D`
+- `git push --force` (especially to main/master — never)
+- Any `--no-verify`, `--no-gpg-sign`, or other safety-bypass flag
+
+If you find yourself wanting one of these as a shortcut around an
+obstacle, stop and ask — the obstacle is usually a sign of state you
+should investigate, not bulldoze.
 
 ### Documentation rules
-
-- **DO NOT GUESS OR ASSUME FUNCTIONALITY.** Look up DOS, 8086, BIOS interrupts,
-  FAT12, or kernel behavior in documentation before acting.
-- **Try NOT to reverse-engineer assembly for debugging** Use the kernel map file, edrdos source
-  (`../edrdos/`), and Ralf Brown's Interrupt List.
-- **Log ALL findings and progress** in the logbook for future agents.
+- **Log findings and progress concisely** in the logbook for future agents.
+Documentation is incredibly important and an unspoken part of working in this repo. This project is particularly silly and dense, across two repos. Documentation must be automatic, without the user asking specifically for it. Documentation must be epistemically honest. Documentation must be frequent and concise - tokens add up if you waffle. 
 
 ### Debugging rules
 
-Your biggest failure mode is fixating on an individual finding and saying 'That's it!' then realising you were wrong. 
+Your biggest failure mode is coming up with individual candidates for where the bug is, saying 'That's it!' then realising you were wrong, then repeating this multiple timmes. In this particular repo, that is a horrible idea. Checking 5000 places in a few seconds is longer than taking a minute to think deeply in advance about how to isolate the bug holistically, seeing the forest for the trees. 
 
-This often comes from chasing issues around blindly. When debugging, take a second to think what you would advise a senior engineer to do to find the bug. Speed is NOT the best approach. There will always be actions you can quickly check in a few seconds in this repo. But, checking 5000 places in a few seconds is longer than taking a minute to think deeply in advance about how to isolate the bug holistically, seeing the forest for the trees. 
+When debugging, take a second to think what you would advise a senior engineer to do to find the bug. 
 
-Another huge failure mode is rushing to conclusions or unchecked assumptions, or making logical leaps that don't make sense. An example of this is deciding that calcite needs to be rebuilt to pick up a change, when the user is debugging with you in real time and obviously knows to do that. This isn't a race. 
-
-- **DO NOT chase bugs blindly.** Use the debugger. Add features to the debugger
+- **DO NOT chase bugs speculatively.** Use the debug infrastructure. Add features to the debugger
   if what you need doesn't exist.
 - **DO NOT take shortcuts** that accrue tech debt or leave debris in the repo.
 - **PREFER creating or updating debugging infrastructure** over speculative individual fixes.
@@ -165,3 +210,28 @@ cd ../calcite && target/release/calcite-cli.exe -i ../CSS-DOS/rogue.css
 Sibling repo at `../calcite`. Read `../calcite/CLAUDE.md` before making
 changes there. See [`docs/architecture.md`](docs/architecture.md#relationship-to-calcite)
 for the relationship.
+
+### Working in a git worktree
+
+When you check CSS-DOS out into a worktree (e.g.
+`.claude/worktrees/foo/`), the `../calcite` sibling-repo assumption no
+longer holds — relative path resolution from inside the worktree won't
+find calcite. Set the `CALCITE_REPO` environment variable to the calcite
+repo (or worktree) you want to use:
+
+```sh
+# From a CSS-DOS worktree, point at a matching calcite worktree
+export CALCITE_REPO=/abs/path/to/calcite/.claude/worktrees/foo
+```
+
+`CALCITE_REPO` is honoured by:
+
+- `web/scripts/dev.mjs` — vite aliases (`/calcite/`, `/bench-assets/`)
+  and the `_reset` step that rebuilds the calcite WASM.
+- `tests/harness/bench-doom-stages-cli.mjs`, `lib/fast-shoot.mjs`,
+  `lib/debugger-client.mjs` — locate the `calcite-cli` /
+  `calcite-debugger` binaries.
+
+`CALCITE_CLI_BIN` and `CALCITE_DEBUGGER_BIN` still take precedence over
+`CALCITE_REPO` if you need to point at a specific binary directly
+(useful when the binary's been pre-built somewhere outside the worktree).

@@ -32,16 +32,13 @@ import {
 } from './lib/sizes.mjs';
 import { buildBios } from './stages/bios.mjs';
 import { buildFloppy } from './stages/floppy.mjs';
-import { runKiln } from './stages/kiln.mjs';
+import { runKiln, autorunFileFromRunCommand } from './stages/kiln.mjs';
 import { buildHarnessHeader } from '../tests/harness/lib/cabinet-header.mjs';
 
 function resolveDosMemBytes(manifest, floppy) {
   let autofitBytes = DOS_MAX_MEM;
-  const autorun = manifest.boot?.autorun;
-  if (autorun && floppy?.layout) {
-    const prog = floppy.layout.find(f => f.name === autorun.toUpperCase());
-    if (prog?.size != null) autofitBytes = autofitDosMem(prog.size);
-  }
+  const progFile = autorunFileFromRunCommand(manifest, floppy?.layout);
+  if (progFile?.size != null) autofitBytes = autofitDosMem(progFile.size);
   return resolveMemorySize(manifest.memory?.conventional ?? 'autofit', { autofitBytes });
 }
 
