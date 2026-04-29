@@ -2,6 +2,79 @@
 
 Last updated: 2026-04-29
 
+## 2026-04-29 — calcite stream 1: S1.2 + S1.3 reverted (in-game perf regression)
+
+After merging main (which brought the new `bench-doom-gameplay` harness
+with the 30Hz sampler + honest fps numbers), I re-benched S1.2 + S1.3
+against gameplay, not just boot. The result was clearly worse and I
+reverted in commit 0992601.
+
+**Method.** Web bench, 60s LEFT-hold gameplay window after stage_ingame.
+Median of 3 each side. Same wasm pipeline, same cabinet, same machine.
+
+**Boot-to-ingame (median of 3, web bench-doom-stages):**
+
+| Metric                        | Baseline | S1.2+S1.3 | Δ%       |
+|-------------------------------|----------|-----------|----------|
+| compileMs                     | 36,131   | 39,178    | **+8.4%** (slower) |
+| runMsToInGame                 | 165,873  | 171,839   | **+3.6%** (slower) |
+| pageMsToInGame                | 207,254  | 213,491   | +3.0% (slower) |
+| ticksToInGame                 | 34.33M   | 34.30M    | −0.1% (noise)   |
+
+**Gameplay window (median of 3, S1.2+S1.3 only — baseline skipped per
+project owner's call once it was clear the boot phase already showed a
+regression):**
+
+| Metric            | S1.2+S1.3 (run1/run2/run3) |
+|-------------------|----------------------------|
+| simulatedFps      | 26.30 / **27.22** / 26.69  |
+| vramFps           | 1.06 / 1.10 / 1.10         |
+| paintFps          | 1.45 / 1.50 / 1.47         |
+| ticks/sec         | 203K / 215K / 208K         |
+| cycles/sec        | 3.58M / 3.71M / 3.64M      |
+
+These are slower than the main-side baseline numbers reported in the
+30Hz-sampler entry below (simFps 34.7, ticks/s 333K). The earlier
+single-run `bench-doom-stages` pair where S1.2+S1.3 looked +13% faster
+was within noise — the median-of-3 reversed it.
+
+**Why the static op-count win didn't translate.**
+S1.2+S1.3 reduced static `BranchIfNotEqLit` count by 20% (10.88M → 8.71M)
+by absorbing 2.17M short same-slot chains into `Op::DispatchChain` ops
+backed by flat-array tables. The static census predicted this should
+help. In practice:
+
+- 2.17M new `DispatchChainTable` allocations cost compile time (+8% measured).
+- Flat-array dispatch for length-2/3 chains apparently isn't faster
+  than the original 2/3 inlined branch comparisons. O(1) array
+  lookup still has overhead (chain-table indirection + range check)
+  that 2-3 inlined branches don't pay.
+- S1.2 (jump shortening) hit real cases per the audit, but most jumps
+  are dead-code-skip taken once at boot, not in hot loops where
+  shortening would compound.
+
+**S1.1 stayed abandoned at the diagnostic stage** — only 0.61% of all
+ops are intra-block-killable on doom (97.6% of LoadSlots are cross-
+block, v1 basic blocks average ~3 ops).
+
+**Pausing stream 1.** The peephole road's diminishing-returns warning
+in `compiler-mission.md` is what these results show in concrete form:
+patterns that look promising as static op-count diffs aren't
+necessarily wall-clock wins on the actual workload. Future stream 1
+work would need to instrument runtime (which ops fire, with what
+frequency, in which phases) before designing more passes — the static
+op stream is too noisy a signal.
+
+Files reverted: `crates/calcite-core/src/compile.rs::shorten_jumps` and
+`MIN_CHAIN_LEN_FLAT`. Three diagnostic probes also removed
+(`probe_branch_chains`, `probe_jump_audit`, `probe_loadslot_coalesce`)
+since they were specific to this attempt. The `Op::ReplicatedBody`
+fix in `dag/patterns.rs` was kept in a follow-up commit (432c131)
+since it was a merge-from-main thing, not specific to S1.2/S1.3.
+
+Calcite branch state: HEAD = 432c131 (Revert + ReplicatedBody fix), on
+top of cd64dc3 (Merge from main).
+
 ## 2026-04-29 — calcite stream 1: jump-shortening + lowered chain threshold (no wall-clock win)
 
 S1.2 + S1.3 landed in `calcite/.claude/worktrees/calcite-v2`. Both passes
