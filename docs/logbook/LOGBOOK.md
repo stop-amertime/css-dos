@@ -90,6 +90,86 @@ different stream-1 pass to attempt.
 - `crates/calcite-cli/src/bin/probe_loadslot_coalesce.rs`,
   `probe_jump_audit.rs`, `probe_branch_chains.rs` — diagnostics
 
+## 2026-04-29 — bridge: hash-gated emit + 30Hz sampler (paint cadence honesty)
+
+**Problem**: web bridge claimed 20fps paint rate (TARGET_MS=50, post a
+BMP every batch). User-perceived rate on doom8088 gameplay = ~1-2 fps.
+The other 18 paints/sec were duplicates — the cabinet wasn't producing
+new frames that fast. Each duplicate paint cost ~5-10ms of work
+(BMP allocation + transferable post + browser BMP-decode + DOM put).
+
+**Fix** (`player/calcite-bridge.js` v41):
+- Decouple paint cadence from tick loop. Add a separate setInterval
+  at FRAME_SAMPLER_HZ=30 that calls `maybeEmitFrame` independently
+  of batch boundaries.
+- Hash-gate the emit. `maybeEmitFrame` computes FNV-1a over a sparse
+  1KB subsample of the rgba and short-circuits when unchanged. No
+  BMP alloc, no SW post, no browser decode.
+- Drop the produced-frame adaptive batch sizing experiment (didn't
+  help). Fixed TARGET_MS=33ms, simple 0.5×/2× ratio.
+
+**New bench**: `tests/harness/bench-doom-gameplay.mjs`. Boots normally,
+after `stage_ingame` holds LEFT for `--window-ms=N` (default 60000)
+while measuring three fps numbers honestly:
+- `simulatedFps`: engine cycles/sec / cycles-per-gametic
+- `vramFps`: distinct VRAM hash changes (bench-side sampler at 60Hz)
+- `paintFps`: bridge BMP emits
+
+**Results** on doom8088, 60s LEFT-spam window, fusion OFF:
+```
+simulatedFps = 34.2  (engine real-time vs native 35Hz)
+vramFps      = 1.6   (cabinet produces 1.6 distinct frames/sec)
+paintFps     = 2.1   (was 19.5 before hash-gate — 9× fewer duplicates)
+```
+
+The 1.6 vramFps is the cabinet's actual visible-frame rate. Doom's
+column drawer takes ~600ms per fully-painted screen at this engine
+throughput. simulatedFps stays near native because the engine IS
+running gametics at full speed — but each gametic only renders one
+column strip, so a full visible frame builds over many gametics.
+
+## 2026-04-29 — fusion disabled by default (net perf loss, investigation pending)
+
+The runtime fusion fast-forward landed earlier this session
+(`column_drawer_fast_forward` end-of-tick hook in calcite-core, see
+the commit "fusion: runtime fast-forward for doom column-drawer body").
+Initial bench on the level-load window showed +1.4% wall improvement.
+But once we built `bench-doom-gameplay.mjs` and measured during actual
+in-game rendering — where the column drawer is hot — fusion turned
+out to be a **net regression**:
+
+| Window               | fusion off   | fusion on (with byte-0/1 fast-out) |
+|----------------------|--------------|------------------------------------|
+| ticks/sec            | 333K         | 319K (-3%)                         |
+| simulatedFps         | 34.7         | 35.4 (+2%)                         |
+| vramFps              | 1.6          | ~1.7 (statistical noise)           |
+| cycles/sec           | 4.97M        | 4.83M                              |
+
+(Without the byte-0/1 fast-out, fusion was -34% throughput because
+the per-tick 21-byte ROM scan was paid every tick.)
+
+**Diagnosis**: fusion does fire during gameplay (cycle delta confirms),
+but the wall-time saved per fired body is smaller than the
+per-tick detection overhead summed across all the *non-firing* ticks.
+The cabinet executes ~10M ticks per second of gameplay; even with the
+fast-out down to 2 ROM reads per tick, that's still 20M `state.read_mem`
+calls/sec just to detect fusion sites — overwhelming the savings from
+the rare fires.
+
+**Disabled by default** (`CALCITE_FUSION_FASTFWD=1` to re-enable).
+Investigation needed before re-enabling:
+- Profile actual fire rate during gameplay (suspect very low)
+- Gate detection on a coarser hot-IP signal (e.g. only attempt match
+  when CS=0x55 — that's where the column drawer lives)
+- Consider moving detection from end-of-tick to a registered hot-IP
+  callback so the cost is paid only when relevant
+- Tune cycle-charging (currently 50/iter, may be off vs real opcode mix)
+
+The simulator + lowerer infrastructure (88.6% body compose, 94% op
+shrink, see earlier 2026-04-29 entries) is correct and tested. The
+runtime hook needs a smarter detection trigger before it can pay its
+own way.
+
 ## 2026-04-29 — fusion-sim: 88.6% body compose on doom column-drawer
 
 Resumed the segment-0x55 fusion lead. Pushed the body-composition
@@ -202,14 +282,42 @@ smoke gate, the wall-budget needs to be raised (e.g. 30s) or the
 runner needs to use calcite-cli (~3.8s compile) rather than
 calcite-debugger.
 
-**Bottom line.** The fusion-sim layer is complete enough to lower
-real Doom column-drawer body composition into a 94%-smaller op
-sequence. The runtime-integration layer is *not* done. This is the
-right checkpoint to stop and decide whether to keep pushing into the
-runtime layer (which is where the actual perf win lives) or pause
-and tackle a different lead. Code is correct, tested, and committed
-to main — fusion_sim's diagnostic infrastructure is now genuinely
-useful for any future fusion work, not just this lead.
+**Runtime fast-forward landed** (followup, same session). End-of-tick
+hook in `compile.rs` (parallel to `rep_fast_forward`) detects the
+column-drawer body in ROM at current CS:IP and bulk-applies its net
+effect. Detection is structural ROM-byte match (cabinet-agnostic per
+the cardinal rule). Net per-iteration semantics derived from x86
+opcode definitions of the body: two memory reads (palette + colormap),
+AX broadcast, two stosw, DI advance + 0xEC, DX advance + BP. Detects
+up to 16 stacked unrolled body iterations and applies them in one shot.
+Gated by `CALCITE_FUSION_FASTFWD` env var; on by default.
+
+**Measurement** on `bench-doom-stages-cli.mjs`, level-load window
+(stage_loading → stage_ingame, 29.5M ticks):
+```
+fusion OFF: 135.837s / 29.5M ticks / 323,102,046 cycles
+fusion ON:  133.948s / 29.5M ticks / 323,246,537 cycles
+Δ: 1.4% wall-clock faster, +144,491 cycles (0.04%)
+ticksToInGame identical (35M).
+```
+
+1.4% modest because the column drawer fires lightly during the
+load window — the win is concentrated in gameplay rendering frames
+(R_DrawColumn), which the current bench doesn't measure. Cycle
+delta of 144,491 = ~2,890 fusion fires over the 29.5M-tick window.
+The cycle-charging may be slightly off (50/iter is a rough estimate);
+worth tightening if fusion is extended.
+
+**Items 1-5 of the plan: done.** Simulator (88.6% body compose),
+SymExpr→Op lowerer (94% op shrink), runtime CS:IP detector + memory-
+write replay landed and measured. Open follow-ups:
+- Gameplay-frame bench (the column-drawer-heavy window) to measure
+  the real win.
+- Fusion site catalogue (right now it's hardcoded one body; could
+  be a recogniser pass that auto-detects from byte_period results).
+- Cycle accounting refinement (per-iter charge tuned to actual
+  CSS opcode cycles).
+- Regression bisection if any cabinet shows divergence.
 
 ## 2026-04-29 — calcite-v2-rewrite stream: Phase 1 lands
 
