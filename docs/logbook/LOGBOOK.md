@@ -2,6 +2,94 @@
 
 Last updated: 2026-04-29
 
+## 2026-04-29 — calcite stream 1: jump-shortening + lowered chain threshold (no wall-clock win)
+
+S1.2 + S1.3 landed in `calcite/.claude/worktrees/calcite-v2`. Both passes
+are bit-identical under bytecode/dag/closure backends (162 calcite-core
+tests green including primitive_conformance and backend_equivalence on
+all three). S1.1 was abandoned at the diagnostic stage.
+
+**S1.0 (verify op distribution).** doom8088.css op-kind census matches
+the older LOGBOOK record exactly: LoadSlot 25.7%, BranchIfNotEqLit 18.3%,
+Jump 11.0%, total 59.4M ops, 18.5M DAG blocks.
+
+**S1.1 (LoadSlot coalesce) — abandoned at diagnostic.**
+`probe-loadslot-coalesce` classified all 15.27M `Op::LoadSlot` ops:
+
+  - trivial intra-block copy:       1 (0.0%)
+  - dead (no reader):           364K (2.4%)
+  - cross-block:               14.91M (97.6%)
+  - live-range conflict:           19 (0.0%)
+
+Only 0.61% of all ops are intra-block-killable. v1's DAG basic blocks
+average ~3 ops, so the dominant LoadSlot pattern is consumer-in-next-
+block. Cross-block coalesce is the only shape that pays here, and the
+work order explicitly puts it out of scope for stream 1.
+
+**S1.2 (jump-to-jump shortening) — landed.** New `shorten_jumps` pass
+in `compile.rs` runs after `fuse_loadstate_branch`. Bounded chase
+(MAX_HOPS=64) per branch-like target field across main ops, dispatch
+table entries, broadcast value/spillover ops, and chain table body PCs
+(both HashMap and flat-array views). Cycle-safe: self-loops and over-
+budget chases bail to original target. Audit confirms 0 chainable
+Jumps remain in the main slice post-pass. Static op count unchanged
+(pass rewrites targets, doesn't remove ops).
+
+**S1.3 (dispatch-chain recogniser gap) — landed differently than spec.**
+`probe-branch-chains` classified all 10.88M unfused `BranchIfNotEqLit`:
+
+  - 5.43M (49.9%) run_len=1, 100% target = different-slot branch
+    (genuine multi-key dispatch — out of scope for same-slot chains)
+  - 2.17M (20.0%) run_len=2 same-slot — below MIN_CHAIN_LEN=6
+  - 3.26M (29.9%) run_len=3 same-slot — below MIN_CHAIN_LEN=6
+
+The "intervening op" category the work order suggested hoisting is
+~135 ops (0.001%). Pivoted: lowered chain-threshold to 2 BUT only for
+chains where the dense flat-array fast path can be built. Sparse short
+chains stay as linear branches (HashMap fallback would be slower). New
+constants `MIN_CHAIN_LEN_HASHMAP=6`, `MIN_CHAIN_LEN_FLAT=2` in
+`compile.rs::chains_in_ops`.
+
+Static census after S1.2 + S1.3:
+  - BranchIfNotEqLit: 10.88M → **8.71M** (−2.17M, −20%)
+  - DispatchChain:    0       → **2.17M** (+2.17M)
+  - chain_tables:     208     → 2,172,742
+
+**Wall-clock measurement (bench-doom-load, 50M-cycle target, web,
+median of 3):**
+
+  - Pristine:        11.007s wall, 25.6s compile
+  - S1.2 + S1.3:     10.985s wall, 25.8s compile
+  - Delta:           −0.2% wall, +0.2s compile (both within noise)
+
+This **misses the ≥3% wall-clock acceptance gate the work order set for
+S1.2.** Op-count diff is real and measurable as a static census, but
+doesn't translate to a measurable boot-phase win. The phase reaches
+mode-0x3 / mode-0x13 boot only, never gameplay. Doom op-distribution
+shifts during gameplay (frame loop hits different code), so a bench
+that reaches gameplay might show a different result — but
+`bench-doom-stages` is not currently functional with `n=1` doom-load
+on this machine (compile-done BroadcastChannel doesn't reach the page
+listener; bails at compile budget despite compile actually succeeding
+in ~25s — see `bench-doom-load.mjs` proves wasm + cabinet are fine).
+Reproducing the gap & either fixing the harness or rebuilding a
+gameplay-reaching cli bench is required to extract a real number from
+these passes.
+
+**Honest read:** S1.2 + S1.3 ship bit-identical correctness and a
+real op-count reduction without measurable wall-clock improvement on
+the only doom workload I could reach. Stream 1's ceiling estimate
+(2-3×) was already tight; on the *boot* phase, these specific patterns
+don't move the needle. Pausing stream 1 until either (a) the bench
+harness reaches gameplay, or (b) the project owner directs a
+different stream-1 pass to attempt.
+
+**Files:**
+- `crates/calcite-core/src/compile.rs` — `shorten_jumps`,
+  `MIN_CHAIN_LEN_FLAT=2` in `chains_in_ops`
+- `crates/calcite-cli/src/bin/probe_loadslot_coalesce.rs`,
+  `probe_jump_audit.rs`, `probe_branch_chains.rs` — diagnostics
+
 ## 2026-04-29 — fusion-sim: 88.6% body compose on doom column-drawer
 
 Resumed the segment-0x55 fusion lead. Pushed the body-composition
