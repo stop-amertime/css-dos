@@ -2,42 +2,16 @@
 
 Last updated: 2026-04-29
 
-## 2026-04-30 — BranchIfNotEqLit2 fusion: built, dead lead, reverted
+## 2026-04-30 — BIfNEL2 fusion: dead lead, off by default
 
-`probe_bif_pairs` static structure (doom8088): 1395 adjacent diff-slot
-BIfNEL pairs, 1330 (95.3%) share their target — clean AND-guard shape.
-Built `Op::BranchIfNotEqLit2` + `fuse_diff_slot_bifnel_pairs` pass
-(runs after build_dispatch_chains). Doom8088 cabinet: **794 pairs
-fused**, runtime adjacency `BIfNEL→BIfNEL` 12.35% → 9.41%, new op
-2.95% of dispatched. Cycles identical across 4 runs (modulo joystick
-timing noise).
+`Op::BranchIfNotEqLit2` collapses adjacent diff-slot AND-guard BIfNEL
+pairs (1330/1395 in doom8088). Fired 794×, dropped runtime BIfNEL→BIfNEL
+adjacency 12.35% → 9.41%. Web bench in noise floor (ON avg 2.5% slower
+across 2 runs, sign flips). Saved dispatch absorbed by `pc += 2;
+continue;`. Disabled behind `CALCITE_BIF2_FUSE=1`. Calcite `ac0e7bb`.
 
-Web bench (bench-doom-stages.mjs --headed), 2 runs each:
-
-|       | runMs ON | runMs OFF |
-|-------|---------:|----------:|
-| run 1 | 103,984  | 107,748   |
-| run 2 | 111,924  | 102,914   |
-| avg   | 107,954  | 105,331   |
-
-ON 2.5% slower on average, sign flips between runs — within noise.
-Cycles vary 1-2%/run from joystick timing, killing tight A/B. No win.
-
-Why: each fused pair saves ~1 dispatch (~1ns) but costs `pc += 2;
-continue;` to skip the dead-code BIfNEL left for external-jump safety.
-Cache effects of adding a new Op variant may also hurt the hot loop's
-jump-table layout. At 12% adjacency × ~1ns × 5M fires/200K-tick
-window = theoretical max ~1.5% wall save. Real-world: in the noise
-floor, possibly net loss.
-
-**Reverted.** Code stays in calcite (commit 8650d95 + the BIfNEL2
-implementation) for future reference but pass disabled by default
-behind `CALCITE_BIF2_OFF=1` until / unless gains appear elsewhere.
-
-Lesson: 12% runtime *adjacency* doesn't mean 12% *cost reduction*. Each
-adjacent pair already only takes ~2ns; saving one of them halves a
-2ns thing, not a meaningful CPU share. The fusion savings must dominate
-the new-op overhead, and at this op count they don't.
+Stop chasing 1-3% peepholes. 405K → 200K throughput is a 2× cliff;
+flame-graph the hot path before next attempt.
 
 ## 2026-04-29 — runtime op-adjacency profile (post-fusion truth)
 
