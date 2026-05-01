@@ -2,6 +2,54 @@
 
 Last updated: 2026-05-01
 
+## 2026-05-01 — Repo cleanup: Chunks B + C complete
+
+**Chunk B (calcite-side):** see `../calcite/docs/log.md` 2026-05-01 entry.
+5 commits on `cleanup-2026-05-01` calcite branch deleting CSS-DOS-shaped
+infrastructure (`site/`, `programs/`, `output/`, `serve.mjs`, `serve.py`,
+6 .bat files), archiving 9 zombie tools to `tools/archive/`, deleting 2
+BROKEN tools, and stripping menu.rs of the `node ../CSS-DOS/builder/
+build.mjs` shell-out. ~17 K LOC removed. `cargo test --workspace`: 148
+PASS / 4 pre-existing rep_fast_forward failures (no regression). wasm-pack
+builds cleanly.
+
+**Chunk C (CSS-DOS-side, web/player merge):** one big commit `430a507`.
+- `player/*` → `web/player/*` (calcite.html, raw.html, bench.html,
+  calcite-canvas.html, turbo-meter.html, serve.mjs, README.md, assets/,
+  fonts/, experiments/) — 22 files, history preserved via git mv.
+- `player/calcite-bridge.js` → `web/shim/calcite-bridge.js`
+- `web/site/assets/calcite-bridge-boot.js` → `web/shim/calcite-bridge-boot.js`
+- `calcite/web/video-modes.mjs` → `web/shim/video-modes.mjs` (copied;
+  the calcite-side copy stays for now so calcite/web/calcite-worker.js
+  keeps resolving — calcite-side cleanup is a follow-up).
+- `web/site/sw.js` stays at `web/site/sw.js`. Service workers must be
+  served at or above their scope, and ours is `/`. Conceptually shim,
+  physically site/ — documented in dev.mjs.
+- URL paths kept stable (`/player/...`, `/sw.js`, `/cabinet.css`,
+  `/_stream/fb`, `/_kbd?key=`); only the dev-server alias map and a
+  handful of script-src attributes change. `/shim/` alias added.
+- `?bench=1` inline `<script>` block removed from web/player/calcite.html.
+  Player is now zero-script: pure HTML+CSS as designed.
+- `.gitignore` updated to cover root cabinets and `tests/bench/cache/`.
+
+**End-to-end verified:**
+- Web bench against the merged tree: 143.3 s runMsToInGame / 34.3 M ticks
+  / 398.7 M cycles (cabinet=332 MB). Baseline pre-merge: 134.6 s / 34.5 M
+  ticks / 407 M cycles. +6.5 % wall, within the ±10 % budget; ticks and
+  cycles essentially identical (so calcite is doing the same work).
+- All 6 doom8088 stages reached: text_drdos → text_doom → title → menu
+  → loading → ingame.
+- Dev server: every URL surface (`/build.html`, `/sw.js`,
+  `/shim/{calcite-bridge,calcite-bridge-boot,video-modes}.mjs`,
+  `/player/{calcite,bench,raw}.html`, `/player/assets/player.css`)
+  serves 200 from new resolution.
+
+**Watchout for the next agent (or future me):** `tests/harness/bench-*.mjs`
+default to `--port=5173`. If you have an old dev server running on 5173
+and start a new one on a different port, the bench will silently hit the
+old one. Lost an hour to this. The bench harness rebuild in Chunk E
+should pick the dev-server port from `_status` rather than defaulting.
+
 ## 2026-05-01 — Repo cleanup: Chunk A baseline + inventory
 
 Bigbang cleanup branch `cleanup-2026-05-01` opened in both repos
