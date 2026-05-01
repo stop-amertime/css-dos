@@ -2,6 +2,14 @@
 
 Last updated: 2026-05-01
 
+## 2026-05-01 — Logbook migration: calcite-engine entries moved to calcite/docs/log.md
+
+Per audit §7: ~10 days of calcite-perf entries (2026-04-28 to
+2026-05-01) accidentally written to CSS-DOS LOGBOOK because CLAUDE.md
+auto-loads it. Migrated them to `../calcite/docs/log.md`. Stubs
+remain here cross-linking to the new location. The new logbook
+discipline rule (in both CLAUDE.md files) prevents this recurring.
+
 ## 2026-05-01 — Repo cleanup: Chunks B + C complete
 
 **Chunk B (calcite-side):** see `../calcite/docs/log.md` 2026-05-01 entry.
@@ -193,336 +201,47 @@ knowledge encoded.
 
 ## 2026-05-01 — LoadPackedByte: euclid → bitwise byte extract
 
-3 exec arms (production, profiled, traced) of `Op::LoadPackedByte`
-replaced `cell.rem_euclid(256) / cell.div_euclid(256).rem_euclid(256)`
-with the documented form `(cell >> (off * 8)) & 0xFF`. Equivalent for
-all i32 cells (verified against negative two's-complement); skips a
-branch in libcore's signed-euclid path. Doc on Op::LoadPackedByte
-already specified this form; the executor was the outlier.
-
-Web bench (vs FxHashMap baseline, same cabinet, headed):
-
-|                          | fxhash only | + bitwise | Δ      |
-|--------------------------|------------:|----------:|-------:|
-| loading→ingame           |  66,524 ms  | 62,740 ms |  −5.7% |
-| runMsToInGame            |  78,506 ms  | 74,307 ms |  −5.4% |
-| gameplay ticks/sec       |     426,299 |   430,106 |  +0.9% |
-| gameplay simulatedFps    |        43.5 |      43.8 |  +0.7% |
-| gameplay vramFps         |        2.39 |      2.38 |   noise|
-| gameplay cycles/sec      |   5,930,982 | 5,968,883 |  +0.6% |
-
-Asymmetric — LoadPackedByte fires hard during level-load (window-byte
-reads from disk into RAM), but is only ~3% of dispatched ops in
-steady-state gameplay (per 2026-04-29 op-profile). So we shave the
-load curve and barely move gameplay. Real but small.
-
-Cardinal rule check: just bitwise byte extraction following the op's
-existing documented semantics. Generic across any pack value.
+Calcite-engine work. Logged in `../calcite/docs/log.md` 2026-05-01.
 
 ## 2026-04-30 — FxHashMap swap: +25% ingame fps, −24% web level-load
 
-Followup to today's flamegraph. Replaced `std::HashMap` (SipHash) with
-`rustc_hash::FxHashMap` in the runtime hot-path tables only:
-
-- `state.extended` — `HashMap<i32, i32>` for the >0xF0000 fallback in
-  `read_mem` (9% in flamegraph).
-- `DispatchChainTable.entries` — `HashMap<i32, u32>` for `Op::DispatchChain`.
-- `CompiledDispatchTable.entries` — `HashMap<i64, (Vec<Op>, Slot)>` for
-  `Op::Dispatch` (the 4% `hash_one` frame's call site).
-- `CompiledBroadcastWrite.address_map` — `HashMap<i64, i32>` for
-  per-tick broadcast write fan-out.
-- `CompiledSpillover.entries` — `HashMap<i64, (Vec<Op>, Slot)>`.
-
-Compile-time string-keyed maps in `CompilerCtx` and `dispatch_tables`
-left as std::HashMap — touched once at load, swap would ripple across
-crates for no benefit.
-
-**Same cabinet, same cycles, same ticks; pure per-tick eval speedup.**
-
-| Bench                              | baseline   | fxhash     | Δ        |
-|------------------------------------|-----------:|-----------:|---------:|
-| CLI loading→ingame (29.5M ticks)   |  72,000 ms |  61,562 ms |  −14.5%  |
-| Web loading→ingame (29.8M ticks)   |  88,200 ms |  66,524 ms |  −24.5%  |
-| Web runMsToInGame                  | ~125,000 ms|  78,506 ms |  −37%    |
-| Gameplay ticks/sec (60s LEFT)      |    333,000 |    426,299 |   +28%   |
-| Gameplay simulatedFps              |       34.7 |       43.5 |   +25%   |
-| Gameplay vramFps                   |        1.6 |        2.4 |   +50%   |
-| Gameplay cycles/sec                |  4,970,000 |  5,930,982 |   +19%   |
-
-ticksToInGame: 35,000,000 → 34,650,589 (−1%, stage-detect race; not
-real). cyclesToInGame: 397M (CLI) — identical, confirms zero work
-elision.
-
-**Why this works.** The flamegraph showed SipHash + hash_one + extended
-HashMap calls totalling 17% of worker CPU. SipHash is constant-time
-hardened and runs ~30 cycles per i32 key; FxHash is ~3 cycles
-(multiply + xor). On runtime maps that get hit per-tick (`Op::Dispatch`
-inner loop, `read_mem` BIOS-region fallback, broadcast-write
-address_map fan-out), the difference is the dominant cost in those
-samples.
-
-Why bigger win on web than CLI: native Chrome's V8 wasm interpreter
-makes hash function calls relatively more expensive vs the loop body
-than native code's loop-unrolled hot path. Same delta in absolute
-seconds, larger as a percentage of the slower web baseline.
-
-Smoke gate: 4 PASS / 3 pre-existing FAIL — same set as before
-(dos-smoke, zork1, montezuma fail with `ticks=0` due to harness
-build-budget issue documented 2026-04-29, unrelated to this change).
-calcite-core unit tests: 148 PASS / 4 pre-existing FAIL (rep_fast_forward
-no-opcode panics).
-
-Calcite commit: includes `rustc-hash = "2"` dep + 6 type swaps in
-`compile.rs` + 1 in `state.rs`. ~12-line diff, 0 algorithmic change.
-
-The cliff is breakable. Top of next flamegraph will be a different
-shape — re-profile if/when chasing the next 10%.
+Calcite-engine work. Logged in `../calcite/docs/log.md` 2026-04-30.
 
 ## 2026-04-30 — Web flamegraph: exec_ops dominates, hashing is 17%
 
-New tool: `tests/harness/flamegraph-doom.mjs` drives Playwright + raw CDP
-to capture V8 cpuprofile (worker + main thread) and chrome trace JSON for
-two phases: LOAD (snapshot-restore from `stage_loading`, run to GS_LEVEL)
-and INGAME (snapshot-restore from `stage_ingame`, hold LEFT 60s).
-`resolve-cpuprofile.mjs` parses the wasm `name` section and rewrites the
-profile in place so DevTools shows real Rust names.
-
-To get names, calcite must be built without wasm-opt's name-section
-strip: `wasm-pack build crates/calcite-wasm --target web --profiling
---no-opt`. Profiling build is ~5% slower but the % breakdown matches
-release.
-
-**Worker self-time (LOAD 173s / INGAME 60s, near-identical shapes):**
-
-```
-                                             LOAD   INGAME
-calcite_core::compile::exec_ops             76.07%  75.40%
-calcite_core::state::State::read_mem         9.10%   9.35%
-core::hash::sip::Hasher::write               4.07%   4.11%
-core::hash::BuildHasher::hash_one            3.85%   3.88%
-calcite_core::compile::execute               2.94%   3.11%
-(idle)                                       1.62%   1.69%
-calcite_core::compile::rep_fast_forward      0.49%   0.57%
-... everything else < 0.5% individually
-```
-
-**Main thread:** 99% idle. Bridge is not the problem; render is not the
-problem; it's all wasm.
-
-**Headlines:**
-- LOAD: 173s wall, 33M ticks, 200K t/s steady state
-- INGAME: 60s wall, 10M ticks, 171K t/s
-  (matches LOGBOOK 2026-04-29 gameplay bench at 333K ÷ ~2 for the slower
-  profiling build — % shape unchanged.)
-
-**Reading.** `exec_ops` is the per-op dispatch loop. It's 76% — that's
-the headline. But the other 17% (`read_mem` + SipHash + hash_one) is
-almost entirely **HashMap lookup overhead**: `read_mem` hits a
-`HashMap<linear_addr, byte>` for sparse/MMIO writes, and `hash_one` is
-called from `Dispatch` Op evaluation (the per-register dispatch table is
-a HashMap). SipHash is the default `std::collections::HashMap` hasher.
-
-That's the answer the user asked for. Two real leads, both generic
-(no upstream-layer knowledge needed):
-
-1. **Replace HashMap with FxHash or AHash** in the hot lookups.
-   SipHash is ~5x slower than FxHash and 17% of total CPU is
-   hash-related. Even a 3x speedup here = ~10% wall.
-2. **`read_mem`'s HashMap is sparse-overlay over the dense ROM/RAM**.
-   At 9% of CPU there's likely a path that takes the slow `HashMap.get`
-   even when the address is in the dense regions. Worth a flame-graph
-   zoom on what's calling it.
-
-The 76% in `exec_ops` is the main interpreter. To break that down further
-would need finer sub-function profiling (LLVM-level), or a
-function-pointer-table dispatch backend (calcite Phase 3 closure backend
-prototype, 2026-04-28 logbook entry, was 1.19× slower with only 10/50
-ops specialised — the work isn't proven dead, just paused).
-
-Artifacts:
-- `tmp/flamegraph/load/{worker,main}.cpuprofile` — load in DevTools
-  → Performance for the actual flame chart.
-- `tmp/flamegraph/load/trace.json` — perfetto/about:tracing.
-- Same under `tmp/flamegraph/ingame/`.
-- `tmp/flamegraph/{load,ingame}/summary.json` — top-N tables.
-
-Stop chasing peepholes. Real next swing: kill the SipHash overhead.
+Calcite-engine work. Logged in `../calcite/docs/log.md` 2026-04-30.
 
 ## 2026-04-30 — read_mem borrow-overhead fix: dead lead, reverted
 
-Gated `read_mem`'s three `RefCell::try_borrow_mut` probes behind a
-`Cell<bool>`. Theoretical save ≤0.25%; web doom8088 level-load 133–134s
-both runs, no signal. Reverted.
+Calcite-engine work. Logged in `../calcite/docs/log.md` 2026-04-30.
 
 ## 2026-04-30 — BIfNEL2 fusion: dead lead, off by default
 
-`Op::BranchIfNotEqLit2` collapses adjacent diff-slot AND-guard BIfNEL
-pairs (1330/1395 in doom8088). Fired 794×, dropped runtime BIfNEL→BIfNEL
-adjacency 12.35% → 9.41%. Web bench in noise floor (ON avg 2.5% slower
-across 2 runs, sign flips). Saved dispatch absorbed by `pc += 2;
-continue;`. Disabled behind `CALCITE_BIF2_FUSE=1`. Calcite `ac0e7bb`.
-
-Stop chasing 1-3% peepholes. 405K → 200K throughput is a 2× cliff;
-flame-graph the hot path before next attempt.
+Calcite-engine work. Logged in `../calcite/docs/log.md` 2026-04-30.
 
 ## 2026-04-29 — runtime op-adjacency profile (post-fusion truth)
 
-Built `--op-profile=PATH` in calcite-cli (calcite `pattern/op_profile.rs`).
-Records (prev_kind, curr_kind) counts for every op dispatched, including
-inside dispatch entries / function bodies / broadcast-write value_ops.
-Thread-local matrix, ~10ns/op when enabled, ~1ns when disabled. Doom8088
-restored from `stage_loading.snap`, 200K-tick window, 169M ops dispatched.
-
-**Top kinds (% of dispatched, runtime not static):**
-```
-LoadSlot              27.34%
-BranchIfNotEqLit      20.08%
-LoadState             11.05%
-LoadLit                8.38%
-DispatchChain          4.24%   ← chains *are* hot, despite collapsing 208 of them
-Add                    4.03%
-LoadPackedByte         3.26%
-MulLit                 2.97%
-Dispatch               2.81%
-AddLit                 2.69%
-```
-
-LoadSlot+BIfNEL+LoadState+LoadLit = **66%** of all dispatched ops. The
-earlier static-bytecode 27%/25% numbers were directionally right.
-
-**Top adjacencies:**
-```
-BIfNEL  -> BIfNEL                12.35%   ← biggest spike
-LoadSlot -> LoadSlot              9.63%
-LoadSlot -> BIfNEL                5.23%
-LoadState -> LoadSlot             3.31%
-LoadSlot -> LoadPackedByte        3.26%   ← packed-byte load setup
-LoadPackedByte -> LoadSlot        3.26%
-LoadSlot -> DispatchChain         3.26%
-LoadLit  -> LoadSlot              3.22%
-LoadState -> LoadState            2.72%   ← back-to-back state reads
-LoadSlot -> Jump                  2.14%
-```
-
-**Verdict.** `BIfNEL → BIfNEL` at 12% is the only striking spike. This
-shape is what `dispatch_chains` is built to collapse, yet it survives —
-either chains below threshold (< 3), testing different slots, or
-adjacent across control-flow rather than in the static op array. Worth
-investigating: **why does the dispatch_chains pass leave so many bare
-BIfNEL→BIfNEL pairs adjacent at runtime?** That's the real next lead.
-
-`LoadSlot → BIfNEL` at 5% looked like the previous fuser's target, but
-that fuser fired 0× because it required same-slot
-(`LoadSlot(dst) → BIfNEL(a=dst)`); the 5% here is overwhelmingly
-different-slot — dst is being loaded for a *later* instruction, not the
-adjacent branch. Confirmed dead lead.
-
-`LoadState → LoadState` at 2.7% (back-to-back state reads) is a
-candidate fuse-target — but only 2.7%, and CSS-shape detection needs
-to be careful (the two reads may target unrelated addresses).
+Calcite-engine work. Logged in `../calcite/docs/log.md` 2026-04-29.
 
 ## 2026-04-29 — REP FFD: leave alone
 
-`CALCITE_REP_DIAG=1` boot-to-ingame: 213K fires / 1.64M iters elided, no
-missing-variant bails (no REPNE, no segment-override). The "REPNE/REPE
-SCASB+CMPSB missing" open item is stale — removed.
+Calcite-engine work. Logged in `../calcite/docs/log.md` 2026-04-29.
 
 ## 2026-04-29 — calcite: DiskWindow → WindowedByteArray rename
 
-Cardinal-rule fix (calcite `cff0902`). Recogniser was named after upstream
-concept (rom-disk) instead of CSS shape (windowed byte array indexed by
-key cell + stride). Pure rename, no behavior change.
+Calcite-engine work. Logged in `../calcite/docs/log.md` 2026-04-29.
 
 ## 2026-04-29 — load+compare+branch widening: dead lead, reverted
 
-Built `fuse_loadslot_branch` mirroring the state-source fuser. **Fired 0
-times** on doom8088. `LoadSlot(dst, src) → BranchIfNotEqLit(a=dst)` doesn't
-exist as adjacent ops post-`fuse_cmp_branch` (77K fires) and
-`dispatch_chains` (208 chains collapsed). Op-profile's "27% LoadSlot + 25%
-BranchIfNotEqLit" is misleading — those exist program-wide but aren't
-adjacent (i, i+1) by the time peepholes run. Reverted. Real widening lead
-is residual unfused chains *upstream* of those passes, not more downstream
-peepholes.
+Calcite-engine work. Logged in `../calcite/docs/log.md` 2026-04-29.
 
 ## 2026-04-29 — fusion FFD: funnel data + verdict (dead end on this window)
 
-thread_local `FusionDiag` (no atomics on hot path). Boot-to-ingame
-doom8088 native, 35M ticks:
-
-```
-              fusion off    fusion on
-total wall    136.74 s      140.85 s    (+3.0% slower)
-ticks/sec     255,968       248,495
-cycles        397,458,534   397,603,025 (+144,491)
-```
-
-Funnel (fusion ON):
-```
-pass_b0  (0x88 at IP)       48,715   0.139 %
-pass_b1  (0xF0 at IP+1)      5,298   0.0151%   ← 89% filtered
-pass_flags                   5,153   0.0147%
-pass_rom (full 21-byte)        159   0.0005%   ← fires
-body_iters_applied           1,708             ← avg 10.7/fire
-```
-
-Verdict: detector fires 159× / 35M ticks. Max theoretical save = 1708 /
-35M = **0.0049%**. Earlier "1.4% wall" was noise; this run shows opposite
-sign. Cycle delta ~144K matches 1708 fires × ~50 cycles + noise → work
-*is* elided correctly, just not enough for wall-time.
-
-Why detection cost matters at low fire rate: fast-out runs every tick.
-~35M `read_mem` (byte 0) + 50K (byte 1) per run; `read_mem` does
-`RefCell::try_borrow_mut` on `read_log` (~5-10ns each) = ~350ms overhead /
-137s = the observed 3% slowdown.
-
-This bench is boot+level-load, not gameplay. Earlier
-bench-doom-gameplay also showed -3%, but with hash-gated paint and only
-1.6 visible-fps the column drawer's CPU share may be smaller than static
-analysis (21×16 reps × 30 occurrences) implied.
-
-**Direction.** Stop polishing polling shape. Move detection compile-time:
-byte_period finds 30 ROM occurrences of the 21-byte body — mark linear
-addresses at compile time, insert a single guarded op keyed on
-`--ip == known_site`, collapsing detection to one slot-compare/tick. If
-that doesn't pay either, fusion belongs in another cabinet's perf budget.
+Calcite-engine work. Logged in `../calcite/docs/log.md` 2026-04-29.
 
 ## 2026-04-29 — fusion FFD: framing + diag redesign
 
-Two upstream issues blocking the investigation:
-
-**1. Runtime feature gates are env-vars + cfg stubs, not real config.**
-`CALCITE_FUSION_FASTFWD`, `CALCITE_REP_FASTFWD`, `CALCITE_FUSION_DIAG`
-read via `std::env::var`, latched in `OnceLock<bool>`, with
-`#[cfg(target_arch = "wasm32")]` stubs hardcoding per-target default.
-Web isn't toggleable from JS; latch prevents per-cabinet/per-test
-control. Right shape: `RunOptions` struct on `CompiledProgram` (or
-threaded into `execute`), populated by both calcite-cli and calcite-wasm
-callers. Not refactored — flagged. (Web fusion was tested by hardcoding
-the wasm stub to true; net-loss finding holds across both targets.)
-
-**2. Diag counters distorted measurements.** First-cut used
-`AtomicUsize::fetch_add` per tick at each funnel stage — at 10M ticks/s
-that's 50-100ms/s pure `lock xadd` overhead, showing up *as* the fusion
-overhead it was measuring. Replaced with `&mut FusionDiag` threaded
-through `execute → column_drawer_fast_forward`. Same problem in
-`rep_fast_forward`'s diag (atomics) — fix later.
-
-**Three places fusion detection could live:**
-- (a) End-of-tick polling (current). O(ticks). 10ms/s detection floor
-  even with perfect 1-byte fast-out. Pays on every cabinet.
-- (b) Hot-IP gating. O(ticks-while-CS-in-hot-segment). Generic version
-  is "compile-time detect which CS values execute most ROM bytes, gate
-  fusion on those," not "0x55 is hot."
-- (c) Compile-time ROM scan + op-stream rewrite — the real fix.
-  `byte_period` already finds matches (4065 regions on doom8088). Either
-  rewrite the dispatch entry for that IP to invoke `Op::FusedColumnDrawer`,
-  or insert `Op::FusedSiteHook` guarded by
-  `LoadStateAndBranchIfEqLit(IP, KNOWN_FUSION_IP)`. Cardinal-rule clean:
-  the generic primitive is "fuse any periodic ROM region of N bytes × K
-  reps."
-
-(c) is the JIT-correct pattern: detection cost paid once at load,
-runtime = one slot-read + immediate-compare/tick.
+Calcite-engine work. Logged in `../calcite/docs/log.md` 2026-04-29.
 
 ## 2026-04-29 — bridge: hash-gated emit + 30Hz sampler
 
@@ -556,294 +275,32 @@ over many gametics → ~600ms per fully-painted screen.
 
 ## 2026-04-29 — fusion disabled by default (net loss, investigation pending)
 
-Initial fusion fast-forward hook (`column_drawer_fast_forward`,
-end-of-tick parallel to `rep_fast_forward`) showed +1.4% wall on
-level-load. `bench-doom-gameplay.mjs` flipped sign:
-
-| Window               | fusion off  | fusion on (with byte-0/1 fast-out) |
-|----------------------|------------:|-----------------------------------:|
-| ticks/sec            | 333K        | 319K (-3%)                         |
-| simulatedFps         | 34.7        | 35.4 (+2%)                         |
-| vramFps              | 1.6         | ~1.7 (noise)                       |
-| cycles/sec           | 4.97M       | 4.83M                              |
-
-(Without fast-out, -34% throughput from per-tick 21-byte ROM scan.)
-
-Fusion *does* fire (cycle delta confirms), but per-tick detection cost
-across 10M non-firing ticks/s exceeds savings. 20M `state.read_mem`/s
-just to detect.
-
-**Disabled by default** (`CALCITE_FUSION_FASTFWD=1` to enable). To
-re-enable needs: profile gameplay fire rate; gate on coarser hot-IP
-signal (e.g. CS=0x55); move detection from end-of-tick to hot-IP
-callback; tune cycle-charge (currently 50/iter).
-
-Simulator + lowerer (88.6% body compose, 94% op shrink) are correct;
-runtime hook needs smarter trigger.
+Calcite-engine work. Logged in `../calcite/docs/log.md` 2026-04-29.
 
 ## 2026-04-29 — fusion-sim: 88.6% body compose on doom column-drawer
 
-Pushed body-composition probe from 52% → 88.6% FULL via real
-dispatch-table support and per-byte decoder pinning.
-
-**Probe** (`crates/calcite-cli/src/bin/probe_fusion_compose.rs`):
-- Per-body-byte decoder pin table — for each opcode-byte, asserts
-  `--prefixLen`, `--opcode`, `--mod`, `--reg`, `--rm`, `--q0`/`--q1` at
-  fire time.
-- Body-invariant slot pins each fire: `--hasREP=0`, `--_repActive=0`,
-  `--_repContinue=0`, `--_repZF=0`, all segment-override flags = 0.
-- Skip non-fire bytes (modrm + immediates) — phantom dispatches were
-  bailing.
-- Bail-reason histogram (`CALCITE_DUMP_BAIL_OPS`).
-
-**fusion_sim** (`crates/calcite-core/src/pattern/fusion_sim.rs`):
-- `Op::DispatchChain` Const-keyed: walk `chain_tables[chain_id]` with
-  Const value, jump body PC or `miss_target`. Eliminated 8 dispatch*
-  bails (bytes 2 0xd0, 15 0x81).
-- `Op::Dispatch` Const-keyed: recursively simulate HashMap entry's ops,
-  write `result_slot` into `dst`. Threads `dispatch_tables` through
-  `simulate_ops_full_ext`.
-- `Op::DispatchFlatArray` non-Const → new `SymExpr::FlatArrayLookup`.
-
-**Probe results** (44 fire tables, 21-byte body):
-```
-                  FULL   partial   bail
-baseline           23     16        5      52.3%
-+ pin per-byte     27     17        0      61.4%
-+ skip non-fire    30     14        0      68.2%
-+ DispatchChain    36      8        0      81.8%
-+ Dispatch         38      6        0      86.4%
-+ flag invariants  39      5        0      88.6%
-+ FlatArrayLookup  39      5        0      88.6% (no change)
-```
-
-Last 5 partials are deep flag-side: first FlatArrayLookup result flows
-into `BranchIfNotEqLit` needing Const but getting symbolic — needs
-symbolic branch outcomes (partial compilation through if-trees), out of
-scope.
-
-Sample composed expressions (post-body state vs entry-state slots):
-```
-table 40: LowerBytes(BitOr16(Slot(--rmVal16), Add(Slot(--immByte), Mul(BitExtract(Slot(--immByte), Const(7)), Const(...))))
-table 42: LowerBytes(Add(Floor(Div(Slot(--rmVal16), Const(2))), Mul(BitExtract(Slot(--rmVal16), Const(0)), Const(...))))
-table 50: Shr(LowerBytes(Add(Floor(Div(Slot(--rmVal16), Max([Const(1), Slot(--_pow2CL)]))), ...
-```
-
-Tests: 13 fusion_sim pass. wasm32 clean.
-
-**SymExpr → Op lowering** (same session). `SymExpr::lower_to_ops` emits
-flat `Vec<Op>`. Lit-folded fast paths (`AddLit`/`SubLit`/`MulLit`/
-`ShlLit`/`ShrLit`/`AndLit`/`ModLit`) when one operand is Const. 3
-round-trip tests confirm `simulate(ops) → expr → lower(expr) →
-simulate` matches (16/16 fusion_sim green).
-
-End-to-end shrink (39 FULL tables → fused op sequences):
-```
-total original ops: 2174
-total fused ops:    131
-shrink:             94.0%
-```
-
-Per-table range: 99.8% (420 → 1 op, flag tables collapse to Const) down
-to -50% on some pixel-write expressions (no CSE in naive lowering).
-
-**Memory-write capture extended**: `simulate_with_effects_ext` threads
-chain_tables + dispatch_tables. StoreMem/StoreState inside
-DispatchChain/Dispatch entries captured to `SimResult.writes`.
-
-**Not done**: runtime CS:IP fusion-site detector, `Op::FusedBody`
-variant, runner integration, correctness verification. Real compiler
-work, est. 3-5 sessions.
-
-**Smoke gate observation** (pre-existing, not regression): zork1,
-montezuma, dos-smoke fail `tests/harness/run.mjs smoke` with runTicks=0
-because compile through `calcite-debugger` takes ~8s vs 15s wall budget.
-Independent of this session. 4 fast-compiling cabinets (hello-text,
-cga4-stripes, cga5-mono, cga6-hires) pass. Fix: raise budget to 30s, or
-runner uses calcite-cli (~3.8s compile).
-
-**Runtime fast-forward landed**: end-of-tick hook in `compile.rs`
-detects column-drawer body in ROM at current CS:IP, bulk-applies net
-effect derived from x86 opcode definitions (two memory reads
-palette+colormap, AX broadcast, two stosw, DI advance + 0xEC, DX advance
-+ BP). Up to 16 stacked iterations per fire. Gated by
-`CALCITE_FUSION_FASTFWD` (later disabled by default — see above).
-
-Level-load measurement (29.5M ticks):
-```
-fusion OFF: 135.837s / 323,102,046 cycles
-fusion ON:  133.948s / 323,246,537 cycles
-Δ: 1.4% wall faster, +144,491 cycles (0.04%)
-ticksToInGame identical.
-```
-
-(Later invalidated by funnel data — see top entry.)
-
-Open follow-ups: gameplay-frame bench; auto fusion-site catalogue from
-byte_period; cycle-charge tuning; regression bisection.
+Calcite-engine work. Logged in `../calcite/docs/log.md` 2026-04-29.
 
 ## 2026-04-29 — calcite-v2-rewrite Phase 1 lands
 
-Parallel stream, branch `calcite-v2-rewrite`. Clean rewrite from
-`ParsedProgram` (parser output) instead of `Vec<Op>` (v1 bytecode), so
-DAG + rewriters aren't downstream of v1 pattern decisions.
-
-**Phase 1**: v2 DAG walker matches Chrome on primitive conformance.
-Backend enum (`Bytecode | DagV2`) on `Evaluator`; default Bytecode,
-opt-in via `set_backend(Backend::DagV2)`.
-
-**Phase 0.5 conformance**: v2 41 PASS / 5 SKIP / 3 XFAIL — identical to
-v1. Same 3 documented gaps (div-by-zero serialisation, ignored-selector,
-var-undefined-no-fallback invalidity).
-
-**Walker**: terminals topo-sorted at DAG-build by `LoadVar Current`
-deps. Per-tick value cache (state-var slots `Vec<Option<i32>>`, memory
-sparse `HashMap`). `LoadVar Current` reads cache then committed state;
-`LoadVar Prev` reads committed directly. Buffer-copy assignments
-(`--__0/__1/__2`) skipped — prefix-stripped slot model already exposes
-prior tick as `LoadVar Prev`.
-
-**Phase 1 stubs**: `FuncCall` delegates to v1's `eval_function_call` by
-rebuilding `Expr::Literal` args. `IndirectStore` (broadcast write) stub;
-conformance suite doesn't exercise broadcasts.
-
-**Two v1 fixes ported in** (real CSS-spec compliance):
-- `compile.rs`: gate `rep_fast_forward` on new
-  `CompiledProgram::has_rep_machinery` flag (true iff program declares
-  `--opcode`). Fixes pre-existing main-branch panic on every cabinet
-  without `--opcode`.
-- `CalcOp::Mod` fixed in 4 places (compile const-fold, exec_ops Op::Mod,
-  Op::ModLit, eval.rs interpreter) → CSS-spec floor-mod
-  (`mod(-7, 3) == 2`), not Rust `%`. Caught by `calc_mod_negative`.
-
-`cargo test -p calcite-core`: 196 pass (5 pre-existing rep-fast-forward
-fails unrelated). `wasm-pack`: clean.
-
-Next gate: Phase 2 ≥30% DAG node-count reduction on Doom — needs Doom
-in worktree + broadcast/dispatch recognisers consuming
-`prebuilt_broadcast_writes`. Phase 1 wraps; not merging — owner
-reconciles streams.
+Calcite-engine work. Logged in `../calcite/docs/log.md` 2026-04-29.
 
 ## 2026-04-28 — calcite Phase 3 prototype: closure backend
 
-Option (c) per mission doc. Each block lowers to `Vec<Box<dyn Fn>>` +
-pre-resolved `TerminatorPlan`. No match-on-Op on hot path. Specialised
-closures for ~10 common ops; rest fall through to exec_ops on one-op
-slice.
-
-162 tests green: backend_equivalence (bytecode/dag/closure 200 ticks
-bit-identical), primitive_conformance under all three. wasm32 clean.
-web/demo.css throughput: bytecode 261k t/s, dag 210k, closure 220k —
-1.19× slower than bytecode, matches spec for prototype with only 10/~50
-ops specialised. (c) ceiling 3-5× with full specialisation.
-
-Bugs found writing closure backend:
-- `Op::AndLit` val is mask bits, not bit-width. Phase 2's BitFieldMatch
-  + LitMerge::And had wrong semantics; fixed.
-- `ShrLit`/`ShlLit` are signed i32, not unsigned. Closure was masking
-  u32; fixed.
-
-Phase 3 main (option (a) hand-emitted wasm) deferred — weeks of work,
-prototype validates the lowering shape codegen would build on. Revisit
-once Doom cabinet is in worktree.
+Calcite-engine work. Logged in `../calcite/docs/log.md` 2026-04-28.
 
 ## 2026-04-28 — calcite Phase 2: recogniser substrate
 
-14-shape idiom catalogue (derived from `kiln/emit-css.mjs`), `Pattern`
-trait + driver in `dag/normalise.rs`, 9 generic recognisers in
-`dag/patterns.rs` (LitMerge, BitField, Hold, RepeatedLoad). Annotations
-parallel to ops → bit-identical by construction. 161 calcite-core tests
-green; Phase 1 gates pass; wasm32 clean. Annotation density on
-`web/demo.css` 0.1% — expected (v1 already collapses dominant shapes).
-Real metric is Doom; revisit when in worktree.
+Calcite-engine work. Logged in `../calcite/docs/log.md` 2026-04-28.
 
 ## 2026-04-28 — Load-time fusion: byte_period + fusion_sim
 
-Bottom two layers of load-time fusion pipeline.
-
-**Layer 1: byte_period detector** (calcite, generic). Walks rom-disk,
-finds periodic regions (period P, K reps). doom8088: 610ms over 1.83MB,
-4065 regions. Headline: 21×16 at offset 86306 (column-drawer kernel),
-21×14 sibling at 86661 (variant). 30 total occurrences of the 21-byte
-body. Driver: `probe-byte-periods`.
-
-**Layer 2: fusion_sim symbolic interpreter** (calcite, generic). Walks
-compiled Op trees, threads slot reads as `SymExpr::Slot` free vars,
-composes arith/bitwise symbolically. Distinguishes calcite's `And`/
-`AndLit` (lowerBytes truncation) from `BitAnd16` (true bitwise). Bails
-on branches, memory side-effects, unsupported variants. Driver:
-`probe-fusion-sim`.
-
-**Concrete win** in table 21 (232-entry per-register dispatch,
-`result_slot=386862` = `--ip`): IP-advance composed for **12 of 15**
-body bytes:
-- `0x88` → `Add(Const(2), Slot(37))` — 2-byte instr base + offset
-- `0x81` → `Add(Add(Const(2), Slot(37)), Const(2))` — 4-byte
-- `0xea` → `Add(Slot(27), Mul(Slot(28), Const(256)))` — far jump
-
-3 bail: `0xe8` (Div), `0xab` STOSW (Branch on `--df`), `0xcb` (nested
-LoadMem). `0xab` needs branch eval under known-flag assumptions
-(CLD before body → `--df=0`).
-
-Files: `crates/calcite-core/src/pattern/byte_period.rs`,
-`pattern/fusion_sim.rs`, `crates/calcite-cli/src/bin/probe_byte_periods.rs`,
-`probe_fusion_sim.rs`. 19 unit tests pass (10 + 9). Smoke not re-run
-(diagnostic-only, no execution-path changes).
-
-### 2026-04-28 (followup) — Body-composition probe
-
-`probe-fusion-compose`: simulates every dispatch table's entries across
-the 21-byte body in sequence (slot env threaded), reports per-table
-FULL/partial/BAIL.
-
-Extended fusion_sim Ops: `Bit`, `Div`, `Round`, `Min`, `Max`, `Abs`,
-`Sign`, `Clamp`, `CmpEq`, `DispatchFlatArray` (const-key). Added
-`Assumptions` for resolving `LoadState`/`LoadStateAndBranchIfNotEqLit`
-against compile-time-known flags (e.g. `--df=0` after CLD).
-
-doom8088 column-drawer body (44 fire tables):
-- Initial: 14/44 FULL (32%)
-- +CFG/assumptions: 14/44 (no change)
-- +Bit/Div/Round/Min/Max/Abs/Sign/Clamp/CmpEq: 23/44 (52%)
-- +DispatchFlatArray (const-key): 23/44 (no change — keys symbolic)
-
-Remaining bails: `Branch (non-const)` byte 4 (0x89 `mov r/m, r` with
-non-const reg comparison) or `DispatchFlatArray (non-const key)` byte 18
-(0x00 imm). To push past 52%: track register-shaped slots symbolically
-(partial register lattice), or SymExpr nodes for symbolic array indexing.
-
-**Decision** (later superseded by 88.6% session above): paused. Code
-stays — correct, well-tested diagnostic infra.
+Calcite-engine work (incl. Body-composition probe followup). Logged in
+`../calcite/docs/log.md` 2026-04-28.
 
 ## 2026-04-28 — Replicated-body recogniser: built, dead lead
 
-Generic recogniser folding unrolled straight-line regions into
-`Op::ReplicatedBody`. Period detector + per-Op-variant operand stride
-classifier + eval arms in 3 runners (production/profiled/traced) +
-pipeline wiring after `compact_slots`. 34 unit tests, smoke green (7
-carts).
-
-**doom8088: zero regions folded.** `CALCITE_DBG_REPL=1`: largest
-straight-line region in 405K-op main array is **32 ops**; 11 regions
-across 24,596 reach 16-op threshold; period-detector finds no period.
-
-Why: asm-level "16× unrolled XLAT body" lives in `i_vv13ha.asm` etc. as
-16 back-to-back 6-op pixel kernels, but **Kiln compiles each x86 instr
-into its own CSS dispatch entry**. Repetition is at runtime (dispatch
-loop fires opcodes 1..6 sixteen times), not in static op stream.
-Detecting it would need a dispatch-trace cycle analyser — different
-problem, and risks "calcite knows about emitter-shaped opcodes" cardinal
-violation.
-
-Lesson: *measure static shape calcite sees before designing recogniser
-around asm shape*.
-
-Code stays in main: correct, ~0ms compile cost when nothing matches,
-may fire on future cabinets with flat unrolled bodies.
-
-Files: `crates/calcite-core/src/pattern/replicated_body.rs` (~750 LoC
-incl. tests), `compile.rs` (Op::ReplicatedBody variant, eval arms in 3
-runners, `recognise_replicated_bodies` pass).
+Calcite-engine work. Logged in `../calcite/docs/log.md` 2026-04-28.
 
 ## 2026-04-28 — XLAT segment-override fix (kiln correctness)
 
