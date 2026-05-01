@@ -1,0 +1,98 @@
+<!doctype html>
+<!--
+  tests/bench/page/index.html — bench harness page.
+
+  This is NOT the player. It's a development tool. Full JS allowed.
+  Calcite-wasm runs in a worker (heavy compile blocks UI thread).
+
+  The page accepts a profile name in ?profile=NAME. The driver
+  (../driver/run.mjs) navigates here via Playwright, the page reads
+  the profile, runs it, and reports results back via the page's
+  __benchResult global (the driver poll-reads it).
+
+  Profiles compose calcite-core's measurement primitives (registered
+  via the new --watch / engine.registerWatch API in Chunk D) and emit
+  named MeasurementEvents. The driver consumes those events.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS-DOS bench harness</title>
+<style>
+  body { font-family: monospace; background: #111; color: #ccc; padding: 1em; }
+  h1   { color: #4af; font-size: 1em; margin: 0 0 .5em 0; }
+  .log { background: #000; border: 1px solid #333; padding: .5em;
+         max-height: 80vh; overflow-y: auto; white-space: pre-wrap; }
+  .log .err  { color: #f88; }
+  .log .ok   { color: #8f8; }
+  .log .info { color: #aaa; }
+  .meta      { color: #666; font-size: .9em; margin-top: 1em; }
+</style>
+</head>
+<body>
+<h1 id="title">bench harness — loading...</h1>
+<div class="log" id="log"></div>
+<div class="meta" id="meta"></div>
+
+<script type="module">
+  // tests/bench/page/index.html — page-side bench runner.
+  //
+  // Reads ?profile=NAME, dynamically imports the profile module, runs
+  // it, reports results to window.__benchResult.
+
+  const params = new URLSearchParams(location.search);
+  const profileName = params.get('profile') ?? 'doom-loading';
+
+  const $log   = document.getElementById('log');
+  const $title = document.getElementById('title');
+  const $meta  = document.getElementById('meta');
+
+  function log(msg, cls = 'info') {
+    const line = document.createElement('div');
+    line.className = cls;
+    line.textContent = `[${(performance.now() / 1000).toFixed(2)}s] ${msg}`;
+    $log.appendChild(line);
+    $log.scrollTop = $log.scrollHeight;
+  }
+
+  $title.textContent = `bench: ${profileName}`;
+  log(`profile: ${profileName}`);
+
+  // Dynamic import of the profile module. Profiles live under
+  // /tests/bench/profiles/ (served by the dev server's /tests/ alias
+  // → web/tests/, plus the harness has its own /tests/bench/ alias).
+  let profile;
+  try {
+    profile = await import(`/bench/profiles/${profileName}.mjs`);
+  } catch (e) {
+    log(`failed to load profile ${profileName}: ${e.message}`, 'err');
+    window.__benchResult = { ok: false, error: `profile-load: ${e.message}` };
+    throw e;
+  }
+
+  if (typeof profile.run !== 'function') {
+    log(`profile ${profileName} has no run() export`, 'err');
+    window.__benchResult = { ok: false, error: 'profile has no run()' };
+    throw new Error('no run');
+  }
+
+  // Provide a small host context to the profile.
+  const host = {
+    log,
+    setMeta(obj) { $meta.textContent = JSON.stringify(obj, null, 2); },
+    profileName,
+  };
+
+  try {
+    const result = await profile.run(host);
+    window.__benchResult = { ok: true, ...result };
+    log(`profile complete`, 'ok');
+    $title.textContent = `bench: ${profileName} — done`;
+  } catch (e) {
+    log(`profile threw: ${e.message}`, 'err');
+    window.__benchResult = { ok: false, error: e.message, stack: e.stack };
+    $title.textContent = `bench: ${profileName} — FAILED`;
+  }
+</script>
+</body>
+</html>

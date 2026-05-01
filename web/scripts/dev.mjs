@@ -50,6 +50,8 @@ const ALIASES = [
   // /player/ and /shim/ resolve under web/ — see Chunk C of cleanup-2026-05-01.
   ['/player/',          resolve(__dirname, '..', 'player')],
   ['/shim/',            resolve(__dirname, '..', 'shim')],
+  // /bench/ — the bench harness (Chunk E). Page + profiles + lib.
+  ['/bench/',           resolve(repoRoot, 'tests', 'bench')],
   ['/presets/',         resolve(repoRoot, 'builder', 'presets')],
   ['/calcite/',         resolve(calciteRoot, 'web')],
   ['/tests/',           resolve(__dirname, '..', 'tests')],
