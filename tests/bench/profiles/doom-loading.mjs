@@ -32,17 +32,39 @@ const TEXT_VRAM_BYTES = 4000;
 // `_g_usergame=1` so it doesn't false-fire on engine-zero memory at
 // tick 0 (GS_LEVEL=0 matches a zero byte; usergame distinguishes
 // "engine just started" from "level loaded").
+// Doom8088 won't progress past title or main menu without keyboard
+// input. The CLI bench injects Enter keypresses at the right moments
+// using `setvar=keyboard,0x1c0d` (Enter scancode<<8|ascii). The
+// stage-detector watches that need keyboard advancement also emit a
+// setvar action, so detection and progression are atomic.
+const ENTER = '0x1C0D';
+
+// Doom8088 needs keyboard-spam on title and menu screens (Enter to
+// dismiss the splash; Enter to confirm "New Game" + skill picks). The
+// cabinet's --keyboard property edge-detects make/break, so a single
+// setvar=keyboard,KEY isn't enough — we need press/release cycles.
+//
+// Strategy: stage detectors emit + flip a sentinel byte we then watch
+// for via a `cond:repeat` burst that alternates make→break. But the
+// CLI primitives don't have a "fire on every Nth tick after another
+// watch fires" composition. Simpler: use raw burst+stride watches
+// gated on stages, and let them spam.
+//
+// For now: title spams Enter every 100K ticks once detected.
 const WATCH_SPECS = [
   'poll:stride:every=50000',
-  // text_drdos / text_doom — text VRAM (char,attr) needles; stride=2.
   `text_drdos:cond:${ADDR_BDA_MODE}=0x03,pattern@${ADDR_TEXT_VRAM}:2:${TEXT_VRAM_BYTES}=DR-DOS:gate=poll:then=emit`,
   `text_doom:cond:${ADDR_BDA_MODE}=0x03,pattern@${ADDR_TEXT_VRAM}:2:${TEXT_VRAM_BYTES}=DOOM8088:gate=poll:then=emit`,
-  // Mode-13h stages. BDA mode 0x13 distinguishes from text-mode boot.
+  // Stage detector — fires once on rising edge.
   `title:cond:${ADDR_MENUACTIVE}=0,${ADDR_GAMESTATE}=3,${ADDR_BDA_MODE}=0x13:gate=poll:then=emit`,
+  // Title-spam: while title is up, press/release Enter every 200K ticks.
+  // Burst gives us K consecutive ticks of fire — alternate between
+  // make (0x1c0d) and break (0) using two strides.
+  `title_press:cond:${ADDR_MENUACTIVE}=0,${ADDR_GAMESTATE}=3,${ADDR_BDA_MODE}=0x13,repeat:gate=poll:then=setvar=keyboard,${ENTER}`,
   `menu:cond:${ADDR_MENUACTIVE}=1:gate=poll:then=emit`,
+  // Menu-spam: while in menu, repeatedly press Enter.
+  `menu_press:cond:${ADDR_MENUACTIVE}=1,repeat:gate=poll:then=setvar=keyboard,${ENTER}`,
   `loading:cond:${ADDR_USERGAME}=1,${ADDR_GAMESTATE}=3:gate=poll:then=emit`,
-  // ingame: usergame=1 (level-load fired) AND gamestate=0 (GS_LEVEL).
-  // Without usergame, this would trip on tick 0's all-zero memory.
   `ingame:cond:${ADDR_USERGAME}=1,${ADDR_GAMESTATE}=0:gate=poll:then=emit+halt`,
 ];
 
