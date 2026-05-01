@@ -107,7 +107,14 @@ console.log(JSON.stringify(result, null, 2));
 async function runWeb(profileName, port, headed) {
   // Lazy-load chromium with the same fallback bench-doom-stages.mjs uses.
   const { chromium } = await loadChromium();
-  const browser = await chromium.launch({ headless: !headed });
+  const launchOpts = { headless: !headed };
+  // On Windows, Playwright's bundled chromium isn't always installed —
+  // fall back to system Chrome (same shape bench-doom-stages.mjs uses).
+  const sysChrome = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+  if (process.platform === 'win32' && existsSync(sysChrome)) {
+    launchOpts.executablePath = sysChrome;
+  }
+  const browser = await chromium.launch(launchOpts);
   const ctx = await browser.newContext({ viewport: { width: 1024, height: 700 } });
   const page = await ctx.newPage();
 
