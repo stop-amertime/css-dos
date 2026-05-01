@@ -2,17 +2,12 @@
 <!--
   tests/bench/page/index.html — bench harness page.
 
-  This is NOT the player. It's a development tool. Full JS allowed.
-  Calcite-wasm runs in a worker (heavy compile blocks UI thread).
+  Not the player. Full JS allowed. Calcite-wasm runs in the bridge
+  worker (web/shim/calcite-bridge.js) which we spawn here.
 
-  The page accepts a profile name in ?profile=NAME. The driver
-  (../driver/run.mjs) navigates here via Playwright, the page reads
-  the profile, runs it, and reports results back via the page's
-  __benchResult global (the driver poll-reads it).
-
-  Profiles compose calcite-core's measurement primitives (registered
-  via the new --watch / engine.registerWatch API in Chunk D) and emit
-  named MeasurementEvents. The driver consumes those events.
+  Reads ?profile=NAME, dynamically imports the profile module, runs
+  it. Profile uses window.__bridgeWorker to drive the engine.
+  Result lands at window.__benchResult; the driver polls.
 -->
 <html>
 <head>
@@ -35,13 +30,11 @@
 <div class="meta" id="meta"></div>
 
 <script type="module">
-  // tests/bench/page/index.html — page-side bench runner.
-  //
-  // Reads ?profile=NAME, dynamically imports the profile module, runs
-  // it, reports results to window.__benchResult.
+  import { buildCabinetInBrowser } from '/browser-builder/main.mjs';
 
   const params = new URLSearchParams(location.search);
   const profileName = params.get('profile') ?? 'doom-loading';
+  const cartParam   = params.get('cart');  // override profile.manifest.cart
 
   const $log   = document.getElementById('log');
   const $title = document.getElementById('title');
@@ -58,9 +51,38 @@
   $title.textContent = `bench: ${profileName}`;
   log(`profile: ${profileName}`);
 
-  // Dynamic import of the profile module. Profiles live under
-  // /tests/bench/profiles/ (served by the dev server's /tests/ alias
-  // → web/tests/, plus the harness has its own /tests/bench/ alias).
+  // 1. Register the service worker (provides the bridge fan-out
+  //    plumbing). The bench doesn't need /_stream/fb but it does need
+  //    the SW to claim the page so the bridge can register its port.
+  const swReg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+  await navigator.serviceWorker.ready;
+  if (!navigator.serviceWorker.controller) {
+    await new Promise((res) => {
+      navigator.serviceWorker.addEventListener('controllerchange', res, { once: true });
+      setTimeout(() => navigator.serviceWorker.controller && res(), 100);
+    });
+  }
+  log('service worker ready');
+
+  // 2. Spawn the bridge worker and register its SW port.
+  const bridge = new Worker('/shim/calcite-bridge.js', { type: 'module' });
+  window.__bridgeWorker = bridge;
+  bridge.addEventListener('message', (ev) => {
+    const d = ev.data;
+    if (d?.type === 'status') log('[bridge] ' + d.message);
+  });
+  bridge.addEventListener('error', (ev) => {
+    log('[bridge error] ' + (ev.message || ev), 'err');
+  });
+  const swCh = new MessageChannel();
+  bridge.postMessage({ type: 'sw-port' }, [swCh.port1]);
+  const sw = navigator.serviceWorker.controller || swReg.active;
+  if (sw) {
+    sw.postMessage({ type: 'register-calcite-bridge' }, [swCh.port2]);
+  }
+  log('bridge worker spawned');
+
+  // 3. Load the profile.
   let profile;
   try {
     profile = await import(`/bench/profiles/${profileName}.mjs`);
@@ -69,18 +91,56 @@
     window.__benchResult = { ok: false, error: `profile-load: ${e.message}` };
     throw e;
   }
-
   if (typeof profile.run !== 'function') {
     log(`profile ${profileName} has no run() export`, 'err');
     window.__benchResult = { ok: false, error: 'profile has no run()' };
     throw new Error('no run');
   }
 
-  // Provide a small host context to the profile.
+  // 4. Build the cart in-browser (or load a pre-built cabinet) and
+  //    hand the bytes to the bridge. The driver has already ensureFresh'd
+  //    the cabinet on disk; we fetch it via /cabinets/<cart>.css.
+  // For now: if the profile names a cart, we build it here. Else
+  // bridge waits for cabinet-blob from the profile.run() itself.
+  const cartName = cartParam || profile.manifest.cabinet?.replace(/^cabinet:/, '');
+  if (cartName) {
+    log(`fetching pre-built cabinet for ${cartName}`);
+    const compileT0 = performance.now();
+    // The driver already ensureFresh'd it under tests/bench/cache/<name>.css.
+    // The dev server's /tests/ alias serves repo-relative tests/.
+    const url = `/bench/cache/${cartName}.css`;
+    const r = await fetch(url);
+    if (!r.ok) {
+      const err = `cabinet fetch ${url} → ${r.status}`;
+      log(err, 'err');
+      window.__benchResult = { ok: false, error: err };
+      throw new Error(err);
+    }
+    const blob = await r.blob();
+    log(`fetched ${(blob.size / 1024 / 1024).toFixed(1)} MB cabinet`);
+    bridge.postMessage({ type: 'cabinet-blob', blob });
+    log('cabinet-blob posted to bridge; waiting for compile-done');
+    // The bridge broadcasts compile-done over the cssdos-bridge-stats
+    // BroadcastChannel — not a direct postMessage. Listen there.
+    await new Promise((resolve) => {
+      const ch = new BroadcastChannel('cssdos-bridge-stats');
+      ch.onmessage = (ev) => {
+        const d = ev.data;
+        if (d?.type === 'compile-done') {
+          ch.close();
+          log(`compile-done in ${Math.round(d.compileMs)} ms (cabinetBytes=${d.cabinetBytes})`);
+          resolve();
+        }
+      };
+    });
+  }
+
+  // 5. Run the profile.
   const host = {
     log,
     setMeta(obj) { $meta.textContent = JSON.stringify(obj, null, 2); },
     profileName,
+    bridge,
   };
 
   try {

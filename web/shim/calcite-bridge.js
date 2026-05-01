@@ -101,6 +101,11 @@ const KEY_GAP_BATCHES = 2;
 // level can capture it without walking the iframe → worker tree.
 let kbdTraceEnabled = false;
 let kbdTraceChannel = null;
+// When non-zero, the tickLoop uses engine.run_batch_watched(batchCount,
+// watchChunkTicks) so registered watches actually poll. Set by the
+// bench harness via 'set-watch-chunk-ticks'. Zero = disabled (player
+// path, no watches → run_batch_silent).
+let watchChunkTicks = 0;
 function kbdTrace(msg) {
   console.log(msg);
   if (!kbdTraceChannel) {
@@ -278,7 +283,15 @@ function tickLoop() {
     // serialization that tick_batch does. The bridge doesn't read the
     // JSON; we observe state via direct get_state_var / read_*
     // calls below.
-    if (engine.run_batch_silent) {
+    if (watchChunkTicks > 0 && engine.run_batch_watched) {
+      // Bench-harness path: watch registry polls every watchChunkTicks
+      // engine ticks. Halts the loop if a watch's halt action fires.
+      const halted = engine.run_batch_watched(batchCount, watchChunkTicks);
+      if (halted) {
+        running = false;
+        postStatus('watch-halted');
+      }
+    } else if (engine.run_batch_silent) {
       engine.run_batch_silent(batchCount);
     } else {
       engine.tick_batch(batchCount);
@@ -637,6 +650,59 @@ self.onmessage = (ev) => {
     } catch (e) {
       ev.ports[0].postMessage({ ok: false, err: String(e) });
     }
+    return;
+  }
+  // Bench-harness watch primitives (calcite-core script layer). Lets
+  // tests/bench/profiles/*.mjs register --watch-shaped specs against
+  // the engine and drain MeasurementEvents. The player path doesn't
+  // touch any of these — they're purely additive.
+  if (d.type === 'register-watch' && engine && ev.ports && ev.ports[0]) {
+    try {
+      const idx = engine.register_watch(d.spec);
+      ev.ports[0].postMessage({ ok: true, watchIndex: idx });
+    } catch (e) {
+      ev.ports[0].postMessage({ ok: false, err: String(e.message || e) });
+    }
+    return;
+  }
+  if (d.type === 'clear-watches' && engine && ev.ports && ev.ports[0]) {
+    try {
+      engine.clear_watches();
+      ev.ports[0].postMessage({ ok: true });
+    } catch (e) {
+      ev.ports[0].postMessage({ ok: false, err: String(e) });
+    }
+    return;
+  }
+  if (d.type === 'drain-measurements' && engine && ev.ports && ev.ports[0]) {
+    try {
+      const json = engine.drain_measurements();
+      ev.ports[0].postMessage({ ok: true, events: json });
+    } catch (e) {
+      ev.ports[0].postMessage({ ok: false, err: String(e) });
+    }
+    return;
+  }
+  if (d.type === 'set-watch-chunk-ticks') {
+    // When non-zero, the tickLoop uses run_batch_watched(...) instead
+    // of run_batch_silent so the watch registry actually polls. Caller
+    // typically picks 50_000 (matches the CLI default) or smaller for
+    // tighter cond resolution.
+    watchChunkTicks = (d.chunkTicks | 0) || 0;
+    return;
+  }
+  if (d.type === 'bench-run' && engine) {
+    // Bench-mode entry: skip the viewer-connected dance (no /_stream/fb
+    // is being fetched by the bench page). Just start the tick loop.
+    // Caller typically registers watches first; the watch-driven loop
+    // runs until a halt action fires.
+    startRunning();
+    return;
+  }
+  if (d.type === 'bench-stop') {
+    // Stop the tick loop without touching engine state. The bench
+    // profile may want to inspect/snapshot before tearing down.
+    running = false;
     return;
   }
   if (d.type === 'cabinet-blob' && d.blob) {
