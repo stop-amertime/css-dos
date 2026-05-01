@@ -71,26 +71,54 @@ let batchMsEma = TARGET_MS;
 // hash is unchanged — kills duplicate paints when the cabinet hasn't
 // produced a new frame this poll.
 let lastFrameHash = 0;
-// Pending key-release: when the SW posts a `kbd` press we want to send
-// the release ~100 ms wall-time later, but build.html is a background
-// tab and Chrome throttles setTimeout in background-tab-owned workers
-// to ~1 Hz. Releases would arrive seconds late or pile up behind fresh
-// presses, leaving DOOM in "key held forever" state. Drive releases
-// off the tickLoop instead — it already runs at full speed via
-// MessageChannel. Counts down on each tickLoop iteration; when it hits
-// zero we issue set_keyboard(0). KEY_HOLD_BATCHES is calibrated so that
-// at typical batch wall-time (~33ms) the release lands ~100ms after
-// press, but the unit is batches not ms, so a batch slowdown can't
-// stretch the hold indefinitely.
-let pendingReleaseBatches = 0;
-const KEY_HOLD_BATCHES = 3;
+// Keyboard input queue, drained by the tickLoop.
+//
+// Why a queue. Two presses arriving within the press-hold window can't
+// be merged into one held key — the cabinet's edge detector only fires
+// `_kbdPress` on a 0→non-zero transition. So if the user mashes LEFT
+// at 5/sec, presses overlap, the second click writes 0x4B00 again
+// while the first is still held, the cabinet sees no edge, and the
+// click is lost. Result: long hold instead of N taps.
+//
+// Fix: buffer presses; the tickLoop walks each through the cycle
+// {hold N batches at value, gap M batches at 0} so every press
+// produces a real 0→N→0 transition. KEY_HOLD_BATCHES is the press
+// hold; KEY_GAP_BATCHES is the trailing 0-tick gap before the next
+// queued press fires (must be ≥ 1 so the edge detector resets).
+//
+// Driven off tickLoop instead of setTimeout because build.html is a
+// background tab and Chrome throttles setTimeout there to ~1 Hz.
+const keyQueue = [];
+let currentHoldBatches = 0;     // > 0 while a press is being held
+let currentGapBatches = 0;      // > 0 during the trailing 0-tick gap
+const KEY_HOLD_BATCHES = 8;
+const KEY_GAP_BATCHES = 2;
+// Trace toggle. Off by default — Playwright tests flip it on via the
+// 'kbd-trace' message type. Logs on (a) message receipt, (b) drainer
+// dispatch, (c) drainer release. Lets you measure click→engine.set_keyboard
+// latency separate from any cabinet-side delay.
+//
+// Trace output goes to console.log (visible in DevTools / page-attached
+// consoles) AND to a BroadcastChannel so Playwright tests at the page
+// level can capture it without walking the iframe → worker tree.
+let kbdTraceEnabled = false;
+let kbdTraceChannel = null;
+function kbdTrace(msg) {
+  console.log(msg);
+  if (!kbdTraceChannel) {
+    try { kbdTraceChannel = new BroadcastChannel('cssdos-kbd-trace'); } catch {}
+  }
+  if (kbdTraceChannel) {
+    try { kbdTraceChannel.postMessage(msg); } catch {}
+  }
+}
 
 // ---------- Bootstrap ----------
 
 // Canary — bump this when you change this file so you can confirm the
 // browser is actually serving the new version. Shows up in every status
 // line so it's impossible to miss in the console.
-const BRIDGE_VERSION = 'v43-tick-driven-release';
+const BRIDGE_VERSION = 'v45-kbd-trace';
 
 async function boot() {
   postStatus(`bridge boot ${BRIDGE_VERSION}`);
@@ -193,6 +221,9 @@ function resetMachine() {
   batchCount = MIN_BATCH;
   batchMsEma = TARGET_MS;
   lastFrameHash = 0;
+  keyQueue.length = 0;
+  currentHoldBatches = 0;
+  currentGapBatches = 0;
   // Tear down the existing stats interval so no stale stats sample
   // (with the previous run's cycleCount) leaks through to a viewer
   // that reconnects on top of an existing bridge. startStatsInterval
@@ -219,12 +250,28 @@ function postStatus(msg) {
 
 function tickLoop() {
   if (!running || !engine) return;
-  // Drive any pending key-release off the tick loop, not setTimeout —
-  // see pendingReleaseBatches comment.
-  if (pendingReleaseBatches > 0) {
-    pendingReleaseBatches--;
-    if (pendingReleaseBatches === 0) {
+  // Drain the key queue. Each press follows the cycle:
+  // hold (KEY_HOLD_BATCHES at value) → gap (KEY_GAP_BATCHES at 0).
+  // The trailing gap guarantees the next queued press, even if it's
+  // the same key, produces a fresh 0→N edge that the CSS edge detector
+  // can fire `_kbdPress` for.
+  if (currentHoldBatches > 0) {
+    currentHoldBatches--;
+    if (currentHoldBatches === 0) {
       try { engine.set_keyboard(0); } catch {}
+      currentGapBatches = KEY_GAP_BATCHES;
+      if (kbdTraceEnabled) kbdTrace(`[kbd-trace] release wallMs=${performance.now().toFixed(1)}`);
+    }
+  } else if (currentGapBatches > 0) {
+    currentGapBatches--;
+  } else if (keyQueue.length > 0) {
+    const v = keyQueue.shift();
+    try { engine.set_keyboard(v); } catch {}
+    currentHoldBatches = KEY_HOLD_BATCHES;
+    if (kbdTraceEnabled) {
+      const cyc = (engine.get_state_var ? engine.get_state_var('cycleCount') : 0) >>> 0;
+      const tickN = (engine.get_tick ? engine.get_tick() : 0) >>> 0;
+      kbdTrace(`[kbd-trace] dispatch key=0x${v.toString(16)} wallMs=${performance.now().toFixed(1)} cycle=${cyc} tick=${tickN} qlen=${keyQueue.length}`);
     }
   }
   const batchStart = performance.now();
@@ -557,6 +604,11 @@ self.onmessage = (ev) => {
     }
     return;
   }
+  if (d.type === 'kbd-trace') {
+    kbdTraceEnabled = !!d.enabled;
+    kbdTrace(`[kbd-trace] toggle enabled=${kbdTraceEnabled}`);
+    return;
+  }
   if (d.type === 'peek-state' && engine && ev.ports && ev.ports[0]) {
     try {
       const v = engine.get_state_var(d.name);
@@ -624,25 +676,11 @@ self.onmessage = (ev) => {
       const mm = m.data;
       if (!mm || !mm.type) return;
       if (mm.type === 'kbd' && engine) {
-        // Press: write the key value. Release: schedule a set_keyboard(0)
-        // after a short hold so the cabinet sees both edges. Without the
-        // release edge, --_kbdRelease never fires (so DOOM never sees a
-        // break code, and a follow-up press of the SAME key produces no
-        // 0→non-zero edge → no IRQ 1 → silently dropped). Programs that
-        // poll INT 16h via the BDA buffer (the corduroy ISR appends on
-        // press) would also miss subsequent identical keys.
-        //
-        // 100 ms wall-time matches a fast typist's keypress and is well
-        // above any sane polling interval. The CSS edge-detection runs
-        // every tick, so even a single CSS tick of `--keyboard != 0`
-        // followed by `--keyboard == 0` is enough to fire the press IRQ
-        // and the release IRQ in turn — but DOOM's ISR queues the scan
-        // code and `I_StartTic()` (which drains the queue into events)
-        // runs on the next game tick, so we want enough wall-time for
-        // at least one game tick (~28 ms at 36 fps) before release.
+        // Enqueue; the tickLoop drainer walks each press through its
+        // hold/gap cycle so rapid-fire clicks each produce a real edge.
         const v = mm.key | 0;
-        engine.set_keyboard(v);
-        pendingReleaseBatches = KEY_HOLD_BATCHES;
+        if (kbdTraceEnabled) kbdTrace(`[kbd-trace] recv key=0x${v.toString(16)} wallMs=${performance.now().toFixed(1)} qlen=${keyQueue.length}`);
+        keyQueue.push(v);
       } else if (mm.type === 'viewer-connected') {
         // New viewer opened the stream. Three entry paths:
         //  - Eager-mode build, engine ready: reset + tick — Play is instant.
