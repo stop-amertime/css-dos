@@ -94,7 +94,21 @@ should investigate, not bulldoze.
 
 ### Documentation rules
 - **Log findings and progress concisely** in the logbook for future agents.
-Documentation is incredibly important and an unspoken part of working in this repo. This project is particularly silly and dense, across two repos. Documentation must be automatic, without the user asking specifically for it. Documentation must be epistemically honest. Documentation must be frequent and concise - tokens add up if you waffle. 
+Documentation is incredibly important and an unspoken part of working in this repo. This project is particularly silly and dense, across two repos. Documentation must be automatic, without the user asking specifically for it. Documentation must be epistemically honest. Documentation must be frequent and concise - tokens add up if you waffle.
+
+### Logbook discipline (which logbook for what)
+
+- **Calcite engine work** (anything in `../calcite/crates/`) → log in
+  `../calcite/docs/log.md`.
+- **CSS-DOS platform / harness / bench / kiln / builder / BIOS work** →
+  log in `docs/logbook/LOGBOOK.md`.
+- **Cross-cutting** work that touches both repos → log in both, with a
+  cross-link from each to the other.
+
+The natural default for an agent is to write back to the logbook
+auto-loaded by CLAUDE.md (this one). Resist that for calcite work —
+the calcite repo has its own log that the calcite cardinal-rule check
+relies on.
 
 ### Debugging rules
 
