@@ -79,12 +79,14 @@ const outPath = args.out ?? null;
 console.error(`[driver] profile=${profileName} target=${target} port=${port}`);
 
 // ---- Ensure the profile's required artifacts are fresh ----
-// Profile-declared `requires`, plus the target-specific calcite binary
-// (wasm pkg for web, native exe for cli). Without this the CLI bench
-// can run against a stale calcite-cli that doesn't know about flags
-// added since the binary was last built.
+// Profile-declared `requires`, filtered to the target (drop the
+// other target's calcite binary so a CLI run doesn't trigger a wasm
+// rebuild and vice-versa), plus the chosen target's calcite binary.
+const otherTargetArtifact = target === 'cli' ? 'wasm:calcite' : 'cli:calcite';
+const profileRequires = (profile.manifest.requires ?? [])
+  .filter(name => name !== otherTargetArtifact);
 const requiredArtifacts = [
-  ...(profile.manifest.requires ?? []),
+  ...profileRequires,
   target === 'cli' ? 'cli:calcite' : 'wasm:calcite',
 ];
 const seen = new Set();
