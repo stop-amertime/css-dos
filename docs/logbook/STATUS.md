@@ -108,15 +108,16 @@ with any kiln/builder change that moves data).
   SW + viewer-port plumbing the bench page bypasses. Once fixed, the
   legacy `tests/harness/bench-doom-stages*.mjs` scripts retire.
 - **Keyboard input via `:active` (Phase A done, Phase B pending).**
-  Cabinet CSS already emits `.cpu { &:has(#kb-X:active) { --keyboard:N }}`
-  per key (kiln/template.mjs::emitKeyboardRules). Raw player
+  Cabinet CSS emits `.cpu { &:has(#kb-X:active) { --keyboard:N } }`
+  per key (kiln/template.mjs::emitKeyboardRules; 56 rules — full PC
+  layout incl. Ctrl/Shift/Caps/F1–F10/Del). Raw player
   (`web/player/raw.html`) has matching `id=kb-X` buttons and renders
   correctly in Chrome with no JS — verified end-to-end via
   `web/player/experiments/raw-keyboard-probe.mjs`. Calcite player
-  (`calcite.html`) gained matching `id=kb-X` attributes on its
-  `<a class="kb-key">` keyboard. Calcite-core's `0x500` keyboard
-  literal in `eval.rs::property_to_address` is gone. **Pending**:
-  calcite recogniser for `:has(...:pseudo)` edges + generic
+  (`calcite.html`) has a full 6×11 PC keyboard grid + responsive
+  640×400 screen. Calcite-core's `0x500` keyboard literal in
+  `eval.rs::property_to_address` is gone. **Pending**: calcite
+  recogniser for `:has(...:pseudo)` edges + generic
   `engine.set_pseudo_class_active(pseudo, class, value)` API, then
   retire `engine.set_keyboard`. See LOGBOOK 2026-05-05.
 

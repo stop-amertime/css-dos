@@ -271,6 +271,7 @@ const KEYBOARD_KEYS = [
   { id: 'kb-b',     label: 'B',      scancode: 0x30, ascii: 0x62 },
   { id: 'kb-n',     label: 'N',      scancode: 0x31, ascii: 0x6E },
   { id: 'kb-m',     label: 'M',      scancode: 0x32, ascii: 0x6D },
+  { id: 'kb-ctrl',  label: 'Ctrl',   scancode: 0x1D, ascii: 0x00 },
   { id: 'kb-space', label: '\u2423', scancode: 0x39, ascii: 0x20 },
   { id: 'kb-esc',   label: 'Esc',    scancode: 0x01, ascii: 0x1B },
   { id: 'kb-left',  label: '\u2190', scancode: 0x4B, ascii: 0x00 }, // ←
@@ -279,6 +280,19 @@ const KEYBOARD_KEYS = [
   { id: 'kb-right', label: '\u2192', scancode: 0x4D, ascii: 0x00 }, // →
   { id: 'kb-tab',   label: 'Tab',    scancode: 0x0F, ascii: 0x09 },
   { id: 'kb-bksp',  label: 'Bksp',   scancode: 0x0E, ascii: 0x08 },
+  { id: 'kb-shift', label: 'Shift',  scancode: 0x2A, ascii: 0x00 },
+  { id: 'kb-caps',  label: 'Caps',   scancode: 0x3A, ascii: 0x00 },
+  { id: 'kb-del',   label: 'Del',    scancode: 0x53, ascii: 0x00 },
+  { id: 'kb-f1',    label: 'F1',     scancode: 0x3B, ascii: 0x00 },
+  { id: 'kb-f2',    label: 'F2',     scancode: 0x3C, ascii: 0x00 },
+  { id: 'kb-f3',    label: 'F3',     scancode: 0x3D, ascii: 0x00 },
+  { id: 'kb-f4',    label: 'F4',     scancode: 0x3E, ascii: 0x00 },
+  { id: 'kb-f5',    label: 'F5',     scancode: 0x3F, ascii: 0x00 },
+  { id: 'kb-f6',    label: 'F6',     scancode: 0x40, ascii: 0x00 },
+  { id: 'kb-f7',    label: 'F7',     scancode: 0x41, ascii: 0x00 },
+  { id: 'kb-f8',    label: 'F8',     scancode: 0x42, ascii: 0x00 },
+  { id: 'kb-f9',    label: 'F9',     scancode: 0x43, ascii: 0x00 },
+  { id: 'kb-f10',   label: 'F10',    scancode: 0x44, ascii: 0x00 },
 ];
 
 /**

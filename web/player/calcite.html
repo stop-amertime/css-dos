@@ -92,8 +92,9 @@
 
 
     .screen-cell {
-      width: 640px;
-      height: 400px;
+      width: 100%;
+      max-width: 640px;
+      aspect-ratio: 640 / 400;
       border: 1px solid var(--edit-black);
       background-color: var(--edit-black);
       display: flex;
@@ -120,8 +121,10 @@
     }
     .screen {
       display: block;
-      width: 640px;
-      height: 400px;
+      width: 100%;
+      height: 100%;
+      max-width: 640px;
+      max-height: 400px;
       image-rendering: pixelated;
       position: relative;
       z-index: 1;
@@ -153,16 +156,83 @@
       user-select: none;
       width: 100%;
     }
-    .kb-main { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; }
+    .kb-main {
+      display: grid;
+      grid-template-columns: repeat(11, 1fr);
+      grid-template-rows: repeat(6, auto);
+      gap: 4px;
+    }
     .kb-right-stack { display: grid; grid-template-rows: auto 1fr auto; gap: 4px; justify-items: end; }
-    .kb-modifiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+    /* Explicit row placement for the 6-row main keyboard.
+       Row 1: Esc F1..F10 (cols 1..11).
+       Row 2: 1..0 Bksp (cols 1..11).
+       Row 3: Tab Q..P (cols 1..11).
+       Row 4: Caps A..L Enter (cols 1..11).
+       Row 5: Shift Z..slash (cols 1..11).
+       Row 6: Ctrl Space (Ctrl col 1, Space cols 2..-1). */
+    #kb-esc { grid-row: 1; grid-column: 1; }
+    #kb-f1  { grid-row: 1; grid-column: 2; }
+    #kb-f2  { grid-row: 1; grid-column: 3; }
+    #kb-f3  { grid-row: 1; grid-column: 4; }
+    #kb-f4  { grid-row: 1; grid-column: 5; }
+    #kb-f5  { grid-row: 1; grid-column: 6; }
+    #kb-f6  { grid-row: 1; grid-column: 7; }
+    #kb-f7  { grid-row: 1; grid-column: 8; }
+    #kb-f8  { grid-row: 1; grid-column: 9; }
+    #kb-f9  { grid-row: 1; grid-column: 10; }
+    #kb-f10 { grid-row: 1; grid-column: 11; }
+    #kb-1 { grid-row: 2; grid-column: 1; }
+    #kb-2 { grid-row: 2; grid-column: 2; }
+    #kb-3 { grid-row: 2; grid-column: 3; }
+    #kb-4 { grid-row: 2; grid-column: 4; }
+    #kb-5 { grid-row: 2; grid-column: 5; }
+    #kb-6 { grid-row: 2; grid-column: 6; }
+    #kb-7 { grid-row: 2; grid-column: 7; }
+    #kb-8 { grid-row: 2; grid-column: 8; }
+    #kb-9 { grid-row: 2; grid-column: 9; }
+    #kb-0 { grid-row: 2; grid-column: 10; }
+    #kb-bksp { grid-row: 2; grid-column: 11; }
+    #kb-tab { grid-row: 3; grid-column: 1; }
+    #kb-q { grid-row: 3; grid-column: 2; }
+    #kb-w { grid-row: 3; grid-column: 3; }
+    #kb-e { grid-row: 3; grid-column: 4; }
+    #kb-r { grid-row: 3; grid-column: 5; }
+    #kb-t { grid-row: 3; grid-column: 6; }
+    #kb-y { grid-row: 3; grid-column: 7; }
+    #kb-u { grid-row: 3; grid-column: 8; }
+    #kb-i { grid-row: 3; grid-column: 9; }
+    #kb-o { grid-row: 3; grid-column: 10; }
+    #kb-p { grid-row: 3; grid-column: 11; }
+    #kb-caps { grid-row: 4; grid-column: 1; }
+    #kb-a { grid-row: 4; grid-column: 2; }
+    #kb-s { grid-row: 4; grid-column: 3; }
+    #kb-d { grid-row: 4; grid-column: 4; }
+    #kb-f { grid-row: 4; grid-column: 5; }
+    #kb-g { grid-row: 4; grid-column: 6; }
+    #kb-h { grid-row: 4; grid-column: 7; }
+    #kb-j { grid-row: 4; grid-column: 8; }
+    #kb-k { grid-row: 4; grid-column: 9; }
+    #kb-l { grid-row: 4; grid-column: 10; }
+    #kb-enter { grid-row: 4; grid-column: 11; }
+    #kb-shift { grid-row: 5; grid-column: 1; }
+    #kb-z { grid-row: 5; grid-column: 2; }
+    #kb-x { grid-row: 5; grid-column: 3; }
+    #kb-c { grid-row: 5; grid-column: 4; }
+    #kb-v { grid-row: 5; grid-column: 5; }
+    #kb-b { grid-row: 5; grid-column: 6; }
+    #kb-n { grid-row: 5; grid-column: 7; }
+    #kb-m { grid-row: 5; grid-column: 8; }
+    #kb-comma  { grid-row: 5; grid-column: 9; }
+    #kb-period { grid-row: 5; grid-column: 10; }
+    #kb-slash  { grid-row: 5; grid-column: 11; }
+    #kb-ctrl  { grid-row: 6; grid-column: 1; }
+    #kb-space { grid-row: 6; grid-column: 2 / -1; }
     .kb-arrows {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      grid-template-rows: 32px 32px;
+      grid-template-columns: repeat(3, 32px);
       gap: 4px;
-      width: 168px;
       grid-row: 3;
+      justify-self: end;
     }
     /* EDIT-style key buttons: gray bar with a 1-cell black drop shadow. */
     .kb-key {
@@ -187,8 +257,10 @@
       transform: translate(4px, 4px);
       box-shadow: none;
     }
-    .kb-enter { background: #ffff55; }
-    .kb-space { grid-column: 1 / -1; height: 24px; }
+    .kb-enter { background: #ffff55; font-size: 11px; }
+    .kb-space { height: 24px; }
+    .kb-mod, .kb-num, .kb-fn { font-size: 11px; }
+    #kb-ctrl  { height: 24px; }
     .kb-up    { grid-column: 2; grid-row: 1; }
     .kb-left  { grid-column: 1; grid-row: 2; }
     .kb-down  { grid-column: 2; grid-row: 2; }
@@ -226,16 +298,28 @@
       </div>
       <div class="keyboard">
         <div class="kb-main">
-          <a id="kb-1" class="kb-key" href="/_kbd?key=0x0231" target="kbd-sink">1</a>
-          <a id="kb-2" class="kb-key" href="/_kbd?key=0x0332" target="kbd-sink">2</a>
-          <a id="kb-3" class="kb-key" href="/_kbd?key=0x0433" target="kbd-sink">3</a>
-          <a id="kb-4" class="kb-key" href="/_kbd?key=0x0534" target="kbd-sink">4</a>
-          <a id="kb-5" class="kb-key" href="/_kbd?key=0x0635" target="kbd-sink">5</a>
-          <a id="kb-6" class="kb-key" href="/_kbd?key=0x0736" target="kbd-sink">6</a>
-          <a id="kb-7" class="kb-key" href="/_kbd?key=0x0837" target="kbd-sink">7</a>
-          <a id="kb-8" class="kb-key" href="/_kbd?key=0x0938" target="kbd-sink">8</a>
-          <a id="kb-9" class="kb-key" href="/_kbd?key=0x0A39" target="kbd-sink">9</a>
-          <a id="kb-0" class="kb-key" href="/_kbd?key=0x0B30" target="kbd-sink">0</a>
+          <a id="kb-f1"  class="kb-key kb-fn"  href="/_kbd?key=0x3B00" target="kbd-sink">F1</a>
+          <a id="kb-f2"  class="kb-key kb-fn"  href="/_kbd?key=0x3C00" target="kbd-sink">F2</a>
+          <a id="kb-f3"  class="kb-key kb-fn"  href="/_kbd?key=0x3D00" target="kbd-sink">F3</a>
+          <a id="kb-f4"  class="kb-key kb-fn"  href="/_kbd?key=0x3E00" target="kbd-sink">F4</a>
+          <a id="kb-f5"  class="kb-key kb-fn"  href="/_kbd?key=0x3F00" target="kbd-sink">F5</a>
+          <a id="kb-f6"  class="kb-key kb-fn"  href="/_kbd?key=0x4000" target="kbd-sink">F6</a>
+          <a id="kb-f7"  class="kb-key kb-fn"  href="/_kbd?key=0x4100" target="kbd-sink">F7</a>
+          <a id="kb-f8"  class="kb-key kb-fn"  href="/_kbd?key=0x4200" target="kbd-sink">F8</a>
+          <a id="kb-f9"  class="kb-key kb-fn"  href="/_kbd?key=0x4300" target="kbd-sink">F9</a>
+          <a id="kb-f10" class="kb-key kb-fn"  href="/_kbd?key=0x4400" target="kbd-sink">F10</a>
+          <a id="kb-esc" class="kb-key kb-mod" href="/_kbd?key=0x011B" target="kbd-sink">Esc</a>
+          <a id="kb-1" class="kb-key kb-num" href="/_kbd?key=0x0231" target="kbd-sink">1</a>
+          <a id="kb-2" class="kb-key kb-num" href="/_kbd?key=0x0332" target="kbd-sink">2</a>
+          <a id="kb-3" class="kb-key kb-num" href="/_kbd?key=0x0433" target="kbd-sink">3</a>
+          <a id="kb-4" class="kb-key kb-num" href="/_kbd?key=0x0534" target="kbd-sink">4</a>
+          <a id="kb-5" class="kb-key kb-num" href="/_kbd?key=0x0635" target="kbd-sink">5</a>
+          <a id="kb-6" class="kb-key kb-num" href="/_kbd?key=0x0736" target="kbd-sink">6</a>
+          <a id="kb-7" class="kb-key kb-num" href="/_kbd?key=0x0837" target="kbd-sink">7</a>
+          <a id="kb-8" class="kb-key kb-num" href="/_kbd?key=0x0938" target="kbd-sink">8</a>
+          <a id="kb-9" class="kb-key kb-num" href="/_kbd?key=0x0A39" target="kbd-sink">9</a>
+          <a id="kb-0" class="kb-key kb-num" href="/_kbd?key=0x0B30" target="kbd-sink">0</a>
+          <a id="kb-bksp" class="kb-key kb-mod" href="/_kbd?key=0x0E08" target="kbd-sink">Bksp</a>
           <a id="kb-q" class="kb-key" href="/_kbd?key=0x1071" target="kbd-sink">Q</a>
           <a id="kb-w" class="kb-key" href="/_kbd?key=0x1177" target="kbd-sink">W</a>
           <a id="kb-e" class="kb-key" href="/_kbd?key=0x1265" target="kbd-sink">E</a>
@@ -246,6 +330,8 @@
           <a id="kb-i" class="kb-key" href="/_kbd?key=0x1769" target="kbd-sink">I</a>
           <a id="kb-o" class="kb-key" href="/_kbd?key=0x186F" target="kbd-sink">O</a>
           <a id="kb-p" class="kb-key" href="/_kbd?key=0x1970" target="kbd-sink">P</a>
+          <a id="kb-tab" class="kb-key kb-mod" href="/_kbd?key=0x0F09" target="kbd-sink">Tab</a>
+          <a id="kb-caps" class="kb-key kb-mod" href="/_kbd?key=0x3A00" target="kbd-sink">Caps</a>
           <a id="kb-a" class="kb-key" href="/_kbd?key=0x1E61" target="kbd-sink">A</a>
           <a id="kb-s" class="kb-key" href="/_kbd?key=0x1F73" target="kbd-sink">S</a>
           <a id="kb-d" class="kb-key" href="/_kbd?key=0x2064" target="kbd-sink">D</a>
@@ -256,6 +342,7 @@
           <a id="kb-k" class="kb-key" href="/_kbd?key=0x256B" target="kbd-sink">K</a>
           <a id="kb-l" class="kb-key" href="/_kbd?key=0x266C" target="kbd-sink">L</a>
           <a id="kb-enter" class="kb-key kb-enter" href="/_kbd?key=0x1C0D" target="kbd-sink">Enter</a>
+          <a id="kb-shift" class="kb-key kb-mod" href="/_kbd?key=0x2A00" target="kbd-sink">Shift</a>
           <a id="kb-z" class="kb-key" href="/_kbd?key=0x2C7A" target="kbd-sink">Z</a>
           <a id="kb-x" class="kb-key" href="/_kbd?key=0x2D78" target="kbd-sink">X</a>
           <a id="kb-c" class="kb-key" href="/_kbd?key=0x2E63" target="kbd-sink">C</a>
@@ -263,17 +350,13 @@
           <a id="kb-b" class="kb-key" href="/_kbd?key=0x3062" target="kbd-sink">B</a>
           <a id="kb-n" class="kb-key" href="/_kbd?key=0x316E" target="kbd-sink">N</a>
           <a id="kb-m" class="kb-key" href="/_kbd?key=0x326D" target="kbd-sink">M</a>
-          <a class="kb-key" href="/_kbd?key=0x332C" target="kbd-sink">,</a>
-          <a class="kb-key" href="/_kbd?key=0x342E" target="kbd-sink">.</a>
-          <a class="kb-key" href="/_kbd?key=0x352F" target="kbd-sink">/</a>
+          <a id="kb-comma"  class="kb-key" href="/_kbd?key=0x332C" target="kbd-sink">,</a>
+          <a id="kb-period" class="kb-key" href="/_kbd?key=0x342E" target="kbd-sink">.</a>
+          <a id="kb-slash"  class="kb-key" href="/_kbd?key=0x352F" target="kbd-sink">/</a>
+          <a id="kb-ctrl" class="kb-key kb-mod" href="/_kbd?key=0x1D00" target="kbd-sink">Ctrl</a>
           <a id="kb-space" class="kb-key kb-space" href="/_kbd?key=0x3920" target="kbd-sink">&#x2423;</a>
         </div>
         <div class="kb-right-stack">
-          <div class="kb-modifiers">
-            <a id="kb-esc" class="kb-key" href="/_kbd?key=0x011B" target="kbd-sink">Esc</a>
-            <a id="kb-tab" class="kb-key" href="/_kbd?key=0x0F09" target="kbd-sink">Tab</a>
-            <a id="kb-bksp" class="kb-key" href="/_kbd?key=0x0E08" target="kbd-sink">Bksp</a>
-          </div>
           <div class="kb-arrows">
             <a id="kb-up"    class="kb-key kb-arrow kb-up"    href="/_kbd?key=0x4800" target="kbd-sink">&#x2191;</a>
             <a id="kb-left"  class="kb-key kb-arrow kb-left"  href="/_kbd?key=0x4B00" target="kbd-sink">&#x2190;</a>
