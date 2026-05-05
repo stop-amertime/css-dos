@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>pseudo-active API probe</title></head>
+<body>
+<h1>pseudo-active API probe</h1>
+<pre id="out">running…</pre>
+<script type="module">
+const out = document.getElementById('out');
+const log = (s) => out.textContent += s + '\n';
+try {
+  log('Loading wasm…');
+  const mod = await import('/calcite/pkg/calcite_wasm.js');
+  await mod.default();
+
+  // Tiny cabinet with two @property slots and two input-edge rules.
+  // The --opcode slot exists so rep_fast_forward's read finds a value
+  // (initial 0 → "not a string op" → silent return). The cabinet has
+  // no flat assignments; calcite's recogniser drives --keyboard purely
+  // from input edges.
+  const css = `
+    @property --keyboard { syntax: "<integer>"; initial-value: 0; inherits: true; }
+    @property --opcode   { syntax: "<integer>"; initial-value: 0; inherits: true; }
+    .cpu {
+      &:has(#kb-1:active) { --keyboard: 561; }
+      &:has(#kb-a:active) { --keyboard: 7777; }
+    }
+  `;
+
+  const engine = new mod.CalciteEngine(css);
+  log('Engine constructed.');
+
+  const edges = engine.input_edges();
+  log('input_edges() returned ' + edges.length + ' edges:');
+  for (const e of edges) {
+    log('  ' + JSON.stringify(e));
+  }
+
+  // tick once: nothing pressed → 0
+  engine.tick_batch(1);
+  let kb = engine.get_state_var('keyboard');
+  log('after tick, no press: keyboard=' + kb);
+  if (kb !== 0) throw new Error('expected 0 with no press');
+
+  // press kb-1, tick, expect 561
+  engine.set_pseudo_class_active('active', 'kb-1', true);
+  engine.tick_batch(1);
+  kb = engine.get_state_var('keyboard');
+  log('after press kb-1, tick: keyboard=' + kb);
+  if (kb !== 561) throw new Error('expected 561 with kb-1 active');
+
+  // also press kb-a, tick, expect 8338 (561+7777)
+  engine.set_pseudo_class_active('active', 'kb-a', true);
+  engine.tick_batch(1);
+  kb = engine.get_state_var('keyboard');
+  log('after also press kb-a, tick: keyboard=' + kb);
+  if (kb !== 8338) throw new Error('expected 8338 with both active');
+
+  // release both, expect 0
+  engine.set_pseudo_class_active('active', 'kb-1', false);
+  engine.set_pseudo_class_active('active', 'kb-a', false);
+  engine.tick_batch(1);
+  kb = engine.get_state_var('keyboard');
+  log('after release both, tick: keyboard=' + kb);
+  if (kb !== 0) throw new Error('expected 0 after release');
+
+  log('\nALL PASS ✓');
+  document.title = 'PASS';
+} catch (e) {
+  log('\nFAIL: ' + e.message);
+  log(e.stack);
+  document.title = 'FAIL';
+}
+</script>
+</body>
+</html>

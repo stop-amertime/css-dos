@@ -107,19 +107,23 @@ with any kiln/builder change that moves data).
   bridge tickloop doesn't progress after `bench-run`. Likely
   SW + viewer-port plumbing the bench page bypasses. Once fixed, the
   legacy `tests/harness/bench-doom-stages*.mjs` scripts retire.
-- **Keyboard input via `:active` (Phase A done, Phase B pending).**
+- **Keyboard input via `:active` (Phases A + B done).**
   Cabinet CSS emits `.cpu { &:has(#kb-X:active) { --keyboard:N } }`
-  per key (kiln/template.mjs::emitKeyboardRules; 56 rules — full PC
-  layout incl. Ctrl/Shift/Caps/F1–F10/Del). Raw player
-  (`web/player/raw.html`) has matching `id=kb-X` buttons and renders
-  correctly in Chrome with no JS — verified end-to-end via
+  per key (kiln/template.mjs; 56 rules — full PC layout incl.
+  Ctrl/Shift/Caps/F1–F10/Del). Raw player (`web/player/raw.html`)
+  works no-JS in Chrome — verified via
   `web/player/experiments/raw-keyboard-probe.mjs`. Calcite player
   (`calcite.html`) has a full 6×11 PC keyboard grid + responsive
-  640×400 screen. Calcite-core's `0x500` keyboard literal in
-  `eval.rs::property_to_address` is gone. **Pending**: calcite
-  recogniser for `:has(...:pseudo)` edges + generic
-  `engine.set_pseudo_class_active(pseudo, class, value)` API, then
-  retire `engine.set_keyboard`. See LOGBOOK 2026-05-05.
+  640×400 screen, hrefs use `?class=kb-X`. Calcite parses
+  `&:has(#ID:pseudo) { --PROP: V }` rules into `InputEdge`s; host
+  drives `engine.set_pseudo_class_active(pseudo, class, value)`. SW
+  + bridge route the click through that path; doom8088 cabinet
+  recognises 59 input edges. Verified via
+  `web/player/experiments/pseudo-active-api-probe.html` (wasm e2e)
+  and a calcite-core integration test. **Remaining cleanup**:
+  migrate `tests/bench/profiles/doom-loading.mjs` and the legacy
+  `tests/harness/bench-doom-stages*.mjs` off `setvar_pulse=keyboard`,
+  then retire `engine.set_keyboard`. See LOGBOOK 2026-05-05.
 
 ## Model gotchas
 

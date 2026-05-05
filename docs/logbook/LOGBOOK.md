@@ -6,6 +6,76 @@ Chronological work entries. Newest first. The durable handbook
 
 Last updated: 2026-05-05
 
+## 2026-05-05 — Phase B landed: pseudo-class input-edge recogniser
+
+Phase B of the keyboard-cheat plan from earlier today landed. Calcite
+now structurally recognises the cabinet's `&:has(#SELECTOR:PSEUDO) { --PROP: V; }`
+rules and exposes a generic host API. The CSS-DOS-side host plumbing
+migrated to use it.
+
+**Calcite engine work** — see `../calcite/docs/log.md` 2026-05-05
+("Phase B: structural input-edge recogniser + `set_pseudo_class_active`")
+for the engine details. Summary: parser preserves `:has(...:pseudo)`
+edges as `InputEdge { property, pseudo, selector, value }` triples on
+`ParsedProgram::input_edges`; `Evaluator` applies them pre-tick by
+summing the values of host-active edges into the underlying state-var
+slot; `engine.set_pseudo_class_active(pseudo, selector, bool)` is the
+host-facing API. Doom8088 cabinet picks up 59 input edges at parse time
+(matches the kiln-emitted rule count for the full PC layout that
+landed earlier today).
+
+**CSS-DOS-side changes**:
+
+- `web/site/sw.js::handleKbd` accepts both URL shapes:
+  `/_kbd?key=0xHHHH` (legacy → bridge calls `set_keyboard`) and
+  `/_kbd?class=kb-X` (new → bridge calls `set_pseudo_class_active`).
+  Either path reaches the same drainer.
+- `web/shim/calcite-bridge.js` queue items now carry a `kind` —
+  `'key'` for legacy scancode dispatch, `'active'` for pseudo-class
+  edges. The drainer pulses each through the same `KEY_HOLD_BATCHES` /
+  `KEY_GAP_BATCHES` cycle the legacy path used (set true → hold → set
+  false → gap), so the cabinet's edge detector sees the same 0→N→0
+  transition shape regardless of which path the host took. Bridge
+  version bumped to `v46-pseudo-active`.
+- `web/player/calcite.html` keyboard buttons rewritten from
+  `href="/_kbd?key=0xHHHH"` to `href="/_kbd?class=kb-X"` (61 buttons).
+  The `id=kb-X` attribute already matched what kiln's
+  `&:has(#kb-X:active)` rules expect.
+- `web/player/experiments/pseudo-active-api-probe.html` — wasm-level
+  e2e verification page. Loads a tiny synthetic cabinet (one
+  `@property --keyboard`, one `--opcode`, two input-edge rules), calls
+  `engine.set_pseudo_class_active`, runs `tick_batch`, asserts
+  `--keyboard` reflects the gated value. ALL PASS in headless Chrome.
+
+### What's not migrated (yet)
+
+The legacy `engine.set_keyboard` API stays on the wasm engine —
+removing it now would break:
+
+- `tests/bench/profiles/doom-loading.mjs` (uses `setvar_pulse=keyboard`
+  via the calcite-cli `--watch` mechanism; not the `set_keyboard`
+  surface, but in the same family).
+- `tests/harness/bench-doom-stages*.mjs` (legacy stage detectors).
+- Any external host that hasn't seen this commit.
+
+When the bench harness migrates to drive the pseudo API instead of
+`setvar_pulse`, `set_keyboard` can be deleted from calcite-wasm.
+
+### Verification
+
+- Smoke 7/7 PASS pre and post change.
+- New calcite-core integration test
+  (`input_edges_drive_keyboard_via_set_pseudo_class_active`) green.
+- Wasm e2e probe (api-probe.html) green: 561 → 8338 → 0 sequence
+  through `set_pseudo_class_active` + `tick_batch`.
+- doom8088 cabinet recognises 59 input edges (matches kiln's
+  `:has(#kb-` rule count).
+
+The cabinet's CSS now actually pays for itself in calcite the same
+way it pays for itself in raw Chrome: the
+`&:has(#kb-X:active) { --keyboard: V }` rules drive the value through
+the recogniser; the host only flips the pseudo edge.
+
 ## 2026-05-05 — keyboard: full PC layout (Esc/F1-F10/Ctrl/Shift/Caps + responsive)
 
 Doom8088 uses Ctrl to fire — without it the on-screen keyboard can't

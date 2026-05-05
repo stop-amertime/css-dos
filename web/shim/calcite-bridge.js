@@ -84,11 +84,21 @@ let lastFrameHash = 0;
 // hold; KEY_GAP_BATCHES is the trailing 0-tick gap before the next
 // queued press fires (must be ≥ 1 so the edge detector resets).
 //
+// Two queue entry shapes:
+//   {kind:'key', value:0xHHHH}     legacy: drainer calls engine.set_keyboard
+//   {kind:'active', selector:'kb-X'} principled: drainer pulses
+//                                    engine.set_pseudo_class_active("active", sel, true)
+//                                    for the hold window then false. The
+//                                    cabinet's `&:has(#kb-X:active) { --keyboard: N }`
+//                                    rule does the value lookup via
+//                                    calcite's input-edge recogniser.
+//
 // Driven off tickLoop instead of setTimeout because build.html is a
 // background tab and Chrome throttles setTimeout there to ~1 Hz.
 const keyQueue = [];
 let currentHoldBatches = 0;     // > 0 while a press is being held
 let currentGapBatches = 0;      // > 0 during the trailing 0-tick gap
+let currentActiveSelector = ''; // non-empty while pulsing a pseudo-class edge
 const KEY_HOLD_BATCHES = 8;
 const KEY_GAP_BATCHES = 2;
 // Trace toggle. Off by default — Playwright tests flip it on via the
@@ -121,7 +131,7 @@ function kbdTrace(msg) {
 // Canary — bump this when you change this file so you can confirm the
 // browser is actually serving the new version. Shows up in every status
 // line so it's impossible to miss in the console.
-const BRIDGE_VERSION = 'v45-kbd-trace';
+const BRIDGE_VERSION = 'v46-pseudo-active';
 
 async function boot() {
   postStatus(`bridge boot ${BRIDGE_VERSION}`);
@@ -261,20 +271,38 @@ function tickLoop() {
   if (currentHoldBatches > 0) {
     currentHoldBatches--;
     if (currentHoldBatches === 0) {
-      try { engine.set_keyboard(0); } catch {}
+      // Release whichever surface this press used.
+      if (currentActiveSelector) {
+        try { engine.set_pseudo_class_active('active', currentActiveSelector, false); } catch {}
+        currentActiveSelector = '';
+      } else {
+        try { engine.set_keyboard(0); } catch {}
+      }
       currentGapBatches = KEY_GAP_BATCHES;
       if (kbdTraceEnabled) kbdTrace(`[kbd-trace] release wallMs=${performance.now().toFixed(1)}`);
     }
   } else if (currentGapBatches > 0) {
     currentGapBatches--;
   } else if (keyQueue.length > 0) {
-    const v = keyQueue.shift();
-    try { engine.set_keyboard(v); } catch {}
-    currentHoldBatches = KEY_HOLD_BATCHES;
-    if (kbdTraceEnabled) {
-      const cyc = (engine.get_state_var ? engine.get_state_var('cycleCount') : 0) >>> 0;
-      const tickN = (engine.get_tick ? engine.get_tick() : 0) >>> 0;
-      kbdTrace(`[kbd-trace] dispatch key=0x${v.toString(16)} wallMs=${performance.now().toFixed(1)} cycle=${cyc} tick=${tickN} qlen=${keyQueue.length}`);
+    const item = keyQueue.shift();
+    if (item.kind === 'active') {
+      try { engine.set_pseudo_class_active('active', item.selector, true); } catch {}
+      currentActiveSelector = item.selector;
+      currentHoldBatches = KEY_HOLD_BATCHES;
+      if (kbdTraceEnabled) {
+        const cyc = (engine.get_state_var ? engine.get_state_var('cycleCount') : 0) >>> 0;
+        const tickN = (engine.get_tick ? engine.get_tick() : 0) >>> 0;
+        kbdTrace(`[kbd-trace] dispatch active=${item.selector} wallMs=${performance.now().toFixed(1)} cycle=${cyc} tick=${tickN} qlen=${keyQueue.length}`);
+      }
+    } else {
+      const v = item.value | 0;
+      try { engine.set_keyboard(v); } catch {}
+      currentHoldBatches = KEY_HOLD_BATCHES;
+      if (kbdTraceEnabled) {
+        const cyc = (engine.get_state_var ? engine.get_state_var('cycleCount') : 0) >>> 0;
+        const tickN = (engine.get_tick ? engine.get_tick() : 0) >>> 0;
+        kbdTrace(`[kbd-trace] dispatch key=0x${v.toString(16)} wallMs=${performance.now().toFixed(1)} cycle=${cyc} tick=${tickN} qlen=${keyQueue.length}`);
+      }
     }
   }
   const batchStart = performance.now();
@@ -743,11 +771,19 @@ self.onmessage = (ev) => {
       const mm = m.data;
       if (!mm || !mm.type) return;
       if (mm.type === 'kbd' && engine) {
-        // Enqueue; the tickLoop drainer walks each press through its
-        // hold/gap cycle so rapid-fire clicks each produce a real edge.
+        // Legacy keyboard side-channel; drainer calls engine.set_keyboard.
         const v = mm.key | 0;
         if (kbdTraceEnabled) kbdTrace(`[kbd-trace] recv key=0x${v.toString(16)} wallMs=${performance.now().toFixed(1)} qlen=${keyQueue.length}`);
-        keyQueue.push(v);
+        keyQueue.push({ kind: 'key', value: v });
+      } else if (mm.type === 'kbd-active' && engine) {
+        // Principled path: pulse the (active, selector) pseudo-class
+        // edge through calcite's input-edge recogniser. The cabinet's
+        // own `&:has(#SEL:active) { --keyboard: V }` rule produces V.
+        const sel = String(mm.selector || '');
+        if (sel) {
+          if (kbdTraceEnabled) kbdTrace(`[kbd-trace] recv active=${sel} wallMs=${performance.now().toFixed(1)} qlen=${keyQueue.length}`);
+          keyQueue.push({ kind: 'active', selector: sel });
+        }
       } else if (mm.type === 'viewer-connected') {
         // New viewer opened the stream. Three entry paths:
         //  - Eager-mode build, engine ready: reset + tick — Play is instant.
