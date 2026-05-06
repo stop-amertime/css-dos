@@ -6,6 +6,70 @@ Chronological work entries. Newest first. The durable handbook
 
 Last updated: 2026-05-06
 
+## 2026-05-06 — `rep_fast_forward` genericity mission, phase 1 landed
+
+Cross-link: see calcite [`docs/log.md`](../../../calcite/docs/log.md)
+2026-05-06 entry for the engine-side details. Summary: the
+compile-time structural recogniser landed on the calcite side with 9
+unit tests + working recognition of 6 self-loop opcodes (MOVSB/MOVSW/
+STOSB/STOSW/LODSB/LODSW, opcode 0xA4-0xAD) on the doom8088 cabinet
+under `CALCITE_LOOP_DIAG=1`. CMPS/SCAS variants are deferred to phase
+2 (their flag-conditioned IP predicate needs flag-aware matching that
+ties in with the runtime applier).
+
+Phase 1 produces descriptors; the runtime path doesn't use them yet.
+Old `rep_fast_forward` remains active. `node tests/harness/run.mjs
+smoke`: 7/7 PASS pre and post change.
+
+Plan: phase-1 checkpoint complete in
+[`docs/plans/2026-05-06-rep-fast-forward-genericity.md`](../plans/2026-05-06-rep-fast-forward-genericity.md).
+Pick up at checkpoint 2 (descriptor-driven runtime applier behind
+`CALCITE_REP_GENERIC=1` flag).
+
+## 2026-05-06 — Plan filed: `rep_fast_forward` genericity mission
+
+Planning-only entry. Wrote
+[`docs/plans/2026-05-06-rep-fast-forward-genericity.md`](../plans/2026-05-06-rep-fast-forward-genericity.md)
+covering the multi-session mission to replace the last cardinal-rule
+violation in calcite-core (`rep_fast_forward`, ~341 lines of
+hardcoded x86 string-op semantics in
+`../calcite/crates/calcite-core/src/compile.rs:5734`) with a generic
+CSS-shape recogniser plus a descriptor-driven runtime applier.
+
+Hard constraints fixed up-front so future agents can't drift:
+
+- Cardinal rule. Genericity probe with synthetic brainfuck-shaped
+  cabinet must produce equivalent descriptors without calcite-side
+  changes.
+- Recogniser may not read any character of any slot name. It works
+  off slot identity (same-slot checks after compile-time resolution)
+  and expression shape only. This forecloses the
+  obvious-but-wrong shortcut of name-prefix sniffing.
+- Perf gate ±1% on doom8088 `runMsToInGame` web AND native CLI.
+- Smoke 7/7 PASS at every checkpoint.
+- Single fast-forward path at the end. Old path stays gated during
+  transition checkpoints, gets deleted at checkpoint 5.
+
+Five checkpoints, each independently shippable:
+
+1. Recogniser + descriptors + unit tests (compile-time only, old
+   path still active).
+2. Generic runtime applier behind `CALCITE_REP_GENERIC=1` flag,
+   default off. Memory-snapshot diff sweeps prove byte-for-byte
+   parity.
+3. Specialisation passes for `bulk_fill` / `bulk_copy` shapes. Perf
+   gate validated here.
+4. Flip default to generic path; soak.
+5. Delete `rep_fast_forward` and helpers; close the audit list.
+
+Cross-cutting plumbing: `state.virtual_regions` replaces the
+hardcoded `ranges_overlap_virtual(0x500, 0xD0000, 0xF0000)` carve-out
+so the generic applier doesn't need to know which CSS-DOS-specific
+ranges exist.
+
+Pick up at the next unchecked checkpoint in the plan. No code
+landed today.
+
 ## 2026-05-06 — Phase B finished: bench harness migrated, set_keyboard retired
 
 Closed out the keyboard-cheat retirement. The Phase B work from

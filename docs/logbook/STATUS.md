@@ -128,9 +128,15 @@ with any kiln/builder change that moves data).
   remaining cardinal-rule violation in calcite-core: ~341 lines of
   hardcoded x86 string-op semantics (opcode latch decode, REPE/REPNE,
   flag-word computation, 0x0500/0xD0000/0xF0000 region carve-outs).
-  Reframing as a generic CSS-shape recogniser is perf-gated
-  (doom8088 web+CLI within 1% of current) and a multi-session mission;
-  not yet started. See LOGBOOK 2026-05-05 entry for scope.
+  Mission plan in
+  [`docs/plans/2026-05-06-rep-fast-forward-genericity.md`](../plans/2026-05-06-rep-fast-forward-genericity.md)
+  — five checkpoints, perf-gated (doom8088 web+CLI within ±1%),
+  recogniser must not read any character of any slot name. **Phase 1
+  landed 2026-05-06**: structural recogniser produces descriptors on
+  `Evaluator::loop_descriptors`, 9 unit tests pass, recognises 6
+  self-loop opcodes on doom8088 under `CALCITE_LOOP_DIAG=1`. Old path
+  still active. Pick up at checkpoint 2 (descriptor-driven runtime
+  applier behind `CALCITE_REP_GENERIC=1`).
 
 ## Model gotchas
 
