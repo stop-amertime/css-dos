@@ -6,6 +6,34 @@ Chronological work entries. Newest first. The durable handbook
 
 Last updated: 2026-05-07
 
+## 2026-05-07 — pre-ship FPS lead #1 (widen `fuse_loadstate_branch`): retired
+
+Calcite-side work. Full entry in
+[`../calcite/docs/log.md`](../../../calcite/docs/log.md) under
+"Widened `fuse_loadstate_branch`: NEGATIVE RESULT". Summary:
+
+- **Hypothesis** (from the pre-ship FPS brief): widening
+  `fuse_loadstate_branch` to allow non-aliasing intervening ops
+  between `LoadState{dst:X}` and `BranchIfNotEqLit{a:X}` would lift
+  the 0.8 % `LoadStateAndBranchIfNotEqLit` hit-rate ~30 % and cut the
+  per-tick op floor.
+- **Implementation** added a forward scan up to `LS_WINDOW=8` with
+  full safety constraints (no read/write of slot X, no memory writes,
+  no jump targets, no branch/jump/dispatch ops). Built clean.
+- **Result:** **same 50 fusions as the adjacent path**; zero new
+  candidates. Reverted.
+- **Why:** probe `probe_bif_predecessor` shows 0 of 80,118 isolated
+  BIfNELs in `doom8088.css` have a matching `LoadState{dst:X}` within
+  a 16-op backward basic-block-bounded scan. 97.3 % of BIfNEL
+  predecessors are `Jump` (the BIfNEL is reached *as a jump target*
+  from a chain-miss path; the LoadState that fed it lives on a
+  different basic block).
+- **Bench unchanged:** doom-loading CLI median-of-3 = 241.872s
+  (242.892, 241.872, 237.790).
+- **Brief updated** to retire lead #1 and elevate lead #3
+  (`apply_input_edges` short-circuit) to top pick. Probe
+  `probe_bif_predecessor.rs` kept in-tree as a permanent diagnostic.
+
 ## 2026-05-07 — pre-ship FPS bottleneck survey
 
 Survey done in service of the pre-ship perf push (current
@@ -17,11 +45,23 @@ the next perf agent picks up.
 
 Headline finding: the comment at calcite
 `compile.rs:6708` claims 96 % of ops are
-`LoadStateAndBranchIfNotEqLit`. Real fusion hit-rate on a fresh
-`calcite-bench --profile` of `doom8088.css`: **0.8 %**. The
+`LoadStateAndBranchIfNotEqLit`. Real fusion hit-rate measured at
+three windows (cold start, loading, in-game) via
+`calcite-bench --restore … --profile`: **0.8 % at all three**. The
 unfused `LoadSlot + LoadState + LoadLit + Cmp + Branch` chain
 dominates instead — widening `fuse_loadstate_branch` to handle the
-real shape is the top-pick lead.
+real shape is the top-pick lead. **Op mix is virtually identical
+across stages** (LoadSlot 28 %, BranchIfNotEqLit 21–22 %,
+LoadState 10 %), so a flat per-tick win lands the same percentage
+in both `headline.runMsToInGame` and steady-state in-game FPS.
+
+What does change between stages is dispatch sub-op weight: 9 sub-
+ops/Dispatch at boot, **177 during loading** (the segment-0x55
+zone-walk going through heavy dispatch bodies), 34 in-game.
+
+Snapshots saved to `tmp/perf-snaps/stage_{loading,ingame}.snap`
+against the current `doom8088.css`. Regenerate on cabinet rebuild;
+recipe + commands in the brief.
 
 Process notes for the next agent:
 

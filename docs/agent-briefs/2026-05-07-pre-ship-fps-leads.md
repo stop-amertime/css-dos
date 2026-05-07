@@ -44,84 +44,115 @@ use the harness to confirm the target moved.
 
 ## Survey snapshot
 
-> ⚠️ **Caveat up front:** the op distribution below is from **cold
-> start** (ticks 0–10K, BIOS init / early boot CSS). It is **not**
-> from the loading window or steady-state in-game. The 0.8 %
-> fusion hit-rate is suggestive — boot is dominated by linear init
-> code, which the fuser would catch as easily as game-loop code —
-> but the *exact* shape of the unfused chains may differ between
-> stages. **Re-profile with `--restore=stage_loading.snap` and
-> `--restore=stage_ingame.snap` before committing to any lead's
-> design.** A long-warmup `calcite-bench` run (warmup 30M+ ticks)
-> didn't fit the 2-minute budget on first attempt; the snapshot-
-> restore path is the way in.
+Op distribution on `doom8088.css`, three windows, 200K ticks each
+via `calcite-bench --restore … --profile` against fresh snapshots
+captured at `stage_loading` (tick 5.1M) and `stage_ingame` (tick
+34.65M):
 
-Op distribution on `doom8088.css` (cold start, 10K ticks via
-`calcite-bench --profile`):
+| Op | Cold start | Loading | In-game |
+|---|---:|---:|---:|
+| LoadSlot | 28.3 % | 28.5 % | 28.2 % |
+| BranchIfNotEqLit | 22.5 % | 20.8 % | 21.4 % |
+| LoadState | 9.9 % | 10.1 % | 10.1 % |
+| LoadLit | 7.0 % | 7.6 % | 7.4 % |
+| DispatchChain | 4.4 % | 4.4 % | 4.4 % |
+| Add | 3.8 % | 3.8 % | 3.8 % |
+| LoadPackedByte | 3.5 % | 3.4 % | 3.4 % |
+| Dispatch | 2.9 % | 3.0 % | 3.0 % |
+| **LoadStateAndBranchIfNotEqLit** | **0.8 %** | **0.8 %** | **0.7 %** |
+| ns/linear-op | 56.0 | 52.9 | 43.1 |
+| Dispatch sub-ops (avg) | 9 | **177** | 34 |
 
-| Op | % of ops | per-tick avg |
-|---|---:|---:|
-| LoadSlot | 28.3 % | 226 |
-| BranchIfNotEqLit | 22.5 % | 180 |
-| LoadState | 9.9 % | 79 |
-| LoadLit | 7.0 % | 56 |
-| DispatchChain | 4.4 % | 35 |
-| Add | 3.8 % | 31 |
-| LoadPackedByte | 3.5 % | 28 |
-| Dispatch | 2.9 % | 23 |
-| **LoadStateAndBranchIfNotEqLit** | **0.8 %** | **6** |
-
-Caveats: cold-start (boot CSS), not steady-state. A run with a long
-warmup (35M+ ticks → in-game) is the right second measurement; that
-profile didn't fit the 2-minute budget on the first attempt and
-needs a snapshot-restore flow. **Re-run with
-`--restore=in-game.snap` before committing to any of the leads
-below.**
-
-The comment at
+**Op mix is virtually identical across all three stages.** Lead #1
+(widening `fuse_loadstate_branch`) lands the same percentage win in
+each window. The fusion hit-rate of 0.8 % is real and
+stage-independent — the comment at
 [`crates/calcite-core/src/compile.rs:6708`](../../../calcite/crates/calcite-core/src/compile.rs)
-claims "96 %+ of ops are `LoadStateAndBranchIfNotEqLit`" — that's
-**stale**. The real fusion hit-rate is 0.8 %. The unfused
-`LoadSlot + LoadState + LoadLit + (Cmp) + Branch` chain dominates
-instead.
+claiming "96 %+ of ops are `LoadStateAndBranchIfNotEqLit`" is
+**stale**.
+
+What does change between stages is the **dispatch sub-op weight**:
+loading runs 177 sub-ops per `Dispatch` on average vs 34 in-game
+and 9 at boot. That's the segment-0x55 zone-walk path going
+through a large-bodied dispatch entry; lead #5 (REP fast-forward
+phase 3b + bulk specialisations) targets this directly. In-game
+sub-op count of 34 is closer to boot than to loading — game-loop
+dispatch fan-out is moderate.
+
+In-game `ns/linear-op` of 43.1 ns is the fastest of the three —
+likely cache-warm on a smaller hot working set. The per-tick op
+count is essentially constant (795–801), so any flat win on the op
+floor (lead #1) is what moves both `headline.runMsToInGame` and
+steady-state in-game FPS.
+
+Snapshots used: `tmp/perf-snaps/stage_loading.snap`,
+`tmp/perf-snaps/stage_ingame.snap` — captured 2026-05-07 against
+the current `doom8088.css` (size 332 MB, May 1 build). Regenerate
+on any cabinet rebuild — slot ordering is parse-dependent, an old
+snapshot will fail to restore with a length mismatch. Recipe:
+
+```sh
+calcite-cli -i doom8088.css --speed=0 --ticks=80000000 \
+  --watch "poll:stride:every=50000" \
+  --watch "title:cond:0x3ac62=0,0x3a3c4=3,0x449=0x13:gate=poll:then=emit" \
+  --watch "title_tap:cond:0x3ac62=0,0x3a3c4=3,0x449=0x13,repeat:gate=poll:then=pseudo_pulse=active,kb-enter,50000" \
+  --watch "menu:cond:0x3ac62=1:gate=poll:then=emit" \
+  --watch "menu_tap:cond:0x3ac62=1,repeat:gate=poll:then=pseudo_pulse=active,kb-enter,50000" \
+  --watch "loading:cond:0x3a5af=1,0x3a3c4=3:gate=poll:then=emit+snapshot=tmp/perf-snaps/stage_loading.snap" \
+  --watch "ingame:cond:0x3a5af=1,0x3a3c4=0:gate=poll:then=emit+snapshot=tmp/perf-snaps/stage_ingame.snap+halt"
+```
+
+Wall: ~3.5 minutes from cold to in-game on calcite-cli.
 
 ## Leads, ranked by leverage / risk ratio
 
-### 1. Widen `fuse_loadstate_branch` to match emitted shapes ⭐ top pick
+### 1. ~~Widen `fuse_loadstate_branch` to match emitted shapes~~ — DEAD LEAD
 
-**File:** [`crates/calcite-core/src/compile.rs:3912`](../../../calcite/crates/calcite-core/src/compile.rs).
+**Status:** investigated 2026-05-07; **no opportunity exists**. Probe
+[`crates/calcite-cli/src/bin/probe_bif_predecessor.rs`](../../../calcite/crates/calcite-cli/src/bin/probe_bif_predecessor.rs)
+classifies the predecessor of every isolated `BranchIfNotEqLit` in
+the post-compile op stream. On `doom8088.css`:
 
-`fuse_loadstate_branch` only fuses adjacent `LoadState{dst:X};
-BranchIfNotEqLit{a:X}` pairs. Kiln emits the comparison through
-intermediate slots: typically `LoadSlot → LoadState → LoadLit → CmpEq
-→ BranchIfZero` with one or two intervening slot-shuffle ops.
+- Total isolated BIfNELs: 80,118 (after `fuse_cmp_branch` and
+  `build_dispatch_chains` and the existing `fuse_loadstate_branch`).
+- BIfNELs with a `LoadState{dst:X}` within a 16-op backward
+  basic-block-bounded scan: **0**.
+- Predecessor-op breakdown: **97.3 % `Jump`**, 1.7 %
+  `BranchIfNotEqLit`, 0.2 % `LoadSlot`, 0.1 % `LoadLit`. No
+  `LoadState`.
 
-Add fusers for:
+Why: `fuse_cmp_branch` already collapses
+`LoadLit + CmpEq + BranchIfZero` triplets into `BranchIfNotEqLit`,
+so the static residue is dominated by chain-miss exits laid out as
+`...; Jump <chain entry body>; BranchIfNotEqLit <next-test miss>; ...`.
+The BIfNEL is reached *as a jump target* from elsewhere — not via
+the `Jump` at i-1 — so the LoadState that originally fed it has
+been folded away or is on a different basic block.
 
-- `LoadSlot{dst:X} + LoadLit{dst:Y} + CmpEq{X,Y,...} + BranchIfZero` →
-  one fused op
-- `LoadState + LoadLit + CmpEq + BranchIfZero` → one fused op
-- Allow up to N intervening ops if they don't alias the target slot
+The brief's earlier hypothesis (LoadState separated from its branch
+by intervening slot-shuffle ops) was based on the stale
+`compile.rs:6708` comment, not on the current emitter shape. The
+0.8 % `LoadStateAndBranchIfNotEqLit` runtime hit-rate is the *real
+ceiling* under the present chain-pass + fuse_cmp_branch interaction,
+not a knob waiting to be widened.
 
-Each fusion converts 4 op-dispatches into 1. Going from 0.8 % →
-~30 % fusion hit-rate is a flat per-tick speedup that hits **both
-the loading window and steady-state in-game** because both are
-dominated by the same op floor. Generic — applies to any cabinet
-shape, cardinal-rule clean.
+A widened scan implemented and tested 2026-05-07 (`LS_WINDOW=8`,
+non-aliasing intervening ops) found exactly the same 50 fusions as
+the adjacent-only path. The compiled cabinet has zero additional
+candidates. Reverted.
 
-**Risk:** low. Each new fuser is independently revertible. Branch-
-target safety logic already exists in `fuse_ls_ops`
-([line 3938](../../../calcite/crates/calcite-core/src/compile.rs)) —
-copy the `is_target` machinery.
+**Where to look instead.** The static-pair probe also shows 1,395
+`BIfNEL → BIfNEL` adjacencies (`probe_bif_pairs.rs`, ~95 % share a
+target). `CALCITE_BIF2_FUSE` (off by default) collapses these into
+`BranchIfNotEqLit2`. The 2026-04-30 logbook says it was net wash on
+the reference cabinet *then*; worth re-measuring against the current
+doom8088 with `BIF2_FUSE=1` before retiring. The 80,118 pure BIfNELs
+are the floor we'd want to cut, but each candidate fuse needs a
+shape that doesn't exist in the static stream.
 
-**How to validate:**
-1. Smoke 7/7 must pass.
-2. Re-run `calcite-bench --profile` — fusion hit-rate should rise.
-3. Bench harness web + CLI: `headline.runMsToInGame` + a new
-   in-game-FPS profile delta. Median of 3.
-
-**Estimated win:** 10–25 % per-tick reduction if fusion hit-rate
-reaches ~30 %. Both targets, both stages.
+The leverage shifts to **leads #2/#3/#4** (per-tick floor reductions
+that don't depend on op fusion) and **lead #5** (REP fast-forward
+phase 3b — moves load-window time, doesn't need new fusion shapes).
 
 ### 2. Memwrite gate-loop empty-tick fast path
 
@@ -230,27 +261,48 @@ window). Secondary gain in-game depends on whether REPs fire there.
    wins on in-game can only be inferred, not measured. Both
    targets.
 
-1. **Lead #1 — widen `fuse_loadstate_branch`.** Highest leverage,
-   lowest risk, hits both stages and both targets. One peephole pass
-   per chain shape, smoke + bench gate each.
+1. ~~Lead #1.~~ Dead — see status note above. Skip.
 
-2. **Lead #3 — `apply_input_edges` short-circuit.** Trivial, lands
-   while #1 is being measured.
+2. **Lead #3 — `apply_input_edges` short-circuit.** Trivial, low risk.
+   Now the natural top pick — small per-tick wall, lands flat across
+   stages.
 
 3. **Lead #4 — `tick_no_diff` audit.** Read first, change only if
    the audit says it's safe.
 
 4. **Lead #2 — memwrite gate empty-tick fast path.** Bigger surface
-   (kiln + calcite). Defer until #1 numbers are in.
+   (kiln + calcite). Defer until #3/#4 numbers are in.
 
-5. **Lead #5 — finish phase 3b** if the in-game profile shows
-   significant REP time, otherwise punt to post-ship.
+5. **Re-measure `CALCITE_BIF2_FUSE=1`** on the current doom8088 — the
+   2026-04-30 net-wash result was on a different cabinet and the
+   `BranchIfNotEqLit2` fusion has 1,395 candidate pairs (95 % share-
+   target). One env-var flip to test, one bench median to compare.
+
+6. **Lead #5 — finish REP fast-forward phase 3b** if the in-game
+   profile shows significant REP time, otherwise punt to post-ship.
 
 Each step independently revertible. Each step bench-gated against
 both targets, smoke-gated, logbook entry with JSON before/after.
 Stop when the user-experience criteria in
 [`doom-perf-mission.md`](doom-perf-mission.md) § "What success
 looks like" are met.
+
+## Diagnostic probes
+
+Two `cargo run` probes characterise the static residue post-compile:
+
+- `probe_bif_predecessor` — for every isolated `BranchIfNotEqLit`,
+  classify the op at `i-1` and walk back up to 16 ops looking for a
+  matching `LoadState`. Use to size widening windows or rule out
+  fusion leads quickly.
+- `probe_bif_pairs` — adjacent `BIfNEL → BIfNEL` pairs (same vs
+  different slot, miss-shape vs fall-through, share-target rate).
+  Drives `CALCITE_BIF2_FUSE` cost/benefit.
+
+```sh
+cd ../calcite && cargo run --release --bin probe_bif_predecessor -- \
+  ../CSS-DOS/tests/bench/cache/doom8088.css
+```
 
 ## Cardinal-rule check
 
