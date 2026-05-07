@@ -141,18 +141,29 @@ non-aliasing intervening ops) found exactly the same 50 fusions as
 the adjacent-only path. The compiled cabinet has zero additional
 candidates. Reverted.
 
-**Where to look instead.** The static-pair probe also shows 1,395
-`BIfNEL → BIfNEL` adjacencies (`probe_bif_pairs.rs`, ~95 % share a
-target). `CALCITE_BIF2_FUSE` (off by default) collapses these into
-`BranchIfNotEqLit2`. The 2026-04-30 logbook says it was net wash on
-the reference cabinet *then*; worth re-measuring against the current
-doom8088 with `BIF2_FUSE=1` before retiring. The 80,118 pure BIfNELs
-are the floor we'd want to cut, but each candidate fuse needs a
-shape that doesn't exist in the static stream.
+**Where the leverage actually was.** Two findings on 2026-05-07:
 
-The leverage shifts to **leads #2/#3/#4** (per-tick floor reductions
-that don't depend on op fusion) and **lead #5** (REP fast-forward
-phase 3b — moves load-window time, doesn't need new fusion shapes).
+1. **`BIfNEL → BIfNEL` adjacency** is 13.5 % of *dispatched* ops at
+   runtime (measured via `calcite-cli --restore <snap> --op-profile`,
+   not just the 1,395 static pairs). `fuse_diff_slot_bifnel_pairs`
+   was already implemented but env-var-gated since a 2026-04-30
+   reference-cabinet measurement was net wash. Re-measured on
+   doom8088: 794 fusions, +47 % throughput, –32 % wall on
+   doom-loading. **Default-on as of calcite [`f014d35`](https://github.com/stop-amertime/calcite/commit/f014d35).**
+
+2. **Real lead #3 exists, was undersized.** `apply_input_edges`
+   in calcite commit `a5e8eee` added per-tick work proportional
+   to the cabinet's input-edge count (59 on doom8088): string
+   allocs, HashMap probes, O(n²) acc scan, plus 2 string allocs
+   per `pseudo_class_active` lookup. Net 44 % throughput
+   regression vs pre-input-edge baseline — *not* the "<2 %" the
+   brief originally estimated. Fixed in calcite [`6d9e80a`](https://github.com/stop-amertime/calcite/commit/6d9e80a)
+   with lazy compile-once group caching + empty-set fast path.
+   Recovers + slightly exceeds pre-regression performance.
+
+The 80,118 pure BIfNELs are the floor we'd want to cut next, but
+each candidate fuse needs a shape that doesn't exist in the static
+stream. Remaining leverage is in leads #2 / #4 / #5.
 
 ### 2. Memwrite gate-loop empty-tick fast path
 
@@ -263,20 +274,18 @@ window). Secondary gain in-game depends on whether REPs fire there.
 
 1. ~~Lead #1.~~ Dead — see status note above. Skip.
 
-2. **Lead #3 — `apply_input_edges` short-circuit.** Trivial, low risk.
-   Now the natural top pick — small per-tick wall, lands flat across
-   stages.
+2. ~~Lead #3.~~ ✅ Landed in calcite `6d9e80a`. The `apply_input_edges`
+   short-circuit was much higher leverage than estimated (44 %
+   throughput regression had been hiding in plain sight since
+   `a5e8eee`).
 
-3. **Lead #4 — `tick_no_diff` audit.** Read first, change only if
-   the audit says it's safe.
+3. ~~`CALCITE_BIF2_FUSE`.~~ ✅ Default-on in calcite `f014d35`.
 
-4. **Lead #2 — memwrite gate empty-tick fast path.** Bigger surface
-   (kiln + calcite). Defer until #3/#4 numbers are in.
+4. **Lead #4 — `tick_no_diff` audit.** Now top pick. Read first,
+   change only if the audit says it's safe.
 
-5. **Re-measure `CALCITE_BIF2_FUSE=1`** on the current doom8088 — the
-   2026-04-30 net-wash result was on a different cabinet and the
-   `BranchIfNotEqLit2` fusion has 1,395 candidate pairs (95 % share-
-   target). One env-var flip to test, one bench median to compare.
+5. **Lead #2 — memwrite gate empty-tick fast path.** Bigger surface
+   (kiln + calcite). Defer until #4 numbers are in.
 
 6. **Lead #5 — finish REP fast-forward phase 3b** if the in-game
    profile shows significant REP time, otherwise punt to post-ship.

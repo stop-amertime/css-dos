@@ -95,21 +95,23 @@ with any kiln/builder change that moves data).
 
 ## Open work
 
-- **Pre-ship Doom8088 FPS push (~3 → 4–5+).** Brief in
+- **Pre-ship Doom8088 FPS push.** Brief in
   [`docs/agent-briefs/2026-05-07-pre-ship-fps-leads.md`](../agent-briefs/2026-05-07-pre-ship-fps-leads.md).
-  **2026-05-07: `CALCITE_BIF2_FUSE=1` cuts doom-loading wall by
-  31.8 %** (242 s → 165 s, ticks/sec 143 K → 210 K). Smoke 7/7 PASS.
-  794 BIfNEL2 fusions covering 13.5 % of dispatched ops at runtime
-  — the BIfNEL→BIfNEL adjacency was the actual leverage, not the
-  brief's lead #1 (which had 0 candidates and was retired). The
-  fusion is already implemented in calcite (`fuse_diff_slot_bifnel_pairs`,
-  `Op::BranchIfNotEqLit2`); env-var-gated since the 2026-04-30
-  reference-cabinet measurement was net wash. Next: verify on the
-  current reference cabinet, then default ON. ~~Lead #1~~ killed
-  2026-05-07 (probe `crates/calcite-cli/src/bin/probe_bif_predecessor.rs`
-  shows 0 candidates). Both `headline.runMsToInGame` and steady-state
-  in-game FPS are ship targets. Checkpoint 0 (in-game-FPS bench
-  profile) still pending.
+  **2026-05-07: doom-loading wall now 161 s (was 242 s pre-fix).**
+  Two changes:
+  - `apply_input_edges` regression fix (calcite `6d9e80a`):
+    lazy slot resolution + group caching + empty-set fast path.
+    Recovered the 44 % throughput drop introduced in `a5e8eee`.
+    5M-tick raw bench: 162 K → 297 K ticks/sec (+1.83×).
+  - BIF2 fusion default-on (calcite `f014d35`): 794 fusions
+    covering 13.5 % of dispatched ops, was env-var-gated since
+    2026-04-30 wash on a different cabinet.
+  ~~Lead #1 (widen `fuse_loadstate_branch`)~~ killed (probe
+  `crates/calcite-cli/src/bin/probe_bif_predecessor.rs` shows 0
+  static candidates).
+  Steady-state in-game FPS still not measured directly —
+  checkpoint 0 (in-game-FPS bench profile) still pending. Smoke
+  7/7 PASS at the current configuration.
 - **EMS/XMS for Doom8088 — partial scaffold, inactive.** Corduroy
   hooks INT 2Fh / INT 67h, reserves "EMMXXXX0" magic at BIOS_SEG bytes
   0x0A..0x11. DOOM8088 detects EMS via `open("EMMXXXX0", O_RDWR)`
