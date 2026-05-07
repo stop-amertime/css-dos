@@ -95,6 +95,13 @@ with any kiln/builder change that moves data).
 
 ## Open work
 
+- **Pre-ship Doom8088 FPS push (~3 → 4–5+).** Five ranked leads in
+  [`docs/agent-briefs/2026-05-07-pre-ship-fps-leads.md`](../agent-briefs/2026-05-07-pre-ship-fps-leads.md).
+  Top pick: widen calcite `fuse_loadstate_branch` — real fusion
+  hit-rate on doom8088 is 0.8 %, comment at `compile.rs:6708` claims
+  96 %. Both `headline.runMsToInGame` and steady-state in-game FPS
+  are ship targets. Checkpoint 0: add an in-game-FPS bench profile
+  (none exists yet — `doom-loading` halts at first in-game frame).
 - **EMS/XMS for Doom8088 — partial scaffold, inactive.** Corduroy
   hooks INT 2Fh / INT 67h, reserves "EMMXXXX0" magic at BIOS_SEG bytes
   0x0A..0x11. DOOM8088 detects EMS via `open("EMMXXXX0", O_RDWR)`

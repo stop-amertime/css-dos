@@ -41,6 +41,7 @@ Start at the top, go as deep as you need.
 | [`script-primitives.md`](script-primitives.md) | Watch-spec grammar. The DSL bench profiles use to detect stages and react to engine state. |
 | [`perf-iteration.md`](perf-iteration.md) | Perf-iteration tooling: snapshots, CS:IP sampling, op-distribution profiling, calcite worktrees. Read when you're optimising. |
 | [`agent-briefs/doom-perf-mission.md`](agent-briefs/doom-perf-mission.md) | The Doom8088 perf mission: priority leads, success criteria, where the time is going. |
+| [`agent-briefs/2026-05-07-pre-ship-fps-leads.md`](agent-briefs/2026-05-07-pre-ship-fps-leads.md) | Pre-ship FPS push (3→4–5+ FPS): five ranked leads. Top pick: widen `fuse_loadstate_branch` (real fusion hit-rate is 0.8 %, comment claims 96 %). |
 | [`debugging/workflow.md`](debugging/workflow.md) | Standard debugging process: find divergence, diagnose, fix, verify. |
 | [`debugging/calcite-debugger.md`](debugging/calcite-debugger.md) | HTTP API, endpoints, typical sessions. Points at [Agent-oriented tooling](../../calcite/docs/debugger.md#agent-oriented-tooling) for the MCP surface. |
 | [`debugging/known-bugs.md`](debugging/known-bugs.md) | Known bugs + patterns to watch for. |

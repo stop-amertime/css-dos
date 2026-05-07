@@ -6,6 +6,38 @@ Chronological work entries. Newest first. The durable handbook
 
 Last updated: 2026-05-07
 
+## 2026-05-07 — pre-ship FPS bottleneck survey
+
+Survey done in service of the pre-ship perf push (current
+steady-state Doom8088 ~3 FPS, target 4–5+). Five untried leads
+written up in
+[`docs/agent-briefs/2026-05-07-pre-ship-fps-leads.md`](../agent-briefs/2026-05-07-pre-ship-fps-leads.md),
+ranked by leverage/risk. No code change yet — this is reconnaissance
+the next perf agent picks up.
+
+Headline finding: the comment at calcite
+`compile.rs:6708` claims 96 % of ops are
+`LoadStateAndBranchIfNotEqLit`. Real fusion hit-rate on a fresh
+`calcite-bench --profile` of `doom8088.css`: **0.8 %**. The
+unfused `LoadSlot + LoadState + LoadLit + Cmp + Branch` chain
+dominates instead — widening `fuse_loadstate_branch` to handle the
+real shape is the top-pick lead.
+
+Process notes for the next agent:
+
+- Both `headline.runMsToInGame` (boot→ingame) and steady-state
+  in-game FPS are ship targets. They share some bottlenecks but
+  not all. Measure both.
+- There is currently no canonical in-game-FPS bench profile.
+  Adding one (snapshot-restore from `stage_ingame.snap`, run N
+  ticks, report tick/cycle/frame rate) is checkpoint 0 of any
+  in-game-targeted mission.
+- Canonical bench is `tests/bench/driver/run.mjs doom-loading` on
+  both `--target=cli` and `--target=web` (default). `calcite-bench
+  --profile` is a secondary tool for op distribution; it doesn't
+  produce headline numbers. Quote bench-harness JSON before/after
+  any change.
+
 ## 2026-05-07 — `rep_fast_forward` genericity mission, phase 3a landed
 
 Cross-link: see calcite [`docs/log.md`](../../../calcite/docs/log.md)
