@@ -126,17 +126,28 @@ with any kiln/builder change that moves data).
   move `summary.rs`, move CGA renderer to `calcite-pc-video`, strip
   doom/DOS comments) landed 2026-05-05. `rep_fast_forward` is the
   remaining cardinal-rule violation in calcite-core: ~341 lines of
-  hardcoded x86 string-op semantics (opcode latch decode, REPE/REPNE,
-  flag-word computation, 0x0500/0xD0000/0xF0000 region carve-outs).
-  Mission plan in
+  hardcoded x86 string-op semantics. Mission plan in
   [`docs/plans/2026-05-06-rep-fast-forward-genericity.md`](../plans/2026-05-06-rep-fast-forward-genericity.md)
-  — five checkpoints, perf-gated (doom8088 web+CLI within ±1%),
-  recogniser must not read any character of any slot name. **Phase 1
-  landed 2026-05-06**: structural recogniser produces descriptors on
-  `Evaluator::loop_descriptors`, 9 unit tests pass, recognises 6
-  self-loop opcodes on doom8088 under `CALCITE_LOOP_DIAG=1`. Old path
-  still active. Pick up at checkpoint 2 (descriptor-driven runtime
-  applier behind `CALCITE_REP_GENERIC=1`).
+  — perf-gated (doom8088 web+CLI within ±1%), recogniser must not
+  read any character of any slot name.
+  - **Phase 1 landed 2026-05-06**: structural recogniser produces
+    descriptors on `Evaluator::loop_descriptors`, 9 unit tests pass,
+    recognises 6 self-loop opcodes on doom8088 under
+    `CALCITE_LOOP_DIAG=1`. Old path still active.
+  - **Phase 2 landed 2026-05-07** as diagnostic-bedded validator (path
+    B of the in-session re-scope). `CALCITE_REP_GENERIC=1` env-var
+    enables a per-tick read-only validator that confirms a descriptor
+    exists for every fired opcode with consistent shape. On doom8088
+    the validator says OK for STOS/MOVS (0xAA/AB/A4/A5) and MISS for
+    CMPS/SCAS (0xA6/A7/AE/AF) — the missing flag-aware predicate
+    matcher lands in checkpoint 3. Also: `state.virtual_regions`
+    populated by recognisers (replaces hardcoded carve-out), memwrite
+    addr/val pairing by assignment-order proximity (replaces name-sort
+    heuristic), `loop_descriptors` mirrored onto `CompiledProgram`,
+    10 unit tests pass.
+  - Pick up at checkpoint 3: extend recogniser for CMPS/SCAS shape,
+    build descriptor-driven applier with bulk specialisations,
+    perf-gated to ±1%.
 
 ## Model gotchas
 

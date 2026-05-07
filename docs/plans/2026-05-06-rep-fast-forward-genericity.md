@@ -315,33 +315,71 @@ The runtime applier should:
   the cabinet's assignment ordering (kiln pairs `--memAddrN` with
   `--memValN` by index).
 
-### Checkpoint 2 — generic runtime applier, behind a flag
+### Checkpoint 2 — descriptor validator, behind a flag — DONE 2026-05-07
 
-Add the descriptor-driven applier as a parallel post-tick hook,
-gated by `CALCITE_REP_GENERIC=1` env var (default off). Both paths
-coexist; only one runs at a time.
+Per the in-session re-scope, checkpoint 2 landed as a diagnostic-bedded
+*validator* rather than a runtime-replacing applier. The full per-iter
+applier (path A in the original plan) was deferred to checkpoint 3 once
+the bulk_fill/bulk_copy specialisations land — building both at once
+in one session was judged too risky for a perf-gated mission.
 
-- [ ] Implement applier per the descriptor walk above.
-- [ ] Move `state.virtual_regions` and route bulk writes through it.
-- [ ] Behavioural parity tests: with `CALCITE_REP_GENERIC=1`, run
-      smoke + doom8088 CLI to in-game. Both must reach the same
-      sentinel state.
-- [ ] Diff calcite-cli memory snapshots between the two paths every
-      100K ticks during doom8088 boot. Zero divergence.
+What landed:
 
-Default OFF. This is the diagnostic-bedded landing.
+- [x] `CALCITE_REP_GENERIC=1` env-var gate (default off).
+- [x] Loop descriptors mirrored onto `CompiledProgram` so the per-tick
+      `rep_fast_forward` hook can consult them.
+- [x] `validate_descriptor_for_opcode`: read-only validator that fires
+      once per opcode and asserts a descriptor exists with consistent
+      structural fields (counter present, expected pointer count,
+      `ip_advance_literal == 1`, IP property resolves).
+- [x] `state.virtual_regions: Vec<VirtualRegion>` populated at compile
+      time by the windowed-byte-array recogniser (registers its own
+      window). `ranges_overlap_virtual` now consults this list plus
+      the structural `>=0xF0000` extended-map range. The stale 0x500
+      keyboard-bridge carve-out (obsolete since the input-edge
+      recogniser landed) is gone.
+- [x] Memwrite addr/val pairing now uses assignment-order proximity
+      instead of the name-sort heuristic. Test
+      `memwrite_pairing_uses_assignment_order_proximity` locks it in.
+- [x] Smoke 7/7 with flag both off and on.
+- [x] doom8088 reaches in-game on calcite-cli with flag on (tick
+      34.65M, parity with pre-mission baseline).
 
-### Checkpoint 3 — specialisation passes for bulk_fill / bulk_copy
+What the validator told us on the live doom8088 cabinet:
 
-The naive applier walks per-iter. For STOSB/MOVSB-shaped loops with
-N=10000+ iters, per-iter is too slow. Add the structural
-specialisations.
+- OK on opcodes 0xAA/0xAB/0xA4/0xA5 — STOS/MOVS descriptors agree
+  with the runtime path's expectations (counter present, 1 pointer
+  for STOS / 2 for MOVS, IP resolves).
+- MISS on 0xA6/0xA7/0xAE/0xAF — CMPS/SCAS, exactly as documented in
+  phase 1 (no flag-aware predicate matcher yet). Fixed in phase 3.
 
+Default still OFF — this is a diagnostic-bedded landing.
+
+### Checkpoint 3 — descriptor-driven applier + specialisation passes
+
+Combines the original checkpoints 2-applier and 3-specialisations into
+one phase, since the perf gate forces them to land together (a per-iter
+applier without bulk specialisations will regress doom8088 well outside
+±1%).
+
+Sub-tasks:
+
+- [ ] Extend the recogniser to handle CMPS/SCAS shape (flag-aware
+      predicate: `<rep-continue> AND <flag-bit-condition>`). The
+      `flag_conditioned: bool` field is ready to flip true.
 - [ ] At descriptor build time, classify "constant-value single-write"
       → mark for `bulk_fill`.
 - [ ] Classify "mirror-pointer copy single-width" → mark for
       `bulk_copy`.
-- [ ] Applier dispatches on classification.
+- [ ] Implement the descriptor-driven applier behind the same
+      `CALCITE_REP_GENERIC=1` flag, but now *replacing* the hardcoded
+      path when on (validator becomes redundant — collapse into the
+      applier itself).
+- [ ] Bulk paths consult `state.virtual_regions` instead of the
+      hardcoded 0xD0000/0xF0000 carve-out. (0xF0000+ stays a State
+      invariant since it's the extended-map boundary.)
+- [ ] Diff calcite-cli memory snapshots between the two paths every
+      100K ticks during doom8088 boot. Zero divergence.
 - [ ] Behaviour-parity sweeps still pass.
 - [ ] Perf parity: with `CALCITE_REP_GENERIC=1`, doom8088 web and
       CLI within ±1% of `CALCITE_REP_GENERIC=0`.
