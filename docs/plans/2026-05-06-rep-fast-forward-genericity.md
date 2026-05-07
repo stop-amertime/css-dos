@@ -362,15 +362,42 @@ one phase, since the perf gate forces them to land together (a per-iter
 applier without bulk specialisations will regress doom8088 well outside
 ±1%).
 
-Sub-tasks:
+Per the same in-session re-scope rationale that split phase 2 into a
+diagnostic-bedded validator, **phase 3 lands in two halves**:
 
-- [ ] Extend the recogniser to handle CMPS/SCAS shape (flag-aware
-      predicate: `<rep-continue> AND <flag-bit-condition>`). The
-      `flag_conditioned: bool` field is ready to flip true.
-- [ ] At descriptor build time, classify "constant-value single-write"
-      → mark for `bulk_fill`.
-- [ ] Classify "mirror-pointer copy single-width" → mark for
-      `bulk_copy`.
+- **3a — recogniser + classification (diagnostic-bedded).** Extends the
+  recogniser to all 8 string opcodes, adds bulk-classification metadata
+  to the descriptor at build time, and extends the validator to compare
+  classification against runtime behaviour. No runtime path change. No
+  perf risk.
+- **3b — applier flip.** Implements the descriptor-driven applier and
+  flips the data flow so the descriptor decides. Perf-gated to ±1%.
+  This is the part that's risky in one session.
+
+#### Phase 3a (this checkpoint) — DONE 2026-05-07
+
+- [x] Extend the recogniser to handle CMPS/SCAS shape (flag-aware
+      predicate). The CSS shape: a `StyleCondition` with multiple
+      branches all going to the same "stay" body, fallback going to
+      "advance". Old shape (single-branch) still recognised as a
+      degenerate case. `flag_conditioned` flips true when the
+      synthesised predicate spans multiple distinct properties.
+- [x] Add CMPS/SCAS-shape unit tests in cabinet A and brainfuck-cabinet B.
+- [x] At descriptor build time, classify each loop:
+      - `BulkClass::Fill` — writes.len() ≥ 1 AND no value expression
+        references a pointer's self-mirror slot (constant-value writes).
+      - `BulkClass::Copy` — writes.len() ≥ 1 AND at least one value
+        expression references a pointer's self-mirror slot (memory copy).
+      - `BulkClass::ReadOnly` — writes.len() == 0 (CMPS/SCAS/LODS).
+      - `BulkClass::PerIter` — otherwise.
+- [x] Validator extended to surface classification for each opcode.
+- [x] Real-cabinet check: doom8088 produces 10 descriptors (was 6),
+      including 0xA6/A7/AE/AF, with `flag_conditioned=true`.
+- [x] Smoke 7/7 unchanged.
+- [x] All 13 unit tests pass.
+
+#### Phase 3b (future) — applier flip
+
 - [ ] Implement the descriptor-driven applier behind the same
       `CALCITE_REP_GENERIC=1` flag, but now *replacing* the hardcoded
       path when on (validator becomes redundant — collapse into the

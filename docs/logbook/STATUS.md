@@ -137,17 +137,27 @@ with any kiln/builder change that moves data).
   - **Phase 2 landed 2026-05-07** as diagnostic-bedded validator (path
     B of the in-session re-scope). `CALCITE_REP_GENERIC=1` env-var
     enables a per-tick read-only validator that confirms a descriptor
-    exists for every fired opcode with consistent shape. On doom8088
-    the validator says OK for STOS/MOVS (0xAA/AB/A4/A5) and MISS for
-    CMPS/SCAS (0xA6/A7/AE/AF) — the missing flag-aware predicate
-    matcher lands in checkpoint 3. Also: `state.virtual_regions`
-    populated by recognisers (replaces hardcoded carve-out), memwrite
-    addr/val pairing by assignment-order proximity (replaces name-sort
-    heuristic), `loop_descriptors` mirrored onto `CompiledProgram`,
-    10 unit tests pass.
-  - Pick up at checkpoint 3: extend recogniser for CMPS/SCAS shape,
-    build descriptor-driven applier with bulk specialisations,
-    perf-gated to ±1%.
+    exists for every fired opcode with consistent shape. Also:
+    `state.virtual_regions` populated by recognisers (replaces
+    hardcoded carve-out), memwrite addr/val pairing by assignment-order
+    proximity (replaces name-sort heuristic), `loop_descriptors`
+    mirrored onto `CompiledProgram`, 10 unit tests pass.
+  - **Phase 3a landed 2026-05-07** (recogniser + classification, again
+    diagnostic-bedded). `match_ip_stay_or_advance` extended to
+    multi-branch IP bodies (CMPS/SCAS shape via kiln's `repCondIP`).
+    `BulkClass` enum (`ReadOnly`/`Fill`/`Copy`/`PerIter`) computed
+    structurally at descriptor build time. Validator surfaces
+    flag_conditioned + bulk_class against runtime expectations.
+    On doom8088 the validator now reports 8/8 string opcodes
+    recognised: STOS=Fill, CMPS/SCAS=ReadOnly+flag_conditioned (OK),
+    MOVS=Fill (DRIFT — cabinet uses `--_strSrcByte` intermediate,
+    structurally invisible to pure-shape classifier). 15 unit tests
+    pass.
+  - Pick up at phase 3b: build the descriptor-driven applier behind
+    `CALCITE_REP_GENERIC=1`, replace the hardcoded path, hit ±1%
+    perf gate. Open design question: how to handle the MOVS DRIFT —
+    either trace through intermediate slots at compile time, or fall
+    back to PerIter for shapes the structural classifier can't simplify.
 
 ## Model gotchas
 
