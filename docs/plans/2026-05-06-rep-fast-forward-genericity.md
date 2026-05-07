@@ -346,14 +346,20 @@ specialisations.
 - [ ] Perf parity: with `CALCITE_REP_GENERIC=1`, doom8088 web and
       CLI within ±1% of `CALCITE_REP_GENERIC=0`.
 
-### Checkpoint 4 — flip the default, soak
+### Checkpoint 4 — flip the default
 
 - [ ] `CALCITE_REP_GENERIC=1` becomes the default. Old path still
-      compilable with `CALCITE_REP_GENERIC=0` for diagnostic A/B.
-- [ ] Smoke 7/7. Doom8088 in-game both targets. Doom-loading bench
-      unchanged.
-- [ ] Run for at least 48h of normal session use without an A/B
-      flip-back triggered by a regression.
+      compilable with `CALCITE_REP_GENERIC=0` for the immediate A/B
+      that decides whether to roll back.
+- [ ] Smoke 7/7.
+- [ ] doom8088 boots to in-game (gamestate=GS_LEVEL) on both web and
+      CLI.
+- [ ] zork boots to the `>` prompt on both web and CLI.
+- [ ] doom-loading bench `runMsToInGame` within ±1% of pre-mission.
+
+If all four pass in one sitting, the new path is the path. Git
+history holds the old code; there's no value in keeping the
+fallback live as a soak. Move straight to checkpoint 5.
 
 ### Checkpoint 5 — delete the old path
 
