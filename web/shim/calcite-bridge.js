@@ -64,11 +64,6 @@ const MIN_BATCH = 50;
 const MAX_BATCH = 200_000;
 let batchCount = 200;
 let batchMsEma = TARGET_MS;
-// Hash of the last framebuffer the bridge emitted. The 30Hz sampler
-// hashes a sparse subsample and short-circuits the BMP emit when the
-// hash is unchanged — kills duplicate paints when the cabinet hasn't
-// produced a new frame this poll.
-let lastFrameHash = 0;
 // Keyboard input queue, drained by the tickLoop.
 //
 // Why a queue. Two presses arriving within the press-hold window can't
@@ -223,7 +218,6 @@ function resetMachine() {
   // Reset pacing so the adapter relearns for the new run.
   batchCount = MIN_BATCH;
   batchMsEma = TARGET_MS;
-  lastFrameHash = 0;
   keyQueue.length = 0;
   currentHoldBatches = 0;
   currentGapBatches = 0;
@@ -519,23 +513,14 @@ function maybeEmitFrame() {
     return;
   }
 
-  // Hash the rgba to detect whether the cabinet produced a NEW frame
-  // since last sample. FNV-1a over a sparse subsample (every 256th byte
-  // of the rgba — ~1KB total for mode 13h) is cheap (~0.05ms) and
-  // catches changes anywhere in the framebuffer with high probability.
-  // If unchanged, skip the BMP allocation/post entirely — saves ~256KB
-  // alloc + transfer per duplicate frame at 60Hz sampling.
-  let h32 = 0x811c9dc5 | 0;
-  const stride = Math.max(1, Math.floor(rgba.length / 1024));
-  for (let i = 0; i < rgba.length; i += stride) {
-    h32 ^= rgba[i];
-    h32 = (h32 + ((h32 << 1) + (h32 << 4) + (h32 << 7) + (h32 << 8) + (h32 << 24))) | 0;
-  }
-  const hashed = h32 >>> 0;
-  if (hashed === lastFrameHash) {
-    return; // no new frame — don't bother posting
-  }
-  lastFrameHash = hashed;
+  // Always emit. The previous hash-based dedup sampled every ~250th byte
+  // of rgba, which is unsound: a sprite or cursor change at a non-sampled
+  // position produced an identical hash and the frame was dropped. The
+  // user saw that as a frozen screen that "unfreezes" only when typing
+  // happened to perturb a sampled byte. By the time we reach this point
+  // we've already paid the expensive read+palette-resolve cost; the only
+  // saving from skipping was a BMP header memcpy + postMessage, ~256 KB
+  // at 30 Hz = ~8 MB/s, trivial. Worth it to keep the screen live.
 
   // Assemble BMP: header + RGBA pixels in one buffer. For text mode we
   // own `rgba` (just allocated); for gfx mode it's a wasm-memory view
