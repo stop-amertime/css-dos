@@ -16,38 +16,44 @@
 
 import { registerArtifact } from './ensure-fresh.mjs';
 
+// `../calcite/` works for the main CSS-DOS checkout but not for git
+// worktrees: from `.claude/worktrees/<name>/`, `../calcite/` resolves
+// to `.claude/worktrees/calcite/` (a sibling worktree, possibly on a
+// different branch — usually the wrong calcite). Honour `CALCITE_REPO`
+// to pick the right one. Default keeps the legacy main-checkout behaviour.
+const CALCITE_REPO = process.env.CALCITE_REPO || '../calcite';
+
 // --- Calcite WASM (used by the web bench / player) ---
 registerArtifact({
   name:    'wasm:calcite',
-  output:  '../calcite/web/pkg/calcite_wasm_bg.wasm',
+  output:  `${CALCITE_REPO}/web/pkg/calcite_wasm_bg.wasm`,
   inputs:  [
-    '../calcite/crates/calcite-core/src/**',
-    '../calcite/crates/calcite-core/Cargo.toml',
-    '../calcite/crates/calcite-wasm/src/**',
-    '../calcite/crates/calcite-wasm/Cargo.toml',
-    '../calcite/Cargo.toml',
+    `${CALCITE_REPO}/crates/calcite-core/src/**`,
+    `${CALCITE_REPO}/crates/calcite-core/Cargo.toml`,
+    `${CALCITE_REPO}/crates/calcite-wasm/src/**`,
+    `${CALCITE_REPO}/crates/calcite-wasm/Cargo.toml`,
+    `${CALCITE_REPO}/Cargo.toml`,
   ],
-  rebuild: 'wasm-pack build ../calcite/crates/calcite-wasm --target web --out-dir ../../web/pkg --release',
+  rebuild: `wasm-pack build "${CALCITE_REPO}/crates/calcite-wasm" --target web --out-dir ../../web/pkg --release`,
 });
 
 // --- Calcite native CLI (used by the CLI bench path) ---
 //
-// Build runs in the calcite directory directly (cd "$REPO/../calcite"
-// && cargo build) — invoking cargo with --manifest-path from outside
-// triggers a different build context that on Windows-bash produced
-// link.exe argument-mangling errors. Running cargo from inside the
-// calcite repo avoids it.
+// Build runs in the calcite directory directly — invoking cargo with
+// --manifest-path from outside triggers a different build context that
+// on Windows-bash produced link.exe argument-mangling errors. Running
+// cargo from inside the calcite repo avoids it.
 registerArtifact({
   name:    'cli:calcite',
-  output:  '../calcite/target/release/calcite-cli.exe',
+  output:  `${CALCITE_REPO}/target/release/calcite-cli.exe`,
   inputs:  [
-    '../calcite/crates/calcite-core/src/**',
-    '../calcite/crates/calcite-core/Cargo.toml',
-    '../calcite/crates/calcite-cli/src/**',
-    '../calcite/crates/calcite-cli/Cargo.toml',
-    '../calcite/Cargo.toml',
+    `${CALCITE_REPO}/crates/calcite-core/src/**`,
+    `${CALCITE_REPO}/crates/calcite-core/Cargo.toml`,
+    `${CALCITE_REPO}/crates/calcite-cli/src/**`,
+    `${CALCITE_REPO}/crates/calcite-cli/Cargo.toml`,
+    `${CALCITE_REPO}/Cargo.toml`,
   ],
-  rebuild: 'cd ../calcite && cargo build --release -p calcite-cli',
+  rebuild: `cd "${CALCITE_REPO}" && cargo build --release -p calcite-cli`,
 });
 
 // --- BIOS prebake binaries (browser-side build path reads these) ---

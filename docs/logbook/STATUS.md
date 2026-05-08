@@ -60,23 +60,28 @@ node tests/bench/driver/run.mjs doom-ingame-fps --headed   # in-game FPS
 node tests/bench/driver/run.mjs doom-loading    --target=cli  # dev-only sanity
 ```
 
-**Current baseline (2026-05-08, old-kbd branch, 3-run `doom-all`
-median; raw JSONs in `docs/benches/`):**
+**Current baseline (2026-05-08, old-kbd branch, BIF2 fusion HARDCODED
+OFF, 3-run `doom-all` median; raw JSONs in `docs/benches/`):**
 
 | Phase | Wall (median) | Notes |
 |---|---:|---|
-| compile        | **27.6 s** | cabinet (332 MB) → calcite IR. One-shot per cabinet load. |
+| compile        | **27.8 s** | cabinet (332 MB) → calcite IR. One-shot per cabinet load. |
 | dosBoot        | **9.0 s**  | BIOS + EDR-DOS up to mode 13h DOOM title splash. |
 | doomTitle      | 0.5 s      | title splash dismissed → main menu visible. |
-| doomMenuDelay  | 2.1 s      | Enter taps → G_InitNew → level-load begins. |
-| doomLoad       | **65.5 s** | level-load until `gamestate=GS_LEVEL`. **Lion's share.** |
+| doomMenuDelay  | 2.6 s      | Enter taps → G_InitNew → level-load begins. |
+| doomLoad       | **68.5 s** | level-load until `gamestate=GS_LEVEL`. **Lion's share.** |
 | warmup         | 8 s        | menu slide-off + view fade-in (not measured). |
 | measure        | 20 s       | steady-state FPS measurement, holding Left. |
 
-- Total boot to in-game (sum of compile + dos + title + menuDelay + load): **104.7 s** wall
-- Run wall (excludes compile, starts at engine-running): **77.1 s** (range 76.6-77.5 s, ±0.5 %)
-- Throughput: **34.1 M ticks at 443 K ticks/sec avg**
-- Steady-state in-game FPS: **1.85** (range 1.70-2.15)
+- Run wall (engine-running to in-game): **79.7 s** (range 77.1-82.1, ±3 %)
+- Throughput: **34.5 M ticks at 423 K ticks/sec avg**
+- Steady-state in-game FPS: **1.70** (range 1.70-1.70)
+
+**With BIF2 fusion ON** (calcite `BIF2_FUSE_ENABLED=true`):
+77.1 s engine-run / 443 K ticks/sec / 1.85 fps. So BIF2 is worth
+roughly +4.5 % throughput / +8 % FPS on this baseline (less than the
++47 % the 2026-05-07 original measurement claimed — that was against
+the regressed engine; both wins are real but non-additive).
 
 Quote 3-run medians when claiming a perf change. With nothing else
 competing for CPU, runs converge tightly (±0.5 %); under contention
@@ -131,11 +136,12 @@ with any kiln/builder change that moves data).
 
 - **Pre-ship Doom8088 FPS push.** Brief in
   [`docs/agent-briefs/2026-05-07-pre-ship-fps-leads.md`](../agent-briefs/2026-05-07-pre-ship-fps-leads.md).
-  **2026-05-08 baseline (old-kbd branch, 3-run doom-all median):
-  77.1 s engine-run to in-game (27.6 s compile + 9.0 s DOS boot +
-  0.5 s title + 2.1 s menu + 65.5 s level-load); 34.1 M ticks at
-  443 K ticks/sec; 1.85 fps steady state. **Level-load is the
-  lion's share — perf attention belongs there.****
+  **2026-05-08 baseline (old-kbd branch, BIF2 OFF, 3-run doom-all
+  median): 79.7 s engine-run to in-game (27.8 s compile + 9.0 s DOS
+  boot + 0.5 s title + 2.6 s menu + 68.5 s level-load); 34.5 M ticks
+  at 423 K ticks/sec; 1.70 fps steady state. With BIF2 ON: 77.1 s /
+  443 K ticks/sec / 1.85 fps. **Level-load is the lion's share —
+  perf attention belongs there.****
   Earlier wall-clock numbers (161 s @ 2026-05-07, 242 s pre-fix)
   reflect the prior keyboard-genericity stack which has since been
   reverted on this branch.

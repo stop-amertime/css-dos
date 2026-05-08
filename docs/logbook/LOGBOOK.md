@@ -6,6 +6,45 @@ Chronological work entries. Newest first. The durable handbook
 
 Last updated: 2026-05-08
 
+## 2026-05-08 — BIF2 fusion isolated: +4.5 % throughput, +8 % in-game FPS
+
+Hardcoded BIF2 (BIfNEL2 pair fusion) OFF in calcite (`ef44f20`,
+const `BIF2_FUSE_ENABLED=false` in `compile.rs`), reran the canonical
+3-run `doom-all` baseline, compared against the BIF2-on baseline
+landed earlier today.
+
+| Metric | BIF2 ON (median) | BIF2 OFF (median) | Δ |
+|---|---:|---:|---:|
+| compileMs       | 27,592 | 27,829 | +0.9 % |
+| runMsToInGame   | 77,061 | 79,667 | **+3.4 %** |
+| ticksToInGame   | 34,528,096 | 34,485,698 | −0.1 % (~deterministic) |
+| ticksPerSecAvg  | 443,099 | 423,355 | **−4.5 %** |
+| ingameFps       | 1.85 | 1.70 | **−8.2 %** |
+| doomLoad phase  | 65,480 | 68,463 | **+4.6 %** |
+| doomMenuDelay   | 2,139 | 2,608 | +21.9 % (small abs) |
+
+So on the post-keyboard-revert old-kbd baseline, BIF2 is worth roughly
+**+4.5 % throughput / +8 % in-game FPS**. The original 2026-05-07
+commit message for the default-on flip (`a890e08` in calcite) claimed
++47 % throughput / −32 % wall — but that was measured against a
+calcite that *also* had the `apply_input_edges` regression. With the
+regression fixed (calcite `6d9e80a`) the engine is faster overall so
+BIF2's *relative* contribution shrinks. Both wins are real, just
+non-additive.
+
+Raw JSONs:
+`docs/benches/doom-all-2026-05-08-old-kbd-{run,bif2off-run}{1,2,3}.json`.
+
+Also discovered (and fixed) along the way: `tests/bench/lib/artifacts.mjs`
+hardcoded `../calcite/` for the wasm/cli artifacts, ignoring
+`CALCITE_REPO`. From a CSS-DOS worktree, `../calcite/` resolves to
+`CSS-DOS/.claude/worktrees/calcite/` (a sibling worktree, usually on a
+different branch). The dev server already honours `CALCITE_REPO`; the
+bench artifact registry now does too. Prior 3-run baseline happened
+to use the right wasm only because the dev server served it and we
+always passed `--no-rebuild` (so the bogus staleness check never
+triggered a rebuild against the wrong calcite).
+
 ## 2026-05-08 — canonical bench set + 2026-05-08 baseline (old-kbd branch)
 
 The benchmark layout was sprawling across `tests/harness/` (legacy
