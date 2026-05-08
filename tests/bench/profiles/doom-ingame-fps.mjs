@@ -7,17 +7,20 @@
 //
 // Method:
 //   1. Boot Doom to the in-game state (gamestate=0 = GS_LEVEL).
-//      Use the same stage-detection watches as doom-loading; halt
-//      when ingame is reached.
+//      Use the same stage-detection watches as doom-loading.
 //   2. Hold Left Arrow continuously so the world animates — each
 //      frame is a real new frame, not a static title screen the
 //      hash-dedup-style optimisations would skip.
-//   3. Sample the framebuffer once per second, hash the ENTIRE
-//      rgba (not the sparse sub-sample the runtime sampler used
-//      to do — that was unsound), compare to last hash. Each
-//      change is one user-visible new frame.
-//   4. Run for MEASURE_SECONDS and report fps = frames-changed
-//      / measure_seconds, plus a time series.
+//   3. WARMUP_SECONDS warmup (no measurement). Right after gamestate
+//      flips, the menu slides off the bottom of the screen, the view
+//      fades in, sprite/sector caches populate. None of that
+//      reflects steady-state framerate.
+//   4. MEASURE_SECONDS measurement. Sample the framebuffer every
+//      ~16ms, hash the ENTIRE rgba (not a sparse sub-sample —
+//      that was unsound), compare to last hash. Each change is one
+//      user-visible new frame.
+//   5. Report fps = frames-changed / measure_seconds, plus a 1Hz
+//      time series.
 //
 // Web target only; CLI has no /_stream/fb consumer so "FPS" is
 // undefined for it.
@@ -35,6 +38,19 @@ const FB_BYTES = 320 * 200;
 // How long to measure FPS for once we reach in-game. Longer = more
 // stable number; shorter = bench finishes faster.
 const MEASURE_SECONDS = 20;
+
+// Warmup before measurement starts. Right after gamestate=GS_LEVEL
+// fires, Doom8088 is still doing first-frame work: the menu slides
+// off the bottom of the screen (animation, ~3-4s on the web), the
+// player view fades in, sprite/sector/wall caches populate, and the
+// renderer warms up. None of that reflects the steady-state framerate
+// the user feels while playing — measuring through it inflates the
+// number with one-shot animation frames.
+//
+// Hold Left through the warmup (so the world is already rotating
+// when we start sampling) but discard the FPS data. After this, the
+// frame-to-frame work is steady-state turning + rendering.
+const WARMUP_SECONDS = 8;
 
 // Watch specs for the boot-to-ingame phase. Same shape as
 // doom-loading, except we hold Left in addition to Enter so the
@@ -65,12 +81,13 @@ export const manifest = {
   target: 'web',
   cabinet: 'cabinet:doom8088',
   requires: ['cabinet:doom8088', 'wasm:calcite', 'prebake:corduroy'],
-  // Boot can take ~2 min on slow machines, plus MEASURE_SECONDS for
-  // the actual measurement. Keep the cap generous.
-  wallCapMs: 600_000 + MEASURE_SECONDS * 1000,
+  // Boot can take ~2 min on slow machines, plus warmup + measurement.
+  // Keep the cap generous.
+  wallCapMs: 600_000 + (WARMUP_SECONDS + MEASURE_SECONDS) * 1000,
   reportShape: {
     runMsToInGame:    'number',
     ticksToInGame:    'number',
+    warmupSeconds:    'number',
     measureSeconds:   'number',
     framesChanged:    'number',
     ingameFps:        'number',
@@ -139,10 +156,17 @@ export async function run(host) {
     if (stages.ingame) break;
   }
 
-  // Phase 2: FPS measurement. Walk_left is now firing every poll
-  // (gate=poll:repeat) so the player is turning left continuously.
-  // Sample the FB once per second, hash, compare.
-  host.log(`in-game; measuring FPS for ${MEASURE_SECONDS}s while holding Left`);
+  // Phase 2: warmup. Walk_left is firing every poll, but the engine
+  // is still doing first-frame work — menu slide-off animation
+  // (~3-4s on web), view fade-in, sprite/sector cache population.
+  // Hold through it without measuring; the steady-state FPS is what
+  // we want.
+  host.log(`in-game; warmup ${WARMUP_SECONDS}s while holding Left (menu slide-off, caches warm)`);
+  await new Promise(r => setTimeout(r, WARMUP_SECONDS * 1000));
+
+  // Phase 3: FPS measurement. Sample the FB every ~16ms to catch
+  // every distinct frame rather than skipping with 1Hz aliasing.
+  host.log(`measuring FPS for ${MEASURE_SECONDS}s`);
   const peekFb = async () => {
     const ch = new MessageChannel();
     return new Promise((resolve) => {
@@ -152,8 +176,6 @@ export async function run(host) {
     });
   };
 
-  // Reference fb sample, then sample every ~16ms to catch every
-  // distinct frame rather than skipping with 1Hz aliasing.
   let lastBytes = await peekFb();
   let lastHash = hashFull(lastBytes);
   let framesChanged = 0;
@@ -195,6 +217,7 @@ export async function run(host) {
     profileName: 'doom-ingame-fps',
     runMsToInGame:  stages.ingame?.wallMs ?? null,
     ticksToInGame:  ingameTick,
+    warmupSeconds:  WARMUP_SECONDS,
     measureSeconds: measureMs / 1000,
     framesChanged,
     ingameFps,
