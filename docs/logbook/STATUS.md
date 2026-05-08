@@ -34,23 +34,70 @@ See [`docs/TESTING.md`](../TESTING.md) for the full split,
 [`docs/script-primitives.md`](../script-primitives.md) for the
 watch-spec grammar bench profiles use.
 
-## How to test (Doom8088 perf)
+## How to benchmark (canonical)
 
-Web for *seeing*, CLI for headless/batch. Same JSON shape.
+**Read [`tests/bench/README.md`](../../tests/bench/README.md) before
+running any benchmark.** It is the source of truth for the canonical
+profile set, the run commands, and the harness contract.
+
+**Three canonical profiles** under `tests/bench/profiles/`:
+
+| Profile | What it measures |
+|---|---|
+| `compile-only`     | Cabinet → parse → compile time |
+| `doom-loading`     | Boot through six stages → in-game (wall ms, ticks) |
+| `doom-ingame-fps`  | Steady-state in-game FPS while holding Left |
+
+**The web bench is the source of truth.** Always `--headed`. Headless
+Chromium throttles workers and produces meaningless wall-clock times.
+The CLI bench is a fast dev-only sanity check — different runtime, no
+SW, no `<img>` frame consumer — its numbers do not reflect what the
+user feels.
 
 ```sh
-node tests/bench/driver/run.mjs doom-loading                # web
-node tests/bench/driver/run.mjs doom-loading --target=cli   # native
+node tests/bench/driver/run.mjs doom-loading    --headed   # SOURCE OF TRUTH
+node tests/bench/driver/run.mjs doom-ingame-fps --headed   # in-game FPS
+node tests/bench/driver/run.mjs doom-loading    --target=cli  # dev-only sanity
 ```
 
-Both emit `runMsToInGame` / `ticksToInGame` / `cyclesToInGame`. Quote
-JSON before/after perf claims. If only one of the two regresses,
-that's a real regression in *that target* — investigate, don't
-dismiss. Web vs native must agree (different speeds, same observable
-result).
+**Current baseline (2026-05-08, old-kbd branch, BIF2 fusion HARDCODED
+OFF, 3-run `doom-all` median; raw JSONs in `docs/benches/`):**
 
-**Don't diagnose by running the player interactively** — build a
-measurement tool.
+| Phase | Wall (median) | Notes |
+|---|---:|---|
+| compile        | **27.8 s** | cabinet (332 MB) → calcite IR. One-shot per cabinet load. |
+| dosBoot        | **9.0 s**  | BIOS + EDR-DOS up to mode 13h DOOM title splash. |
+| doomTitle      | 0.5 s      | title splash dismissed → main menu visible. |
+| doomMenuDelay  | 2.6 s      | Enter taps → G_InitNew → level-load begins. |
+| doomLoad       | **68.5 s** | level-load until `gamestate=GS_LEVEL`. **Lion's share.** |
+| warmup         | 8 s        | menu slide-off + view fade-in (not measured). |
+| measure        | 20 s       | steady-state FPS measurement, holding Left. |
+
+- Run wall (engine-running to in-game): **79.7 s** (range 77.1-82.1, ±3 %)
+- Throughput: **34.5 M ticks at 423 K ticks/sec avg**
+- Steady-state in-game FPS: **1.70** (range 1.70-1.70)
+
+**With BIF2 fusion ON** (calcite `BIF2_FUSE_ENABLED=true`):
+77.1 s engine-run / 443 K ticks/sec / 1.85 fps. So BIF2 is worth
+roughly **+4.5 % throughput / +8 % FPS** on the current web baseline.
+
+The 2026-05-07 calcite log entry that claimed +47 % throughput /
+−31.8 % wall was measured on the **CLI** target, against a
+142 K ticks/sec baseline (engine was constrained by the
+apply_input_edges regression and the CLI runtime has no SW/frame
+consumer, so dispatch overhead has a different relative weight than
+in the web runtime). The 2026-05-07 measurement isn't wrong, but
+the +47 % shouldn't generalise to the web runtime — the canonical
+bench. **On the canonical bench, BIF2 is a real but modest +4-8 %
+win.**
+
+Quote 3-run medians when claiming a perf change. With nothing else
+competing for CPU, runs converge tightly (±0.5 %); under contention
+they spread to ±30 %, so always check what's running on the host
+first.
+
+Quote JSON before/after perf claims. Diagnose with measurement tools,
+not by running the player interactively.
 
 For the Doom8088 perf mission (priority leads, success criteria,
 where the time is going), see
@@ -97,7 +144,15 @@ with any kiln/builder change that moves data).
 
 - **Pre-ship Doom8088 FPS push.** Brief in
   [`docs/agent-briefs/2026-05-07-pre-ship-fps-leads.md`](../agent-briefs/2026-05-07-pre-ship-fps-leads.md).
-  **2026-05-07: doom-loading wall now 161 s (was 242 s pre-fix).**
+  **2026-05-08 baseline (old-kbd branch, BIF2 OFF, 3-run doom-all
+  median): 79.7 s engine-run to in-game (27.8 s compile + 9.0 s DOS
+  boot + 0.5 s title + 2.6 s menu + 68.5 s level-load); 34.5 M ticks
+  at 423 K ticks/sec; 1.70 fps steady state. With BIF2 ON: 77.1 s /
+  443 K ticks/sec / 1.85 fps. **Level-load is the lion's share —
+  perf attention belongs there.****
+  Earlier wall-clock numbers (161 s @ 2026-05-07, 242 s pre-fix)
+  reflect the prior keyboard-genericity stack which has since been
+  reverted on this branch.
   Two changes:
   - `apply_input_edges` regression fix (calcite `6d9e80a`):
     lazy slot resolution + group caching + empty-set fast path.
@@ -105,12 +160,17 @@ with any kiln/builder change that moves data).
     5M-tick raw bench: 162 K → 297 K ticks/sec (+1.83×).
   - BIF2 fusion default-on (calcite `f014d35`): 794 fusions
     covering 13.5 % of dispatched ops, was env-var-gated since
-    2026-04-30 wash on a different cabinet.
+    2026-04-30 wash on a different cabinet. Now hardcoded OFF on
+    `old-kbd` for measurement isolation. Web bench delta: +4.5 %
+    throughput / +8 % FPS — modest but real. (The 2026-05-07
+    +47 % claim was on the CLI bench against a slower baseline,
+    not the canonical web bench.)
   ~~Lead #1 (widen `fuse_loadstate_branch`)~~ killed (probe
   `crates/calcite-cli/src/bin/probe_bif_predecessor.rs` shows 0
   static candidates).
-  Steady-state in-game FPS still not measured directly —
-  checkpoint 0 (in-game-FPS bench profile) still pending. Smoke
+  Steady-state in-game FPS measurable via the new
+  `doom-ingame-fps` web bench profile (holds Left, hashes the full
+  framebuffer to count user-visible frames). Smoke
   7/7 PASS at the current configuration.
 - **EMS/XMS for Doom8088 — partial scaffold, inactive.** Corduroy
   hooks INT 2Fh / INT 67h, reserves "EMMXXXX0" magic at BIOS_SEG bytes
@@ -120,10 +180,13 @@ with any kiln/builder change that moves data).
   sidesteps. Files: `bios/corduroy/{entry,handlers,bios_init}.{asm,c}`.
 - **Memory packing pack=2 vs pack=1.** Native probe converges
   ≥500 K ticks; pack=2 slightly faster. Browser verification pending.
-- **Bench harness web target** — driver runs end-to-end on CLI; web
-  bridge tickloop doesn't progress after `bench-run`. Likely
-  SW + viewer-port plumbing the bench page bypasses. Once fixed, the
-  legacy `tests/harness/bench-doom-stages*.mjs` scripts retire.
+- ~~**Bench harness web target**~~ — done 2026-05-08. Web target
+  works end-to-end (`tests/bench/page/index.html` iframes the
+  player so `<img src="/_stream/fb">` has a frame consumer; bridge
+  has running-guard + watch-preserving `bench-run` so watches don't
+  get wiped by `engine.reset()`). Legacy
+  `tests/harness/bench-doom-{load,stages,stages-cli,gameplay}.mjs`
+  and `web/player/bench.html` deleted.
 - **Keyboard input via `:active` — done.** Cabinet CSS emits
   `.cpu { &:has(#kb-X:active) { --keyboard:N } }` per key. Calcite
   parses these into `InputEdge`s and applies them pre-tick from

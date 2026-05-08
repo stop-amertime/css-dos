@@ -33,11 +33,18 @@ Start at the top, go as deep as you need.
 
 ## Testing, benchmarking, debugging
 
+> **Performance work?** [`tests/bench/README.md`](../tests/bench/README.md)
+> is the canonical entrypoint and **required reading before running
+> any benchmark.** The four canonical profiles (`compile-only`,
+> `doom-loading`, `doom-ingame-fps`, `doom-all`) live there. Don't
+> reach for `cargo bench`, `calcite-bench`, or any ad-hoc `.mjs`
+> under `tests/harness/` — those are not the canonical bench.
+
 | Doc | For |
 |---|---|
-| [`TESTING.md`](TESTING.md) | **Start here.** The two-entrypoint split: correctness (`tests/harness/`) vs perf (`tests/bench/`). |
-| `../tests/harness/README.md` | Correctness harness — smoke, conformance, ref-machine, fulldiff, screenshot, baseline. |
-| `../tests/bench/README.md` | Perf harness — profiles, page+driver, native+web targets, ensureFresh artifact registry. |
+| [**`tests/bench/README.md`**](../tests/bench/README.md) | **Canonical performance harness.** Required reading before any bench. Profiles, web `--headed` rule, baseline numbers, where to add new profiles. |
+| [`TESTING.md`](TESTING.md) | The two-entrypoint split: correctness (`tests/harness/`) vs perf (`tests/bench/`). Read after `tests/bench/README.md` for the wider picture. |
+| [`../tests/harness/README.md`](../tests/harness/README.md) | Correctness harness — smoke, conformance, ref-machine, fulldiff, screenshot, baseline. **Not for perf.** |
 | [`script-primitives.md`](script-primitives.md) | Watch-spec grammar. The DSL bench profiles use to detect stages and react to engine state. |
 | [`perf-iteration.md`](perf-iteration.md) | Perf-iteration tooling: snapshots, CS:IP sampling, op-distribution profiling, calcite worktrees. Read when you're optimising. |
 | [`agent-briefs/doom-perf-mission.md`](agent-briefs/doom-perf-mission.md) | The Doom8088 perf mission: priority leads, success criteria, where the time is going. |
@@ -74,4 +81,4 @@ Start at the top, go as deep as you need.
 | `../calcite/docs/debugger.md` | MCP debug server API. |
 | `../calcite/docs/conformance-testing.md` | Conformance concepts. (The legacy `tools/fulldiff.mjs` / `diagnose.mjs` / `ref-dos.mjs` are broken — use `tests/harness/pipeline.mjs fulldiff` instead.) |
 | `../calcite/docs/codebug.md` | Co-execution debugger for side-by-side JS/calcite comparison. |
-| `../calcite/docs/benchmarking.md` | Performance numbers, Chrome comparison. |
+| `../calcite/docs/benchmarking.md` | **Low-level Rust profiling** (Criterion, `calcite-bench` binary, --profile flame breakdowns). For internal calcite engine work only — **NOT for headline perf claims.** Use [`tests/bench/`](../tests/bench/README.md) for those. |

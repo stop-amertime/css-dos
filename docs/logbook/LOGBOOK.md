@@ -4,7 +4,127 @@ Chronological work entries. Newest first. The durable handbook
 (current state, sentinels, gotchas, how to test) is in
 [`STATUS.md`](STATUS.md).
 
-Last updated: 2026-05-07
+Last updated: 2026-05-08
+
+## 2026-05-08 — BIF2 fusion isolated: +4.5 % throughput, +8 % in-game FPS
+
+Hardcoded BIF2 (BIfNEL2 pair fusion) OFF in calcite (`ef44f20`,
+const `BIF2_FUSE_ENABLED=false` in `compile.rs`), reran the canonical
+3-run `doom-all` baseline, compared against the BIF2-on baseline
+landed earlier today.
+
+| Metric | BIF2 ON (median) | BIF2 OFF (median) | Δ |
+|---|---:|---:|---:|
+| compileMs       | 27,592 | 27,829 | +0.9 % |
+| runMsToInGame   | 77,061 | 79,667 | **+3.4 %** |
+| ticksToInGame   | 34,528,096 | 34,485,698 | −0.1 % (~deterministic) |
+| ticksPerSecAvg  | 443,099 | 423,355 | **−4.5 %** |
+| ingameFps       | 1.85 | 1.70 | **−8.2 %** |
+| doomLoad phase  | 65,480 | 68,463 | **+4.6 %** |
+| doomMenuDelay   | 2,139 | 2,608 | +21.9 % (small abs) |
+
+So on the post-keyboard-revert old-kbd web baseline, BIF2 is worth
+roughly **+4.5 % throughput / +8 % in-game FPS** — modest but real.
+
+The 2026-05-07 calcite log entry that claimed +47 % throughput /
+−32 % wall (calcite `8e592b0`/`f014d35`) measured BIF2 on the **CLI**
+bench (`run.mjs doom-loading --target=cli`), with a baseline of
+142 K ticks/sec (the engine was bottlenecked by the not-yet-fixed
+`apply_input_edges` regression at that point — the same-day fix in
+calcite `6d9e80a` recovered most of the throughput). On the CLI
+runtime — no SW, no frame consumer, native rather than wasm — the
+relative weight of dispatch overhead vs other engine work is
+different too. The +47 % isn't wrong; it just doesn't generalise
+across runtimes or across baselines. The web is the canonical
+bench, and the canonical answer for BIF2 is +4-8 %.
+
+Lesson: when claiming a percentage win, anchor to the canonical
+bench (web `--headed`) and a fully-current baseline. CLI numbers
+are dev-sanity, not headline material.
+
+Raw JSONs:
+`docs/benches/doom-all-2026-05-08-old-kbd-{run,bif2off-run}{1,2,3}.json`.
+
+Also discovered (and fixed) along the way: `tests/bench/lib/artifacts.mjs`
+hardcoded `../calcite/` for the wasm/cli artifacts, ignoring
+`CALCITE_REPO`. From a CSS-DOS worktree, `../calcite/` resolves to
+`CSS-DOS/.claude/worktrees/calcite/` (a sibling worktree, usually on a
+different branch). The dev server already honours `CALCITE_REPO`; the
+bench artifact registry now does too. Prior 3-run baseline happened
+to use the right wasm only because the dev server served it and we
+always passed `--no-rebuild` (so the bogus staleness check never
+triggered a rebuild against the wrong calcite).
+
+## 2026-05-08 — canonical bench set + 2026-05-08 baseline (old-kbd branch)
+
+The benchmark layout was sprawling across `tests/harness/` (legacy
+`flamegraph-doom.mjs`, `bench-doom-stages.mjs`, `bench-doom-load.mjs`)
+and `tests/bench/profiles/`, with no single rule about which is the
+canonical tool. Cleaned this up to **three** canonical profiles and
+made `tests/bench/README.md` required reading before any benchmark
+run.
+
+**Canonical profile set** (under `tests/bench/profiles/`):
+
+| Profile | What it measures |
+|---|---|
+| `compile-only`     | Cabinet → parse → compile time |
+| `doom-loading`     | Boot through six stages → in-game (wall ms, ticks) |
+| `doom-ingame-fps`  | Steady-state in-game FPS while holding Left |
+
+`doom-ingame-fps` is the rename of the earlier `ingame-fps.mjs`
+(cart-prefix matches `doom-loading`). Holds Left continuously,
+samples the full 320×200 framebuffer every ~16ms, hashes via FNV-1a,
+counts distinct frames. **Now includes 8 s warmup** before
+measurement starts — right after `gamestate=GS_LEVEL` flips, the
+menu slides off the bottom of the screen (~3-4 s), the view fades
+in, and sprite/sector caches populate. Without warmup the headline
+was ~2.7 fps with the first 4 s at 6-11 fps from menu animation.
+With warmup the headline is **1.45 fps** — what the user actually
+feels mid-gameplay.
+
+**2026-05-08 baseline (old-kbd branch, 3-run doom-all median, web
+`--headed`):**
+
+| Phase | Median wall |
+|---|---:|
+| compile (cabinet → calcite IR, one-shot) | 27.6 s |
+| dosBoot (BIOS + DOS to title splash)     | 9.0 s |
+| doomTitle (title → menu)                 | 0.5 s |
+| doomMenuDelay (Enter → level-load start) | 2.1 s |
+| doomLoad (level-load → GS_LEVEL)         | **65.5 s** |
+| warmup (menu slide-off, no measure)      | 8 s |
+| measure (FPS sample window)              | 20 s |
+
+- Run wall (engine-running to in-game): **77.1 s** (range 76.6-77.5,
+  ±0.5 %). Tick count: 34.1 M; throughput: **443 K ticks/sec**.
+- Steady-state in-game FPS: **1.85** (range 1.70-2.15).
+- doomLoad is **84.9 %** of the engine-run wall — perf optimisation
+  pays off there more than anywhere else.
+
+Raw JSONs (each ~27 KB, contains full `statsSamples` and `fpsSamples`
+time series) in `docs/benches/doom-all-2026-05-08-old-kbd-run{1,2,3}.json`.
+
+Earlier 3-run set (range 78-112 s wall) was contaminated by host
+CPU contention — that set's "use 3-run medians, ±30 %" advice was
+overstated. With nothing else competing the runs converge to within
+±0.5 %.
+
+**Cleanup landed in this entry:**
+- Renamed `tests/bench/profiles/ingame-fps.mjs` → `doom-ingame-fps.mjs`.
+- Added `doom-all.mjs` — runs `doom-loading` + `doom-ingame-fps`
+  in one boot. Same wall as ingame-fps alone (both pay the boot).
+  Small profiles kept for "I want one number quickly" cases.
+- Deleted `tests/harness/flamegraph-doom.mjs` (LEFT-holding workload
+  bundled with V8 CPU profiling — superseded by the bench profile;
+  if web-side flamegraphs are needed again, add them as a profile).
+- Deleted `tests/harness/resolve-cpuprofile.mjs` (helper for above).
+- Deleted `tests/harness/bench-doom-{load,stages,stages-cli,gameplay}.mjs`,
+  `tests/harness/bench-web.mjs`, `web/player/bench.html` — all
+  superseded by the canonical profiles.
+- Updated `CLAUDE.md`, `docs/TESTING.md`, `tests/bench/README.md`,
+  `STATUS.md` so all paths converge on the canonical set; reading
+  `tests/bench/README.md` before running any bench is now mandatory.
 
 ## 2026-05-07 — `apply_input_edges` regression fixed (recovered 1.83×); BIF2 fusion default-on
 
@@ -505,76 +625,6 @@ exceptions. Plus the perf gate — doom8088 web+CLI must stay within 1%
 of current.
 
 Multi-session work. Punted to its own brief.
-
-## 2026-05-05 — Phase B landed: pseudo-class input-edge recogniser
-
-Phase B of the keyboard-cheat plan from earlier today landed. Calcite
-now structurally recognises the cabinet's `&:has(#SELECTOR:PSEUDO) { --PROP: V; }`
-rules and exposes a generic host API. The CSS-DOS-side host plumbing
-migrated to use it.
-
-**Calcite engine work** — see `../calcite/docs/log.md` 2026-05-05
-("Phase B: structural input-edge recogniser + `set_pseudo_class_active`")
-for the engine details. Summary: parser preserves `:has(...:pseudo)`
-edges as `InputEdge { property, pseudo, selector, value }` triples on
-`ParsedProgram::input_edges`; `Evaluator` applies them pre-tick by
-summing the values of host-active edges into the underlying state-var
-slot; `engine.set_pseudo_class_active(pseudo, selector, bool)` is the
-host-facing API. Doom8088 cabinet picks up 59 input edges at parse time
-(matches the kiln-emitted rule count for the full PC layout that
-landed earlier today).
-
-**CSS-DOS-side changes**:
-
-- `web/site/sw.js::handleKbd` accepts both URL shapes:
-  `/_kbd?key=0xHHHH` (legacy → bridge calls `set_keyboard`) and
-  `/_kbd?class=kb-X` (new → bridge calls `set_pseudo_class_active`).
-  Either path reaches the same drainer.
-- `web/shim/calcite-bridge.js` queue items now carry a `kind` —
-  `'key'` for legacy scancode dispatch, `'active'` for pseudo-class
-  edges. The drainer pulses each through the same `KEY_HOLD_BATCHES` /
-  `KEY_GAP_BATCHES` cycle the legacy path used (set true → hold → set
-  false → gap), so the cabinet's edge detector sees the same 0→N→0
-  transition shape regardless of which path the host took. Bridge
-  version bumped to `v46-pseudo-active`.
-- `web/player/calcite.html` keyboard buttons rewritten from
-  `href="/_kbd?key=0xHHHH"` to `href="/_kbd?class=kb-X"` (61 buttons).
-  The `id=kb-X` attribute already matched what kiln's
-  `&:has(#kb-X:active)` rules expect.
-- `web/player/experiments/pseudo-active-api-probe.html` — wasm-level
-  e2e verification page. Loads a tiny synthetic cabinet (one
-  `@property --keyboard`, one `--opcode`, two input-edge rules), calls
-  `engine.set_pseudo_class_active`, runs `tick_batch`, asserts
-  `--keyboard` reflects the gated value. ALL PASS in headless Chrome.
-
-### What's not migrated (yet)
-
-The legacy `engine.set_keyboard` API stays on the wasm engine —
-removing it now would break:
-
-- `tests/bench/profiles/doom-loading.mjs` (uses `setvar_pulse=keyboard`
-  via the calcite-cli `--watch` mechanism; not the `set_keyboard`
-  surface, but in the same family).
-- `tests/harness/bench-doom-stages*.mjs` (legacy stage detectors).
-- Any external host that hasn't seen this commit.
-
-When the bench harness migrates to drive the pseudo API instead of
-`setvar_pulse`, `set_keyboard` can be deleted from calcite-wasm.
-
-### Verification
-
-- Smoke 7/7 PASS pre and post change.
-- New calcite-core integration test
-  (`input_edges_drive_keyboard_via_set_pseudo_class_active`) green.
-- Wasm e2e probe (api-probe.html) green: 561 → 8338 → 0 sequence
-  through `set_pseudo_class_active` + `tick_batch`.
-- doom8088 cabinet recognises 59 input edges (matches kiln's
-  `:has(#kb-` rule count).
-
-The cabinet's CSS now actually pays for itself in calcite the same
-way it pays for itself in raw Chrome: the
-`&:has(#kb-X:active) { --keyboard: V }` rules drive the value through
-the recogniser; the host only flips the pseudo edge.
 
 ## 2026-05-05 — keyboard: full PC layout (Esc/F1-F10/Ctrl/Shift/Caps + responsive)
 

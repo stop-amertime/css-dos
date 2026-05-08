@@ -117,18 +117,42 @@ console.log(JSON.stringify(result, null, 2));
 
 // ---- Web transport ----
 async function runWeb(profileName, port, headed) {
-  // Lazy-load chromium with the same fallback bench-doom-stages.mjs uses.
+  // Lazy-load chromium with a Windows npx-cache fallback (see loadChromium below).
   const { chromium } = await loadChromium();
-  const launchOpts = { headless: !headed };
-  // On Windows, Playwright's bundled chromium isn't always installed —
-  // fall back to system Chrome (same shape bench-doom-stages.mjs uses).
   const sysChrome = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
-  if (process.platform === 'win32' && existsSync(sysChrome)) {
-    launchOpts.executablePath = sysChrome;
+  const useSysChrome = process.platform === 'win32' && existsSync(sysChrome);
+
+  let browser, ctx, page;
+  if (headed && useSysChrome) {
+    // Headed on Windows: launchPersistentContext with a fresh temp
+    // user-data-dir so we get our own visible Chrome window instead of
+    // attaching to the user's running profile (which opens a tab in
+    // their existing browser, invisible to this bench process).
+    // Playwright's bundled chromium fails on this machine ("side-by-
+    // side configuration is incorrect" — missing VC++ redistributable),
+    // so system Chrome is the only option.
+    const tmpProfile = `${process.env.TEMP || '/tmp'}/cssdos-bench-profile-${Date.now()}`;
+    ctx = await chromium.launchPersistentContext(tmpProfile, {
+      executablePath: sysChrome,
+      headless: false,
+      viewport: null,
+      args: ['--start-maximized', '--window-position=0,0', '--window-size=1280,900'],
+    });
+    browser = ctx.browser();
+    page = ctx.pages()[0] || await ctx.newPage();
+  } else {
+    const launchOpts = { headless: !headed };
+    if (headed) {
+      launchOpts.args = ['--start-maximized', '--window-position=0,0', '--window-size=1280,900'];
+    } else if (useSysChrome) {
+      launchOpts.executablePath = sysChrome;
+    }
+    browser = await chromium.launch(launchOpts);
+    ctx = await browser.newContext(
+      headed ? { viewport: null } : { viewport: { width: 1024, height: 700 } }
+    );
+    page = await ctx.newPage();
   }
-  const browser = await chromium.launch(launchOpts);
-  const ctx = await browser.newContext({ viewport: { width: 1024, height: 700 } });
-  const page = await ctx.newPage();
 
   page.on('console', (msg) => {
     const t = msg.text();
@@ -138,6 +162,16 @@ async function runWeb(profileName, port, headed) {
   });
   page.on('pageerror', (err) => {
     process.stderr.write(`[pageerror] ${err.message}\n`);
+  });
+  // Trace 404s with the offending URL — the default page-error log
+  // omits the URL so debugging "404 for who?" is impossible without it.
+  page.on('requestfailed', (req) => {
+    process.stderr.write(`[request-failed] ${req.method()} ${req.url()} (${req.failure()?.errorText})\n`);
+  });
+  page.on('response', (resp) => {
+    if (resp.status() >= 400) {
+      process.stderr.write(`[response] ${resp.status()} ${resp.url()}\n`);
+    }
   });
 
   const url = `http://localhost:${port}/bench/page/?profile=${encodeURIComponent(profileName)}`;
@@ -150,12 +184,13 @@ async function runWeb(profileName, port, headed) {
   while (Date.now() - t0 < cap) {
     const r = await page.evaluate(() => window.__benchResult ?? null);
     if (r) {
-      await browser.close();
+      // launchPersistentContext returns no Browser, just close ctx.
+      if (browser) await browser.close(); else await ctx.close();
       return r;
     }
     await new Promise(r => setTimeout(r, 500));
   }
-  await browser.close();
+  if (browser) await browser.close(); else await ctx.close();
   return { ok: false, error: `timed out after ${cap}ms` };
 }
 

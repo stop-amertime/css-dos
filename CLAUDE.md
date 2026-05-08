@@ -210,6 +210,27 @@ Two peer entrypoints:
   `node tests/bench/driver/run.mjs compile-only`. Timed profiles, web
   + native targets, ensureFresh-driven artifact rebuild.
 
+> **MANDATORY: before running any benchmark, read
+> [`tests/bench/README.md`](tests/bench/README.md) end-to-end.**
+> No exceptions. It is the canonical entry for all performance
+> measurement on this project — profiles, the `--headed` rule, the
+> baseline numbers, and the rule against ad-hoc bench scripts. If
+> you find yourself writing a `.mjs` under `tests/harness/` to
+> "just measure something," stop — add a profile under
+> `tests/bench/profiles/` instead.
+>
+> **Canonical profiles only:** `compile-only`, `doom-loading`,
+> `doom-ingame-fps`, `doom-all`. Run them via
+> `node tests/bench/driver/run.mjs <profile> --headed`. The web
+> bench is the source of truth; CLI (`--target=cli`) is dev-only
+> sanity, not for headline claims.
+>
+> **Don't reach for** `cargo bench`, `criterion`, the calcite
+> `calcite-bench` binary, the player's `?bench=1` HUD, or any
+> `bench-*.mjs` script outside `tests/bench/profiles/`. Those are
+> internal/legacy/HUD tooling — they will not produce a number you
+> should compare to anything in STATUS or LOGBOOK.
+
 See [`docs/TESTING.md`](docs/TESTING.md) for the full split and
 [`docs/script-primitives.md`](docs/script-primitives.md) for the
 watch-spec grammar bench profiles use to compose stage detectors.

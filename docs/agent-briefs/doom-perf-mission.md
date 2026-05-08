@@ -111,23 +111,36 @@ Other phases worth attention but lower-leverage today:
 
 ### The bench
 
-`tests/bench/profiles/doom-loading.mjs` drives both targets through
-the same set of stage-detector watch-specs (see
-[`docs/script-primitives.md`](../script-primitives.md) for the grammar).
+> **Read [`tests/bench/README.md`](../../tests/bench/README.md)
+> end-to-end before running anything.** Canonical profiles, the
+> `--headed` rule, baseline numbers, and the 3-run-median protocol
+> live there. The summary below covers the perf-mission-specific
+> bits.
+
+`tests/bench/profiles/doom-loading.mjs` and
+`tests/bench/profiles/doom-all.mjs` use the same stage-detector
+watch-specs (see [`docs/script-primitives.md`](../script-primitives.md)
+for the grammar). For perf delta work, **use `doom-all`** — same
+wall as a single FPS run, captures all phase timings.
 
 ```sh
-# Web target — Playwright drives tests/bench/page/index.html.
-node tests/bench/driver/run.mjs doom-loading
+# THE canonical headline: web --headed, doom-all profile.
+node tests/bench/driver/run.mjs doom-all --headed --out=tmp/web.json
 
-# CLI target — calcite-cli with the profile's --watch flags.
-node tests/bench/driver/run.mjs doom-loading --target=cli
+# Single number quickly:
+node tests/bench/driver/run.mjs doom-loading    --headed
+node tests/bench/driver/run.mjs doom-ingame-fps --headed
 
-# Pin the JSON output for diffing.
-node tests/bench/driver/run.mjs doom-loading --target=cli --out=tmp/cli-out.json
-node tests/bench/driver/run.mjs doom-loading              --out=tmp/web-out.json
+# Native CLI — DEV-ONLY SANITY. Never quote as the user-facing number.
+node tests/bench/driver/run.mjs doom-loading --target=cli --out=tmp/cli.json
 
 # Skip ensureFresh rebuilds when iterating against an unchanged cabinet.
-node tests/bench/driver/run.mjs doom-loading --target=cli --no-rebuild
+node tests/bench/driver/run.mjs doom-all --headed --no-rebuild
+
+# 3-run median for a delta claim:
+for i in 1 2 3; do
+  node tests/bench/driver/run.mjs doom-all --headed --no-rebuild --out=tmp/run-$i.json
+done
 ```
 
 The profile composes `cond:` watches with memory-pattern predicates
@@ -374,9 +387,12 @@ calls:
   shipping a perf change. Zork, Montezuma, sokoban, hello-text,
   dos-smoke, cga4-stripes, cga5-mono, cga6-hires must still pass.
 - **Quote the bench numbers.** When you write a logbook entry for a
-  perf change, include `tests/bench/driver/run.mjs doom-loading` JSON before and after.
-  "Felt faster" is not evidence; nor is one-shot measurement (variance
-  is real — median of 3 minimum).
+  perf change, include `tests/bench/driver/run.mjs doom-all --headed`
+  JSON (web!) before and after, **3-run median minimum**. "Felt
+  faster" is not evidence; one-shot measurement is not evidence;
+  CLI numbers are not user-facing evidence. See
+  [`tests/bench/README.md`](../../tests/bench/README.md) for the
+  protocol.
 - **Don't fire-and-forget.** Every run has a wall-clock budget — the
   top-level `CLAUDE.md` makes this explicit. If your chosen path
   doesn't fit the budget, build a path that does. Snapshot/restore
@@ -489,15 +505,19 @@ was taken on.
 ## Working pattern
 
 1. Pick a target — one of the four leads above, or one your profile
-   identifies. Write down WHICH stage's metric you expect to move and
-   BY HOW MUCH.
-2. Measure baseline: `tests/bench/driver/run.mjs doom-loading` once, save the JSON.
+   identifies. Write down WHICH phase's metric you expect to move and
+   BY HOW MUCH (`phases.doomLoad`, `ticksPerSecAvg`, `ingameFps`,
+   etc. from `doom-all`'s output).
+2. Measure baseline: 3 runs of
+   `tests/bench/driver/run.mjs doom-all --headed --no-rebuild --out=tmp/before-N.json`,
+   save all JSONs, take the median.
 3. Make the change.
 4. Run the smoke suite (cheap; ~30 s). Bail if it fails.
-5. Measure post-change: `tests/bench/driver/run.mjs doom-loading` once, compare.
+5. Measure post-change: same 3 runs, take the median, compare.
 6. If the move is real, write a logbook entry. Include the JSON
-   diff. If the move is < 5 % and your prediction was 20 %+, your
-   model of what was slow is wrong — back out and re-profile.
+   medians and the deltas. If the move is < 5 % and your prediction
+   was 20 %+, your model of what was slow is wrong — back out and
+   re-profile.
 
 This is the structure that worked for the 20-minute → 24-second
 level-load fix on 2026-04-28. Three bridge bugs, found by careful
@@ -508,7 +528,8 @@ measurement, each verified independently.
 ## Ideas not yet tried
 
 Candidates that look plausible but aren't measured yet. Don't ship any
-of these without baseline + post-change `tests/bench/driver/run.mjs doom-loading` JSON.
+of these without baseline + post-change 3-run-median
+`tests/bench/driver/run.mjs doom-all --headed` JSON.
 
 ### Collapse 6 byte write-slots → 3 word write-slots
 

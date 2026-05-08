@@ -79,23 +79,16 @@ let batchMsEma = TARGET_MS;
 // hold; KEY_GAP_BATCHES is the trailing 0-tick gap before the next
 // queued press fires (must be ≥ 1 so the edge detector resets).
 //
-// Queue entries are selector strings. The drainer pulses each through
-//   engine.set_pseudo_class_active("active", sel, true)
-//   → hold N batches → set_pseudo_class_active(..., false) → gap M batches
-// The cabinet's `&:has(#SEL:active) { --PROP: V }` rule produces V via
-// calcite's input-edge recogniser; the host only flips the gate.
-//
 // Driven off tickLoop instead of setTimeout because build.html is a
 // background tab and Chrome throttles setTimeout there to ~1 Hz.
 const keyQueue = [];
 let currentHoldBatches = 0;     // > 0 while a press is being held
 let currentGapBatches = 0;      // > 0 during the trailing 0-tick gap
-let currentActiveSelector = ''; // non-empty while pulsing a pseudo-class edge
 const KEY_HOLD_BATCHES = 8;
 const KEY_GAP_BATCHES = 2;
 // Trace toggle. Off by default — Playwright tests flip it on via the
 // 'kbd-trace' message type. Logs on (a) message receipt, (b) drainer
-// dispatch, (c) drainer release. Lets you measure click→engine.set_pseudo_class_active
+// dispatch, (c) drainer release. Lets you measure click→engine.set_keyboard
 // latency separate from any cabinet-side delay.
 //
 // Trace output goes to console.log (visible in DevTools / page-attached
@@ -123,7 +116,7 @@ function kbdTrace(msg) {
 // Canary — bump this when you change this file so you can confirm the
 // browser is actually serving the new version. Shows up in every status
 // line so it's impossible to miss in the console.
-const BRIDGE_VERSION = 'v47-pseudo-only';
+const BRIDGE_VERSION = 'v46-bench-iframe';
 
 async function boot() {
   postStatus(`bridge boot ${BRIDGE_VERSION}`);
@@ -204,13 +197,28 @@ async function compileCabinetBytes(arrayBuffer) {
 }
 
 // Reset engine state to power-on, start the tick loop, mark the bridge
-// as actively running. Idempotent — calling twice is harmless.
+// as actively running. Idempotent — calling twice when already running
+// is a no-op. The first caller (whoever is faster: viewer-connected
+// from /_stream/fb fetch, or bench-run from a profile) wins; later
+// callers don't reset the engine mid-run.
 function startRunning() {
+  if (running) {
+    postStatus('startRunning called while already running — no-op');
+    return;
+  }
+  postStatus('startRunning: resetting + starting tickloop');
   resetMachine();
   if (engine) {
     running = true;
     tickLoop();
     startFrameSampler();
+    // Broadcast so bench harness profiles can wait for the engine to
+    // actually be running before registering watches (otherwise the
+    // engine.reset() inside resetMachine() wipes any watches the host
+    // registered between compile-done and the first viewer-connected).
+    if (benchChannel) {
+      try { benchChannel.postMessage({ type: 'running-started' }); } catch {}
+    }
   }
 }
 
@@ -262,24 +270,20 @@ function tickLoop() {
   if (currentHoldBatches > 0) {
     currentHoldBatches--;
     if (currentHoldBatches === 0) {
-      if (currentActiveSelector) {
-        try { engine.set_pseudo_class_active('active', currentActiveSelector, false); } catch {}
-        currentActiveSelector = '';
-      }
+      try { engine.set_keyboard(0); } catch {}
       currentGapBatches = KEY_GAP_BATCHES;
       if (kbdTraceEnabled) kbdTrace(`[kbd-trace] release wallMs=${performance.now().toFixed(1)}`);
     }
   } else if (currentGapBatches > 0) {
     currentGapBatches--;
   } else if (keyQueue.length > 0) {
-    const selector = keyQueue.shift();
-    try { engine.set_pseudo_class_active('active', selector, true); } catch {}
-    currentActiveSelector = selector;
+    const v = keyQueue.shift();
+    try { engine.set_keyboard(v); } catch {}
     currentHoldBatches = KEY_HOLD_BATCHES;
     if (kbdTraceEnabled) {
       const cyc = (engine.get_state_var ? engine.get_state_var('cycleCount') : 0) >>> 0;
       const tickN = (engine.get_tick ? engine.get_tick() : 0) >>> 0;
-      kbdTrace(`[kbd-trace] dispatch active=${selector} wallMs=${performance.now().toFixed(1)} cycle=${cyc} tick=${tickN} qlen=${keyQueue.length}`);
+      kbdTrace(`[kbd-trace] dispatch key=0x${v.toString(16)} wallMs=${performance.now().toFixed(1)} cycle=${cyc} tick=${tickN} qlen=${keyQueue.length}`);
     }
   }
   const batchStart = performance.now();
@@ -291,6 +295,9 @@ function tickLoop() {
     if (watchChunkTicks > 0 && engine.run_batch_watched) {
       // Bench-harness path: watch registry polls every watchChunkTicks
       // engine ticks. Halts the loop if a watch's halt action fires.
+      // The wasm impl uses an internal monotonic watch_clock starting
+      // at 0 (not state.frame_counter) so Stride{every} watches fire
+      // at clean boundaries regardless of when watches got registered.
       const halted = engine.run_batch_watched(batchCount, watchChunkTicks);
       if (halted) {
         running = false;
@@ -616,6 +623,17 @@ self.onmessage = (ev) => {
     kbdTrace(`[kbd-trace] toggle enabled=${kbdTraceEnabled}`);
     return;
   }
+  if (d.type === 'bridge-info' && ev.ports && ev.ports[0]) {
+    ev.ports[0].postMessage({
+      ok: true,
+      version: BRIDGE_VERSION,
+      running,
+      watchChunkTicks,
+      batchCount,
+      batchMsEma,
+    });
+    return;
+  }
   if (d.type === 'peek-state' && engine && ev.ports && ev.ports[0]) {
     try {
       const v = engine.get_state_var(d.name);
@@ -694,8 +712,17 @@ self.onmessage = (ev) => {
     // startRunning's first call) and start the tick loop. Caller
     // typically registers watches first; the watch-driven loop runs
     // until a halt action fires.
-    try { engine.reset(); } catch {}
-    startRunning();
+    //
+    // If we're ALREADY running (e.g. an iframe player has fired
+    // viewer-connected first), don't engine.reset() — that wipes the
+    // watch_registry, which the caller already populated by the time
+    // bench-run lands. Just leave the existing run going.
+    if (!running) {
+      try { engine.reset(); } catch {}
+      startRunning();
+    } else {
+      postStatus('bench-run while already running — skipping reset, watches preserved');
+    }
     return;
   }
   if (d.type === 'bench-stop') {
@@ -738,15 +765,12 @@ self.onmessage = (ev) => {
     swPort.onmessage = (m) => {
       const mm = m.data;
       if (!mm || !mm.type) return;
-      if (mm.type === 'kbd-active' && engine) {
-        // Pulse the (active, selector) pseudo-class edge through
-        // calcite's input-edge recogniser. The cabinet's own
-        // `&:has(#SEL:active) { --keyboard: V }` rule produces V.
-        const sel = String(mm.selector || '');
-        if (sel) {
-          if (kbdTraceEnabled) kbdTrace(`[kbd-trace] recv active=${sel} wallMs=${performance.now().toFixed(1)} qlen=${keyQueue.length}`);
-          keyQueue.push(sel);
-        }
+      if (mm.type === 'kbd' && engine) {
+        // Enqueue; the tickLoop drainer walks each press through its
+        // hold/gap cycle so rapid-fire clicks each produce a real edge.
+        const v = mm.key | 0;
+        if (kbdTraceEnabled) kbdTrace(`[kbd-trace] recv key=0x${v.toString(16)} wallMs=${performance.now().toFixed(1)} qlen=${keyQueue.length}`);
+        keyQueue.push(v);
       } else if (mm.type === 'viewer-connected') {
         // New viewer opened the stream. Three entry paths:
         //  - Eager-mode build, engine ready: reset + tick — Play is instant.

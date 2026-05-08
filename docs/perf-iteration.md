@@ -3,6 +3,14 @@
 Tools for measurement-driven perf work. Read this when you're about
 to optimise something; skip otherwise.
 
+> **The benchmarks are not here.** This document covers diagnostic
+> tools — snapshots, op-distribution profilers, CS:IP samplers —
+> that you use *to figure out where the cost is*, not to claim
+> a perf delta. The canonical benchmark is
+> [`tests/bench/`](../tests/bench/README.md) — read its README
+> before running any benchmark. Tools below feed into that
+> harness; they don't replace it.
+
 ## Snapshots — skip the boot when iterating
 
 Calcite `State::snapshot` / `State::restore` exposed as
@@ -40,9 +48,12 @@ CS:IP heatmap + per-burst loop-shape report. The output answers
 calcite-bench --restore=PATH --profile --batch=0
 ```
 
-Reports the runtime distribution of compiled-op kinds — useful for
-spotting un-fused load+compare+branch chains, broken-down dispatch
-recognition, and so on.
+`calcite-bench` is a calcite-internal **profiler**, not a benchmark
+tool — it reports the runtime distribution of compiled-op kinds,
+useful for spotting un-fused load+compare+branch chains, broken-down
+dispatch recognition, and so on. Use it to *pick* a target. Use the
+canonical [`tests/bench/`](../tests/bench/README.md) harness to
+*confirm* the change moved the user-facing number.
 
 **Caveat:** `--batch=0 --profile` reports snapshot+change-detect at
 ~91% of time. Single-tick instrumentation artifact —
