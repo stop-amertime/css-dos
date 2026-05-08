@@ -34,17 +34,28 @@ was ~2.7 fps with the first 4 s at 6-11 fps from menu animation.
 With warmup the headline is **1.45 fps** — what the user actually
 feels mid-gameplay.
 
-**2026-05-08 baseline (old-kbd branch, web `--headed`):**
-- `doom-loading`: **76 s wall, 34.1 M ticks, 450 K ticks/sec avg**
-- `doom-ingame-fps`: **1.45 fps steady state** (29 frames in 20 s
-  after 8 s warmup, holding Left)
+**2026-05-08 baseline (old-kbd branch, 3-run doom-all median, web
+`--headed`):**
+- Boot to in-game: **78.6 s wall, 34.1 M ticks, 394 K ticks/sec avg**
+  (range 78-112 s; tick count deterministic at 34.1-34.5 M, wall
+  variance is host CPU / Chrome GC noise → use 3-run medians)
+- Steady-state in-game FPS: **0.85** (range 0.70-1.80, 20 s
+  measurement after 8 s warmup, holding Left)
+
+Single-run results: see `tmp/bench-all-{1,2,3}.json`.
 
 **Cleanup landed in this entry:**
 - Renamed `tests/bench/profiles/ingame-fps.mjs` → `doom-ingame-fps.mjs`.
+- Added `doom-all.mjs` — runs `doom-loading` + `doom-ingame-fps`
+  in one boot. Same wall as ingame-fps alone (both pay the boot).
+  Small profiles kept for "I want one number quickly" cases.
 - Deleted `tests/harness/flamegraph-doom.mjs` (LEFT-holding workload
   bundled with V8 CPU profiling — superseded by the bench profile;
   if web-side flamegraphs are needed again, add them as a profile).
 - Deleted `tests/harness/resolve-cpuprofile.mjs` (helper for above).
+- Deleted `tests/harness/bench-doom-{load,stages,stages-cli,gameplay}.mjs`,
+  `tests/harness/bench-web.mjs`, `web/player/bench.html` — all
+  superseded by the canonical profiles.
 - Updated `CLAUDE.md`, `docs/TESTING.md`, `tests/bench/README.md`,
   `STATUS.md` so all paths converge on the canonical set; reading
   `tests/bench/README.md` before running any bench is now mandatory.

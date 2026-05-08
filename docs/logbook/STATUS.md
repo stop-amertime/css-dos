@@ -60,12 +60,19 @@ node tests/bench/driver/run.mjs doom-ingame-fps --headed   # in-game FPS
 node tests/bench/driver/run.mjs doom-loading    --target=cli  # dev-only sanity
 ```
 
-**Current baseline (2026-05-08, old-kbd branch):**
-- `doom-loading`: **76 s wall, 34.1 M ticks, 450 K ticks/sec avg**
-- `doom-ingame-fps`: **1.45 fps** steady state (29 frames over 20 s,
-  after 8 s warmup, holding Left). The first ~4 s after `gamestate=GS_LEVEL`
-  are the menu sliding off and view fade-in — the warmup discards them
-  so the headline reflects gameplay, not animation.
+**Current baseline (2026-05-08, old-kbd branch, 3-run `doom-all`
+median):**
+- Boot to in-game: **78.6 s wall, 34.1 M ticks, 394 K ticks/sec avg**
+  (run-to-run wall range 78-112 s; tick count is deterministic at
+  34.1-34.5 M, so the wall variance is host CPU / Chrome GC noise).
+- Steady-state in-game FPS: **0.85** (range 0.70-1.80 across 3 runs,
+  20 s measurement after 8 s warmup, holding Left). The first ~4 s
+  after `gamestate=GS_LEVEL` are the menu sliding off and view
+  fade-in — the warmup discards them so the headline reflects
+  gameplay, not animation.
+
+Quote a 3-run median when claiming a perf change; single-run numbers
+have ±30 % wall noise on this machine.
 
 Quote JSON before/after perf claims. Diagnose with measurement tools,
 not by running the player interactively.
@@ -115,9 +122,11 @@ with any kiln/builder change that moves data).
 
 - **Pre-ship Doom8088 FPS push.** Brief in
   [`docs/agent-briefs/2026-05-07-pre-ship-fps-leads.md`](../agent-briefs/2026-05-07-pre-ship-fps-leads.md).
-  **2026-05-08 baseline (old-kbd branch): doom-loading 76 s wall
-  (34.1 M ticks, 450 K ticks/sec avg); doom-ingame-fps 1.45 fps
-  steady state (8 s warmup + 20 s measurement, holding Left).**
+  **2026-05-08 baseline (old-kbd branch, 3-run doom-all median):
+  78.6 s wall to in-game (34.1 M ticks, 394 K ticks/sec avg);
+  0.85 fps steady state in-game (20 s measurement after 8 s warmup,
+  holding Left). Run-to-run wall noise is ±30 % on this machine —
+  use 3-run medians.**
   Earlier wall-clock numbers (161 s @ 2026-05-07, 242 s pre-fix)
   reflect the prior keyboard-genericity stack which has since been
   reverted on this branch.
