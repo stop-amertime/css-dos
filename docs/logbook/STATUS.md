@@ -79,9 +79,17 @@ OFF, 3-run `doom-all` median; raw JSONs in `docs/benches/`):**
 
 **With BIF2 fusion ON** (calcite `BIF2_FUSE_ENABLED=true`):
 77.1 s engine-run / 443 K ticks/sec / 1.85 fps. So BIF2 is worth
-roughly +4.5 % throughput / +8 % FPS on this baseline (less than the
-+47 % the 2026-05-07 original measurement claimed — that was against
-the regressed engine; both wins are real but non-additive).
+roughly **+4.5 % throughput / +8 % FPS** on the current web baseline.
+
+The 2026-05-07 calcite log entry that claimed +47 % throughput /
+−31.8 % wall was measured on the **CLI** target, against a
+142 K ticks/sec baseline (engine was constrained by the
+apply_input_edges regression and the CLI runtime has no SW/frame
+consumer, so dispatch overhead has a different relative weight than
+in the web runtime). The 2026-05-07 measurement isn't wrong, but
+the +47 % shouldn't generalise to the web runtime — the canonical
+bench. **On the canonical bench, BIF2 is a real but modest +4-8 %
+win.**
 
 Quote 3-run medians when claiming a perf change. With nothing else
 competing for CPU, runs converge tightly (±0.5 %); under contention
@@ -152,7 +160,11 @@ with any kiln/builder change that moves data).
     5M-tick raw bench: 162 K → 297 K ticks/sec (+1.83×).
   - BIF2 fusion default-on (calcite `f014d35`): 794 fusions
     covering 13.5 % of dispatched ops, was env-var-gated since
-    2026-04-30 wash on a different cabinet.
+    2026-04-30 wash on a different cabinet. Now hardcoded OFF on
+    `old-kbd` for measurement isolation. Web bench delta: +4.5 %
+    throughput / +8 % FPS — modest but real. (The 2026-05-07
+    +47 % claim was on the CLI bench against a slower baseline,
+    not the canonical web bench.)
   ~~Lead #1 (widen `fuse_loadstate_branch`)~~ killed (probe
   `crates/calcite-cli/src/bin/probe_bif_predecessor.rs` shows 0
   static candidates).

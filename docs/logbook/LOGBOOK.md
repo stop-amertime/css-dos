@@ -23,14 +23,24 @@ landed earlier today.
 | doomLoad phase  | 65,480 | 68,463 | **+4.6 %** |
 | doomMenuDelay   | 2,139 | 2,608 | +21.9 % (small abs) |
 
-So on the post-keyboard-revert old-kbd baseline, BIF2 is worth roughly
-**+4.5 % throughput / +8 % in-game FPS**. The original 2026-05-07
-commit message for the default-on flip (`a890e08` in calcite) claimed
-+47 % throughput / −32 % wall — but that was measured against a
-calcite that *also* had the `apply_input_edges` regression. With the
-regression fixed (calcite `6d9e80a`) the engine is faster overall so
-BIF2's *relative* contribution shrinks. Both wins are real, just
-non-additive.
+So on the post-keyboard-revert old-kbd web baseline, BIF2 is worth
+roughly **+4.5 % throughput / +8 % in-game FPS** — modest but real.
+
+The 2026-05-07 calcite log entry that claimed +47 % throughput /
+−32 % wall (calcite `8e592b0`/`f014d35`) measured BIF2 on the **CLI**
+bench (`run.mjs doom-loading --target=cli`), with a baseline of
+142 K ticks/sec (the engine was bottlenecked by the not-yet-fixed
+`apply_input_edges` regression at that point — the same-day fix in
+calcite `6d9e80a` recovered most of the throughput). On the CLI
+runtime — no SW, no frame consumer, native rather than wasm — the
+relative weight of dispatch overhead vs other engine work is
+different too. The +47 % isn't wrong; it just doesn't generalise
+across runtimes or across baselines. The web is the canonical
+bench, and the canonical answer for BIF2 is +4-8 %.
+
+Lesson: when claiming a percentage win, anchor to the canonical
+bench (web `--headed`) and a fully-current baseline. CLI numbers
+are dev-sanity, not headline material.
 
 Raw JSONs:
 `docs/benches/doom-all-2026-05-08-old-kbd-{run,bif2off-run}{1,2,3}.json`.
