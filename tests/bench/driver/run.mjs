@@ -120,11 +120,26 @@ async function runWeb(profileName, port, headed) {
   // Lazy-load chromium with the same fallback bench-doom-stages.mjs uses.
   const { chromium } = await loadChromium();
   const launchOpts = { headless: !headed };
+  if (headed) {
+    // Pop the window to the front and give it a sensible default size.
+    // Without --start-maximized / --window-position the launched window
+    // can land off-screen on multi-monitor setups or behind the editor.
+    launchOpts.args = [
+      '--start-maximized',
+      '--window-position=0,0',
+      '--window-size=1280,900',
+    ];
+  }
   // On Windows, Playwright's bundled chromium isn't always installed —
-  // fall back to system Chrome (same shape bench-doom-stages.mjs uses).
-  const sysChrome = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
-  if (process.platform === 'win32' && existsSync(sysChrome)) {
-    launchOpts.executablePath = sysChrome;
+  // fall back to system Chrome. Skip when --headed: system Chrome
+  // attaches to existing user profiles and may open in a separate
+  // virtual desktop or behind other windows; the bundled Chromium
+  // launches a clean isolated window every time.
+  if (!headed) {
+    const sysChrome = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+    if (process.platform === 'win32' && existsSync(sysChrome)) {
+      launchOpts.executablePath = sysChrome;
+    }
   }
   const browser = await chromium.launch(launchOpts);
   const ctx = await browser.newContext({ viewport: { width: 1024, height: 700 } });
@@ -138,6 +153,16 @@ async function runWeb(profileName, port, headed) {
   });
   page.on('pageerror', (err) => {
     process.stderr.write(`[pageerror] ${err.message}\n`);
+  });
+  // Trace 404s with the offending URL — the default page-error log
+  // omits the URL so debugging "404 for who?" is impossible without it.
+  page.on('requestfailed', (req) => {
+    process.stderr.write(`[request-failed] ${req.method()} ${req.url()} (${req.failure()?.errorText})\n`);
+  });
+  page.on('response', (resp) => {
+    if (resp.status() >= 400) {
+      process.stderr.write(`[response] ${resp.status()} ${resp.url()}\n`);
+    }
   });
 
   const url = `http://localhost:${port}/bench/page/?profile=${encodeURIComponent(profileName)}`;

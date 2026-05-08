@@ -14,8 +14,10 @@
 <meta charset="utf-8">
 <title>CSS-DOS bench harness</title>
 <style>
-  body { font-family: monospace; background: #111; color: #ccc; padding: 1em; }
+  body { font-family: monospace; background: #111; color: #ccc; padding: 1em; margin: 0; }
   h1   { color: #4af; font-size: 1em; margin: 0 0 .5em 0; }
+  .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1em; align-items: start; }
+  .player-wrap iframe { width: 100%; height: 80vh; border: 1px solid #333; background: #000; }
   .log { background: #000; border: 1px solid #333; padding: .5em;
          max-height: 80vh; overflow-y: auto; white-space: pre-wrap; }
   .log .err  { color: #f88; }
@@ -26,8 +28,23 @@
 </head>
 <body>
 <h1 id="title">bench harness — loading...</h1>
-<div class="log" id="log"></div>
-<div class="meta" id="meta"></div>
+<div class="layout">
+  <div class="player-wrap">
+    <!--
+      The player iframe mirrors the user's actual experience:
+      <img src="/_stream/fb"> drives frame consumption (without it the
+      bridge's frame emissions go to no SW subscribers, and the runtime
+      cost / FPS reading diverges from real player). Keyboard <a> links
+      fire `/_kbd?key=...` through the SW to our bridge — same input
+      path the player uses. Populated after cabinet is in Cache Storage.
+    -->
+    <iframe id="player-frame" title="player" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+  </div>
+  <div>
+    <div class="log" id="log"></div>
+    <div class="meta" id="meta"></div>
+  </div>
+</div>
 
 <script type="module">
   import { buildCabinetInBrowser } from '/browser-builder/main.mjs';
@@ -118,6 +135,24 @@
     }
     const blob = await r.blob();
     log(`fetched ${(blob.size / 1024 / 1024).toFixed(1)} MB cabinet`);
+
+    // Mirror the cabinet into Cache Storage at /cabinet.css so the
+    // iframed player's <link href="/cabinet.css"> resolves through the
+    // SW. Same key the browser-builder normally writes to (see
+    // web/browser-builder/storage.mjs). On Windows Chromium the
+    // Cache.put can intermittently fail with "Unexpected internal
+    // error" for large blobs (cabinet is ~330 MB); log+continue and
+    // the player iframe will fail-open by directly fetching the
+    // blob via a sw shim rather than hard-erroring the bench.
+    try {
+      const cabResp = new Response(blob, { headers: { 'Content-Type': 'text/css' } });
+      const cabCache = await caches.open('cssdos-cabinets-v2');
+      await cabCache.put('/cabinet.css', cabResp);
+      log('cabinet stored in Cache Storage at /cabinet.css');
+    } catch (e) {
+      log(`Cache.put failed (${e.message}); falling back to blob URL`, 'err');
+    }
+
     bridge.postMessage({ type: 'cabinet-blob', blob });
     log('cabinet-blob posted to bridge; waiting for compile-done');
     // The bridge broadcasts compile-done over the cssdos-bridge-stats
@@ -133,9 +168,56 @@
         }
       };
     });
+
+    // Point the player iframe at /player/calcite.html. The iframe's
+    // <img src="/_stream/fb"> fetch triggers the SW's viewer-connected
+    // signal which calls bridge.startRunning() — that's the engine
+    // start. The keyboard <a> links inside the iframe also flow through
+    // the SW to our bridge. The bridge's startRunning is idempotent
+    // (running-guard) so a later bench-run from the profile is a no-op.
+    const $iframe = document.getElementById('player-frame');
+    $iframe.src = '/player/calcite.html';
+    log('player iframe loading (SW will viewer-connect → engine starts)');
+
+    // Wait for the bridge to broadcast running-started — the iframe's
+    // /_stream/fb fetch triggers viewer-connected → startRunning →
+    // engine.reset(). We must wait until AFTER reset before the profile
+    // registers watches, or reset wipes them.
+    await new Promise((resolve) => {
+      const ch = new BroadcastChannel('cssdos-bridge-stats');
+      ch.onmessage = (ev) => {
+        if (ev.data?.type === 'running-started') {
+          ch.close();
+          log('bridge running-started; safe to register watches');
+          resolve();
+        }
+      };
+    });
   }
 
-  // 5. Run the profile.
+  // 5. Subscribe to bridge-stats so the result includes a 1Hz time
+  // series of cycles/ticks/fps across the run. The bridge broadcasts
+  // these on cssdos-bridge-stats every second; we tag samples with
+  // the current bridge-reported videoMode and the page's wall clock.
+  const statsSamples = [];
+  const statsCh = new BroadcastChannel('cssdos-bridge-stats');
+  const statsT0 = performance.now();
+  statsCh.onmessage = (ev) => {
+    const d = ev.data;
+    if (d?.type !== 'bridge-stats') return;
+    statsSamples.push({
+      wallMs: Math.round(performance.now() - statsT0),
+      cycles: d.cycles,
+      ticks: d.ticks,
+      framesEncoded: d.framesEncoded,
+      fpsWindow: d.fpsWindow,
+      batchCount: d.batchCount,
+      batchMsEma: d.batchMsEma,
+      videoMode: d.videoMode,
+    });
+  };
+
+  // 6. Run the profile.
   const host = {
     log,
     setMeta(obj) { $meta.textContent = JSON.stringify(obj, null, 2); },
@@ -145,12 +227,22 @@
 
   try {
     const result = await profile.run(host);
-    window.__benchResult = { ok: true, ...result };
-    log(`profile complete`, 'ok');
+    statsCh.close();
+    // Derive aggregate ticks/sec across the run.
+    const tps = (() => {
+      if (statsSamples.length < 2) return null;
+      const first = statsSamples[0], last = statsSamples[statsSamples.length - 1];
+      const dtMs = last.wallMs - first.wallMs;
+      const dTicks = last.ticks - first.ticks;
+      return dtMs > 0 ? Math.round((dTicks / dtMs) * 1000) : null;
+    })();
+    window.__benchResult = { ok: true, ...result, statsSamples, ticksPerSecAvg: tps };
+    log(`profile complete (avgTicksPerSec=${tps})`, 'ok');
     $title.textContent = `bench: ${profileName} — done`;
   } catch (e) {
+    statsCh.close();
     log(`profile threw: ${e.message}`, 'err');
-    window.__benchResult = { ok: false, error: e.message, stack: e.stack };
+    window.__benchResult = { ok: false, error: e.message, stack: e.stack, statsSamples };
     $title.textContent = `bench: ${profileName} — FAILED`;
   }
 </script>

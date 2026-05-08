@@ -70,9 +70,17 @@ Full tool list and recipe walkthroughs in
 node tests/bench/driver/run.mjs compile-only
 
 # Doom8088 boot through six stages (text → title → menu → loading → ingame).
-node tests/bench/driver/run.mjs doom-loading                # web (default)
+node tests/bench/driver/run.mjs doom-loading --headed                # web (default)
 node tests/bench/driver/run.mjs doom-loading --target=cli   # native CLI
 ```
+
+**The web bench MUST run with `--headed`.** Headless Chromium throttles
+backgrounded workers and pages, which produces meaningless wall-clock
+numbers. The bench page mirrors the player surface — it mounts an
+`<img src="/_stream/fb">` so frame emission has a consumer (otherwise
+the SW broadcast goes to no subscribers and frames pile up). A
+backgrounded headless tab won't paint that img, so bench measurements
+diverge from the user's actual experience.
 
 Profiles live in `tests/bench/profiles/`; each declares its required
 artifacts and the driver auto-rebuilds anything stale before running.

@@ -116,7 +116,7 @@ function kbdTrace(msg) {
 // Canary — bump this when you change this file so you can confirm the
 // browser is actually serving the new version. Shows up in every status
 // line so it's impossible to miss in the console.
-const BRIDGE_VERSION = 'v45-kbd-trace';
+const BRIDGE_VERSION = 'v46-bench-iframe';
 
 async function boot() {
   postStatus(`bridge boot ${BRIDGE_VERSION}`);
@@ -197,13 +197,28 @@ async function compileCabinetBytes(arrayBuffer) {
 }
 
 // Reset engine state to power-on, start the tick loop, mark the bridge
-// as actively running. Idempotent — calling twice is harmless.
+// as actively running. Idempotent — calling twice when already running
+// is a no-op. The first caller (whoever is faster: viewer-connected
+// from /_stream/fb fetch, or bench-run from a profile) wins; later
+// callers don't reset the engine mid-run.
 function startRunning() {
+  if (running) {
+    postStatus('startRunning called while already running — no-op');
+    return;
+  }
+  postStatus('startRunning: resetting + starting tickloop');
   resetMachine();
   if (engine) {
     running = true;
     tickLoop();
     startFrameSampler();
+    // Broadcast so bench harness profiles can wait for the engine to
+    // actually be running before registering watches (otherwise the
+    // engine.reset() inside resetMachine() wipes any watches the host
+    // registered between compile-done and the first viewer-connected).
+    if (benchChannel) {
+      try { benchChannel.postMessage({ type: 'running-started' }); } catch {}
+    }
   }
 }
 
@@ -280,6 +295,9 @@ function tickLoop() {
     if (watchChunkTicks > 0 && engine.run_batch_watched) {
       // Bench-harness path: watch registry polls every watchChunkTicks
       // engine ticks. Halts the loop if a watch's halt action fires.
+      // The wasm impl uses an internal monotonic watch_clock starting
+      // at 0 (not state.frame_counter) so Stride{every} watches fire
+      // at clean boundaries regardless of when watches got registered.
       const halted = engine.run_batch_watched(batchCount, watchChunkTicks);
       if (halted) {
         running = false;
@@ -605,6 +623,17 @@ self.onmessage = (ev) => {
     kbdTrace(`[kbd-trace] toggle enabled=${kbdTraceEnabled}`);
     return;
   }
+  if (d.type === 'bridge-info' && ev.ports && ev.ports[0]) {
+    ev.ports[0].postMessage({
+      ok: true,
+      version: BRIDGE_VERSION,
+      running,
+      watchChunkTicks,
+      batchCount,
+      batchMsEma,
+    });
+    return;
+  }
   if (d.type === 'peek-state' && engine && ev.ports && ev.ports[0]) {
     try {
       const v = engine.get_state_var(d.name);
@@ -683,8 +712,17 @@ self.onmessage = (ev) => {
     // startRunning's first call) and start the tick loop. Caller
     // typically registers watches first; the watch-driven loop runs
     // until a halt action fires.
-    try { engine.reset(); } catch {}
-    startRunning();
+    //
+    // If we're ALREADY running (e.g. an iframe player has fired
+    // viewer-connected first), don't engine.reset() — that wipes the
+    // watch_registry, which the caller already populated by the time
+    // bench-run lands. Just leave the existing run going.
+    if (!running) {
+      try { engine.reset(); } catch {}
+      startRunning();
+    } else {
+      postStatus('bench-run while already running — skipping reset, watches preserved');
+    }
     return;
   }
   if (d.type === 'bench-stop') {
