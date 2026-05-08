@@ -36,6 +36,7 @@ instead.
 | `compile-only`     | Cabinet → parse → compile time              | Sanity check the build path. |
 | `doom-loading`     | Boot through six stages → in-game           | `runMsToInGame`, `ticksToInGame`, `ticksPerSecAvg`, `stages`. |
 | `doom-ingame-fps`  | Steady-state in-game FPS while holding Left | 8 s warmup (menu slide-off, view fade-in, cache warmup) → 20 s measurement. Hashes the full 320×200 framebuffer; each distinct hash is one user-visible frame. |
+| `doom-all`         | doom-loading **and** doom-ingame-fps in one boot | Same wall time as `doom-ingame-fps` alone (both share the boot cost). Use this when you want all the numbers; use the small profiles when you want one number quickly. |
 
 ## Layout
 
@@ -47,6 +48,7 @@ tests/bench/
     compile-only.mjs    — sanity: cabinet → parse → compile, report ms
     doom-loading.mjs    — doom8088 boot through six stages to in-game
     doom-ingame-fps.mjs — doom8088 steady-state FPS while holding Left
+    doom-all.mjs        — doom-loading + doom-ingame-fps in one boot
   lib/
     artifacts.mjs       — declarative manifest of every built artifact
     ensure-fresh.mjs    — staleness primitive (mtime + transitive rebuild)
