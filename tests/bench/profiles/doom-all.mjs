@@ -64,6 +64,7 @@ export const manifest = {
     ingameFps:        'number',
     fpsSamples:       'object',
     stages:           'object',
+    phases:           'object',  // ms per substep (dosBoot, doomTitle, doomMenuDelay, doomLoad, warmup, measure)
   },
 };
 
@@ -179,6 +180,27 @@ export async function run(host) {
   bridge.postMessage({ type: 'bench-stop' });
   host.log(`done: ${framesChanged} frames in ${(measureMs/1000).toFixed(1)}s = ${ingameFps.toFixed(2)} fps`);
 
+  // Substep deltas — wall ms spent in each phase. The page-side runner
+  // adds compileMs separately (it captures the compile-done broadcast
+  // before the profile runs). Phases here:
+  //
+  //   dosBoot      = title.wallMs - 0                  (BIOS+kernel up to mode 13h title splash)
+  //   doomTitle    = menu - title                      (title splash → menu visible)
+  //   doomMenuDelay= loading - menu                    (Enter dismisses menu, level-load begins)
+  //   doomLoad     = ingame - loading                  (level-load until gamestate=GS_LEVEL)
+  //   warmup       = WARMUP_SECONDS * 1000             (menu slide-off, view fade-in)
+  //   measure      = measureMs                         (steady-state FPS measurement)
+  //
+  // Each phase's wall reflects what the user actually waits through.
+  const phases = {
+    dosBoot:       stages.title?.wallMs ?? null,
+    doomTitle:     (stages.menu?.wallMs    ?? 0) - (stages.title?.wallMs   ?? 0),
+    doomMenuDelay: (stages.loading?.wallMs ?? 0) - (stages.menu?.wallMs    ?? 0),
+    doomLoad:      (stages.ingame?.wallMs  ?? 0) - (stages.loading?.wallMs ?? 0),
+    warmup:        WARMUP_SECONDS * 1000,
+    measure:       Math.round(measureMs),
+  };
+
   return {
     profileName: 'doom-all',
     runMsToInGame:  stages.ingame?.wallMs ?? null,
@@ -189,5 +211,6 @@ export async function run(host) {
     ingameFps,
     fpsSamples,
     stages,
+    phases,
   };
 }

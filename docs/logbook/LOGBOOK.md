@@ -36,13 +36,30 @@ feels mid-gameplay.
 
 **2026-05-08 baseline (old-kbd branch, 3-run doom-all median, web
 `--headed`):**
-- Boot to in-game: **78.6 s wall, 34.1 M ticks, 394 K ticks/sec avg**
-  (range 78-112 s; tick count deterministic at 34.1-34.5 M, wall
-  variance is host CPU / Chrome GC noise → use 3-run medians)
-- Steady-state in-game FPS: **0.85** (range 0.70-1.80, 20 s
-  measurement after 8 s warmup, holding Left)
 
-Single-run results: see `tmp/bench-all-{1,2,3}.json`.
+| Phase | Median wall |
+|---|---:|
+| compile (cabinet → calcite IR, one-shot) | 27.6 s |
+| dosBoot (BIOS + DOS to title splash)     | 9.0 s |
+| doomTitle (title → menu)                 | 0.5 s |
+| doomMenuDelay (Enter → level-load start) | 2.1 s |
+| doomLoad (level-load → GS_LEVEL)         | **65.5 s** |
+| warmup (menu slide-off, no measure)      | 8 s |
+| measure (FPS sample window)              | 20 s |
+
+- Run wall (engine-running to in-game): **77.1 s** (range 76.6-77.5,
+  ±0.5 %). Tick count: 34.1 M; throughput: **443 K ticks/sec**.
+- Steady-state in-game FPS: **1.85** (range 1.70-2.15).
+- doomLoad is **84.9 %** of the engine-run wall — perf optimisation
+  pays off there more than anywhere else.
+
+Raw JSONs (each ~27 KB, contains full `statsSamples` and `fpsSamples`
+time series) in `docs/benches/doom-all-2026-05-08-old-kbd-run{1,2,3}.json`.
+
+Earlier 3-run set (range 78-112 s wall) was contaminated by host
+CPU contention — that set's "use 3-run medians, ±30 %" advice was
+overstated. With nothing else competing the runs converge to within
+±0.5 %.
 
 **Cleanup landed in this entry:**
 - Renamed `tests/bench/profiles/ingame-fps.mjs` → `doom-ingame-fps.mjs`.

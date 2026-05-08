@@ -157,12 +157,15 @@
     log('cabinet-blob posted to bridge; waiting for compile-done');
     // The bridge broadcasts compile-done over the cssdos-bridge-stats
     // BroadcastChannel — not a direct postMessage. Listen there.
+    // Capture compileMs / cabinetBytes for the result envelope.
+    var compileInfo = null;
     await new Promise((resolve) => {
       const ch = new BroadcastChannel('cssdos-bridge-stats');
       ch.onmessage = (ev) => {
         const d = ev.data;
         if (d?.type === 'compile-done') {
           ch.close();
+          compileInfo = { compileMs: d.compileMs, cabinetBytes: d.cabinetBytes };
           log(`compile-done in ${Math.round(d.compileMs)} ms (cabinetBytes=${d.cabinetBytes})`);
           resolve();
         }
@@ -236,7 +239,7 @@
       const dTicks = last.ticks - first.ticks;
       return dtMs > 0 ? Math.round((dTicks / dtMs) * 1000) : null;
     })();
-    window.__benchResult = { ok: true, ...result, statsSamples, ticksPerSecAvg: tps };
+    window.__benchResult = { ok: true, ...result, statsSamples, ticksPerSecAvg: tps, ...(compileInfo ?? {}) };
     log(`profile complete (avgTicksPerSec=${tps})`, 'ok');
     $title.textContent = `bench: ${profileName} — done`;
   } catch (e) {
