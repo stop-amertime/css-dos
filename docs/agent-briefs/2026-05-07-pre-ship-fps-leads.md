@@ -16,25 +16,38 @@ not a replacement for the cardinal rules.
 
 ## How to measure (canonical)
 
-Per [`docs/TESTING.md`](../TESTING.md) and the perf-mission brief, the
-authoritative numbers come from `tests/bench/driver/run.mjs
-doom-loading` on **both** targets:
+> **Read [`tests/bench/README.md`](../../tests/bench/README.md)
+> end-to-end before running anything.** This brief assumes you have.
+
+The authoritative numbers come from
+`tests/bench/driver/run.mjs doom-all --headed` on the web target. Use
+the 3-run median protocol (see the bench README) for any delta claim.
 
 ```sh
-node tests/bench/driver/run.mjs doom-loading                # web
-node tests/bench/driver/run.mjs doom-loading --target=cli   # native
+# 3-run baseline:
+for i in 1 2 3; do
+  node tests/bench/driver/run.mjs doom-all --headed --no-rebuild \
+    --out=tmp/baseline-$i.json
+done
+
+# CLI is dev-only sanity, NOT a user-facing number:
+node tests/bench/driver/run.mjs doom-loading --target=cli
 ```
 
-Pin the JSON before/after any change. Web and CLI must track each
-other within ~10 % on non-throughput metrics — a change that helps
-one and hurts the other is a regression.
+`doom-all` reports phase substep timings — `compile`, `dosBoot`,
+`doomTitle`, `doomMenuDelay`, `doomLoad`, `warmup`, `measure` — plus
+`runMsToInGame`, `ticksPerSecAvg`, `ingameFps`, `framesChanged`. Cite
+those fields directly when claiming a delta.
 
-There is currently **no canonical in-game-FPS profile**. The
-`doom-loading` profile halts on `stage_ingame` (first in-game frame).
-A new profile that runs N ticks past `stage_ingame` and reports
-ticks/sec, cycles/sec, and emitted-frame count would let pre-ship
-work measure steady-state FPS the same way it measures load time.
-**Adding it is checkpoint 0 of any mission targeting in-game FPS.**
+**doomLoad is ~85 % of the engine-run wall** — that's the
+phase any ship-targeted FPS work needs to move. If a change moves
+`ticksPerSecAvg` but not `phases.doomLoad`, you've helped a phase
+that doesn't matter to the user.
+
+The canonical in-game-FPS profile is `doom-ingame-fps` (or `doom-all`,
+which includes it). Holds Left continuously, samples the full
+framebuffer every ~16 ms, hashes via FNV-1a, counts distinct frames
+across a 20 s window after an 8 s warmup.
 
 `calcite-bench --profile` (on a pre-built cabinet) is the right tool
 for op-distribution diagnostics — it tells you *where* the per-tick

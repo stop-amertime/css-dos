@@ -65,47 +65,38 @@ Full tool list and recipe walkthroughs in
 
 ## Performance — `tests/bench/`
 
-**Required reading before running any benchmark:**
-[`tests/bench/README.md`](../tests/bench/README.md). It is the source
-of truth for the canonical profile set, the harness contract, and the
-correct invocation. Don't invent ad-hoc benchmarks; if what you need
-isn't covered, add a profile under `tests/bench/profiles/`.
+> **Performance work has one entry: [`tests/bench/README.md`](../tests/bench/README.md).
+> Read it end-to-end before running any benchmark.** It is the source
+> of truth for the canonical profile set, the `--headed` rule, the
+> baseline numbers, and the methodology rules (3-run medians, JSON
+> citations, what NOT to use). The summary below exists so you know
+> where to go — go there.
 
-**Three canonical profiles:**
+**Four canonical profiles** (`tests/bench/profiles/`):
 
 | Profile | What it measures |
 |---|---|
 | `compile-only`     | Cabinet → parse → compile time |
 | `doom-loading`     | Boot through six stages → in-game (wall ms, ticks) |
 | `doom-ingame-fps`  | Steady-state in-game FPS while holding Left (8 s warmup → 20 s measurement, full-frame hash) |
+| `doom-all`         | doom-loading + doom-ingame-fps in one boot, with phase substep timings (compile / dosBoot / doomTitle / doomMenuDelay / doomLoad / warmup / measure). **Default for any non-trivial perf measurement.** |
 
 ```sh
-node tests/bench/driver/run.mjs compile-only
-node tests/bench/driver/run.mjs doom-loading    --headed   # SOURCE OF TRUTH
-node tests/bench/driver/run.mjs doom-ingame-fps --headed   # in-game FPS
-node tests/bench/driver/run.mjs doom-loading    --target=cli  # dev-only sanity
+node tests/bench/driver/run.mjs doom-all --headed --out=tmp/baseline.json
 ```
 
 **The web bench is the source of truth, and it MUST run `--headed`.**
-The CLI bench is for dev-only sanity (different runtime, no SW, no
-frame consumer); never claim a user-facing perf number from it. Web
-runs the same calcite-wasm + bridge + SW + player path the user
-sees, so its numbers are the numbers the user feels.
+CLI (`--target=cli`) is dev-only sanity (different runtime, no SW,
+no frame consumer); never claim a user-facing perf number from it.
 
-Headless Chromium throttles backgrounded workers and pages, which
-produces meaningless wall-clock numbers. The bench page iframes
-`/player/calcite.html` so `<img src="/_stream/fb">` has a frame
-consumer (otherwise SW broadcast goes nowhere and the bridge does
-work nobody's measuring) and the keyboard `<a>` links route exactly
-the way they do in production. A backgrounded headless tab also
-won't paint the iframed `<img>`, so headless measurements diverge
-from the user's actual experience.
+**Don't reach for** `cargo bench`, the calcite `calcite-bench` Rust
+binary, the player's `?bench=1` HUD, or any `bench-*.mjs` script
+outside `tests/bench/profiles/`. Those are internal/legacy/HUD
+tooling, not the canonical bench. Numbers from them are not
+comparable to anything in STATUS / LOGBOOK.
 
-Profiles live in `tests/bench/profiles/`; each declares its required
-artifacts and the driver auto-rebuilds anything stale before running.
-See [`tests/bench/README.md`](../tests/bench/README.md) for the
-profile API and [`docs/script-primitives.md`](script-primitives.md)
-for the watch-spec grammar profiles use to express stage detectors.
+Full methodology, prerequisites, common pitfalls, and the canonical
+baseline numbers live in [`tests/bench/README.md`](../tests/bench/README.md).
 
 ## Reference emulator = ground truth
 
