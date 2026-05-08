@@ -142,7 +142,12 @@ async function runWeb(profileName, port, headed) {
     }
   }
   const browser = await chromium.launch(launchOpts);
-  const ctx = await browser.newContext({ viewport: { width: 1024, height: 700 } });
+  // Headed: viewport=null lets the page fill the maximized window so
+  // the user can see the iframed player at a usable size. Headless:
+  // a fixed viewport keeps screenshots reproducible.
+  const ctx = await browser.newContext(
+    headed ? { viewport: null } : { viewport: { width: 1024, height: 700 } }
+  );
   const page = await ctx.newPage();
 
   page.on('console', (msg) => {

@@ -36,18 +36,28 @@ watch-spec grammar bench profiles use.
 
 ## How to test (Doom8088 perf)
 
-Web for *seeing*, CLI for headless/batch. Same JSON shape.
+**The web bench is the source of truth.** It runs the same
+calcite-wasm + bridge + SW + player surface the user actually sees,
+so its numbers are the numbers the user feels. Always run it
+`--headed` (headless Chromium throttles workers and produces
+meaningless wall-clock times). The bench page iframes the player so
+`<img src="/_stream/fb">` has a frame consumer and the keyboard
+links route exactly the way they do in production.
 
 ```sh
-node tests/bench/driver/run.mjs doom-loading                # web
-node tests/bench/driver/run.mjs doom-loading --target=cli   # native
+node tests/bench/driver/run.mjs doom-loading --headed         # SOURCE OF TRUTH
+node tests/bench/driver/run.mjs doom-loading --target=cli     # dev-only sanity
 ```
 
-Both emit `runMsToInGame` / `ticksToInGame` / `cyclesToInGame`. Quote
-JSON before/after perf claims. If only one of the two regresses,
-that's a real regression in *that target* — investigate, don't
-dismiss. Web vs native must agree (different speeds, same observable
-result).
+The CLI bench is a fast dev-only sanity check — different runtime
+(native, no SW, no `<img>` consumer), so its numbers don't reflect
+what the user experiences. Use it for "did this change blow up the
+correctness of watch firing" and quick iteration; use the web bench
+to *claim* a perf number.
+
+Both emit `runMsToInGame` / `ticksToInGame` / `cyclesToInGame` plus
+the web bench's `ticksPerSecAvg` and bridge-stats time series. Quote
+JSON before/after perf claims.
 
 **Don't diagnose by running the player interactively** — build a
 measurement tool.

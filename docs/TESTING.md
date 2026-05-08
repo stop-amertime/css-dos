@@ -74,13 +74,20 @@ node tests/bench/driver/run.mjs doom-loading --headed                # web (defa
 node tests/bench/driver/run.mjs doom-loading --target=cli   # native CLI
 ```
 
-**The web bench MUST run with `--headed`.** Headless Chromium throttles
-backgrounded workers and pages, which produces meaningless wall-clock
-numbers. The bench page mirrors the player surface — it mounts an
-`<img src="/_stream/fb">` so frame emission has a consumer (otherwise
-the SW broadcast goes to no subscribers and frames pile up). A
-backgrounded headless tab won't paint that img, so bench measurements
-diverge from the user's actual experience.
+**The web bench is the source of truth, and it MUST run `--headed`.**
+The CLI bench is for dev-only sanity (different runtime, no SW, no
+frame consumer); never claim a user-facing perf number from it. Web
+runs the same calcite-wasm + bridge + SW + player path the user
+sees, so its numbers are the numbers the user feels.
+
+Headless Chromium throttles backgrounded workers and pages, which
+produces meaningless wall-clock numbers. The bench page iframes
+`/player/calcite.html` so `<img src="/_stream/fb">` has a frame
+consumer (otherwise SW broadcast goes nowhere and the bridge does
+work nobody's measuring) and the keyboard `<a>` links route exactly
+the way they do in production. A backgrounded headless tab also
+won't paint the iframed `<img>`, so headless measurements diverge
+from the user's actual experience.
 
 Profiles live in `tests/bench/profiles/`; each declares its required
 artifacts and the driver auto-rebuilds anything stale before running.
