@@ -119,36 +119,40 @@ console.log(JSON.stringify(result, null, 2));
 async function runWeb(profileName, port, headed) {
   // Lazy-load chromium with the same fallback bench-doom-stages.mjs uses.
   const { chromium } = await loadChromium();
-  const launchOpts = { headless: !headed };
-  if (headed) {
-    // Pop the window to the front and give it a sensible default size.
-    // Without --start-maximized / --window-position the launched window
-    // can land off-screen on multi-monitor setups or behind the editor.
-    launchOpts.args = [
-      '--start-maximized',
-      '--window-position=0,0',
-      '--window-size=1280,900',
-    ];
-  }
-  // On Windows, Playwright's bundled chromium isn't always installed —
-  // fall back to system Chrome. Skip when --headed: system Chrome
-  // attaches to existing user profiles and may open in a separate
-  // virtual desktop or behind other windows; the bundled Chromium
-  // launches a clean isolated window every time.
-  if (!headed) {
-    const sysChrome = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
-    if (process.platform === 'win32' && existsSync(sysChrome)) {
+  const sysChrome = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+  const useSysChrome = process.platform === 'win32' && existsSync(sysChrome);
+
+  let browser, ctx, page;
+  if (headed && useSysChrome) {
+    // Headed on Windows: launchPersistentContext with a fresh temp
+    // user-data-dir so we get our own visible Chrome window instead of
+    // attaching to the user's running profile (which opens a tab in
+    // their existing browser, invisible to this bench process).
+    // Playwright's bundled chromium fails on this machine ("side-by-
+    // side configuration is incorrect" — missing VC++ redistributable),
+    // so system Chrome is the only option.
+    const tmpProfile = `${process.env.TEMP || '/tmp'}/cssdos-bench-profile-${Date.now()}`;
+    ctx = await chromium.launchPersistentContext(tmpProfile, {
+      executablePath: sysChrome,
+      headless: false,
+      viewport: null,
+      args: ['--start-maximized', '--window-position=0,0', '--window-size=1280,900'],
+    });
+    browser = ctx.browser();
+    page = ctx.pages()[0] || await ctx.newPage();
+  } else {
+    const launchOpts = { headless: !headed };
+    if (headed) {
+      launchOpts.args = ['--start-maximized', '--window-position=0,0', '--window-size=1280,900'];
+    } else if (useSysChrome) {
       launchOpts.executablePath = sysChrome;
     }
+    browser = await chromium.launch(launchOpts);
+    ctx = await browser.newContext(
+      headed ? { viewport: null } : { viewport: { width: 1024, height: 700 } }
+    );
+    page = await ctx.newPage();
   }
-  const browser = await chromium.launch(launchOpts);
-  // Headed: viewport=null lets the page fill the maximized window so
-  // the user can see the iframed player at a usable size. Headless:
-  // a fixed viewport keeps screenshots reproducible.
-  const ctx = await browser.newContext(
-    headed ? { viewport: null } : { viewport: { width: 1024, height: 700 } }
-  );
-  const page = await ctx.newPage();
 
   page.on('console', (msg) => {
     const t = msg.text();
@@ -180,12 +184,13 @@ async function runWeb(profileName, port, headed) {
   while (Date.now() - t0 < cap) {
     const r = await page.evaluate(() => window.__benchResult ?? null);
     if (r) {
-      await browser.close();
+      // launchPersistentContext returns no Browser, just close ctx.
+      if (browser) await browser.close(); else await ctx.close();
       return r;
     }
     await new Promise(r => setTimeout(r, 500));
   }
-  await browser.close();
+  if (browser) await browser.close(); else await ctx.close();
   return { ok: false, error: `timed out after ${cap}ms` };
 }
 

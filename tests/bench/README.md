@@ -17,6 +17,7 @@ tests/bench/
   profiles/             — one .mjs file per named bench
     compile-only.mjs    — sanity: cabinet → parse → compile, report ms
     doom-loading.mjs    — doom8088 boot through six stages to in-game
+    doom-ingame-fps.mjs — doom8088 steady-state FPS while holding Left
   lib/
     artifacts.mjs       — declarative manifest of every built artifact
     ensure-fresh.mjs    — staleness primitive (mtime + transitive rebuild)
@@ -28,8 +29,9 @@ tests/bench/
 
 ```sh
 node tests/bench/driver/run.mjs compile-only
-node tests/bench/driver/run.mjs doom-loading                # web (default)
-node tests/bench/driver/run.mjs doom-loading --target=cli   # native
+node tests/bench/driver/run.mjs doom-loading --headed       # web (THE canonical bench)
+node tests/bench/driver/run.mjs doom-loading --target=cli   # native, dev-only sanity
+node tests/bench/driver/run.mjs doom-ingame-fps --headed    # steady-state in-game FPS
 node tests/bench/driver/run.mjs doom-loading --no-rebuild --out=tmp/result.json
 ```
 

@@ -1,4 +1,4 @@
-// tests/bench/profiles/ingame-fps.mjs — in-game FPS measurement.
+// tests/bench/profiles/doom-ingame-fps.mjs — Doom8088 in-game FPS measurement.
 //
 // Steady-state FPS is the number the user actually feels. The
 // doom-loading profile measures wall-time-to-in-game (a one-shot
@@ -192,7 +192,7 @@ export async function run(host) {
   host.log(`done: ${framesChanged} frames in ${(measureMs/1000).toFixed(1)}s = ${ingameFps.toFixed(2)} fps`);
 
   return {
-    profileName: 'ingame-fps',
+    profileName: 'doom-ingame-fps',
     runMsToInGame:  stages.ingame?.wallMs ?? null,
     ticksToInGame:  ingameTick,
     measureSeconds: measureMs / 1000,

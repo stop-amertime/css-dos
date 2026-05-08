@@ -119,8 +119,9 @@ with any kiln/builder change that moves data).
   ~~Lead #1 (widen `fuse_loadstate_branch`)~~ killed (probe
   `crates/calcite-cli/src/bin/probe_bif_predecessor.rs` shows 0
   static candidates).
-  Steady-state in-game FPS still not measured directly —
-  checkpoint 0 (in-game-FPS bench profile) still pending. Smoke
+  Steady-state in-game FPS measurable via the new
+  `doom-ingame-fps` web bench profile (holds Left, hashes the full
+  framebuffer to count user-visible frames). Smoke
   7/7 PASS at the current configuration.
 - **EMS/XMS for Doom8088 — partial scaffold, inactive.** Corduroy
   hooks INT 2Fh / INT 67h, reserves "EMMXXXX0" magic at BIOS_SEG bytes

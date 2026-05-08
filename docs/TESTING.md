@@ -72,6 +72,10 @@ node tests/bench/driver/run.mjs compile-only
 # Doom8088 boot through six stages (text → title → menu → loading → ingame).
 node tests/bench/driver/run.mjs doom-loading --headed                # web (default)
 node tests/bench/driver/run.mjs doom-loading --target=cli   # native CLI
+
+# Doom8088 steady-state in-game FPS (holds Left so the world animates,
+# hashes the full framebuffer to count user-visible frames per second).
+node tests/bench/driver/run.mjs doom-ingame-fps --headed
 ```
 
 **The web bench is the source of truth, and it MUST run `--headed`.**
