@@ -210,6 +210,14 @@ Two peer entrypoints:
   `node tests/bench/driver/run.mjs compile-only`. Timed profiles, web
   + native targets, ensureFresh-driven artifact rebuild.
 
+> **MANDATORY: read [`tests/bench/README.md`](tests/bench/README.md)
+> before running any benchmark.** It defines the canonical profile
+> set (`compile-only`, `doom-loading`, `doom-ingame-fps`), the
+> headed-only rule for the web bench, and the "no ad-hoc bench
+> scripts under `tests/harness/`" rule. Don't roll a one-off
+> `.mjs` to measure something — add a profile under
+> `tests/bench/profiles/` so the next agent finds it.
+
 See [`docs/TESTING.md`](docs/TESTING.md) for the full split and
 [`docs/script-primitives.md`](docs/script-primitives.md) for the
 watch-spec grammar bench profiles use to compose stage detectors.

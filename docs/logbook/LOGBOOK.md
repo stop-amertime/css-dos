@@ -4,7 +4,50 @@ Chronological work entries. Newest first. The durable handbook
 (current state, sentinels, gotchas, how to test) is in
 [`STATUS.md`](STATUS.md).
 
-Last updated: 2026-05-07
+Last updated: 2026-05-08
+
+## 2026-05-08 — canonical bench set + 2026-05-08 baseline (old-kbd branch)
+
+The benchmark layout was sprawling across `tests/harness/` (legacy
+`flamegraph-doom.mjs`, `bench-doom-stages.mjs`, `bench-doom-load.mjs`)
+and `tests/bench/profiles/`, with no single rule about which is the
+canonical tool. Cleaned this up to **three** canonical profiles and
+made `tests/bench/README.md` required reading before any benchmark
+run.
+
+**Canonical profile set** (under `tests/bench/profiles/`):
+
+| Profile | What it measures |
+|---|---|
+| `compile-only`     | Cabinet → parse → compile time |
+| `doom-loading`     | Boot through six stages → in-game (wall ms, ticks) |
+| `doom-ingame-fps`  | Steady-state in-game FPS while holding Left |
+
+`doom-ingame-fps` is the rename of the earlier `ingame-fps.mjs`
+(cart-prefix matches `doom-loading`). Holds Left continuously,
+samples the full 320×200 framebuffer every ~16ms, hashes via FNV-1a,
+counts distinct frames. **Now includes 8 s warmup** before
+measurement starts — right after `gamestate=GS_LEVEL` flips, the
+menu slides off the bottom of the screen (~3-4 s), the view fades
+in, and sprite/sector caches populate. Without warmup the headline
+was ~2.7 fps with the first 4 s at 6-11 fps from menu animation.
+With warmup the headline is **1.45 fps** — what the user actually
+feels mid-gameplay.
+
+**2026-05-08 baseline (old-kbd branch, web `--headed`):**
+- `doom-loading`: **76 s wall, 34.1 M ticks, 450 K ticks/sec avg**
+- `doom-ingame-fps`: **1.45 fps steady state** (29 frames in 20 s
+  after 8 s warmup, holding Left)
+
+**Cleanup landed in this entry:**
+- Renamed `tests/bench/profiles/ingame-fps.mjs` → `doom-ingame-fps.mjs`.
+- Deleted `tests/harness/flamegraph-doom.mjs` (LEFT-holding workload
+  bundled with V8 CPU profiling — superseded by the bench profile;
+  if web-side flamegraphs are needed again, add them as a profile).
+- Deleted `tests/harness/resolve-cpuprofile.mjs` (helper for above).
+- Updated `CLAUDE.md`, `docs/TESTING.md`, `tests/bench/README.md`,
+  `STATUS.md` so all paths converge on the canonical set; reading
+  `tests/bench/README.md` before running any bench is now mandatory.
 
 ## 2026-05-07 — `apply_input_edges` regression fixed (recovered 1.83×); BIF2 fusion default-on
 

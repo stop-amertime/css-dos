@@ -34,33 +34,41 @@ See [`docs/TESTING.md`](../TESTING.md) for the full split,
 [`docs/script-primitives.md`](../script-primitives.md) for the
 watch-spec grammar bench profiles use.
 
-## How to test (Doom8088 perf)
+## How to benchmark (canonical)
 
-**The web bench is the source of truth.** It runs the same
-calcite-wasm + bridge + SW + player surface the user actually sees,
-so its numbers are the numbers the user feels. Always run it
-`--headed` (headless Chromium throttles workers and produces
-meaningless wall-clock times). The bench page iframes the player so
-`<img src="/_stream/fb">` has a frame consumer and the keyboard
-links route exactly the way they do in production.
+**Read [`tests/bench/README.md`](../../tests/bench/README.md) before
+running any benchmark.** It is the source of truth for the canonical
+profile set, the run commands, and the harness contract.
+
+**Three canonical profiles** under `tests/bench/profiles/`:
+
+| Profile | What it measures |
+|---|---|
+| `compile-only`     | Cabinet → parse → compile time |
+| `doom-loading`     | Boot through six stages → in-game (wall ms, ticks) |
+| `doom-ingame-fps`  | Steady-state in-game FPS while holding Left |
+
+**The web bench is the source of truth.** Always `--headed`. Headless
+Chromium throttles workers and produces meaningless wall-clock times.
+The CLI bench is a fast dev-only sanity check — different runtime, no
+SW, no `<img>` frame consumer — its numbers do not reflect what the
+user feels.
 
 ```sh
-node tests/bench/driver/run.mjs doom-loading --headed         # SOURCE OF TRUTH
-node tests/bench/driver/run.mjs doom-loading --target=cli     # dev-only sanity
+node tests/bench/driver/run.mjs doom-loading    --headed   # SOURCE OF TRUTH
+node tests/bench/driver/run.mjs doom-ingame-fps --headed   # in-game FPS
+node tests/bench/driver/run.mjs doom-loading    --target=cli  # dev-only sanity
 ```
 
-The CLI bench is a fast dev-only sanity check — different runtime
-(native, no SW, no `<img>` consumer), so its numbers don't reflect
-what the user experiences. Use it for "did this change blow up the
-correctness of watch firing" and quick iteration; use the web bench
-to *claim* a perf number.
+**Current baseline (2026-05-08, old-kbd branch):**
+- `doom-loading`: **76 s wall, 34.1 M ticks, 450 K ticks/sec avg**
+- `doom-ingame-fps`: **1.45 fps** steady state (29 frames over 20 s,
+  after 8 s warmup, holding Left). The first ~4 s after `gamestate=GS_LEVEL`
+  are the menu sliding off and view fade-in — the warmup discards them
+  so the headline reflects gameplay, not animation.
 
-Both emit `runMsToInGame` / `ticksToInGame` / `cyclesToInGame` plus
-the web bench's `ticksPerSecAvg` and bridge-stats time series. Quote
-JSON before/after perf claims.
-
-**Don't diagnose by running the player interactively** — build a
-measurement tool.
+Quote JSON before/after perf claims. Diagnose with measurement tools,
+not by running the player interactively.
 
 For the Doom8088 perf mission (priority leads, success criteria,
 where the time is going), see
@@ -107,7 +115,12 @@ with any kiln/builder change that moves data).
 
 - **Pre-ship Doom8088 FPS push.** Brief in
   [`docs/agent-briefs/2026-05-07-pre-ship-fps-leads.md`](../agent-briefs/2026-05-07-pre-ship-fps-leads.md).
-  **2026-05-07: doom-loading wall now 161 s (was 242 s pre-fix).**
+  **2026-05-08 baseline (old-kbd branch): doom-loading 76 s wall
+  (34.1 M ticks, 450 K ticks/sec avg); doom-ingame-fps 1.45 fps
+  steady state (8 s warmup + 20 s measurement, holding Left).**
+  Earlier wall-clock numbers (161 s @ 2026-05-07, 242 s pre-fix)
+  reflect the prior keyboard-genericity stack which has since been
+  reverted on this branch.
   Two changes:
   - `apply_input_edges` regression fix (calcite `6d9e80a`):
     lazy slot resolution + group caching + empty-set fast path.
@@ -131,10 +144,13 @@ with any kiln/builder change that moves data).
   sidesteps. Files: `bios/corduroy/{entry,handlers,bios_init}.{asm,c}`.
 - **Memory packing pack=2 vs pack=1.** Native probe converges
   ≥500 K ticks; pack=2 slightly faster. Browser verification pending.
-- **Bench harness web target** — driver runs end-to-end on CLI; web
-  bridge tickloop doesn't progress after `bench-run`. Likely
-  SW + viewer-port plumbing the bench page bypasses. Once fixed, the
-  legacy `tests/harness/bench-doom-stages*.mjs` scripts retire.
+- ~~**Bench harness web target**~~ — done 2026-05-08. Web target
+  works end-to-end (`tests/bench/page/index.html` iframes the
+  player so `<img src="/_stream/fb">` has a frame consumer; bridge
+  has running-guard + watch-preserving `bench-run` so watches don't
+  get wiped by `engine.reset()`). Legacy
+  `tests/harness/bench-doom-{load,stages,stages-cli,gameplay}.mjs`
+  and `web/player/bench.html` deleted.
 - **Keyboard input via `:active` — done.** Cabinet CSS emits
   `.cpu { &:has(#kb-X:active) { --keyboard:N } }` per key. Calcite
   parses these into `InputEdge`s and applies them pre-tick from

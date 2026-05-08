@@ -65,17 +65,25 @@ Full tool list and recipe walkthroughs in
 
 ## Performance — `tests/bench/`
 
+**Required reading before running any benchmark:**
+[`tests/bench/README.md`](../tests/bench/README.md). It is the source
+of truth for the canonical profile set, the harness contract, and the
+correct invocation. Don't invent ad-hoc benchmarks; if what you need
+isn't covered, add a profile under `tests/bench/profiles/`.
+
+**Three canonical profiles:**
+
+| Profile | What it measures |
+|---|---|
+| `compile-only`     | Cabinet → parse → compile time |
+| `doom-loading`     | Boot through six stages → in-game (wall ms, ticks) |
+| `doom-ingame-fps`  | Steady-state in-game FPS while holding Left (8 s warmup → 20 s measurement, full-frame hash) |
+
 ```sh
-# Sanity: cabinet → parse → compile → done.
 node tests/bench/driver/run.mjs compile-only
-
-# Doom8088 boot through six stages (text → title → menu → loading → ingame).
-node tests/bench/driver/run.mjs doom-loading --headed                # web (default)
-node tests/bench/driver/run.mjs doom-loading --target=cli   # native CLI
-
-# Doom8088 steady-state in-game FPS (holds Left so the world animates,
-# hashes the full framebuffer to count user-visible frames per second).
-node tests/bench/driver/run.mjs doom-ingame-fps --headed
+node tests/bench/driver/run.mjs doom-loading    --headed   # SOURCE OF TRUTH
+node tests/bench/driver/run.mjs doom-ingame-fps --headed   # in-game FPS
+node tests/bench/driver/run.mjs doom-loading    --target=cli  # dev-only sanity
 ```
 
 **The web bench is the source of truth, and it MUST run `--headed`.**

@@ -1,7 +1,7 @@
 // tests/bench/profiles/doom-loading.mjs — doom8088 boot-to-loading bench.
 //
-// Replaces the old bench-doom-load / bench-doom-stages.mjs for the
-// loading-window measurement. Drives the calcite bridge worker via
+// Canonical boot-to-in-game wall-time measurement. Drives the
+// calcite bridge worker via
 // MessageChannel (the same surface __bridgeWorker exposes) and
 // composes calcite-core script primitives into stage detectors.
 //
@@ -89,7 +89,6 @@ export const manifest = {
 };
 
 // Send a request to the bridge worker, await its reply via MessagePort.
-// Mirror of bench.html's existing pattern.
 function bridgeRequest(bridge, msg, transfer = []) {
   return new Promise((resolve, reject) => {
     const ch = new MessageChannel();
@@ -106,10 +105,8 @@ function bridgeRequest(bridge, msg, transfer = []) {
 export async function run(host) {
   host.log('doom-loading: waiting for bridge worker');
 
-  // The bench page (page/index.html) doesn't yet spawn the bridge —
-  // we need to. The simplest path: dynamic-import the existing
-  // bench.html iframe pattern. For now, this profile *requires* the
-  // outer harness to have spawned a bridge and exposed it.
+  // The bench page (page/index.html) spawns the bridge worker and
+  // exposes it as window.__bridgeWorker before importing this profile.
   if (!window.__bridgeWorker) {
     throw new Error('no __bridgeWorker — page must spawn bridge first');
   }

@@ -117,7 +117,7 @@ console.log(JSON.stringify(result, null, 2));
 
 // ---- Web transport ----
 async function runWeb(profileName, port, headed) {
-  // Lazy-load chromium with the same fallback bench-doom-stages.mjs uses.
+  // Lazy-load chromium with a Windows npx-cache fallback (see loadChromium below).
   const { chromium } = await loadChromium();
   const sysChrome = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
   const useSysChrome = process.platform === 'win32' && existsSync(sysChrome);

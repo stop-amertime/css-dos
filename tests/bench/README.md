@@ -8,6 +8,35 @@ This is the perf-shaped peer to `tests/harness/`. If you want
 correctness (smoke, conformance, divergence-finding), look there
 instead.
 
+## Read this before running any benchmark
+
+1. **Use only the canonical profiles** below. Don't roll an ad-hoc
+   `.mjs` script under `tests/harness/` to "just measure something" —
+   that's how the old `flamegraph-doom.mjs` / `bench-doom-stages.mjs`
+   sprawl happened. If you need a measurement that isn't covered, add
+   a profile under `profiles/` and document it here.
+
+2. **Web is the source of truth, and the web bench MUST run `--headed`.**
+   Headless Chromium throttles backgrounded workers, so headless wall-
+   clock numbers are meaningless. The CLI bench (`--target=cli`) is a
+   dev-only sanity check — different runtime, no SW, no `<img>` frame
+   consumer — and never the source for a user-facing perf claim.
+
+3. **Quote JSON before/after a perf claim.** The driver writes the
+   full result to `--out=PATH` (or stdout). Don't paraphrase; cite
+   `runMsToInGame`, `ticksPerSecAvg`, `ingameFps` etc. directly.
+
+4. **Don't diagnose by running the player interactively.** Build a
+   measurement tool. That's what this directory is for.
+
+## Canonical profiles
+
+| Profile | What it measures | Notes |
+|---|---|---|
+| `compile-only`     | Cabinet → parse → compile time              | Sanity check the build path. |
+| `doom-loading`     | Boot through six stages → in-game           | `runMsToInGame`, `ticksToInGame`, `ticksPerSecAvg`, `stages`. |
+| `doom-ingame-fps`  | Steady-state in-game FPS while holding Left | 8 s warmup (menu slide-off, view fade-in, cache warmup) → 20 s measurement. Hashes the full 320×200 framebuffer; each distinct hash is one user-visible frame. |
+
 ## Layout
 
 ```
