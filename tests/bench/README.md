@@ -104,10 +104,34 @@ Watch this number specifically.
 | measure        | 20.0 s |
 | **runMsToInGame** | **79.7 s** |
 | **ticksPerSecAvg** | **423 K** |
-| **ingameFps**     | **1.70** |
+| **ingameFps**     | **~1-2** (noisy) |
+
+The FPS figure is **fuzzy**: across the 2026-05-08 3-run sample it
+ranged 0.70-1.80 — a ±2× spread that's host-CPU / Chrome-GC noise.
+User observed ~1-2 fps interactively on 2026-05-11. Don't compare
+single FPS numbers; use ticksPerSecAvg or `runMsToInGame` (both
+±3 %) as the actual perf signal.
 
 Raw JSONs under `docs/benches/doom-all-2026-05-08-old-kbd-*.json`.
-With BIF2 fusion ON: 77.1 s / 443 K ticks/sec / 1.85 fps (~+4-8 %).
+With BIF2 fusion ON: 77.1 s / 443 K ticks/sec (~+4-5 % throughput;
+FPS delta is inside the noise floor — don't quote a percent-FPS
+win unless you've run enough samples to push the band below it).
+
+### Before you run a bench — quiet the host
+
+FPS variance is mostly other things competing for CPU. **Check that
+no other agent (or you) is running another bench, a build, or a
+long Playwright session.** Concurrent benches make both runs'
+numbers garbage. Look for stray:
+
+- `node tests/bench/driver/run.mjs` processes (other agent benching)
+- `playwright` / `chrome --headless` (left over from a previous run)
+- `calcite-cli` long-running (op-profile, snapshot capture)
+- `cargo build` / `cargo test` (kicks throughput in half)
+
+If you're in a multi-agent session, ask the others to hold before
+you start, and don't kick off a bench in the background while
+another agent is working unless you're sure they're not measuring.
 
 ## Layout
 

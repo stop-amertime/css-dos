@@ -75,11 +75,19 @@ OFF, 3-run `doom-all` median; raw JSONs in `docs/benches/`):**
 
 - Run wall (engine-running to in-game): **79.7 s** (range 77.1-82.1, ±3 %)
 - Throughput: **34.5 M ticks at 423 K ticks/sec avg**
-- Steady-state in-game FPS: **1.70** (range 1.70-1.70)
+- Steady-state in-game FPS: **~1-2 fps** at the 2026-05-11 user
+  observation. The 1.70 fps figure originally logged here was the
+  median of a 3-run sample that ranged 0.70-1.80 across runs — a
+  ±2× spread that's host-CPU/Chrome-GC noise, not a stable number.
+  Treat steady-state FPS as a fuzzy ~1-2 fps band, not a tight
+  median, until someone runs enough samples on a quiet host to
+  shrink the variance. Wall (78-82 s) and ticks/sec (394-434 K)
+  are much more stable across the same samples.
 
 **With BIF2 fusion ON** (calcite `BIF2_FUSE_ENABLED=true`):
 77.1 s engine-run / 443 K ticks/sec / 1.85 fps. So BIF2 is worth
-roughly **+4.5 % throughput / +8 % FPS** on the current web baseline.
+roughly **+4.5 % throughput** on the current web baseline; the
+**+8 % FPS** claim is inside the noise floor — don't quote it.
 
 The 2026-05-07 calcite log entry that claimed +47 % throughput /
 −31.8 % wall was measured on the **CLI** target, against a
@@ -91,10 +99,15 @@ the +47 % shouldn't generalise to the web runtime — the canonical
 bench. **On the canonical bench, BIF2 is a real but modest +4-8 %
 win.**
 
-Quote 3-run medians when claiming a perf change. With nothing else
-competing for CPU, runs converge tightly (±0.5 %); under contention
-they spread to ±30 %, so always check what's running on the host
-first.
+Quote 3-run medians (or more) when claiming a perf change. Wall and
+ticks/sec converge to ±3 % on a quiet host; FPS can spread 2× across
+runs even when nothing obvious is competing. **Before benching, make
+sure no other agent is running anything CPU-heavy — including another
+bench.** Multiple concurrent agents launching `doom-all` is a real
+failure mode that makes both runs' numbers garbage. Check `ps`/Task
+Manager for stray `playwright`, `chrome --headless`, `calcite-cli`,
+or `node tests/bench` processes before you start, and tell any
+parallel agents to wait.
 
 Quote JSON before/after perf claims. Diagnose with measurement tools,
 not by running the player interactively.
@@ -147,9 +160,10 @@ with any kiln/builder change that moves data).
   **2026-05-08 baseline (old-kbd branch, BIF2 OFF, 3-run doom-all
   median): 79.7 s engine-run to in-game (27.8 s compile + 9.0 s DOS
   boot + 0.5 s title + 2.6 s menu + 68.5 s level-load); 34.5 M ticks
-  at 423 K ticks/sec; 1.70 fps steady state. With BIF2 ON: 77.1 s /
-  443 K ticks/sec / 1.85 fps. **Level-load is the lion's share —
-  perf attention belongs there.****
+  at 423 K ticks/sec; ~1-2 fps steady state (noisy, ±2× across
+  runs — don't anchor on a single FPS number). With BIF2 ON: 77.1 s
+  / 443 K ticks/sec (FPS delta inside the noise floor).
+  **Level-load is the lion's share — perf attention belongs there.****
   Earlier wall-clock numbers (161 s @ 2026-05-07, 242 s pre-fix)
   reflect the prior keyboard-genericity stack which has since been
   reverted on this branch.
