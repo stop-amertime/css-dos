@@ -12,30 +12,46 @@ stop and ask.
 Doom8088 boots, reaches the title splash, accepts Enter, shows the
 skill menu, starts a New Game, and reaches in-game gameplay.
 
-Re-measured 2026-04-28 (current cabinet, current calcite):
+**Current baseline (2026-05-08, 3-run `doom-all` median, web `--headed`,
+BIF2 OFF, post-`old-kbd`-merge state):**
 
-| Path | runMsToInGame | loading→ingame delta | ticks |
-|------|---------------:|---------------------:|------:|
-| CLI  | ~87 s          | ~73 s                | 29.5 M |
-| Web  | ~104 s         | ~88 s                | 29.5 M |
+| Phase | Wall (median) |
+|---|---:|
+| compile        | 27.8 s |
+| dosBoot        | 9.0 s |
+| doomTitle      | 0.5 s |
+| doomMenuDelay  | 2.6 s |
+| **doomLoad**   | **68.5 s** (~85 % of engine-run wall) |
+| warmup         | 8 s |
+| measure        | 20 s |
+| **runMsToInGame** | **79.7 s** |
+| **ticksPerSecAvg** | **423 K** |
+| **ingameFps**     | **~1-2** (noisy band, ±2× across runs) |
 
-Web is ~1.21× slower than CLI on the level-load window. The web bench
-also pays ~43 s of cabinet-compile time on cold open (vs ~3.8 s native);
-that's wasm runtime cost, not bridge overhead. The level-load itself
-is dominated by **engine work**, not the bridge — the same workload at
-similar speed on both targets.
+Raw JSONs under `docs/benches/doom-all-2026-05-08-old-kbd-*.json`.
+See [`tests/bench/README.md`](../../tests/bench/README.md) for the
+"why FPS is fuzzy" rule and the bench-host hygiene checks.
 
-What this means for you: **the level-load is slow because the engine
-has 29 M ticks of CPU work to do**, regardless of target. Per-cycle
-CSS evaluation cost and slow REP fast-forward bails are what to
-attack. Pure bridge optimisations (postMessage, framebuffer encoding)
-will not move the headline number — the bridge isn't the bottleneck.
+**Level-load is the lion's share. Perf attention belongs there.**
+Today the engine has ~34 M ticks of CPU work to reach in-game,
+regardless of target. Per-cycle CSS evaluation cost is what to
+attack. Pure bridge optimisations (postMessage, framebuffer
+encoding) will not move the headline — the bridge isn't the
+bottleneck.
 
-Your job is to make it faster. Either bench's
-`headline.runMsToInGame`, plus the **steady-state cycles/sec** in
-mode 13h, are the metrics that count. A change that makes one target
-faster but the other slower is a regression — they should track each
-other.
+Your job is to make it faster. The metric that counts is the web
+`doom-all` 3-run median, specifically:
+
+- **`headline.runMsToInGame`** — wins here are user-felt cold-open time.
+- **`stages.doomLoad.wallMs`** — the dominant phase. Where the leverage is.
+- **`ticksPerSecAvg`** — steady throughput. Stable signal (±3 % across runs).
+- **`ingameFps`** — fuzzy ~1-2 fps band. Treat any single-number FPS
+  delta as noise unless you've run enough samples to push the band below it.
+
+CLI numbers are dev-only sanity, never quote them as user-facing.
+A change that makes one target faster but the other slower is a
+regression — they should track each other within ~10 % on
+non-throughput metrics.
 
 ---
 
@@ -82,21 +98,29 @@ problem (level-load) is untouched.
 
 ### Stages you MUST optimise
 
-**Stage 5 (level loading) is the dominant cost.** Current baseline on
-both targets: stage_loading → stage_ingame is **~130 s wall,
-~322 M cycles, ~29 M ticks**. That is ~10× the cumulative cycles of
-all earlier stages combined. **Target: <10 s** — equivalent to
-~30× speedup. The headline metric is `headline.runMsToInGame`.
+**Stage 5 (level loading) is the dominant cost.** Current baseline:
+`doomLoad` is **~68.5 s wall, ~85 % of the 79.7 s engine-run wall**
+on the canonical web bench. That's where the headline moves.
+The headline metric is `headline.runMsToInGame` (driven mostly by
+`stages.doomLoad.wallMs`).
+
+**Realistic targets** (calibrate ambition against current baselines):
+
+- **`runMsToInGame` ≤ 30 s** — would be a transformative ~2.7×
+  improvement on cold open and is in reach if `doomLoad` halves.
+- **`stages.doomLoad.wallMs` ≤ 30 s** — the dominant phase. A 2×
+  win here is the most leverage available.
+- **`ingameFps` ≥ 5** — would be a clear move out of the ~1-2 fps
+  noise band and the first user-visible playability threshold.
 
 Other phases worth attention but lower-leverage today:
 
-- **Stage 4 (menu navigation):** menu redraw is slow (~1 fps on web)
-  but the menu chain is short and only matters as part of the
-  pre-game boot. Lower priority than level-load.
-- **Stage 6 steady-state (gameplay framerate):** currently ~0.2 fps.
-  Target: anything over 5 fps would be transformative; over 15 fps
-  would be excellent. Likely shares the same baseline-per-frame cost
-  with menu redraw, so wins propagate.
+- **Stage 4 (menu navigation):** menu redraw is slow but the menu
+  chain is short and only matters as part of the pre-game boot.
+  Lower priority than level-load.
+- **Stage 6 steady-state (gameplay framerate):** currently ~1-2 fps
+  (noisy). Likely shares the per-frame baseline cost with menu
+  redraw, so wins on one propagate to the other.
 
 ---
 
@@ -176,8 +200,10 @@ Fields you should care about:
 - `bailed` — if the run hit a stage's wall budget × `BUDGET_MULT`. The
   bail's `stage` field tells you which transition wedged.
 
-**Target: `headline.runMsToInGame` < 10 s.** Today's baseline is
-~150 s on both web and native.
+**Target: `headline.runMsToInGame` ≤ 30 s.** Today's baseline is
+**79.7 s** (3-run median, web `--headed`, BIF2 OFF). See the table
+at the top of this brief for the per-phase breakdown — `doomLoad`
+is ~85 % of the engine-run wall, so that's where the lever is.
 
 ### Secondary tool: native profile
 
@@ -409,12 +435,13 @@ calls:
 
 ## Where to look first
 
-The level-load is doing 29 M ticks of real CPU work. Reducing the
-per-tick cost or skipping ticks (via correct fast-forward) is what
-moves the headline. Priority order:
+The level-load is doing ~29 M ticks of real CPU work between
+`stage_loading` and `stage_ingame`. Reducing per-tick cost or
+skipping ticks (via correct fast-forward) is what moves the
+headline. Priority order:
 
-Calcite-side measurement (2026-04-28, sampler over the full
-loading→ingame window) — three segments cover 91 % of level-load CPU:
+**Calcite-side measurement (2026-04-28, sampler over the full
+loading→ingame window) — three segments cover 91 % of level-load CPU:**
 
 | Segment | % CPU | Burst shape | Likely role |
 |---------|------:|-------------|-------------|
@@ -422,27 +449,62 @@ loading→ingame window) — three segments cover 91 % of level-load CPU:
 | 0x2D96  | 15.0 %| ~46 IPs, all in one 256-byte page | Corduroy BIOS dispatch (DOS INTs) |
 | 0x1122  |  8.3 %| ~46 IPs, cross-segment | Small dispatcher (purpose unknown — investigate) |
 
-`calcite-bench --profile` shows >60 % of executed ops are un-fused
-load-then-compare-then-branch chains (LoadSlot + BranchIfNotEqLit +
-LoadState + LoadLit). The fused `LoadStateAndBranchIfNotEqLit` op
-exists but is hit 0.7 % of the time. Recognisers that fuse common
-chains move per-tick cost down across all stages.
+⚠️ **These segment-share numbers are 2026-04-28 and have not been
+re-measured against the post-`old-kbd`-merge cabinet/engine.** They
+shaped the priority list below and segment 0x55 is almost certainly
+still dominant (the zone-walk is a function of the WAD layout, not
+calcite changes), but treat the exact percentages as indicative,
+not gospel. **Re-measure before claiming a percentage win.**
+
+For per-op distribution, the 2026-05-07 op-profile run on doom8088
+showed `LoadSlot + BranchIfNotEqLit + LoadState + LoadLit` chains
+dominate (~60 % combined) with the fused `LoadStateAndBranchIfNotEqLit`
+firing at only 0.7 %. BIF2 fusion (BIfNEL→BIfNEL pairs, 13.5 %
+runtime adjacency) was tried in May — net effect on the canonical
+web bench is +4.5 % throughput, currently held OFF on the merged
+baseline. The original "+47 %" claim for BIF2 was a CLI-bench
+artefact and is retracted; see LOGBOOK 2026-05-08. Treat further
+fusion leads with the same skepticism — measure on the web bench
+before claiming.
 
 Priority order:
 
-1. **Segment-0x55 zone-walk pattern.** 67.8 % of level-load CPU.
-   gcc-ia16's tail-merged paragraph→linear helper for `z_zone.c`.
-   If calcite-core can pattern-recognise this body the way it does
-   `--and`/`--or`/`--xor`, level-load gets dramatically faster
-   without touching x86 semantics. The cardinal rule still applies —
-   the recogniser must match the shape of the normal CSS the cabinet
-   emits, no side-channel hints.
+1. **Segment-0x55 zone-walk pattern. THE biggest lever.** 67.8 %
+   of level-load CPU on the 2026-04-28 profile. gcc-ia16's
+   tail-merged paragraph→linear helper for `z_zone.c` — a body
+   the compiler reuses across every `Z_*` call, executed millions
+   of times during level-load. If calcite-core can pattern-recognise
+   this body the way it does `--and`/`--or`/`--xor` (and `rep_fast_forward`
+   for REP-prefixed loops), level-load gets dramatically faster
+   without touching x86 semantics.
+   The full plan lives at
+   [`docs/plans/2026-05-01-affine-loop-fastforward.md`](../plans/2026-05-01-affine-loop-fastforward.md)
+   ("Affine self-loop fast-forward — non-REP back-edges"), framed as
+   a structural recogniser for `dec/inc + cmp + jne` shapes,
+   targeting 2× steady-state throughput. The cardinal rule still
+   applies — the recogniser must match the shape of the normal CSS
+   the cabinet emits, no side-channel hints, and the genericity
+   probe (would this fire on a 6502 / brainfuck cabinet with the
+   same shape?) must pass.
+   ⚠️ **Re-measure segment 0x55's actual current share** on the
+   post-merge cabinet before quoting the 67.8 % number in a logbook
+   entry — the number is from 2026-04-28.
 
-2. **More fused load+compare+branch ops.** The op-distribution shows
-   the fused `LoadStateAndBranchIfNotEqLit` op fires on only 0.7 %
-   of ops while the un-fused triple is >60 %. Adding more fusion
-   shapes (LoadSlot+CmpEq+Branch, LoadLit+Cmp+Branch) is a flat
-   per-tick cost reduction across all programs.
+2. **More fused load+compare+branch ops** — **lower confidence after
+   the May 8 BIF2 review.** The un-fused
+   LoadSlot+BranchIfNotEqLit+LoadState+LoadLit triple is still ~60 %
+   of dispatched ops on the 2026-05-07 profile, and adding more
+   structural fusion shapes (LoadSlot+CmpEq+Branch,
+   LoadLit+Cmp+Branch, BIfNEL→BIfNEL extensions) remains a plausible
+   flat per-tick win. But: BIF2 fusion (the obvious one)
+   delivered only +4.5 % on the web bench despite firing on 13.5 %
+   of dispatched ops. The original projection of "+47 %" came from a
+   CLI-bench measurement that the canonical web bench did not
+   reproduce. The lesson: dispatch-overhead savings from fusion on
+   the web target are smaller than the static op-share suggests,
+   probably because the WASM runtime amortises the dispatch loop
+   differently. **Quantify the expected web-bench delta with a
+   per-fusion measurement before investing in new fusion shapes.**
 
 3. **REP fast-forward gaps.** Today `rep_fast_forward` only handles
    plain REP / REPE on MOVS/STOS (`repType=1`, opcodes 0xA4/0xA5/
@@ -580,9 +642,11 @@ see" thinking from the 2026-04-27 logbook entry, the speedup claim
 should be measured before paying the design cost of word-pair fusing.
 Cheap-first path:
 
-1. Microbench cart with heavy memory writes
-   (`bench/carts/mov-heavy/` already exists). Run under
-   `calcite-bench --profile` at `NUM_WRITE_SLOTS=6` for the baseline.
+1. Add a `mov-heavy.mjs` bench profile under `tests/bench/profiles/`
+   (or extend `compile-only` to take a cart argument) at
+   `NUM_WRITE_SLOTS=6` for the baseline. **Do NOT use `calcite-bench`
+   — it is no longer the canonical bench**; see
+   [`tests/bench/README.md`](../../tests/bench/README.md).
 2. Hack `NUM_WRITE_SLOTS = 3` in `kiln/memory.mjs` *as-is*
    (no fusing yet) and run the bench again. INT-using carts will
    fail conformance — expected; this is a measurement, not a ship.
@@ -627,9 +691,26 @@ All build to `.css` cabinets and exhibit the same level-load slowness.
 
 ## Reference docs
 
-- `docs/logbook/LOGBOOK.md` — the source of truth for current status.
+- [`tests/bench/README.md`](../../tests/bench/README.md) — **canonical
+  bench, required reading before measuring.** Profiles, the
+  `--headed` rule, host-hygiene checks, baseline numbers.
+- `docs/logbook/STATUS.md` — current state, sentinel addresses, open
+  work. The durable handbook (auto-loaded by CLAUDE.md).
+- `docs/logbook/LOGBOOK.md` — chronological work entries; reverse-history.
+- `docs/perf-iteration.md` — perf-iteration tooling: snapshots,
+  CS:IP sampling, op distribution, calcite worktrees.
+- `docs/agent-briefs/2026-05-07-pre-ship-fps-leads.md` — sibling brief
+  (some leads stale post-May-8; cross-check against STATUS.md before
+  trusting any specific lead).
+- `docs/plans/2026-05-01-affine-loop-fastforward.md` — plan for
+  priority #1 (segment-0x55 recogniser).
+- `docs/plans/2026-05-06-rep-fast-forward-genericity.md` — ongoing
+  cardinal-rule cleanup of `rep_fast_forward`. Genericity work,
+  not perf; perf-gated at ±1 %.
 - `docs/reference/tick-benchmarks.md` — generic tick-count milestones
   for boot.
-- `../calcite/docs/benchmarking.md` — calcite throughput numbers.
-- `tests/harness/README.md` — the full harness reference.
+- `tests/harness/README.md` — correctness harness reference.
 - `docs/debugging/workflow.md` — standard debug process.
+- `../calcite/docs/benchmarking.md` — **low-level Rust profiling
+  only** (Criterion, internal flamebreaks). NOT for headline perf
+  claims; the canonical bench is `tests/bench/`.
