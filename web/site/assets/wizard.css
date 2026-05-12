@@ -1,0 +1,729 @@
+/* wizard.css — overlay on site.css for the step-by-step shell on
+   /index.html. Visual chrome only; all real build wiring lives in
+   build.js, driven through hidden form elements in step 3. */
+
+.window.wizard {
+  width: 1180px;
+  max-width: calc(100% - 32px);
+}
+.window.wizard .window-body {
+  padding: 24px 28px 16px;
+  min-height: 480px;
+}
+
+/* ===== Step breadcrumb strip ===== */
+.step-strip {
+  display: flex;
+  list-style: none;
+  background: var(--edit-gray);
+  border-bottom: 1px solid var(--edit-black);
+  padding: 0;
+}
+.step-strip li {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 16px;
+  line-height: 16px;
+  color: var(--edit-black);
+  border-right: 1px solid var(--edit-black);
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.step-strip li:last-child { border-right: none; }
+.step-strip li .num { color: var(--edit-red); margin-right: 4px; }
+.step-strip li.current { background: var(--edit-black); color: var(--edit-white); }
+.step-strip li.current .num { color: var(--edit-yellow); }
+.step-strip li.done { background: #666; color: var(--edit-white); }
+.step-strip li.done .num { color: var(--edit-yellow); }
+.step-strip li.disabled { cursor: not-allowed; opacity: 0.6; }
+
+/* ===== Step content ===== */
+.step { color: var(--edit-black); }
+.step h1 {
+  font-family: inherit;
+  font-size: 32px;
+  line-height: 32px;
+  margin: 0 0 8px;
+  letter-spacing: -1px;
+}
+.step h3 {
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 16px;
+  margin: 0 0 4px;
+}
+.step p { margin: 0 0 8px; font-size: 16px; line-height: 16px; }
+.step code {
+  font-family: inherit;
+  background: var(--edit-white);
+  padding: 0 4px;
+  border: 1px solid var(--edit-black);
+}
+.step .explainer { max-width: 900px; margin-bottom: 16px; }
+
+/* ===== Step 1 — Welcome ===== */
+.hero-row {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 24px;
+  align-items: start;
+  margin-bottom: 24px;
+}
+.hero-logo {
+  background: var(--edit-white);
+  border: 1px solid var(--edit-black);
+  box-shadow: 4px 4px 0 var(--edit-black);
+  padding: 12px;
+}
+.hero-logo img {
+  width: 128px;
+  height: 128px;
+  display: block;
+  image-rendering: pixelated;
+}
+.hero-text .lede { font-size: 16px; line-height: 16px; margin-bottom: 16px; }
+.bullets { list-style: none; margin: 16px 0 0; padding: 0; }
+.bullets li { margin-bottom: 4px; }
+.bullets .ok { color: var(--edit-red); margin-right: 8px; }
+.hero-machine {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+  align-items: center;
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+  padding: 12px;
+}
+.hero-machine img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border: 1px solid var(--edit-black);
+}
+.hero-machine .caption {
+  margin: 0;
+  font-size: 16px;
+  line-height: 16px;
+  color: var(--edit-black);
+}
+
+/* ===== Step 2 — pipeline ===== */
+.pipeline {
+  display: grid;
+  grid-template-columns: 1fr 24px 1fr 24px 1fr 24px 1fr;
+  gap: 0 8px;
+  align-items: stretch;
+  margin-bottom: 16px;
+}
+.pipe-stage {
+  background: var(--edit-white);
+  border: 1px solid var(--edit-black);
+  box-shadow: 4px 4px 0 var(--edit-black);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pipe-badge {
+  background: var(--edit-black);
+  color: var(--edit-yellow);
+  padding: 4px 8px;
+  font-size: 16px;
+  line-height: 16px;
+  margin: -8px -8px 0;
+}
+.pipe-icon {
+  flex: 0 0 auto;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--edit-blue);
+  border: 1px solid var(--edit-black);
+  margin: 0 -8px;
+  padding: 8px;
+  color: var(--edit-white);
+}
+.pipe-caption {
+  font-size: 16px;
+  line-height: 18px;
+  color: var(--edit-black);
+}
+.pipe-caption code { font-size: 16px; }
+.pipe-size {
+  margin-top: 8px;
+  color: var(--edit-red);
+  font-size: 16px;
+  line-height: 16px;
+}
+.pipe-arrow {
+  align-self: center;
+  text-align: center;
+  font-size: 32px;
+  line-height: 32px;
+  color: var(--edit-red);
+}
+.pipe-subnote {
+  margin-top: 16px;
+  border: 1px dashed var(--edit-black);
+  background: var(--edit-white);
+  padding: 12px 16px;
+  font-size: 16px;
+  line-height: 18px;
+}
+
+/* pipeline icons (CSS-only) */
+.doc-icon {
+  width: 100px; height: 110px;
+  background: var(--edit-white);
+  border: 1px solid var(--edit-black);
+  position: relative;
+  padding: 12px 8px 8px;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.doc-corner {
+  position: absolute; top: 0; right: 0;
+  width: 16px; height: 16px;
+  background: var(--edit-gray);
+  border-left: 1px solid var(--edit-black);
+  border-bottom: 1px solid var(--edit-black);
+}
+.doc-lines { display: flex; flex-direction: column; gap: 4px; }
+.doc-lines span {
+  display: block; height: 4px; background: var(--edit-black);
+}
+.doc-lines span:nth-child(1) { width: 60%; }
+.doc-lines span:nth-child(2) { width: 90%; }
+.doc-lines span:nth-child(3) { width: 75%; }
+.doc-lines span:nth-child(4) { width: 50%; }
+.doc-lines span:nth-child(5) { width: 80%; }
+.doc-label {
+  font-size: 16px; line-height: 16px;
+  color: var(--edit-black);
+  text-align: center;
+  letter-spacing: 1px;
+}
+
+.disk-stack { display: flex; flex-direction: column; gap: 4px; }
+.disk {
+  width: 110px;
+  height: 36px;
+  background: var(--edit-white);
+  border: 1px solid var(--edit-black);
+  color: var(--edit-black);
+  text-align: center;
+  font-size: 16px;
+  line-height: 14px;
+  padding: 4px;
+  display: flex; align-items: center; justify-content: center;
+}
+.disk-bios { background: var(--edit-yellow); }
+.disk-floppy { background: var(--edit-cyan); }
+
+.kiln-box {
+  width: 130px; height: 110px;
+  background: var(--edit-black);
+  border: 1px solid var(--edit-black);
+  padding: 6px;
+  position: relative;
+  overflow: hidden;
+}
+.kiln-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px 4px;
+  font-size: 16px;
+  line-height: 12px;
+  color: #55ff55;
+}
+.kiln-grid span {
+  overflow: hidden;
+  text-overflow: clip;
+  white-space: nowrap;
+  font-size: 10px;
+}
+.kiln-fire {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(255, 85, 85, 0.3) 0%,
+    rgba(255, 255, 85, 0.2) 30%,
+    transparent 60%
+  );
+  pointer-events: none;
+}
+
+.css-file {
+  width: 110px;
+  background: var(--edit-white);
+  border: 1px solid var(--edit-black);
+  color: var(--edit-black);
+}
+.css-head {
+  background: var(--edit-blue);
+  color: var(--edit-white);
+  padding: 2px 4px;
+  font-size: 16px; line-height: 16px;
+  text-align: center;
+}
+.css-body {
+  padding: 4px 6px;
+  display: flex; flex-direction: column; gap: 2px;
+  font-size: 16px; line-height: 14px;
+}
+.css-body span { font-size: 12px; }
+.css-body .dim { color: #888; }
+
+/* ===== Step 3 — Build blocks ===== */
+.build-block {
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+  padding: 0;
+  margin-bottom: 16px;
+}
+.build-block > .block-body {
+  padding: 12px 16px;
+}
+.block-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  border-bottom: 1px solid var(--edit-black);
+  padding: 4px 16px;
+  background: var(--edit-gray);
+}
+.block-num {
+  background: var(--edit-black);
+  color: var(--edit-yellow);
+  padding: 0 6px;
+  font-size: 16px;
+  line-height: 16px;
+}
+.block-title { font-size: 16px; line-height: 16px; color: var(--edit-black); }
+
+/* cart grid — PC-box ratio, big title, small desc */
+.cart-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+.cart-card {
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+  box-shadow: 4px 4px 0 var(--edit-black);
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+}
+.cart-card:hover { background: #ddddff; }
+.cart-card.selected {
+  background: var(--edit-black);
+  color: var(--edit-yellow);
+}
+.cart-card.selected:hover { background: var(--edit-black); }
+.cart-card.selected .cart-name,
+.cart-card.selected .cart-desc,
+.cart-card.selected .cart-meta { color: var(--edit-yellow); }
+
+.cart-cover {
+  /* PC-game-box ratio: ~3:4 portrait */
+  aspect-ratio: 3 / 4;
+  background: var(--edit-black);
+  border-bottom: 1px solid var(--edit-black);
+  overflow: hidden;
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+}
+.cart-cover img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
+  display: block;
+}
+.cart-cover-placeholder {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-family: inherit;
+  text-align: center;
+  padding: 12px;
+  gap: 8px;
+}
+.cart-cover-placeholder .ph-name {
+  font-size: 28px;
+  line-height: 28px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.cart-cover-placeholder .ph-sub {
+  font-size: 14px;
+  line-height: 14px;
+  opacity: 0.75;
+}
+.cart-body {
+  padding: 8px 10px;
+  display: flex; flex-direction: column;
+  gap: 4px;
+}
+.cart-name {
+  font-size: 16px;
+  line-height: 18px;
+  color: var(--edit-black);
+}
+.cart-desc {
+  font-size: 12px;
+  line-height: 14px;
+  color: #444;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 42px;
+}
+.cart-meta {
+  font-size: 12px;
+  line-height: 14px;
+  color: var(--edit-red);
+  margin-top: 4px;
+}
+
+/* machine row — IBM PC + specs + advanced */
+.machine-row {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+.machine-photo {
+  border: 1px solid var(--edit-black);
+  background: var(--edit-black);
+  padding: 6px;
+  text-align: center;
+}
+.machine-photo img {
+  width: 100%; height: auto;
+  display: block;
+  image-rendering: pixelated;
+}
+.machine-photo-caption {
+  color: var(--edit-yellow);
+  font-size: 16px;
+  line-height: 16px;
+  margin-top: 6px;
+}
+.spec-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+}
+.spec-table th, .spec-table td {
+  text-align: left;
+  font-size: 16px;
+  line-height: 16px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--edit-black);
+  vertical-align: top;
+}
+.spec-table th {
+  background: var(--edit-blue);
+  color: var(--edit-white);
+  width: 110px;
+  font-weight: normal;
+}
+.spec-table td { background: var(--edit-white); }
+
+/* advanced details */
+details.advanced {
+  border: 1px solid var(--edit-black);
+  background: var(--edit-gray);
+  margin-top: 8px;
+}
+details.advanced > summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  padding: 6px 10px;
+  background: var(--edit-gray);
+  color: var(--edit-black);
+  font-size: 16px;
+  line-height: 16px;
+}
+details.advanced > summary::-webkit-details-marker { display: none; }
+details.advanced[open] > summary { border-bottom: 1px solid var(--edit-black); }
+details.advanced[open] > summary .adv-glyph::before { content: '[-]'; }
+details.advanced .adv-glyph { color: var(--edit-red); margin-right: 6px; }
+details.advanced .adv-glyph::before { content: '[+]'; }
+details.advanced .advanced-body {
+  padding: 12px;
+  background: var(--edit-gray);
+}
+details.advanced .advanced-body .row:last-child { margin-bottom: 0; }
+
+/* build progress — overrides site.css's #stages styling for the wizard look */
+#build-progress-wrap { margin-top: 12px; }
+#stages {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+#stages li {
+  font-size: 16px;
+  line-height: 18px;
+  color: #777;
+  padding-left: 32px;
+  position: relative;
+  margin: 0;
+}
+#stages li::before {
+  content: '[ ]';
+  position: absolute;
+  left: 0;
+  color: #777;
+}
+/* Cancel site.css's blink-dots and check-glyph fallbacks so we get the
+   wizard's [>] / [X] markers exclusively. */
+#stages li.in-progress { color: var(--edit-red); }
+#stages li.in-progress::before { content: '[>]'; color: var(--edit-red); }
+#stages li.in-progress::after { content: none; animation: none; }
+#stages li.done { color: var(--edit-black); }
+#stages li.done::before { content: '[X]'; color: #006600; }
+#stages li.stage-error { color: var(--edit-red); font-weight: bold; }
+#stages li.stage-error::before { content: '[!]'; color: var(--edit-red); }
+
+.build-progress { display: flex; align-items: center; gap: 12px; }
+.build-progress .bar {
+  flex: 1;
+  height: 16px;
+  background: var(--edit-white);
+  border: 1px solid var(--edit-black);
+  overflow: hidden;
+}
+.build-progress .bar #build-bar-fill {
+  height: 100%; width: 0%;
+  background: repeating-linear-gradient(
+    90deg, var(--edit-blue) 0 6px, #0000ff 6px 8px
+  );
+  transition: width 240ms ease-out;
+}
+.build-progress-meta {
+  display: flex; gap: 12px;
+  font-size: 16px; line-height: 16px;
+  color: var(--edit-black);
+}
+
+/* Raw log — collapsed to a scrolling pane under the progress bar. */
+.build-log {
+  margin-top: 8px;
+  max-height: 96px;
+  overflow-y: auto;
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+  color: var(--edit-black);
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 14px;
+  white-space: pre-wrap;
+}
+
+/* result row + floppy */
+.result-row {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 24px;
+  align-items: center;
+  border: 1px solid var(--edit-black);
+  background: var(--edit-gray);
+  padding: 16px;
+}
+.result-floppy .floppy {
+  width: 140px; height: 140px;
+  background: #1a1a1a;
+  border: 2px solid var(--edit-black);
+  position: relative;
+  margin: 0 auto;
+  box-shadow: 4px 4px 0 var(--edit-black);
+}
+.floppy-shutter {
+  position: absolute; top: 8px; left: 28px;
+  width: 84px; height: 36px;
+  background: #aaaaaa;
+  border: 1px solid var(--edit-black);
+}
+.floppy-shutter::after {
+  content: '';
+  position: absolute;
+  top: 8px; left: 8px;
+  width: 60px; height: 4px;
+  background: var(--edit-black);
+}
+.floppy-label {
+  position: absolute;
+  bottom: 12px; left: 12px; right: 12px;
+  height: 72px;
+  background: var(--edit-white);
+  border: 1px solid var(--edit-black);
+  padding: 6px 8px;
+  color: var(--edit-black);
+  font-size: 16px; line-height: 16px;
+}
+.floppy-label-name {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.floppy-label-sub {
+  color: var(--edit-red);
+  font-size: 16px; line-height: 16px;
+}
+.floppy-icon {
+  display: inline-block;
+  margin-right: 4px;
+}
+
+/* The paginated source viewer — same green-on-black look as build.html,
+   but at the size that fits inside the wizard's window-body. */
+.window.wizard #source-pre { height: 320px; }
+
+/* ===== Step 4 — Play cards ===== */
+.play-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+.play-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+  color: var(--edit-black);
+  box-shadow: 6px 6px 0 var(--edit-black);
+  text-decoration: none;
+  cursor: pointer;
+  min-height: 360px;
+}
+.play-card:hover { background: #ddddff; }
+.play-card:active {
+  transform: translate(6px, 6px);
+  box-shadow: none;
+}
+.play-card.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  pointer-events: none;
+}
+.play-card-head {
+  background: var(--edit-black);
+  color: var(--edit-yellow);
+  padding: 6px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.play-card-title { font-size: 16px; line-height: 16px; }
+.play-card-tag {
+  background: var(--edit-yellow);
+  color: var(--edit-black);
+  padding: 0 6px;
+  font-size: 16px; line-height: 16px;
+}
+.play-raw .play-card-tag {
+  background: var(--edit-red);
+  color: var(--edit-white);
+}
+.play-card-body {
+  padding: 12px 16px;
+  flex: 1;
+  display: flex; flex-direction: column;
+  gap: 8px;
+}
+.play-card-body p { margin: 0; }
+.play-card-foot {
+  border-top: 1px solid var(--edit-black);
+  padding: 8px 16px;
+  background: var(--edit-gray);
+  font-size: 16px; line-height: 16px;
+  text-align: right;
+}
+.warning-box {
+  border: 1px solid var(--edit-red);
+  background: #ffeeee;
+  padding: 8px 10px;
+  display: flex; gap: 8px;
+  align-items: flex-start;
+}
+.warning-box .warn-glyph {
+  color: var(--edit-red);
+  font-size: 24px;
+  line-height: 16px;
+  flex-shrink: 0;
+}
+.warning-box b { color: var(--edit-red); }
+.warning-box u { text-decoration: underline; }
+.ext-link {
+  color: var(--edit-blue);
+  text-decoration: underline;
+}
+.ext-link:hover { color: var(--edit-red); }
+
+/* The third play option (canvas) doesn't deserve its own card — small
+   text link under the grid, like a footnote. */
+.play-extra {
+  margin-top: 16px;
+  font-size: 14px;
+  line-height: 14px;
+  color: var(--edit-black);
+  text-align: center;
+}
+.play-extra a {
+  color: var(--edit-blue);
+  text-decoration: underline;
+}
+.play-extra a:hover { color: var(--edit-red); }
+
+/* ===== Wizard nav ===== */
+.wiz-nav {
+  display: flex;
+  align-items: center;
+  border-top: 1px solid var(--edit-black);
+  padding: 12px 16px;
+  background: var(--edit-gray);
+}
+.wiz-nav .btn { margin-bottom: 0; }
+.wiz-nav-spacer { flex: 1; }
+.wiz-nav #wiz-counter { padding: 0 16px; color: var(--edit-black); }
+.btn.primary {
+  background: var(--edit-blue);
+  color: var(--edit-white);
+}
+.btn.primary .hot { color: var(--edit-yellow); }
+.btn.primary:hover:not(:disabled) {
+  background: #1111cc;
+  color: var(--edit-white);
+}
+
+/* small text utility */
+.small { font-size: 12px !important; line-height: 14px !important; }
+
+/* The wizard hosts the same hidden #cart-list radios build.js writes to,
+   plus hidden #download / #play-*-link anchors. Keep them present in the
+   DOM (for build.js wiring) but invisible. */
+.wizard-hidden { display: none !important; }
+
+/* responsive */
+@media (max-width: 1100px) {
+  .cart-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 900px) {
+  .hero-row, .hero-machine, .machine-row { grid-template-columns: 1fr; }
+  .pipeline { grid-template-columns: 1fr; }
+  .pipe-arrow { transform: rotate(90deg); }
+  .cart-grid { grid-template-columns: repeat(2, 1fr); }
+  .play-grid { grid-template-columns: 1fr; }
+  .result-row { grid-template-columns: 1fr; text-align: center; }
+}

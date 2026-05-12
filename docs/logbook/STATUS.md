@@ -155,6 +155,33 @@ with any kiln/builder change that moves data).
 
 ## Open work
 
+- **Per-opcode specialisation (THE ARCHITECTURAL MOVE).** Idea-stage,
+  not yet a plan file. Written up in LOGBOOK 2026-05-12. The big
+  lever: instead of running one Op stream that dispatches every
+  property on `--opcode` every tick, compile-time specialise the
+  entire tick body PER opcode value (0..255). Every dispatch on
+  `--opcode` collapses to a constant pick; simplification removes
+  all the per-property "this opcode doesn't affect me" identity
+  work. Projected 10-100× throughput improvement (current
+  ~400 K i/s is barely above original 8088 hardware; modern CPUs
+  through a sensible emulator should be tens of M i/s).
+  **Structurally upstream of every other perf optimisation —
+  affine-loop fast-forward, routine substitution, identity
+  pruning all become tractable post-specialisation because
+  per-opcode bodies are short and explicit.** Pick up at: probe
+  stage, specialise for one opcode (e.g. INC AX = 0x40), confirm
+  the simplified-body Op count is a small fraction, then scale.
+- **`__I4D` whole-routine semantic substitution.** Plan filed at
+  [`docs/plans/2026-05-12-routine-semantic-substitution.md`](../plans/2026-05-12-routine-semantic-substitution.md).
+  Target: the Watcom 32-bit signed divide that the 2026-05-11
+  cycle-weighted heatmap pinpointed as 46.1 % of doomLoad cycles.
+  Mechanism: compile-time region recogniser + symbolic evaluator +
+  small catalogue of pure mathematical functions; substitute matched
+  regions with a single host op. Six phases, each with a defined
+  pass/fail gate. No env-var gate (must pay unconditionally or
+  revert). Cardinal-rule defence is that the verifier proves
+  equivalence from computed function, not from bytecode shape.
+  Pick up at "Order of operations" step 1 in the plan.
 - **Pre-ship Doom8088 FPS push.** Brief in
   [`docs/agent-briefs/2026-05-07-pre-ship-fps-leads.md`](../agent-briefs/2026-05-07-pre-ship-fps-leads.md).
   **2026-05-08 baseline (old-kbd branch, BIF2 OFF, 3-run doom-all

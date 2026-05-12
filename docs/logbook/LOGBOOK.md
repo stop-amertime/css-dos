@@ -4,7 +4,534 @@ Chronological work entries. Newest first. The durable handbook
 (current state, sentinels, gotchas, how to test) is in
 [`STATUS.md`](STATUS.md).
 
-Last updated: 2026-05-11
+Last updated: 2026-05-12
+
+## 2026-05-12 — Idea: per-opcode specialisation (the architectural move)
+
+Idea-stage, not implemented. Surfaced after the identity-pruning
+attempt (below) made clear we were nibbling at the wrong altitude.
+Recording it here so a future agent can pick it up.
+
+**The framing.** Calcite currently runs at ~400K guest instructions
+per second on the canonical web bench. A real 8088 ran Doom8088 at
+~330K i/s. A modern CPU should be doing tens of millions of guest
+instructions per second through a sensible emulator. The gap is
+roughly 100-1000×.
+
+The gap is NOT in:
+- Op-body cost (each Op is cheap).
+- Dispatch table lookup (already O(1) flat-array indexed).
+- Identity branches (kiln already strips most at emit time; only 16
+  prunable on doom8088).
+
+The gap IS in: **every property's per-tick dispatch on `--opcode`
+fires every tick, for every property, regardless of whether that
+opcode affects that property.** The cabinet has hundreds of
+properties (registers, segments, flags, prefix latches, operand-
+decode slots, snapshot variables, memory ports, etc). Per tick:
+each property's dispatch on `--opcode` runs to discover its
+update for the current opcode — usually identity or a small
+write. The full per-tick Op stream is hundreds of dispatches.
+That fixed tax is the dominant cost.
+
+**The move.** Compile-time specialisation of the entire tick body
+per opcode value. For each opcode V in 0..255:
+
+1. Walk every property's RHS Expr tree.
+2. For each `StyleCondition` keyed on `--opcode`, fold to the
+   matching `style(--opcode: V): expr` branch (or the fallback
+   if none). All dispatches on `--opcode` collapse at compile
+   time.
+3. Aggressively simplify: constant-fold, eliminate identity
+   assignments (now visible — `var(--__1AX)` becomes literal
+   self-assignment which is dead code), constant-propagate
+   through dependent slots (`--prefixLen=0` for INC AX, etc).
+4. Compile the simplified per-property Exprs into Ops.
+5. Concatenate into one specialised tick body for opcode V.
+
+Runtime structure: read `--opcode`, jump to the specialised
+body for V, run ~20-200 Ops (vs current ~hundreds-of-dispatches),
+done. The outer dispatch on opcode is the ONLY per-tick
+dispatch; everything below is straight-line specialised code.
+
+**Projected payoff.** 5-50K total Ops across 256 specialised
+bodies, with one ~50-Op slice running per tick, vs current
+~hundreds-of-Ops running per tick. Plausibly 10-100× throughput
+improvement. Doom8088 at the current 400K i/s would become
+4-40M i/s, which is comfortably above the playable threshold
+and probably approaching native-modern-emulator territory.
+
+**Cardinal-rule check.** The move is "compile-time partial
+evaluation of a known-constant operand of every dispatch." That's
+a generic CSS optimisation — fold `if(style(--K: V_known): X;
+else: Y)` to `X` when `K` is known. A brainfuck cabinet with 8
+dispatch keys would specialise into 8 bodies. A 6502 cabinet
+into 256 bodies. A non-emulator cabinet that has a dispatch on
+a known-at-compile-time key would specialise identically. The
+catch: calcite doesn't know `--opcode` is "the opcode" — it just
+knows it's a key that every property's StyleConditions dispatch
+on. So the pass needs to **discover** which dispatch key (across
+all properties) is worth specialising on. Probably: pick the key
+that the most StyleConditions dispatch on across all assignments.
+That's a structural property of the cabinet's CSS, not a CPU
+fact.
+
+**Hard parts called out up-front.**
+
+1. **Compilation cost.** Naive: run the existing compile pipeline
+   256 times = ~2h. Won't ship. Pass needs to share work — parse
+   once, walk Expr trees once per property, specialise by Expr
+   pruning rather than full re-compile per opcode. Target: 60-120s
+   added compile time, acceptable for the boot-once-ship-many
+   model.
+
+2. **Operand bytes stay symbolic.** `--opcode` is one byte read
+   from `mem[CS:IP]`; calcite knows that's the dispatch key at
+   compile time once we identify it. But `--q1`, `--q2`,
+   `--immByte`, `--immWord`, `--rmVal16`, etc are read from
+   subsequent guest bytes and stay symbolic. The pass specialises
+   `--opcode` to a constant; everything that depends on `--opcode`
+   transitively gets simplified; everything that depends on
+   `--q1` etc stays a slot read. That's correct and matches what
+   a CPU dispatch table does.
+
+3. **Prefix opcodes.** ~7 opcodes (0x26/2E/36/3E for segment,
+   0xF0/F2/F3 for lock/rep) set state for the next tick rather
+   than do work themselves. Their specialised bodies update prefix
+   latches + advance IP. The cabinet's StyleConditions already
+   handle this; specialisation preserves it.
+
+4. **Topological sort per opcode.** Currently the compile pipeline
+   topo-sorts assignments by dependencies once. Specialised bodies
+   may have different dependency graphs (specialised `--AX` for
+   opcode 0x40 only depends on `--__1AX`, not on operand-decode
+   slots). The pass either re-runs the topo sort per opcode (cheap
+   on the smaller specialised set) or proves the original order
+   is still valid post-specialisation (probably yes — specialisation
+   only removes dependencies, doesn't add them).
+
+5. **Code-size budget.** 256 × ~50-200 Ops per body = 5-50K total
+   Ops in the per-opcode table. The current single Op stream is
+   386K Ops on doom8088. So memory goes DOWN, not up. The savings
+   come from removing the per-property dispatch repetition.
+
+**The relationship to other optimisations.**
+
+After per-opcode specialisation lands, every other optimisation
+gets bigger leverage:
+
+- **Affine-loop fast-forward** (`docs/plans/2026-05-01-affine-
+  loop-fastforward.md`) — recognising a self-looping opcode is
+  trivial once the per-opcode body is short and explicit. Today
+  the recogniser has to see through hundreds of Ops; post-
+  specialisation, each body is ~50 Ops, the loop shape is on the
+  surface.
+- **Routine semantic substitution** (`docs/plans/2026-05-12-routine-
+  semantic-substitution.md`) — symbolic evaluation across a
+  guest sub-routine becomes tractable. Symbolic-step through
+  specialised per-opcode bodies, each ~50 Ops, instead of
+  ~hundreds with embedded dispatches.
+- **Identity pruning** (below entry) — works as intended once
+  per-opcode bodies are specialised, because the simplification
+  step exposes identities that were hidden behind dispatches.
+
+So per-opcode specialisation is structurally upstream of every
+other perf optimisation. It should be the next big architectural
+move.
+
+**Pick up at.** Probe stage: for one chosen opcode (e.g. INC AX
+= 0x40), specialise the full cabinet's Expr trees by hand
+(write the pass for just that opcode, run on doom8088, dump the
+simplified per-property Expr trees, count Ops vs the unspecialised
+version). If the simplified-body Op count is a small fraction of
+the unspecialised stream and the result is structurally clean,
+scale to all 256.
+
+**Status.** Idea-stage. No code. No plan file yet — write one
+before implementing if you pick this up.
+
+## 2026-05-12 — Identity-branch pruning: tried, broke doom8088, parked
+
+**The intuition** (user-driven, conversational thinking-out-loud):
+the per-tick Op stream is dominated by dispatches over `--opcode`,
+and most per-opcode bodies for any given affected property are
+*identity* (`var(--__1AX)` etc — "this opcode doesn't change me").
+If we recognised those at compile time and stripped them, the Op
+stream would shrink dramatically, every tick would be faster, and
+downstream optimisation passes (fast-forward, fusion, symbolic
+analysis) would all get easier because there'd be less noise.
+
+**What we built.** `crates/calcite-core/src/pattern/identity_prune.rs`
+(new module). Pre-compile pass that walks each assignment's `Expr`
+tree and drops any `StyleCondition` branch whose `then` is
+structurally equal to that condition's `fallback`. Cardinal-rule
+clean — purely structural `Expr::eq`, no name sniffing, no upstream
+knowledge. A 6502 or brainfuck cabinet with the same shape would
+prune identically. 6 unit tests, all pass.
+
+**What went wrong, and the surprise.** First reality check: kiln
+already strips most outer-level identity branches at emit time.
+AX's declaration only has ~70 opcode branches, not 256 — opcodes
+that don't touch AX have NO entry. So the visible outer-level
+"useless bullshit" is mostly already gone. The pass only found
+**16 prunable branches on doom8088** (out of 3130 total).
+
+Bigger surprise: enabling the pass **broke the cabinet**, even
+though the rewrite is semantics-preserving at the Expr level.
+CLI control (pass disabled): in-game at tick 34.65M, cycles
+389.9M. CLI with pass enabled: 50M ticks, never reaches in-game,
+IP stuck around 3487 — likely an early-boot infinite loop or
+wrong-branch dispatch.
+
+The 16 prunes are syntactically safe — branches like:
+
+- `--IP` with `--opcode: 244` (HLT), `then = var(--__1IP)`,
+  fallback also `var(--__1IP)`. Both produce the same value.
+- `--AX` with `--q1: 967` (DAC port 0x3C7), `then = 0`, fallback
+  also `0`. Both produce 0.
+- `--memAddr0` with `--mod: 3`, `then = -1` (sentinel), fallback
+  also `-1`.
+
+In each case, removing the branch causes that key to fall through
+to the fallback, which produces structurally the same value. So
+the rewrite IS semantics-preserving at the abstract-CSS level.
+
+**Hypothesis for why it breaks.** Calcite's compile pipeline isn't
+a pure function of the parsed `Expr` tree. Some downstream pass —
+likely `pattern::broadcast_write`, `pattern::dispatch_table`,
+`pattern::packed_broadcast_write`, `pattern::replicated_body`, or
+the dispatch-chain detection in `compile.rs` — uses the
+**dispatch-key SET** as input, not just the value-per-key mapping.
+Pruning shrinks the key set, even though the function it encodes
+is unchanged, and the downstream pass produces different output
+as a result. Possibilities:
+
+- A flat-array dispatch may have been keyed on the *dense* key
+  range `[min, max]`; pruning a key changes the range or makes
+  it sparse, switching to a HashMap path with different evaluation
+  semantics.
+- A recogniser may use "all opcodes covered" as a precondition for
+  emitting a specific specialised op variant.
+- A packed-broadcast slot may rely on a specific key being
+  present to wire up its address mapping.
+
+This is the "downstream-pass interaction" failure mode I called
+out earlier (when first surfacing the rethink to the user). The
+pass is provably safe at the Expr layer; it's the
+Expr-to-CompiledProgram layer that has hidden dependencies.
+
+**Status.** The module stays in tree; the call site is gated on
+`CALCITE_IDENTITY_PRUNE=1` and disabled by default. Re-enable
+only after identifying which downstream pass changes behaviour
+when the dispatch-key set shrinks.
+
+**What I'd do differently.** Run a CLI-to-ingame **diff** of
+tick-counts before claiming any pass works on doom8088. Smoke
+passing is insufficient — smoke runs tiny cabinets with shallow
+code paths; doom exercises everything. Smoke 7/7 + control-vs-
+treatment CLI bit-equivalence at 34.65M ticks is the minimum bar
+for any compile-pipeline change.
+
+**Code.** New file `pattern/identity_prune.rs` (~180 lines + 6
+unit tests). Module registered in `pattern.rs`. Call site in
+`eval.rs::Evaluator::from_parsed` (gated on env var, default off).
+
+## 2026-05-12 — Plan filed: `__I4D` whole-routine semantic substitution
+
+Planning-only entry. Wrote
+[`docs/plans/2026-05-12-routine-semantic-substitution.md`](../plans/2026-05-12-routine-semantic-substitution.md)
+in response to the 2026-05-11 cycle-weighted heatmap pinpointing
+Watcom's `__I4D` (32-bit signed divide) as 46.1 % of doomLoad cycles.
+
+Mechanism: at compile time, find single-entry-single-exit regions of
+the calcite Op stream that look structurally like sub-routines;
+symbolically evaluate each region to a closed-form expression per
+live-out slot; match against a small catalogue of pure mathematical
+functions (initial entries: `signed_div_32`, `signed_mod_32`);
+substitute matched regions with a single host op that calls the
+catalogue's Rust implementation.
+
+Cardinal-rule defence: the verifier proves equivalence from the
+region's **computed function**, not from its bytecode shape or any
+name. No hash table of known routines, no name sniffing, no x86
+register conventions baked in. A 6502 cabinet's signed-divide or
+brainfuck's signed-divide would substitute identically with zero
+calcite-side changes. Genericity probe is mandatory at each phase.
+
+Six phases, each independently landable with a defined pass/fail
+gate:
+
+1. Region finder + `--probe-routines` CLI flag.
+2. Symbolic evaluator (pure-arithmetic Ops + loop-summary templates).
+3. Function catalogue + matcher.
+4. Substitution emitter + `Op::SubstitutedRoutine`.
+5. Correctness sweep (fulldiff doom8088 + smoke + conformance).
+6. Perf gate (≥ 5 % doomLoad improvement, 3-run web `--headed`
+   median).
+
+No env-var gate. Either it pays unconditionally or it doesn't ship —
+same rule as the affine-loop plan.
+
+Hard parts called out explicitly: symbolic-evaluator path-explosion
+on the 32-iteration bit-shift loop (needs loop-summary templates),
+recognising the closed form `(a/b, a%b)` from the summary,
+Return-shape detection at the Op-stream level. Fallback if Phase 2's
+full symbolic proof proves too hard: property-test verification
+(10K random input pairs at compile time). Weaker defence but still
+shape-based.
+
+Out of scope (explicit): affine self-loop fast-forward stays parked,
+no whole-program inlining, no hash-based matching even as perf
+optimisation.
+
+Picks up at "Order of operations" step 1 in the plan: read the
+calcite Op enum end-to-end before any code changes.
+
+## 2026-05-11 — release-oriented landing page (`/index.html`)
+
+**What.** New `web/site/index.html` — a 4-step DOS-EDIT-styled wizard
+(Welcome → How it works → Build → Play) that wraps the existing
+`build.js` pipeline. Started from a Claude Design mockup
+(`https://api.anthropic.com/v1/design/h/sRty-DSKgcWv-J_BVFVWMQ`,
+extracted from the gzipped tarball it returns). Build wiring, SW
+registration, and calcite-bridge boot are identical to `build.html` —
+no changes to `build.js`, `sw.js`, or `calcite-bridge-boot.js`.
+
+**Architecture.** `wizard.js` is pure visual chrome on top of `build.js`:
+- Real form elements `build.js` reads (`#cart-list`, `#start`, `#stages`,
+  `#log`, `#download`, `#run-cmd`, memory/preset/video radios, `#progress`,
+  `#result`) live in a hidden `.wizard-hidden` block so build.js keeps
+  ownership of the build pipeline.
+- A visible `#cart-grid` of cover-art cards mirrors selections into the
+  hidden `#cart-list` radio group (programmatic `.checked = true` +
+  `dispatchEvent('change')`), and the spec table mirrors radio/checkbox
+  state. A short polling loop (0/100/500/1500 ms) covers build.js's
+  async program.json apply, since direct `.value` writes don't fire
+  `input` events.
+- Build progress drives off two MutationObservers: one on `#stages`
+  (each new `<li>` = one stage; bar eases toward 95 %), one on
+  `#result.hidden` (un-hide = build done; snap to 100 %, reveal the
+  cabinet block, unlock step 4).
+- `#save-css` proxies to the hidden `#download` anchor.
+
+**Carts.** Visible carts come from `web/site/assets/carts.js`
+(cosmetic manifest with cover art / palette). `wizard.js` intersects
+that with `/_carts.json` from the dev server — carts in `carts/` but
+NOT in `window.CARTS` (variants: `doom8088-cga4`, dev fixtures:
+`test-carts`, `vsync-poll`, `rogue36`) are intentionally hidden from
+the release landing page. They remain available via `/build.html`,
+which still lists every directory under `carts/`.
+
+**Assets copied** to `web/site/assets/`: `IBM-PC.jpg`,
+`css-dos-logo-narrow.png`, `css-dos-logo-32x32.png`, and
+`boxart/{doom,persia,zork,sokoban}.{jpg,jpeg,webp}` from the design
+bundle.
+
+**Visual jank tightened from the mockup:**
+- `.step-strip li.done` went from off-palette `#888` to `#666` with
+  yellow numbers for legibility against the gray.
+- `.cart-card.selected:hover` pinned to black so hover doesn't recolor
+  the inverted-selected look.
+- Dropped the mockup's fake CSS-source preview generator; the real
+  paginated source viewer (from `build.js`) is now tucked inside a
+  collapsible `<details>` on the result block.
+- Dropped `F1=Help` from the status line (no help dialog exists); wired
+  `Esc=Back` so the advertised shortcut does something honest.
+- Hardened the keydown listener against synthetic dispatches with no
+  `.matches` (was throwing when `e.target === document`).
+- Three play options (calcite / canvas / raw) collapsed to two
+  prominent cards (raw + calcite) with the canvas player and the
+  classic builder UI as plain text links below.
+
+**Verification.** Web preview at `localhost:5173/` (web preview config):
+- Steps 1-4 navigate via Next/Back, step-strip clicks, and arrow keys.
+- `/_carts.json` round-trip populates 8 cover-art cards.
+- Clicking Zork → cart bytes fetched (7 files), `#run-cmd` prefilled
+  to `_ZORK1`, spec table reflects `640K conventional` /
+  `DOS + Corduroy BIOS` / `Text + Mode 13h`, build button enabled.
+- Build button → 6 stages logged (preset → BIOS → DOS → FAT12 → CSS →
+  ready), progress bar to 100 %, `Cabinet: 277.3 MB` displayed,
+  floppy label `ZORK1`, download blob URL valid, step 4 unlocked.
+- Step 4 cards link to `/player/raw.html` and `/player/calcite.html`
+  (new tab); footnote links to `/player/calcite-canvas.html` and
+  `/build.html`.
+- No console errors, no failed network requests.
+
+**Out of scope.** Help dialog (`F1`), drop-down menus on the menu bar
+(flavour only, same as `build.html`), tearing down the cabinet on
+Restart. The classic `/build.html` is unchanged and remains the
+power-user surface.
+
+**Files.** new: `web/site/index.html`, `web/site/assets/wizard.css`,
+`web/site/assets/wizard.js`, `web/site/assets/carts.js`,
+`web/site/assets/IBM-PC.jpg`, `web/site/assets/css-dos-logo-narrow.png`,
+`web/site/assets/css-dos-logo-32x32.png`,
+`web/site/assets/boxart/*.{jpg,jpeg,webp}`.
+
+## 2026-05-11 — doomLoad cycle-weighted heatmap: `__I4D` (32-bit divide) is the lion
+
+**Measurement.** Added a `cycles` column to calcite-cli's
+`--sample-cs-ip` output (reads the cabinet's `cycleCount` state-var
+at sample time). Cold-boot `tests/bench/cache/doom8088.css` with
+`--sample-cs-ip=600,1000,100`, halt-on-ingame watches, filtered to
+the loading window (tick 4.6M–34M) → `tmp/sampler/load-window.csv`.
+
+Cross-check: count-weighted segment heatmap (what the old "67.8 %
+segment 0x55" number used) vs cycle-weighted (sum of cycleCount
+deltas per `(CS)` bucket from wide singles). Total cycles in
+window 938 M reconciles with `cycleCount` end-minus-start. Top by
+cycles:
+
+| Segment | cycles% | count% | Resolved to |
+|---|---:|---:|---|
+| **0x2D96** | **46.1 %** | 22.3 % | **Watcom `__I4D` — 32-bit signed integer divide** (libc helper, 0xD3 = 211 bytes). |
+| **0x26EF** | **24.2 %** | 5.3 %  | **`r_draw_TEXT` at offset 0xBB6** — column/span renderer inner loops. |
+| 0x55       | 17.6 %    | 48.6 % | EDR-DOS kernel (below DOOM LOAD_SEG). "67.8 %" claim was a count-weighted sampling artefact. |
+| 0x2BC2     | 5.3 %     | 9.2 %  | `st_stuff_TEXT` — status bar drawing. |
+| 0x1122     | 2.1 %     | 7.3 %  | Below DOOM LOAD_SEG — EDR-DOS / DOS area. |
+
+**How segments were resolved.** DOOM8088 source is at
+`../Doom8088/`; Watcom map at `../Doom8088/WC16/DOOM16WC.map`
+(map 2026-04-25 19:36, cart EXE 2026-04-26 00:36 — same build
+day). LOAD_SEG derived from a known landmark: CS=0x2D96 has hot
+IPs 0x27–0x53; map shows `i4d` at link-relative offset 0x16948
+(paragraph 0x1694, offset 0x08 within the `0fd5:` code group).
+So **LOAD_SEG = 0x2D96 − 0x1694 = 0x1702**. Verified: every
+other hot CS maps cleanly into a named map segment with this
+constant.
+
+Formula for any CS:IP from this run:
+```
+link_relative_linear = (CS − 0x1702) × 16 + IP
+```
+Then find the `_TEXT` segment in the map whose
+`[base, base+size)` contains that linear. Symbols inside each
+segment are listed lower in the map.
+
+**Shape of the lion (`__I4D`).** IPs 0x27–0x53 hit roughly
+equally (top 20 IPs all 2.0–2.7 % each). That's the bit-shift
+loop body inside the divide routine — 8086's `DIV` is only
+16-bit, so 32-bit signed division is a software bit-loop of
+~32–33 iterations over a ~6–10-byte body. The flat histogram
+across ~45 bytes of IP space is exactly that body cycling.
+Standard SAR/SHR/SBB long-divide algorithm (Watcom's
+`clibm.lib(i4d)` per the map header).
+
+**Why DOOM divides so much during level-load.** Fixed-point
+math: BSP traversal, line-segment intersections, BBox clipping,
+`divline_t` computations in `p_setup.c` / `p_maputl.c` /
+`p_sight.c`. Any `fixed_t / fixed_t` (or wider-than-16-bit
+divisor) compiles to a `__I4D` call. **Not** the zone walk the
+perf doc speculated.
+
+**Three corrections to the perf docs:**
+
+1. Segment 0x55 is **not** 67.8 % of doomLoad — that was the
+   *count* of samples, not weighted by cycles. By cycles it's
+   17.6 %, and it's **EDR-DOS kernel**, not "DOOM zone-walk".
+2. Segment 0x2D96 is **not** "Corduroy BIOS dispatch" — Corduroy
+   is at runtime F000. It's `__I4D`.
+3. The biggest single doomLoad optimisation target is **the libc
+   divide routine**, not DOOM application code, not BIOS, not
+   zone allocation.
+
+**Why `__I4D` is a strong target.**
+- Tiny (211 bytes), fixed routine, called from many sites.
+- Inner-loop body matches the affine-loop fast-forward plan's
+  shape: deterministic per-iter side effects, counter-bounded
+  exit.
+- Cardinal-rule-clean: a calcite recogniser for "tight
+  bit-shift self-loop with counter exit" would fire on any
+  other libc's 32-bit divide on any cabinet — no DOOM- or
+  Watcom-specific knowledge needed.
+- Alternative: whole-function semantic substitution.
+  Pattern-recognise the 211-byte routine's CSS body as a unit,
+  substitute one host i32 `idiv`. Much higher payoff per byte
+  of matched code, narrower applicability. The recogniser would
+  still read only CSS-shape facts (no x86 / DOOM knowledge).
+
+**`r_draw` (24 %).** Previous `column_drawer_fast_forward`
+attempt (deleted 2026-05-05) targeted this exact code. Failed
+because per-tick detection cost exceeded savings. The
+affine-loop plan's compile-time-keyed detection design fixes
+that failure mode. Hot IPs cluster across pages 0x1400 (39.9 %),
+0x1500 (46.5 %), 0x1600 (9.7 %) — a function with multiple
+inner loops spanning ~768 bytes. Land `i4d` first to build
+confidence in the compile-time-keyed detection pattern, then
+revisit `r_draw`.
+
+### Pipeline & artifacts (for the next agent)
+
+- **calcite-cli `--sample-cs-ip`** now emits a `cycles` column
+  (absolute `cycleCount` state-var at sample time;
+  per-sample cost = `cycles[i] − cycles[i−1]`). Edit lives in
+  `../calcite/crates/calcite-cli/src/main.rs` (search
+  `cycleCount`). Build with `cargo build --release --bin
+  calcite-cli` in `../calcite`. CSV header is now
+  `tick,cs,ip,sp,cycles,burst_id` (was 5 columns).
+- **Standing analyser
+  `tests/harness/analyse-cs-ip-samples.mjs` does NOT yet
+  consume the new column** — it still reads the 5-column
+  schema. Update it before re-running automated analysis.
+  Current cycle-weighted analysis was ad-hoc awk.
+- **Raw data retained.** `tmp/sampler/cold.csv` = full
+  cold-boot through past-ingame (tick 0 to ~96M).
+  `tmp/sampler/load-window.csv` = filtered to tick 4.6M–34M.
+  Built from `tests/bench/cache/doom8088.css` with the
+  ingame-halt watches from `tests/bench/profiles/doom-loading.mjs`
+  and `--sample-cs-ip=600,1000,100`.
+- **Cycle reconciliation check.** Sum of cycle deltas in window
+  938 M; final `cycleCount` − first sample ≈ 1.04 G — discrepancy
+  is the first wide-single's leading delta from before the
+  window started. Within reason.
+
+### Recommended next steps
+
+1. **Confirm `i4d` body shape in the cabinet.** Translate
+   CS=0x2D96 IP=0x08..0xDB to the calcite dispatch entries the
+   cabinet emits for those linear addresses. Use
+   `probe_bytecode_shape` in `../calcite/crates/calcite-cli/src/bin/`
+   or inspect the cabinet CSS directly. The question: does the
+   loop-core body match the affine-loop plan's invariants
+   (single induction variable, side-effect bounded, exits via
+   `BranchIfNotEqLit`)?
+2. **Pick recogniser granularity:**
+   - *Per-iter affine fast-forward* — the existing plan at
+     `docs/plans/2026-05-01-affine-loop-fastforward.md`. Wins
+     on any libc divide on any cabinet.
+   - *Function-level semantic substitution* — bigger payoff,
+     much narrower applicability. Still cardinal-rule-clean
+     if the recogniser only reads CSS shape.
+3. **Measure trip-count distribution first** (plan's step 3).
+   `__I4D`'s trip count is ~32/call (architectural), so should
+   easily pass the plan's step-4 gate (abandon if avg trip
+   count < 4). Confirm with `--probe-affine-loops` before
+   building.
+4. **Re-run the cycle-weighted heatmap after any change.**
+   Protocol: 3-run web `doom-all --headed` medians for the
+   headline + cycle-weighted CS heatmap for sanity-checking
+   *where* the change moved cost.
+5. **Address `r_draw` (24 %) second**, with the lesson from
+   `column_drawer_fast_forward` in mind.
+
+### Open questions / things to verify
+
+- **Is `r_draw` really hot during level-load**, or hot during
+  the menu/title redraw running in parallel with G_DoLoadLevel?
+  Tick window 4.6M–34M starts at `_g_usergame=1` (level-load
+  begin) but the menu may still be onscreen. Disambiguate by
+  re-sampling with the bursts gated to fire only after a watch
+  confirms stage_loading has fired, or by filtering on a more
+  precise tick boundary.
+- **Cycle-weighting honesty when bulk ops fire.** Sampler
+  records `cycleCount` at sample time, but `cycleCount` can be
+  advanced in bulk by `rep_fast_forward` (and possibly other
+  bulk paths). If a bulk op completes between two wide
+  singles, the delta is attributed to whichever segment we
+  *caught* the second sample in — not where the cycles were
+  actually spent. Spot-check by comparing the cycle-weighted
+  heatmap against a per-burst variant (bursts are tick-by-tick
+  so they don't suffer this).
 
 ## 2026-05-11 — FPS baseline reframed as fuzzy ~1-2 fps; bench-host hygiene rule
 
