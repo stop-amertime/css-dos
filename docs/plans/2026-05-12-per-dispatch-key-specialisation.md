@@ -1,7 +1,8 @@
 # Per-dispatch-key tick-body specialisation
 
-**Status**: planning. Probed and structurally validated 2026-05-12;
-no implementation yet.
+**Status**: phase 1 landed 2026-05-12 (discovery diagnostic, gated on
+`CALCITE_SPECIALISE_DIAG=1`). Probe-validated 2026-05-12. Phases 2-6
+pending. See LOGBOOK 2026-05-12 phase-1 entry for the gate results.
 
 **Headline.** Compile-time partial evaluation of the cabinet's
 assignments against each value of the **hottest dispatch key** (the
