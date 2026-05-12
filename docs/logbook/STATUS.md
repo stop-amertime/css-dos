@@ -155,22 +155,26 @@ with any kiln/builder change that moves data).
 
 ## Open work
 
-- **Per-opcode specialisation (THE ARCHITECTURAL MOVE).** Idea-stage,
-  not yet a plan file. Written up in LOGBOOK 2026-05-12. The big
-  lever: instead of running one Op stream that dispatches every
-  property on `--opcode` every tick, compile-time specialise the
-  entire tick body PER opcode value (0..255). Every dispatch on
-  `--opcode` collapses to a constant pick; simplification removes
-  all the per-property "this opcode doesn't affect me" identity
-  work. Projected 10-100× throughput improvement (current
-  ~400 K i/s is barely above original 8088 hardware; modern CPUs
-  through a sensible emulator should be tens of M i/s).
+- **Per-dispatch-key specialisation (THE ARCHITECTURAL MOVE).** Plan
+  filed at
+  [`docs/plans/2026-05-12-per-dispatch-key-specialisation.md`](../plans/2026-05-12-per-dispatch-key-specialisation.md).
+  Probed and structurally validated 2026-05-12: the
+  `probe-specialise` binary in calcite-cli auto-picks `--opcode` as
+  the hot dispatch key (1615 SC tests on doom8088; next is `--reg`
+  at 975), specialises the IR per opcode value, and collapses
+  StyleConditions to 9.7 %, branches to 4.6 %, Calc nodes to 3.8 %
+  on the dispatching properties. Hot register-update bodies (`--AX`,
+  `--flags`, `--IP`) collapse 200-400×. Big caveat: the parser fast-
+  path absorbs 362 064 of 362 242 doom8088 assignments as broadcast
+  / packed-broadcast writes — only the ~178 dispatching assignments
+  benefit, so the global IR-size reduction is modest. The win still
+  lives where today's per-tick "hundreds of dispatches" cost lives.
   **Structurally upstream of every other perf optimisation —
   affine-loop fast-forward, routine substitution, identity
   pruning all become tractable post-specialisation because
-  per-opcode bodies are short and explicit.** Pick up at: probe
-  stage, specialise for one opcode (e.g. INC AX = 0x40), confirm
-  the simplified-body Op count is a small fraction, then scale.
+  per-opcode bodies are short and explicit.** Pick up at: phase 1
+  of the plan (productise `discover_hot_key` into the compile
+  pipeline as a diagnostic).
 - **`__I4D` whole-routine semantic substitution.** Plan filed at
   [`docs/plans/2026-05-12-routine-semantic-substitution.md`](../plans/2026-05-12-routine-semantic-substitution.md).
   Target: the Watcom 32-bit signed divide that the 2026-05-11
