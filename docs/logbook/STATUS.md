@@ -39,37 +39,39 @@ deleted was never built — it was explicitly deferred** (branch
 `docs/log.md` line 280: the ±1% perf gate "is deferred to a future"
 phase).
 
-**The perf cost of genericity is real in aggregate but never
-isolated.** The earlier keyboard-genericity stack was *reverted*
-(not fixed) via the `old-kbd` merge specifically to recover
-framerate — so "genericity hurts perf" is true enough that work was
-thrown away over it. But **no one has measured which specific
-genericity change costs what.** The one regression that was actually
-*fixed* (not reverted) is the separate keyboard `apply_input_edges`
-drop (calcite `a5e8eee` → `6d9e80a`, 162K→297K t/s) — a different
-concern from `rep_fast_forward`. The generic `rep_fast_forward`
-applier has never been benched because it does not exist.
+**The genericity↔perf cost is now isolated (2026-05-18,
+`../plans/2026-05-18-genericity-perf-cost-isolation.md`): there is
+no per-tick regression on `feat/calcite-genericity`.** Verified
+against the actual diff — every new pattern module
+(`loop_descriptor`/`dispatch_specialise`/`identity_prune`) is called
+*only* from `from_parsed` (compile-time) or behind a default-off
+`OnceLock` env gate; **nothing is wired into `execute`/`exec_ops`.**
+The one default-on behavioural change (BIF2 fusion default-on) is a
+*win* (web-verified +4.5% tput / +8% fps, LOGBOOK 2026-05-08). The
+measured regression STATUS used to attribute here —
+`apply_input_edges` (`a5e8eee`→`6d9e80a`, 162K→297K t/s) — is a
+**keyboard-branch** per-tick cost, already fixed there and **not
+present on `feat/calcite-genericity`** (the 2026-05-18 split kept it
+on `feat/keyboard-pseudo-input`). The `old-kbd` revert threw away
+the *keyboard* stack for framerate, not this branch.
 
-**Honest summary:** the blocker is not "make the slow generic path
-fast." It is "**the generic replacement was never finished, it is
-unmerged, and the per-change perf cost of genericity has never been
-isolated.**" Isolating it is the named next investigation (below).
+**Honest summary:** the blocker is "**the generic `rep_fast_forward`
+replacement applier was never built and is the only genericity
+change whose perf cost is genuinely unknown — unknown because the
+code doesn't exist yet.**" Not "a slow generic path needs speeding
+up." Build the applier (active-work #2), then bench *that*.
 
 ## Active work (detail in `../plans/`; done/dead → LOGBOOK only)
 
-1. **Isolate the genericity↔perf cost** — THE unblocking task.
-   Decompose `feat/calcite-genericity`'s squashed diff (30 files,
-   ~7.5k lines over `ef44f20`) + its 835-line `docs/log.md` into a
-   verified table: each genericity change → perf impact
-   (measured / assumed / unknown), hot-path or not. Output is what
-   lets the ship-blocker framing above become concrete. *No plan
-   file yet — write one when picked up.*
-2. **`rep_fast_forward` generic applier** — the actual cheat removal.
-   Recogniser + validator exist on the branch; the perf-gated
-   applier (±1%, must replace the hardcoded path) was deferred,
-   never built. Plan: `../plans/2026-05-06-rep-fast-forward-genericity.md`
-   (note: its "phases 1–3a landed" status is branch-only, not on
-   `main`).
+1. **`rep_fast_forward` generic applier** — THE unblocking task and
+   the actual cheat removal. Recogniser + validator exist on the
+   branch; the perf-gated applier (±1%, must replace the hardcoded
+   path) was deferred, never built. **This is the only genericity
+   change whose perf cost is unknown** (per the 2026-05-18 isolation
+   — everything else is compile-time/default-off/measured). Plan:
+   `../plans/2026-05-06-rep-fast-forward-genericity.md` (its
+   "phases 1–3a landed" status is branch-only, not on `main`).
+   Isolation done: `../plans/2026-05-18-genericity-perf-cost-isolation.md`.
 3. **Per-dispatch-key specialisation** — structurally upstream of
    all perf work; probed on the branch 2026-05-12 (not on `main`).
    Plan: `../plans/2026-05-12-per-dispatch-key-specialisation.md`.
