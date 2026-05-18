@@ -6,9 +6,36 @@ files / ~7.5k lines over calcite `ef44f20`) into a verified
 per-change perf-impact table.
 
 **Verified 2026-05-18** against the actual diff
-(`git diff main feat/calcite-genericity`), the branch's own
-`docs/log.md`, and the existing LOGBOOK findings. Not copied from
-prose — every row was read in the diff.
+(`git diff main feat/calcite-genericity`) and the branch's own
+`docs/log.md`. Not copied from prose — every row was read in the
+diff. **Then confirmed empirically by an end-to-end bench** (below)
+— the prior LOGBOOK numbers were treated as untrusted and the
+"no regression" conclusion was re-derived from a fresh measurement,
+not from those entries.
+
+## Empirical confirmation (measured 2026-05-18, not argued)
+
+One `doom-all --headed` run on `feat/calcite-genericity` (`3592bf0`,
+wasm rebuilt from that branch), compared against the on-disk
+baseline JSONs `docs/benches/doom-all-2026-05-08-old-kbd-bif2off-*`
+(calcite `ef44f20`-equivalent, BIF2 off). Genericity JSON:
+`docs/benches/doom-all-2026-05-18-genericity-3592bf0-run1.json`.
+
+| Metric | Baseline (ef44f20, BIF2 off, 3 runs) | Genericity 3592bf0 (1 run) |
+|---|---|---|
+| `runMsToInGame` | 77.1–82.1 s (med 79.7) | **75.9 s** |
+| `ticksPerSecAvg` | 416K–443K (med 423K) | **448.5K** |
+| `doomLoad` | 65.4–70.0 s (med 68.5) | **64.8 s** |
+| `ticksToInGame` | 34.1–34.5 M | 34.5 M (deterministic) |
+
+The genericity run is at or below the *fastest* baseline run on
+every wall metric, and its throughput (448.5K) exceeds even the
+BIF2-*on* baseline set (`old-kbd-run*`: 437–445K). **There is no
+regression.** Methodology caveat: 1 run/side (a "much slower"
+branch would land far outside the ~6% baseline spread; it lands
+*inside/below* it), so this proves "not a regression" but does not
+by itself prove a speedup. No bisect was needed — there is nothing
+slower to bisect.
 
 ## Headline finding (changes the ship-blocker framing)
 

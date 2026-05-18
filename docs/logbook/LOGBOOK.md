@@ -22,7 +22,7 @@ See [`PROTOCOL.md`](PROTOCOL.md).
 
 | Date | Tag | Entry |
 |------|-----|-------|
-| 2026-05-18 | FINDING | [Genericity↔perf cost isolated: NO per-tick regression on feat/calcite-genericity (all default-off/compile-time; BIF2 default-on is a win); apply_input_edges regression is keyboard-branch not this one](entries/2026-05-18-genericity-perf-cost-isolated-no-per-tick-regression.md) |
+| 2026-05-18 | FINDING | [Genericity↔perf cost BENCHED: feat/calcite-genericity 75.9s/448.5K t/s vs ef44f20-baseline 77-82s/416-443K — NO regression (measured, not from logbook); apply_input_edges drop is keyboard-branch not this one](entries/2026-05-18-genericity-perf-cost-isolated-no-per-tick-regression.md) |
 | 2026-05-18 | LANDED | [calcite feat/retire-keyboard hand-partitioned into feat/keyboard-pseudo-input + feat/calcite-genericity; both build clean, now on origin](entries/2026-05-18-calcite-feat-retire-keyboard-bundle-hand-partitioned-into-tw.md) |
 | 2026-05-15 | LANDED | [Branch reorg: calcite main reset to ef44f20 (old-kbd state), retire-keyboard/genericity parked on feat/retire-keyboard; cherry-pick disentangle abandoned (one ball)](entries/2026-05-15-branch-reorg-calcite-main-working-keyboard-state-retire-keyb.md) |
 | 2026-05-14 | DEAD | [Item #5 unchecked slot access: -30% ticks/sec web bench, write-off; do not retry without a story for why result differs](entries/2026-05-14-item-5-unchecked-slot-access-attempt-30-ticks-sec-on-web-ben.md) |

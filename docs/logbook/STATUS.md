@@ -39,21 +39,24 @@ deleted was never built — it was explicitly deferred** (branch
 `docs/log.md` line 280: the ±1% perf gate "is deferred to a future"
 phase).
 
-**The genericity↔perf cost is now isolated (2026-05-18,
+**The genericity↔perf cost is isolated AND empirically benched
+(2026-05-18,
 `../plans/2026-05-18-genericity-perf-cost-isolation.md`): there is
-no per-tick regression on `feat/calcite-genericity`.** Verified
-against the actual diff — every new pattern module
+no regression on `feat/calcite-genericity`.** Measured, not argued:
+one `doom-all --headed` run on `3592bf0` vs the on-disk
+`ef44f20`/BIF2-off baseline — genericity is **75.9 s / 448.5K t/s /
+doomLoad 64.8 s** vs baseline **77–82 s / 416–443K / 65–70 s**, i.e.
+at or below the *fastest* baseline run on every metric. (Prior
+LOGBOOK perf numbers were treated as untrusted; this conclusion
+rests on the fresh bench, JSON in `../benches/`.) Static analysis
+agrees: every new pattern module
 (`loop_descriptor`/`dispatch_specialise`/`identity_prune`) is called
 *only* from `from_parsed` (compile-time) or behind a default-off
-`OnceLock` env gate; **nothing is wired into `execute`/`exec_ops`.**
-The one default-on behavioural change (BIF2 fusion default-on) is a
-*win* (web-verified +4.5% tput / +8% fps, LOGBOOK 2026-05-08). The
-measured regression STATUS used to attribute here —
-`apply_input_edges` (`a5e8eee`→`6d9e80a`, 162K→297K t/s) — is a
-**keyboard-branch** per-tick cost, already fixed there and **not
-present on `feat/calcite-genericity`** (the 2026-05-18 split kept it
-on `feat/keyboard-pseudo-input`). The `old-kbd` revert threw away
-the *keyboard* stack for framerate, not this branch.
+`OnceLock` gate — nothing in `execute`/`exec_ops`. The
+`apply_input_edges` regression STATUS used to attribute here is a
+**keyboard-branch** per-tick cost (`feat/keyboard-pseudo-input`),
+not present on this branch; the `old-kbd` revert threw away the
+*keyboard* stack, not this one.
 
 **Honest summary:** the blocker is "**the generic `rep_fast_forward`
 replacement applier was never built and is the only genericity

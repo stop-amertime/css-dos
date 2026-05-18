@@ -4,19 +4,26 @@
 `feat/calcite-genericity`; mirrored in `../calcite/docs/log.md`)
 
 Decomposed `feat/calcite-genericity` (`a89067a`/`3592bf0`, 30 files
-over `ef44f20`) into a verified per-change perf table —
-`docs/plans/2026-05-18-genericity-perf-cost-isolation.md`. Read the
-actual diff, not the prose.
+over `ef44f20`) into a verified per-change perf table, **then
+benched it end-to-end** —
+`docs/plans/2026-05-18-genericity-perf-cost-isolation.md`. Prior
+LOGBOOK perf numbers were treated as untrusted; the conclusion
+rests on a fresh measurement, not on those entries.
 
-**Result: the "genericity hurts perf" premise is false for this
-branch.** Every new pattern module (`loop_descriptor`,
-`dispatch_specialise`, `identity_prune`) is called *only* from
-`Evaluator::from_parsed` (compile-time) or behind a default-off
-`OnceLock` env gate. Nothing is wired into `execute`/`exec_ops`.
-Verified via `git grep` of all call sites. The one default-on
-behavioural change, BIF2 fusion default-on, is a measured *win*
-(+4.5% tput / +8% fps web, 2026-05-08). `column_drawer_fast_forward`
-deletion is dead-by-default code removal (0 runtime effect).
+**Result: the "genericity hurts perf" premise is false — measured.**
+One `doom-all --headed` run on `3592bf0` (wasm rebuilt from the
+branch) vs the on-disk `ef44f20`/BIF2-off baseline: genericity
+**75.9 s / 448.5K t/s / doomLoad 64.8 s** vs baseline
+**77–82 s / 416–443K / 65–70 s** — at or below the *fastest*
+baseline run on every metric. JSON:
+`docs/benches/doom-all-2026-05-18-genericity-3592bf0-run1.json`.
+1 run/side (a "much slower" branch would be far outside the ~6%
+baseline spread; it's inside/below it) — proves not-a-regression,
+no bisect needed. Static analysis agrees: every new pattern module
+(`loop_descriptor`/`dispatch_specialise`/`identity_prune`) is called
+*only* from `from_parsed` (compile-time) or behind a default-off
+`OnceLock` gate — nothing in `execute`/`exec_ops`.
+`column_drawer_fast_forward` deletion is dead-by-default removal.
 
 The measured regression STATUS used to pin here —
 `apply_input_edges` 162K→297K (`a5e8eee`→`6d9e80a`) — is
