@@ -73,8 +73,10 @@ point at the matching calcite worktree. `CALCITE_CLI_BIN` and
 
 ## Where to start
 
-- For the doom8088 perf mission specifically, see
-  [`agent-briefs/doom-perf-mission.md`](agent-briefs/doom-perf-mission.md).
+- For the doom8088 perf mission framing (release bar, where the time
+  goes, active perf work), see
+  [`logbook/STATUS.md`](logbook/STATUS.md) and the live plans in
+  [`plans/`](plans/).
 - For the bench harness that consumes these tools, see
   [`tests/bench/README.md`](../tests/bench/README.md).
 - For calcite-side perf entries (recogniser fusion, fast-forward, etc.),

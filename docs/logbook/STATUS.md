@@ -1,302 +1,174 @@
 # CSS-DOS status
 
-The durable handbook. Auto-loaded by `CLAUDE.md`. Contains everything
-a new agent needs to start work — current state, sentinel addresses,
-how-to-test pointers, recurring gotchas. Chronological entries live
-in [`LOGBOOK.md`](LOGBOOK.md).
+The one doc you must read before working. Auto-loaded by `CLAUDE.md`.
+Current state, the release bar, sentinels, active work, gotchas.
+History → [`LOGBOOK.md`](LOGBOOK.md). Forward task detail → the
+relevant file in `../plans/`.
 
-## Current state
+Every factual claim here is meant to be verified against code/git,
+not copied from prose. If you find a contradiction, fix it here
+first, then log it. Last verified: 2026-05-18.
+
+## Release bar (what "done" means)
+
+1. **Calcite must be generic — the gate.** No upstream knowledge in
+   calcite (no x86 / DOS / Doom / cabinet awareness). This is the
+   non-negotiable ship condition.
+2. **Performance — improve if possible, NOT a gate.** Faster is
+   better; slow-but-honest ships, fast-but-cheating does not.
+
+These two fight each other, and that tension *is* the project's
+central problem — not a side issue. See "The ship-blocker" below.
+
+## The ship-blocker (verified 2026-05-18)
+
+**`main` still cheats.** `rep_fast_forward` in
+`crates/calcite-core/src/compile.rs` is ~341 lines of hardcoded x86
+string-op semantics. On calcite `main` (`ef44f20`) there is **no
+generic path at all** — verified: `CALCITE_REP_GENERIC`,
+`discover_hot_key`, `dispatch_specialise` have **zero references on
+`main`**.
+
+The generic work exists **only on the unmerged branch
+`feat/calcite-genericity`** (one squashed commit `a89067a` over
+`ef44f20`; also in the un-split `feat/retire-keyboard` bundle). What
+it actually contains: a structural recogniser + a **read-only
+diagnostic validator** behind `CALCITE_REP_GENERIC=1` (default off).
+**The replacement applier that would let the hardcoded cheat be
+deleted was never built — it was explicitly deferred** (branch
+`docs/log.md` line 280: the ±1% perf gate "is deferred to a future"
+phase).
+
+**The perf cost of genericity is real in aggregate but never
+isolated.** The earlier keyboard-genericity stack was *reverted*
+(not fixed) via the `old-kbd` merge specifically to recover
+framerate — so "genericity hurts perf" is true enough that work was
+thrown away over it. But **no one has measured which specific
+genericity change costs what.** The one regression that was actually
+*fixed* (not reverted) is the separate keyboard `apply_input_edges`
+drop (calcite `a5e8eee` → `6d9e80a`, 162K→297K t/s) — a different
+concern from `rep_fast_forward`. The generic `rep_fast_forward`
+applier has never been benched because it does not exist.
+
+**Honest summary:** the blocker is not "make the slow generic path
+fast." It is "**the generic replacement was never finished, it is
+unmerged, and the per-change perf cost of genericity has never been
+isolated.**" Isolating it is the named next investigation (below).
+
+## Active work (detail in `../plans/`; done/dead → LOGBOOK only)
+
+1. **Isolate the genericity↔perf cost** — THE unblocking task.
+   Decompose `feat/calcite-genericity`'s squashed diff (30 files,
+   ~7.5k lines over `ef44f20`) + its 835-line `docs/log.md` into a
+   verified table: each genericity change → perf impact
+   (measured / assumed / unknown), hot-path or not. Output is what
+   lets the ship-blocker framing above become concrete. *No plan
+   file yet — write one when picked up.*
+2. **`rep_fast_forward` generic applier** — the actual cheat removal.
+   Recogniser + validator exist on the branch; the perf-gated
+   applier (±1%, must replace the hardcoded path) was deferred,
+   never built. Plan: `../plans/2026-05-06-rep-fast-forward-genericity.md`
+   (note: its "phases 1–3a landed" status is branch-only, not on
+   `main`).
+3. **Per-dispatch-key specialisation** — structurally upstream of
+   all perf work; probed on the branch 2026-05-12 (not on `main`).
+   Plan: `../plans/2026-05-12-per-dispatch-key-specialisation.md`.
+4. **`__I4D` routine substitution** — 46% of doomLoad cycles
+   (2026-05-11 cycle-weighted heatmap). Pure plan, no code anywhere.
+   Plan: `../plans/2026-05-12-routine-semantic-substitution.md`.
+
+## Git state (verified 2026-05-18)
+
+- **CSS-DOS** `master`: clean, in sync with origin (1 local logbook
+  commit).
+- **calcite** `main` == `origin/main` == `ef44f20`. No divergence,
+  no force-push pending. The 2026-05-15 history rewrite has already
+  been reconciled with origin.
+- Genericity work safe on `origin/feat/calcite-genericity`
+  (`3592bf0`); keyboard rework on
+  `origin/feat/keyboard-pseudo-input` (`baf3086`); both
+  byte-identical local↔origin. `feat/retire-keyboard` (`a05d85c`)
+  retained intact, also on origin.
+- **No loss risk remaining (as of 2026-05-18):** the only at-risk
+  branches `calcite-v2` (`432c131`) / `calcite-v2-rewrite`
+  (`3745e3c`) — dead compiler-rewrite experiments — were pushed to
+  `origin/archive/calcite-v2{,-rewrite}`. Everything else local is a
+  stale pointer to already-merged work.
+- **Deferred git cleanup (NOT done — needs owner triage):** 7 calcite
+  worktrees under `.claude/worktrees/` each have uncommitted changes
+  (2–33 files); pruning any destroys that work. `worktree-rep-3b`
+  (`645f497`, on `origin/worktree-rep-3b`) is **live ship-blocker
+  work** (rep_fast_forward phase 3b applier), NOT stale — do not
+  prune. The stale worktree/branch removal is its own supervised
+  task, not a docs-session action.
+- Pre-existing base debt: `ef44f20`'s calcite lib-*test* target
+  fails to compile (`script.rs` `Stride{every,last_fired_at}` vs
+  `script_spec.rs:309` `Stride{every}`). `cargo build` is green;
+  only `cargo test` surfaces it. Keyboard branch incidentally fixes
+  it; genericity branch inherits it.
+
+## Working state
 
 **Working carts:** zork, montezuma, sokoban, zork-big (2.88 MB),
-command-bare, shelltest, smoke set (dos-smoke, hello-text,
-cga4-stripes, cga5-mono, cga6-hires). Doom8088 reaches in-game on
-**both** web player and calcite-cli. Prince of Persia reaches title
-screen.
+command-bare, shelltest, smoke set. Doom8088 in-game on web + cli.
+Prince of Persia → title screen.
 
 **Regression gate:** `node tests/harness/run.mjs smoke` (7 carts).
 
-**Architecture:** V4 single-cycle. Every instruction completes in one
-CSS tick with a configurable number of memory write slots
-(minimum 6; the 3-word-slot scheme is the current default and saves
-~6% wall on doom8088 vs the 6-byte scheme).
+**Architecture:** V4 single-cycle, one instruction per CSS tick,
+3-word-slot scheme default. Default BIOS: Corduroy.
 
-**Default BIOS:** Corduroy (`bios/corduroy/`). Muslin
-(`bios/muslin/muslin.asm`) and Gossamer still available.
+## Perf baseline (2026-05-08, web `--headed`, 3-run doom-all median)
 
-## Two-entrypoint testing
+| Phase | Wall | | Phase | Wall |
+|---|--:|---|---|--:|
+| compile | 27.8 s | | doomLoad | **68.5 s** |
+| dosBoot | 9.0 s | | engine-run total | **79.7 s** |
+| title+menu | 3.1 s | | throughput | 423 K t/s |
 
-| Question                                          | Entrypoint              |
-|---------------------------------------------------|-------------------------|
-| Did my change break something? Diff vs reference. | `tests/harness/`        |
-| How fast does this cabinet boot / load?           | `tests/bench/`          |
+Steady-state FPS: fuzzy **~1-2 fps** band (±2× run noise — never
+quote a single FPS number). Wall and ticks/sec are stable to ±3%.
+**doomLoad is ~85% of engine-run — perf attention belongs there.**
+BIF2 fusion is a real but modest +4-8% web win (the 2026-05-07
++47% figure was a CLI-bench artefact against a regressed baseline —
+do not quote it).
 
-See [`docs/TESTING.md`](../TESTING.md) for the full split,
-[`docs/script-primitives.md`](../script-primitives.md) for the
-watch-spec grammar bench profiles use.
+Quote 3-run web medians for any perf claim. Required reading before
+benching: [`tests/bench/README.md`](../../tests/bench/README.md)
+(canonical profiles, the `--headed` rule, the "why FPS is noisy"
+rule). Check no other agent is benching first — concurrent benches
+make both runs' numbers garbage.
 
-## How to benchmark (canonical)
+## Boot sequence + sentinels (Doom8088)
 
-**Read [`tests/bench/README.md`](../../tests/bench/README.md) before
-running any benchmark.** It is the source of truth for the canonical
-profile set, the run commands, and the harness contract.
+Stages: `text_drdos` → `text_doom` → `title` → `menu`
+(`_g_menuactive=1`) → `loading` (`_g_usergame=1`) → `ingame`
+(`_g_gamestate=GS_LEVEL`). "Ticks running" ≠ pass — peek the globals
+or use the bench.
 
-**Three canonical profiles** under `tests/bench/profiles/`:
+| Symbol | Linear | Notes |
+|---|---|---|
+| `_g_gamestate` | 0x3a3c4 | 0=LEVEL 1=INTER 2=FINALE 3=DEMOSCREEN |
+| `_g_menuactive` | 0x3ac62 | bool |
+| `_g_usergame` | 0x3a5af | latches at G_InitNew (durable signal) |
+| `_g_gameaction` | 0x3ac5e | TRANSIENT — wrong sentinel for gating |
 
-| Profile | What it measures |
-|---|---|
-| `compile-only`     | Cabinet → parse → compile time |
-| `doom-loading`     | Boot through six stages → in-game (wall ms, ticks) |
-| `doom-ingame-fps`  | Steady-state in-game FPS while holding Left |
+Re-derive from the `.map` on any kiln/builder rebuild — offsets
+shift with anything that moves data.
 
-**The web bench is the source of truth.** Always `--headed`. Headless
-Chromium throttles workers and produces meaningless wall-clock times.
-The CLI bench is a fast dev-only sanity check — different runtime, no
-SW, no `<img>` frame consumer — its numbers do not reflect what the
-user feels.
+## Gotchas
 
-```sh
-node tests/bench/driver/run.mjs doom-loading    --headed   # SOURCE OF TRUTH
-node tests/bench/driver/run.mjs doom-ingame-fps --headed   # in-game FPS
-node tests/bench/driver/run.mjs doom-loading    --target=cli  # dev-only sanity
-```
-
-**Current baseline (2026-05-08, old-kbd branch, BIF2 fusion HARDCODED
-OFF, 3-run `doom-all` median; raw JSONs in `docs/benches/`):**
-
-| Phase | Wall (median) | Notes |
-|---|---:|---|
-| compile        | **27.8 s** | cabinet (332 MB) → calcite IR. One-shot per cabinet load. |
-| dosBoot        | **9.0 s**  | BIOS + EDR-DOS up to mode 13h DOOM title splash. |
-| doomTitle      | 0.5 s      | title splash dismissed → main menu visible. |
-| doomMenuDelay  | 2.6 s      | Enter taps → G_InitNew → level-load begins. |
-| doomLoad       | **68.5 s** | level-load until `gamestate=GS_LEVEL`. **Lion's share.** |
-| warmup         | 8 s        | menu slide-off + view fade-in (not measured). |
-| measure        | 20 s       | steady-state FPS measurement, holding Left. |
-
-- Run wall (engine-running to in-game): **79.7 s** (range 77.1-82.1, ±3 %)
-- Throughput: **34.5 M ticks at 423 K ticks/sec avg**
-- Steady-state in-game FPS: **~1-2 fps** at the 2026-05-11 user
-  observation. The 1.70 fps figure originally logged here was the
-  median of a 3-run sample that ranged 0.70-1.80 across runs — a
-  ±2× spread that's host-CPU/Chrome-GC noise, not a stable number.
-  Treat steady-state FPS as a fuzzy ~1-2 fps band, not a tight
-  median, until someone runs enough samples on a quiet host to
-  shrink the variance. Wall (78-82 s) and ticks/sec (394-434 K)
-  are much more stable across the same samples.
-
-**With BIF2 fusion ON** (calcite `BIF2_FUSE_ENABLED=true`):
-77.1 s engine-run / 443 K ticks/sec / 1.85 fps. So BIF2 is worth
-roughly **+4.5 % throughput** on the current web baseline; the
-**+8 % FPS** claim is inside the noise floor — don't quote it.
-
-The 2026-05-07 calcite log entry that claimed +47 % throughput /
-−31.8 % wall was measured on the **CLI** target, against a
-142 K ticks/sec baseline (engine was constrained by the
-apply_input_edges regression and the CLI runtime has no SW/frame
-consumer, so dispatch overhead has a different relative weight than
-in the web runtime). The 2026-05-07 measurement isn't wrong, but
-the +47 % shouldn't generalise to the web runtime — the canonical
-bench. **On the canonical bench, BIF2 is a real but modest +4-8 %
-win.**
-
-Quote 3-run medians (or more) when claiming a perf change. Wall and
-ticks/sec converge to ±3 % on a quiet host; FPS can spread 2× across
-runs even when nothing obvious is competing. **Before benching, make
-sure no other agent is running anything CPU-heavy — including another
-bench.** Multiple concurrent agents launching `doom-all` is a real
-failure mode that makes both runs' numbers garbage. Check `ps`/Task
-Manager for stray `playwright`, `chrome --headless`, `calcite-cli`,
-or `node tests/bench` processes before you start, and tell any
-parallel agents to wait.
-
-Quote JSON before/after perf claims. Diagnose with measurement tools,
-not by running the player interactively.
-
-For the Doom8088 perf mission (priority leads, success criteria,
-where the time is going), see
-[`docs/agent-briefs/doom-perf-mission.md`](../agent-briefs/doom-perf-mission.md).
-For perf-iteration tooling (snapshots, CS:IP sampling, op
-distribution, calcite worktrees), see
-[`docs/perf-iteration.md`](../perf-iteration.md). To compose your own
-stage detectors, see
-[`docs/script-primitives.md`](../script-primitives.md).
-
-## Boot sequence (dos-corduroy)
-
-Generic carts: (1) Mode 13h splash → (2) Text-mode kernel + ANSI
-banner → (3) Game.
-
-Doom8088 (six stages, sentinels below):
-
-1. `stage_text_drdos` — kernel banner in 80×25 VRAM
-2. `stage_text_doom`  — DOOM init log in VRAM
-3. `stage_title`      — mode 13h, title splash
-4. `stage_menu`       — `_g_menuactive=1`
-5. `stage_loading`    — `_g_usergame=1`, gamestate still GS_DEMOSCREEN
-6. `stage_ingame`     — gamestate flips to GS_LEVEL
-
-"Ticks running" ≠ pass — peek the doom globals or use the bench.
-
-## Sentinel addresses (Doom8088)
-
-| Symbol            | Linear  | Notes                                              |
-|-------------------|---------|----------------------------------------------------|
-| `_g_gamestate`    | 0x3a3c4 | enum: 0=LEVEL 1=INTERMISSION 2=FINALE 3=DEMOSCREEN |
-| `_g_menuactive`   | 0x3ac62 | bool                                               |
-| `_g_gameaction`   | 0x3ac5e | TRANSIENT (cleared within one game tic)            |
-| `_g_usergame`     | 0x3a5af | latches when G_InitNew runs                        |
-
-`_g_gameaction` is the wrong sentinel for stage gating — cleared on
-the next G_Ticker, a 250 ms poll usually misses it. `_g_usergame` is
-the durable equivalent.
-
-Re-derive on cabinet rebuild from the `.map` file (the offsets shift
-with any kiln/builder change that moves data).
-
-## Open work
-
-- **Per-dispatch-key specialisation (THE ARCHITECTURAL MOVE).** Plan
-  filed at
-  [`docs/plans/2026-05-12-per-dispatch-key-specialisation.md`](../plans/2026-05-12-per-dispatch-key-specialisation.md).
-  Probed and structurally validated 2026-05-12: the
-  `probe-specialise` binary in calcite-cli auto-picks `--opcode` as
-  the hot dispatch key (1615 SC tests on doom8088; next is `--reg`
-  at 975), specialises the IR per opcode value, and collapses
-  StyleConditions to 9.7 %, branches to 4.6 %, Calc nodes to 3.8 %
-  on the dispatching properties. Hot register-update bodies (`--AX`,
-  `--flags`, `--IP`) collapse 200-400×. Big caveat: the parser fast-
-  path absorbs 362 064 of 362 242 doom8088 assignments as broadcast
-  / packed-broadcast writes — only the ~178 dispatching assignments
-  benefit, so the global IR-size reduction is modest. The win still
-  lives where today's per-tick "hundreds of dispatches" cost lives.
-  **Structurally upstream of every other perf optimisation —
-  affine-loop fast-forward, routine substitution, identity
-  pruning all become tractable post-specialisation because
-  per-opcode bodies are short and explicit.** Pick up at: phase 1
-  of the plan (productise `discover_hot_key` into the compile
-  pipeline as a diagnostic).
-- **`__I4D` whole-routine semantic substitution.** Plan filed at
-  [`docs/plans/2026-05-12-routine-semantic-substitution.md`](../plans/2026-05-12-routine-semantic-substitution.md).
-  Target: the Watcom 32-bit signed divide that the 2026-05-11
-  cycle-weighted heatmap pinpointed as 46.1 % of doomLoad cycles.
-  Mechanism: compile-time region recogniser + symbolic evaluator +
-  small catalogue of pure mathematical functions; substitute matched
-  regions with a single host op. Six phases, each with a defined
-  pass/fail gate. No env-var gate (must pay unconditionally or
-  revert). Cardinal-rule defence is that the verifier proves
-  equivalence from computed function, not from bytecode shape.
-  Pick up at "Order of operations" step 1 in the plan.
-- **Pre-ship Doom8088 FPS push.** Brief in
-  [`docs/agent-briefs/2026-05-07-pre-ship-fps-leads.md`](../agent-briefs/2026-05-07-pre-ship-fps-leads.md).
-  **2026-05-08 baseline (old-kbd branch, BIF2 OFF, 3-run doom-all
-  median): 79.7 s engine-run to in-game (27.8 s compile + 9.0 s DOS
-  boot + 0.5 s title + 2.6 s menu + 68.5 s level-load); 34.5 M ticks
-  at 423 K ticks/sec; ~1-2 fps steady state (noisy, ±2× across
-  runs — don't anchor on a single FPS number). With BIF2 ON: 77.1 s
-  / 443 K ticks/sec (FPS delta inside the noise floor).
-  **Level-load is the lion's share — perf attention belongs there.****
-  Earlier wall-clock numbers (161 s @ 2026-05-07, 242 s pre-fix)
-  reflect the prior keyboard-genericity stack which has since been
-  reverted on this branch.
-  Two changes:
-  - `apply_input_edges` regression fix (calcite `6d9e80a`):
-    lazy slot resolution + group caching + empty-set fast path.
-    Recovered the 44 % throughput drop introduced in `a5e8eee`.
-    5M-tick raw bench: 162 K → 297 K ticks/sec (+1.83×).
-  - BIF2 fusion default-on (calcite `f014d35`): 794 fusions
-    covering 13.5 % of dispatched ops, was env-var-gated since
-    2026-04-30 wash on a different cabinet. Now hardcoded OFF on
-    `old-kbd` for measurement isolation. Web bench delta: +4.5 %
-    throughput / +8 % FPS — modest but real. (The 2026-05-07
-    +47 % claim was on the CLI bench against a slower baseline,
-    not the canonical web bench.)
-  ~~Lead #1 (widen `fuse_loadstate_branch`)~~ killed (probe
-  `crates/calcite-cli/src/bin/probe_bif_predecessor.rs` shows 0
-  static candidates).
-  Steady-state in-game FPS measurable via the new
-  `doom-ingame-fps` web bench profile (holds Left, hashes the full
-  framebuffer to count user-visible frames). Smoke
-  7/7 PASS at the current configuration.
-- **EMS/XMS for Doom8088 — partial scaffold, inactive.** Corduroy
-  hooks INT 2Fh / INT 67h, reserves "EMMXXXX0" magic at BIOS_SEG bytes
-  0x0A..0x11. DOOM8088 detects EMS via `open("EMMXXXX0", O_RDWR)`
-  (synthesised DOS char device) — still doesn't see it. Doom runs
-  with `-noxms -noems -nosound` baked into `program.json` and
-  sidesteps. Files: `bios/corduroy/{entry,handlers,bios_init}.{asm,c}`.
-- **Memory packing pack=2 vs pack=1.** Native probe converges
-  ≥500 K ticks; pack=2 slightly faster. Browser verification pending.
-- ~~**Bench harness web target**~~ — done 2026-05-08. Web target
-  works end-to-end (`tests/bench/page/index.html` iframes the
-  player so `<img src="/_stream/fb">` has a frame consumer; bridge
-  has running-guard + watch-preserving `bench-run` so watches don't
-  get wiped by `engine.reset()`). Legacy
-  `tests/harness/bench-doom-{load,stages,stages-cli,gameplay}.mjs`
-  and `web/player/bench.html` deleted.
-- **Keyboard input via `:active` — done.** Cabinet CSS emits
-  `.cpu { &:has(#kb-X:active) { --keyboard:N } }` per key. Calcite
-  parses these into `InputEdge`s and applies them pre-tick from
-  host-supplied `(pseudo, selector)` state. The host drives
-  `engine.set_pseudo_class_active(pseudo, selector, value)`; the
-  SW route is `/_kbd?class=kb-X`; the bench harness uses
-  `pseudo_pulse=active,kb-enter,HOLD` watch actions and
-  `--press-events=TICK:[+|-]SELECTOR` on calcite-cli. The
-  legacy `engine.set_keyboard`, the `?key=0xHHHH` URL form, the
-  bridge `'kbd'` message kind, and the `--key-events` CLI flag are
-  all gone. Doom8088 cabinet recognises 59 input edges; CLI bench
-  reaches in-game at tick 34.65M via the new path (parity with
-  the prior `setvar_pulse=keyboard` baseline). See LOGBOOK
-  2026-05-06.
-- **`rep_fast_forward` is still upstream-aware.** The other four items
-  on the calcite-genericity audit list (delete `column_drawer_fast_forward`,
-  move `summary.rs`, move CGA renderer to `calcite-pc-video`, strip
-  doom/DOS comments) landed 2026-05-05. `rep_fast_forward` is the
-  remaining cardinal-rule violation in calcite-core: ~341 lines of
-  hardcoded x86 string-op semantics. Mission plan in
-  [`docs/plans/2026-05-06-rep-fast-forward-genericity.md`](../plans/2026-05-06-rep-fast-forward-genericity.md)
-  — perf-gated (doom8088 web+CLI within ±1%), recogniser must not
-  read any character of any slot name.
-  - **Phase 1 landed 2026-05-06**: structural recogniser produces
-    descriptors on `Evaluator::loop_descriptors`, 9 unit tests pass,
-    recognises 6 self-loop opcodes on doom8088 under
-    `CALCITE_LOOP_DIAG=1`. Old path still active.
-  - **Phase 2 landed 2026-05-07** as diagnostic-bedded validator (path
-    B of the in-session re-scope). `CALCITE_REP_GENERIC=1` env-var
-    enables a per-tick read-only validator that confirms a descriptor
-    exists for every fired opcode with consistent shape. Also:
-    `state.virtual_regions` populated by recognisers (replaces
-    hardcoded carve-out), memwrite addr/val pairing by assignment-order
-    proximity (replaces name-sort heuristic), `loop_descriptors`
-    mirrored onto `CompiledProgram`, 10 unit tests pass.
-  - **Phase 3a landed 2026-05-07** (recogniser + classification, again
-    diagnostic-bedded). `match_ip_stay_or_advance` extended to
-    multi-branch IP bodies (CMPS/SCAS shape via kiln's `repCondIP`).
-    `BulkClass` enum (`ReadOnly`/`Fill`/`Copy`/`PerIter`) computed
-    structurally at descriptor build time. Validator surfaces
-    flag_conditioned + bulk_class against runtime expectations.
-    On doom8088 the validator now reports 8/8 string opcodes
-    recognised: STOS=Fill, CMPS/SCAS=ReadOnly+flag_conditioned (OK),
-    MOVS=Fill (DRIFT — cabinet uses `--_strSrcByte` intermediate,
-    structurally invisible to pure-shape classifier). 15 unit tests
-    pass.
-  - Pick up at phase 3b: build the descriptor-driven applier behind
-    `CALCITE_REP_GENERIC=1`, replace the hardcoded path, hit ±1%
-    perf gate. Open design question: how to handle the MOVS DRIFT —
-    either trace through intermediate slots at compile time, or fall
-    back to PerIter for shapes the structural classifier can't simplify.
-
-## Model gotchas
-
-- Don't run the player interactively to "check if loaded" — build a
-  measurement tool instead.
-- Don't trust the visible halt opcode — CPU was redirected upstream;
-  trace back.
+- Don't run the player interactively to "check if loaded" — build or
+  use a measurement tool.
+- Don't trust the visible halt opcode — the CPU was redirected
+  upstream; trace back.
 - Test a suspected primitive in isolation before binary-patching
   downstream.
-- A renderer using a "borrow path" (clone extended, scratch state)
-  instead of unified-read makes write ports whose CSS sink doesn't go
-  through `write_mem` invisible.
-- Don't accumulate "defensive" fixes whose root cause you can't
+- A renderer on a "borrow path" (clone extended, scratch state)
+  makes write ports whose CSS sink bypasses `write_mem` invisible.
+- Don't accumulate defensive fixes whose root cause you can't
   reproduce.
-- `tools/fulldiff.mjs` / `compare-dos.mjs` / `ref-dos.mjs` reference a
-  deleted transpiler — use `tests/harness/pipeline.mjs fulldiff`.
-
+- `tools/fulldiff.mjs` / `compare-dos.mjs` / `ref-dos.mjs` reference
+  a deleted transpiler — use `tests/harness/pipeline.mjs fulldiff`.
+- Docs claiming work "landed" may mean *on a branch*, not on `main`.
+  Verify against code/git before trusting a status claim.

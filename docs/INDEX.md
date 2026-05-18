@@ -7,7 +7,7 @@ Start at the top, go as deep as you need.
 | Doc | For |
 |---|---|
 | [`logbook/STATUS.md`](logbook/STATUS.md) | **Always, before any work.** Current state, working carts, sentinel addresses, model gotchas, open work. |
-| [`logbook/LOGBOOK.md`](logbook/LOGBOOK.md) | Chronological work entries. Read when you want history; STATUS is what you actually need. |
+| [`logbook/LOGBOOK.md`](logbook/LOGBOOK.md) | **Tagged index** of work entries (one row each, files in `logbook/entries/`). Scan the index, open the 1–3 relevant entries. STATUS is what you actually need first. |
 | [`architecture.md`](architecture.md) | Tight overview: glossary, pipeline, cardinal rule, memory sketch. |
 | [`cart-format.md`](cart-format.md) | The cart schema. Canonical reference for `program.json`. |
 
@@ -47,9 +47,8 @@ Start at the top, go as deep as you need.
 | [`../tests/harness/README.md`](../tests/harness/README.md) | Correctness harness — smoke, conformance, ref-machine, fulldiff, screenshot, baseline. **Not for perf.** |
 | [`script-primitives.md`](script-primitives.md) | Watch-spec grammar. The DSL bench profiles use to detect stages and react to engine state. |
 | [`perf-iteration.md`](perf-iteration.md) | Perf-iteration tooling: snapshots, CS:IP sampling, op-distribution profiling, calcite worktrees. Read when you're optimising. |
-| [`agent-briefs/doom-perf-mission.md`](agent-briefs/doom-perf-mission.md) | The Doom8088 perf mission: priority leads, success criteria, where the time is going. |
-| [`agent-briefs/2026-05-07-pre-ship-fps-leads.md`](agent-briefs/2026-05-07-pre-ship-fps-leads.md) | Pre-ship FPS push (3→4–5+ FPS): five ranked leads. Top pick: widen `fuse_loadstate_branch` (real fusion hit-rate is 0.8 %, comment claims 96 %). |
 | [`debugging/workflow.md`](debugging/workflow.md) | Standard debugging process: find divergence, diagnose, fix, verify. |
+| [`debugging/known-bugs.md`](debugging/known-bugs.md) | Known + **open** bugs and patterns to watch for. The Doom perf mission framing now lives in `STATUS.md` (release bar + active work); `agent-briefs/` was removed 2026-05-18. |
 | [`debugging/calcite-debugger.md`](debugging/calcite-debugger.md) | HTTP API, endpoints, typical sessions. Points at [Agent-oriented tooling](../../calcite/docs/debugger.md#agent-oriented-tooling) for the MCP surface. |
 | [`debugging/known-bugs.md`](debugging/known-bugs.md) | Known bugs + patterns to watch for. |
 | [`reference/kernel-boot-sequence.md`](reference/kernel-boot-sequence.md) | What EDR-DOS does during boot; what BIOS services it needs. |
@@ -62,8 +61,8 @@ Start at the top, go as deep as you need.
 | Doc | For |
 |---|---|
 | [`logbook/STATUS.md`](logbook/STATUS.md) | Durable handbook (auto-loaded by CLAUDE.md). |
-| [`logbook/LOGBOOK.md`](logbook/LOGBOOK.md) | Chronological entries. |
-| [`logbook/PROTOCOL.md`](logbook/PROTOCOL.md) | How to write logbook entries. |
+| [`logbook/LOGBOOK.md`](logbook/LOGBOOK.md) | Tagged entry index; entries in `logbook/entries/`. |
+| [`logbook/PROTOCOL.md`](logbook/PROTOCOL.md) | The fixed doc structure + how to write/tag entries. |
 | [`../CHANGELOG.md`](../CHANGELOG.md) | Repo-wide changelog. |
 
 ## Plans and archive

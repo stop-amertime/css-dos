@@ -3,6 +3,28 @@
 Bugs that have been found and fixed, plus patterns to watch for. These are
 detailed enough that a future agent hitting a similar bug can recognize it.
 
+## Open bugs
+
+### Input-edge fast-path freeze in the web player (2026-05-08)
+
+**Status:** OPEN. **Repro:** web player only; CLI bench unaffected;
+smoke 7/7 passes (harness doesn't exercise the input path).
+
+**Symptom:** in the browser, Zork shows the first 1–2 keypresses then
+appears frozen until an Enter "snaps" it forward; Doom8088 is black,
+doesn't pass mode-13h init. CPU side is fine (CLI + fast-shoot render
+correctly) — it's web-bridge / rendering / input-edge specific.
+
+**Suspect:** calcite `6d9e80a` (the `apply_input_edges` fast-path
+that recovered the 1.83× throughput). That fix is **branch-only**
+(not on calcite `main` — see STATUS), so whether this bug is live on
+`master` depends on which calcite branch is in use. Verify the repro
+against the current branch before chasing.
+
+Full handover (suspect set, what was tried, investigation order,
+acceptance criteria):
+[`2026-05-08-input-edge-fastpath-bug.md`](2026-05-08-input-edge-fastpath-bug.md).
+
 ## Fixed bugs
 
 ### kiln D0 ROL/ROR missing → libc memcmp returns garbage (2026-04-26)

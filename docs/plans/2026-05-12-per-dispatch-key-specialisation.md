@@ -1,9 +1,12 @@
 # Per-dispatch-key tick-body specialisation
 
-**Status**: phases 1-2 landed 2026-05-12 (discovery diagnostic +
-Expr-level specialiser, gated on `CALCITE_SPECIALISE_DIAG=1`).
-Probe-validated 2026-05-12. Phases 3-6 pending. See LOGBOOK 2026-05-12
-phase-1 / phase-2 entries for the gate results.
+**Status**: phases 1-2 are **BRANCH-ONLY** — they exist on calcite
+`feat/calcite-genericity` (`a89067a`), **not on calcite `main`**
+(`ef44f20`). Verified 2026-05-18: `discover_hot_key` /
+`dispatch_specialise` have zero references on `main`. "Landed" here
+means landed *on that branch*, not in the shippable line. Phases 3-6
+pending. See the `BRANCH`-tagged 2026-05-12 per-dispatch-key entries
+in `../logbook/LOGBOOK.md` for the gate results.
 
 **Headline.** Compile-time partial evaluation of the cabinet's
 assignments against each value of the **hottest dispatch key** (the

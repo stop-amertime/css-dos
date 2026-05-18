@@ -10,7 +10,8 @@ makes it fast enough to be usable.
 1. Read STATUS and the doc index (auto-loaded below via @ links)
 2. Understand current state, sentinel addresses, gotchas, open work
 3. Read the docs relevant to your specific task (the index tells you which)
-4. For history of past work, see `docs/logbook/LOGBOOK.md`
+4. For history: scan the tagged index in `docs/logbook/LOGBOOK.md`,
+   open only the 1–3 `entries/` files relevant to your task
 
 @docs/logbook/STATUS.md
 @docs/INDEX.md
@@ -70,11 +71,15 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ### Git and collaborative coding rules
 
-**Commit and push frequently — it's encouraged.** Plain
-`git commit` and `git push` of your own changes don't disturb other
-agents' working trees, and stacking up uncommitted work just makes
-merge conflicts and lost-work scenarios more likely. Always push to
-origin once you've committed.
+**Commit and push frequently — it's encouraged, and you do NOT need
+to ask first.** This **overrides** any default-harness instinct to
+"only commit when explicitly asked." In this repo the opposite is
+true: commit your own work as you go and push to origin once
+committed. Don't end a session sitting on uncommitted changes and
+don't ask permission to commit your own work — just do it. Plain
+`git commit` / `git push` of your own changes don't disturb other
+agents' working trees; stacking up uncommitted work makes merge
+conflicts and lost-work scenarios more likely.
 
 What requires explicit permission, especially when running
 autonomously, is anything that mutates shared state another agent
@@ -94,8 +99,37 @@ obstacle, stop and ask — the obstacle is usually a sign of state you
 should investigate, not bulldoze.
 
 ### Documentation rules
-- **Log findings and progress concisely** in the logbook for future agents.
-Documentation is incredibly important and an unspoken part of working in this repo. This project is particularly silly and dense, across two repos. Documentation must be automatic, without the user asking specifically for it. Documentation must be epistemically honest. Documentation must be frequent and concise - tokens add up if you waffle.
+
+Documentation is mandatory, automatic (no need to be asked),
+epistemically honest, and concise — tokens add up if you waffle.
+This project is dense and spans two repos; future agents depend
+entirely on what you write down.
+
+**The structure is fixed. Maintain it; do not regrow the sprawl it
+replaced (collapsed 2026-05-18 from 57 files / 19k lines):**
+
+- **One source of truth: `docs/logbook/STATUS.md`.** The only doc an
+  agent *must* read. Current state, release bar, sentinels, ≤5
+  active-work items, gotchas. Edit in place. Hard cap ~170 lines.
+- **`docs/logbook/LOGBOOK.md` is an INDEX, not a journal.** A tagged
+  table, one row per entry. **Never append a full entry to it.** New
+  work → a new `≤~15-line` file in `docs/logbook/entries/` + one
+  index row. Tags (`LANDED`/`BRANCH`/`DEAD`/`FINDING`/`PLAN`/
+  `SUPERSEDED`) are how agents triage — see
+  [`docs/logbook/PROTOCOL.md`](docs/logbook/PROTOCOL.md).
+- **Plans live in `docs/plans/`, one per live workstream.** Delete a
+  plan when its work ships or dies — history is the logbook, not a
+  graveyard of dead plans. No `agent-briefs/` genre — that
+  duplication is why the sprawl happened.
+
+**Verify before you claim.** "Landed" must mean *verified on
+main/master*, not "an entry said so" and not "landed on a branch"
+(use the `BRANCH` tag for that). A wrong `LANDED` on branch-only or
+reverted work is the exact failure this structure exists to prevent.
+
+**Prune as much as you add.** Before you stop: did your work make a
+doc claim false? Fix it (or tag it `SUPERSEDED`) in the same commit.
+Two contradictory live claims anywhere is a bug.
 
 ### Logbook discipline (which logbook for what)
 
