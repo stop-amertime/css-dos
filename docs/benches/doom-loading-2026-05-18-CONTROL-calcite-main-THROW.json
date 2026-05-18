@@ -1,0 +1,5 @@
+{
+  "ok": false,
+  "error": "unknown action \"pseudo_pulse=active,kb-enter,50000\"",
+  "stack": "Error: unknown action \"pseudo_pulse=active,kb-enter,50000\"\n    at ch.port1.onmessage (http://localhost:5173/bench/profiles/doom-loading.mjs:102:19)"
+}

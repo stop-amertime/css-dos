@@ -66,17 +66,41 @@ facts establish this:
 
 **The measured regression that the STATUS narrative attributes to
 "genericity" is a different branch.** The `apply_input_edges`
-per-tick drop (162K→297K t/s when fixed, calcite `a5e8eee`→`6d9e80a`)
-lives on the **keyboard** rework (`feat/keyboard-pseudo-input`),
-which adds an unconditional per-tick `self.apply_input_edges(state)`
-call. `feat/calcite-genericity` does NOT contain it (the
-2026-05-18 hand-partition split the `feat/retire-keyboard` bundle so
-the per-tick keyboard cost stayed on the keyboard branch). The
-`old-kbd` revert (origin `ef44f20`, the `a890e08 default-on BIF2` →
-`ef44f20 hardcode BIF2 OFF` pair) was the *keyboard* stack being
-thrown away for framerate; BIF2 was collateral, hardcoded off on
-`main` to isolate measurement, then correctly re-enabled on the
-clean genericity branch.
+per-tick drop lives on the **keyboard** rework
+(`feat/keyboard-pseudo-input`), which adds an unconditional per-tick
+`self.apply_input_edges(state)` call (confirmed by `git grep`:
+`baf3086` calls it from `tick()`). `feat/calcite-genericity` does
+NOT contain it (the 2026-05-18 hand-partition split kept the per-tick
+keyboard cost on the keyboard branch).
+
+> **162K→297K "already fixed" is NOT verified — and the keyboard
+> branch fails the web bench (measured 2026-05-18).** The
+> `a5e8eee`→`6d9e80a` numbers are untrusted LOGBOOK prose, not
+> re-measured. When I tried to bench `feat/keyboard-pseudo-input`
+> end-to-end (its matched CSS-DOS `feat/retire-keyboard` harness +
+> `doom-loading`), it compiled fine (27.6 s) and the engine ran
+> steadily (~450K cyc/s, ~1 fps, `mode=0x13`) but **never advanced
+> past the Mode-13h title splash in 600 s** — the
+> `pseudo_pulse=active,kb-enter` input never dismissed the title.
+> A control run (same harness, calcite `main`) threw
+> `unknown action "pseudo_pulse=…"` immediately, proving the harness
+> is correctly matched to the keyboard branch (the action only
+> exists there) and the stall is the keyboard branch itself.
+> Conclusion: **the keyboard branch cannot be perf-benched because
+> it does not reach in-game in the web harness — it is functionally
+> stuck at the title screen.** So "the keyboard regression was
+> fixed" is unproven; what *is* proven is the keyboard branch is
+> not web-shippable as-is. JSON:
+> `docs/benches/doom-loading-2026-05-18-keyboard-baf3086-TIMEOUT.json`
+> (ok:false / 600 s timeout),
+> `docs/benches/doom-loading-2026-05-18-CONTROL-calcite-main-THROW.json`
+> (control: unknown-action throw).
+
+The `old-kbd` revert (origin `ef44f20`, the `a890e08 default-on
+BIF2` → `ef44f20 hardcode BIF2 OFF` pair) was the *keyboard* stack
+being thrown away for framerate; BIF2 was collateral, hardcoded off
+on `main` to isolate measurement, then re-enabled on the clean
+genericity branch.
 
 ## The verified table
 
@@ -117,9 +141,11 @@ thrown away over it" — conflates two branches. Corrected:
   the branch to measure, because the replacement path doesn't exist
   yet. Row 4/5 are the only places a future applier would add cost,
   and that cost is **unmeasured because the code isn't written**.
-- The only *measured* genericity-adjacent regression
-  (`apply_input_edges`) is **keyboard-branch**, already fixed there
-  (`6d9e80a`), and **not present on `feat/calcite-genericity`**.
+- The `apply_input_edges` concern is **keyboard-branch**, **not
+  present on `feat/calcite-genericity`**. Whether it was "fixed" on
+  the keyboard branch is *unverified* — and moot for shipping,
+  because that branch doesn't even reach in-game in the web bench
+  (measured 2026-05-18; see the blockquote above).
 
 So the real next step is not "find the regression" — there isn't one
 on this branch. It is: **build the `rep_fast_forward` generic
