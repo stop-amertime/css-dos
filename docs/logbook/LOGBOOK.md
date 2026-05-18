@@ -4,7 +4,474 @@ Chronological work entries. Newest first. The durable handbook
 (current state, sentinels, gotchas, how to test) is in
 [`STATUS.md`](STATUS.md).
 
-Last updated: 2026-05-12
+Last updated: 2026-05-18
+
+## 2026-05-18 — calcite feat/retire-keyboard bundle hand-partitioned into two clean branches
+
+Follow-on to the 2026-05-15 reorg. The parked
+`feat/retire-keyboard` bundle (calcite, tip `a05d85c`, 19 commits
+over `ef44f20`) fused two unrelated concerns the user wanted on
+separate feature branches: the `:active` pseudo-class keyboard
+rework, and the cardinal-rule genericity / perf-diagnostic stack.
+
+**Commit-level split is impossible.** A prior history rewrite
+(rebase/squash) fused both concerns in every commit's tree from
+`866d1b3` onward — the May-6-authored keyboard commit's tree already
+contains `calcite_pc_video` refs introduced by a May-12-authored
+"upkeep" commit. Author dates do not track tree lineage. Cherry-pick
+and rebase splitting both fail. Only a hand-partition (diff final
+tree vs `ef44f20`, classify every file/hunk, build two independent
+patch sets) works. Decisive evidence:
+`git show 866d1b3:crates/calcite-wasm/src/lib.rs | grep calcite_pc_video`
+returns 7 hits; `git show ef44f20:...` returns 0.
+
+**Done (all on calcite, all local — nothing pushed):**
+- `feat/keyboard-pseudo-input` (`baf3086`, off `ef44f20`, 12 files):
+  `:active` pseudo-class input model — `State::pseudo_active`,
+  InputEdge recogniser, per-tick `apply_input_edges`, cli
+  `--press-events`, wasm export, web `press` bridge, the
+  `SetVarPulse`/`Stride{last_fired_at}` watch refactor. Build gate
+  clean; both keyboard tests pass.
+- `feat/calcite-genericity` (`3592bf0`, off `ef44f20`, 30 files):
+  `calcite-pc-video` + `calcite-debug-summary` crates, de-x86
+  comment sweep, `column_drawer_fast_forward` deletion,
+  `State::virtual_regions`, `loop_descriptor`/`dispatch_specialise`/
+  `identity_prune`, `scan_same_key_chain_runs`, BIF2 default-ON,
+  probe bins, calcite log entry. Build gate clean.
+- Method: 38-file diff classified file- then hunk-level; 5 files
+  genuinely cross-cut (`eval.rs`, `compile.rs`, `state.rs`,
+  `calcite-cli/main.rs`, `calcite-wasm/lib.rs`). No hunk truly mixed
+  the concerns except ~3 mechanical 1-line interleaves (the
+  `loop_descriptors` field next to keyboard fields). Whole-file
+  buckets via `git checkout`; partials via per-hunk filtered
+  patches + hand edits. Full file coverage verified (no orphans).
+
+**Build gate (both branches):**
+`cargo build --release -p calcite-core -p calcite-cli -p calcite-wasm`
+— never core-only.
+
+**Pre-existing base debt (NOT mine, NOT fixed here):** `ef44f20`'s
+calcite lib-*test* target already fails to compile —
+`script.rs` defines `WatchKind::Stride{every,last_fired_at}` but
+`script_spec.rs:309` matches `Stride{every}`. The simplification is
+keyboard-era, so `feat/keyboard-pseudo-input` incidentally fixes it
+and `feat/calcite-genericity` (which leaves `script*.rs` at
+`ef44f20`) inherits the broken base test. `cargo build` is green on
+both; only `cargo test` surfaces it on the genericity branch.
+
+**Repo state:** calcite `main` still `ef44f20`;
+`feat/retire-keyboard` (`a05d85c`) retained intact;
+`feat/keyboard-pseudo-input` + `feat/calcite-genericity` new.
+CSS-DOS `master` unchanged. **Nothing pushed** — calcite `main` is a
+history rewrite vs origin, so any push needs `--force` and explicit
+user sign-off (see open question below).
+
+**Open / next:** (1) decide what to do with the intact
+`feat/retire-keyboard` branch now that it's superseded by the two
+split branches (keep as archive, or delete once the splits are
+blessed). (2) Pushing: `main`=`ef44f20` diverged from origin via the
+2026-05-15 history rewrite — pushing it (or deleting old remote
+branches) needs `--force`; flag to user before any push. (3) The two
+split branches have not been bench-validated end-to-end together;
+the keyboard branch needs the CSS-DOS-side `feat/retire-keyboard`
+(`8c54435`) bench/SW/bridge to exercise the new path.
+
+## 2026-05-15 — Branch reorg: calcite main == working keyboard state; retire-keyboard + dependents parked
+
+Cleaned up the calcite/CSS-DOS branch divergence that cost the
+2026-05-14 session hours of confusion.
+
+**Problem.** CSS-DOS master is post-`old-kbd`-merge (old keyboard
+side-channel: `setvar_pulse=keyboard`, SW `?key=`, bridge `'kbd'`).
+Calcite `main` had advanced past that with `a5e8eee`/`866d1b3`
+(retire keyboard side-channel → `:active` pseudo-class input edges)
+plus everything built on top. So CSS-DOS master + calcite main
+didn't work together; the bench needed
+`CALCITE_REPO=...calcite/.claude/worktrees/old-kbd` as a workaround,
+and STATUS (which describes the post-retire path) contradicted the
+shipped code.
+
+**What was done.**
+- Calcite `main` reset to `ef44f20` (the ex-`old-kbd` tip — the
+  keyboard state CSS-DOS master needs). Bench now works on main
+  with no `CALCITE_REPO`.
+- All the work that was on calcite main past `ef44f20` is preserved
+  intact on calcite branch **`feat/retire-keyboard`** (tip
+  `a05d85c`): the retire-keyboard input-edge work, the
+  crate-extraction refactor (`calcite-pc-video` /
+  `calcite-debug-summary`), the rep_fast_forward genericity phases
+  1/2/3a, the dispatch-specialise phases 1/2/3.
+- CSS-DOS un-reverted retire-keyboard harness/SW/bridge work
+  preserved on CSS-DOS branch **`feat/retire-keyboard`** (tip
+  `8c54435`).
+- Redundant `old-kbd` branches + worktrees deleted from BOTH repos
+  (CSS-DOS `old-kbd` was an ancestor of master via `5c4b0ad`;
+  calcite `old-kbd` == new main).
+
+**Attempted and abandoned: cherry-pick disentanglement (option B).**
+Tried to separate the genericity mission (cardinal-rule work, wanted
+on trunk) from the keyboard work (parked) by cherry-picking the
+non-keyboard commits onto the reset main. Landed 5 commits clean
+(rep_fast_forward phases 1/2/3a + probe_bif_predecessor), each
+gated on `cargo build -p calcite-core`. **But that gate was too
+narrow** — `4f3efae` (phase 2) silently removed
+`State::render_framebuffer` / `read_framebuffer_rgba` (the "move
+CGA renderer to calcite-pc-video" half of the genericity mission),
+which broke `calcite-cli`/`calcite-wasm` while `calcite-core` still
+built. The destination crate (`calcite-pc-video`) is only created
+by the later `1dd5151`, whose caller-side rewiring is interleaved
+with the keyboard work in `calcite-wasm`/`calcite-cli`/
+`calcite-debugger`. **Conclusion: genericity → depends on →
+crate-extraction → interleaved with → keyboard. It's one ball.**
+Cherry-pick disentanglement is not viable; separating them means
+redoing the crate-extraction refactor by hand on a keyboard-free
+base (a real task, not a cherry-pick). All cherry-picks fully
+backed out; calcite main is exactly `ef44f20`.
+
+**Lesson for future branch surgery on calcite:** gate every
+cherry-pick / merge with
+`cargo build --release -p calcite-core -p calcite-cli -p calcite-wasm`,
+never `-p calcite-core` alone. The video/render code moving between
+crates means core can build green while the binaries that matter
+for the bench are broken.
+
+**To resume the genericity / perf work:** check out
+`feat/retire-keyboard` on both repos. It's all there, in order,
+building. The keyboard story (forward to `:active` everywhere, or
+stay on the side-channel) has to be decided before that branch can
+merge to trunk — that decision is the actual blocker, not the
+mechanics.
+
+## 2026-05-14 — Item #5 (unchecked slot access) attempt: -30% ticks/sec on web bench, write-off
+
+Implemented item #5 from the seven-item inefficiency list filed earlier
+today (replace bounds-checked slot reads/writes in `execute()`'s
+writeback/broadcast/packed-broadcast loops and the two `read_prop`
+helpers in `rep_fast_forward`/`rep_fast_forward_cmps_scas` with the
+same `get_unchecked` + `debug_assert!` pattern the inner `exec_ops` /
+`exec_ops_with_op_profile` loops already use). The inner loop was
+already unchecked; the wrappers around it were not.
+
+**Result, single web bench run, doom-loading, headed Chrome, calcite
+old-kbd worktree + change applied:**
+
+| metric | this run | 2026-05-08 baseline (3-run median) |
+|---|---:|---:|
+| runMsToInGame    | **119.5 s** | 79.7 s |
+| ticksPerSecAvg   | **290 K**   | 423 K  |
+| ticksToInGame    | 34.6 M      | 34.5 M |
+| compileMs        | 27.3 s      | 27.8 s |
+
+Same number of ticks executed (so the change didn't break correctness;
+the engine reaches in-game at the same point in guest time). But
+ticks/sec dropped ~30%, so wall went up ~50%. **The change made
+things slower.**
+
+Most plausible explanation: the writeback / broadcast loops aren't
+hot enough for `get_unchecked` to matter, and Rust's existing
+bounds-check elimination was probably already removing the checks
+where they'd cost anything. Removing the indices' visibility to the
+optimiser (the `[idx]` form sometimes acts as a "this index is in
+range" hint that lets surrounding code restructure) may have hurt
+codegen. The macro expansion is larger than the original `slots[i]`,
+which can shift inlining decisions in non-obvious ways.
+
+Not chasing this further — one run on a possibly-noisy host doesn't
+prove it's exactly -30%, but it's nowhere near the +small% we
+expected, and the per-tick cost of writeback/broadcast loops is small
+relative to the inner exec loop (which was already unchecked).
+
+**Write-off.** Item #5 is dead. Don't retry without a clear story for
+why the result would differ. The change is left in place on the
+calcite `old-kbd` worktree at
+`C:/Users/AdmT9N0CX01V65438A/Documents/src/calcite/.claude/worktrees/old-kbd`
+for inspection if useful; revert it cleanly with
+`git checkout -- crates/calcite-core/src/compile.rs` from inside that
+worktree before doing real work there.
+
+### Lessons from this session (the harness pitfalls)
+
+The unchecked-slot change itself took ~10 minutes. Getting a number
+took several hours because of bench harness state that bites every
+new agent. Recording so the next agent doesn't repeat:
+
+1. **CSS-DOS master is on the post-old-kbd-merge state.** The bench
+   profiles (`tests/bench/profiles/*.mjs`) use
+   `setvar_pulse=keyboard,${ENTER},${TAP_HOLD}` — the **old** keyboard
+   side-channel. The SW (`web/site/sw.js`) handles `/_kbd?key=0xHHHH`
+   forwarded as `{type:'kbd', key}` over the bridge port. The bridge
+   (`web/shim/calcite-bridge.js`) has the old `keyQueue`/hold-batches
+   drainer. **This is the correct state on master.** Do NOT
+   "modernise" these to `pseudo_pulse=active,kb-X` / `?class=kb-X` /
+   `{type:'press'}` — STATUS describes the post-retire path but
+   master is pre-retire. STATUS lies. The reverts at commits
+   `915acc3`, `48767d2`, `80f4974` and the merge `5c4b0ad` are the
+   ground truth.
+
+2. **Calcite `main` IS the working state — NO `CALCITE_REPO` needed
+   anymore.** Resolved 2026-05-14/15: calcite `main` was reset to
+   `ef44f20` (the ex-`old-kbd` tip — the keyboard-side-channel state
+   CSS-DOS master needs). The retire-keyboard work + everything
+   built on top of it (the crate-extraction refactor, the
+   rep_fast_forward genericity phases, the dispatch-specialise
+   phases) is parked intact on calcite branch
+   **`feat/retire-keyboard`** (tip `a05d85c`). The redundant
+   `old-kbd` branches + worktrees were deleted from BOTH repos. So:
+
+   ```
+   # Just works — calcite main == the old keyboard side-channel state
+   node web/scripts/dev.mjs
+   node tests/bench/driver/run.mjs doom-loading --headed
+   ```
+
+   If you ever see Doom stall at the title screen, FIRST check
+   `cd ../calcite && git rev-parse main` is `ef44f20`. If someone
+   advanced calcite main past that with retire-keyboard work, the
+   bench breaks again (engine no longer speaks
+   `setvar_pulse=keyboard`).
+
+3. **The bench driver doesn't echo the page log.** The bench page
+   logs detailed status to a DOM `<div id="log">` but only
+   `console.error` is piped to stderr by the driver. So if the bench
+   stalls, the operator sees nothing for 10 minutes. I added DOM-log
+   scraping during this session — it's reverted now, but if you find
+   yourself debugging a stalled bench, re-add it. It's the most
+   useful 15 lines of code you can write.
+
+4. **The `[page-error] Failed to load resource: 404` line is
+   benign.** It's a console.error from inside the page (likely
+   favicon or similar) and it shows on every run, baseline or not.
+   Don't waste time on it.
+
+5. **CALCITE_REPO is honoured by the dev server, the bench driver,
+   the harness, and the fast-shoot path** (per CLAUDE.md). One env
+   var, multiple consumers. Set it once and forget.
+
+### Handoff to the agent picking up item #2
+
+Item #2 from the inefficiency list: **hoist dispatch-invariant prep
+ops between dispatches**.
+
+What it means: the cabinet emits ~50 `Op::Dispatch` (or
+`DispatchChain`) ops per tick, all keyed on the same hot slot
+(`--opcode`). Between dispatches the op stream interleaves
+`LoadState`, arithmetic, function-call inlining, etc. — the
+"prep work" that computes inputs for the next dispatched property.
+Some of that prep computes values that don't depend on `--opcode`.
+Those are tick-invariant for the duration of the tick (or even
+loop-invariant across ticks, but tick-scope is enough).
+
+The optimisation: identify ops whose inputs are all reads of slots
+that aren't written between the previous dispatch and the next, and
+that aren't downstream of any `--opcode`-dispatched value. Move them
+out of the per-dispatch stream entirely — hoist once to the top of
+the tick body, or eliminate as common subexpressions.
+
+This is standard compiler stuff: loop-invariant code motion + common
+subexpression elimination, scoped to the per-tick op stream. The
+calcite passes that already exist do some of this for the broadcast
+paths but not for the main op stream.
+
+**Where to look first:**
+
+- `crates/calcite-core/src/compile.rs` — the `compile()` entry,
+  ~line 3187. After the main compile loop produces the op stream,
+  the post-Compiler passes run: `inline_calls`, `compact_slots`,
+  fusion passes, `build_dispatch_chains`, `recognise_replicated_bodies`.
+  A new pass `hoist_dispatch_invariant` would slot in here.
+- `crates/calcite-core/src/pattern/dispatch_specialise.rs` — the
+  Expr-level partial evaluator. It already classifies which
+  assignments dispatch on `--opcode` vs which don't. Useful as a
+  reference for "which slots are dispatch-dependent."
+- `crates/calcite-core/src/pattern/op_profile.rs` — op-adjacency
+  profiler. If you want to see what ops sit between dispatches on
+  doom8088 before writing the pass, run with op-profile enabled
+  and grep the output.
+
+**Architectural shape (write a one-page data model before coding,
+per the user's rule):**
+
+- What is a "dispatch group"? Contiguous run of ops between two
+  `Op::Dispatch`/`DispatchChain` ops keyed on the same hot slot.
+- What does it mean for an op in that run to be "dispatch-invariant"?
+  - Its inputs are all reads from slots that aren't written by any
+    op in the prep group BEFORE it, AND
+  - None of those input slots are downstream (transitively) of the
+    hot key's slot.
+- What's the hoist target? A "prelude block" at the top of the tick
+  body, before the first dispatch. Hoisted ops execute once per tick
+  instead of once per inter-dispatch gap.
+- What's the slot story? Hoisted ops write to the same destination
+  slot they originally wrote to. Subsequent reads in the original
+  position resolve through the slot, so no rewrites needed
+  downstream — slot is just "already initialised" by the time the
+  inner reads happen.
+
+**Hard part to think about before coding:** loop-carried dependencies.
+If the prep op reads a slot that an *earlier* dispatch wrote to,
+it's not invariant — it depends on what the earlier dispatch did,
+which depends on the opcode value of the earlier dispatch. The
+analysis needs to handle this. Specifically: an op is hoistable iff
+every transitive input slot is either (a) a state-var read
+(`Op::LoadState`), (b) a literal, or (c) the output of another
+hoistable op. No transitive dependency on any dispatch's output.
+
+**Pass gate (per the user's rule: pick one optimisation, do it
+properly, measure once):**
+
+1. Bit-equivalence: `pipeline.mjs fulldiff doom8088.css --ticks=5M`
+   shows zero divergence vs unhoisted run.
+2. Smoke 7/7 PASS.
+3. Single web bench run on a quiet host (no other Chromes, no
+   parallel Claude tools doing work). Report the number to the user
+   honestly. The user decides.
+
+**Setup for the bench run** (don't get bitten by the harness state
+from the lessons above):
+
+```sh
+# 1. Stop any running dev server. If there's a background task in
+#    this session, TaskStop it.
+# 2. Confirm calcite main is the working state:
+cd ../calcite && git rev-parse main   # MUST be ef44f20...
+# 3. Apply your change directly on calcite main:
+# (edit crates/calcite-core/src/compile.rs)
+# Build the BENCH-CRITICAL crates, not just -p calcite-core. A
+# core-only build passed while cli/wasm were broken during the
+# 2026-05-14 cherry-pick attempt and hid a regression for an hour:
+cargo build --release -p calcite-core -p calcite-cli -p calcite-wasm
+# 4. Start dev server (no CALCITE_REPO needed — main is correct):
+cd ../CSS-DOS
+node web/scripts/dev.mjs &
+# 5. Wait for "web dev server: http://localhost:5173/" in its output
+# 6. Reset to force WASM rebuild:
+curl -X POST http://localhost:5173/_reset
+# 7. Run the bench:
+node tests/bench/driver/run.mjs doom-loading --headed
+```
+
+If the number is a win, log it and stop. If it's not, log it and
+stop. **Don't run multiple variants chasing a target. One change,
+one number, user decides.**
+
+If you find yourself wanting to "just measure something quickly" —
+re-read the directive at the top of this entry (2026-05-14, the
+First-principles section). The previous agent's failure mode was
+exactly this. Measurement was used to defer thinking, not to validate
+a design.
+
+## 2026-05-14 — First-principles re-framing of where the calcite ceiling lives, and a directive for the next agent
+
+User-led re-grounding session after reading the 2026-05-12 per-dispatch-key
+specialisation handoff with a critical eye. The handoff described three
+failed attempts (parallel pipeline, peephole merge, fresh-Compiler bodies)
+and recommended a multi-day refactor of five post-Compiler passes. The
+session re-examined what calcite is actually doing and where the real
+headroom lives.
+
+**The ceiling.** Calcite's job is to make CSS evaluate fast while
+producing the same answers Chrome would. The cardinal rule constrains
+the method (derive speedups from CSS shape, no upstream knowledge), not
+the destination. In the limit, a sufficiently smart calcite compiles
+CSS to native code that does what a hand-written 8086 emulator does —
+~1B ticks/sec on a modern desktop CPU. Calcite today does ~400 K
+ticks/sec on the web bench. **Headroom is ~2500×, not the ~250× I
+quoted earlier in the session.** The cardinal rule makes the climb
+harder (calcite has to rediscover structure from CSS shape under a
+load-time compile budget) but does not lower the ceiling.
+
+**Why calcite is slow vs the ceiling.** Seven specific inefficiencies
+identified, ranked by how upstream-shaped they are (i.e. lower the
+per-tick floor for every cabinet, every routine, every workload):
+
+1. ~50 HashMap dispatch probes per tick on the same key (`--opcode`)
+   where a real 8086 does one. *Upstream.*
+2. Prep work between dispatches recomputes things that don't depend
+   on the dispatch key. *Upstream.*
+3. Inside each dispatch case, nested branches still get walked
+   instead of folded against the outer binding. *Upstream.*
+4. The op stream is interpreted, not compiled to machine code.
+   Every op pays a `match`-tag dispatch cost. *Most upstream of all
+   — a multiplier on every other optimisation.*
+5. Slot reads/writes go through bounds-checked `Vec<i64>` indexing.
+   *Small but real.*
+6. Write-port machinery is more general than the 8086 needs.
+   *Wide blast radius, modest savings.*
+7. 12 473 slots / 280 K ops for ~50 semantic ops per tick. *Falls
+   out of fixing 1/3, not a standalone lever.*
+
+Items 1-3 are what per-dispatch-key specialisation is trying to do.
+Item 4 (JIT to native) is the biggest single ceiling-lifter on the
+list, and a different category of project entirely.
+
+**Effort ranking (10 = quickest, 1 = most work):**
+
+| # | Inefficiency                              | Effort |
+|---|-------------------------------------------|-------:|
+| 5 | Bounds-checked slot access → unchecked    |     10 |
+| 2 | Hoist dispatch-invariant prep ops         |      7 |
+| 3 | Fold inner branches inside dispatch cases |      7 |
+| 1 | Collapse 50 same-key dispatches into 1    |      5 |
+| 6 | Write-port simplification                 |      3 |
+| 7 | Slot/op bloat (consequence of 1/3)        |      3 |
+| 4 | JIT to native code                        |      1 |
+
+**On the routine-substitution plan (`__I4D`, 46 % of doomLoad cycles).**
+User correctly flagged the instinct that whole-routine substitution
+feels "too downstream." It is. `__I4D` being 46 % of cycles isn't a
+fact about division; it's a fact about per-guest-instruction overhead
+being so high that any routine running for 210 guest ticks dominates.
+Killing `__I4D` is whack-a-mole — next profile shows the second-hottest
+routine at 30 % of what's left. Lowering the per-tick floor (items
+1-4 above) kills `__I4D`'s 46 % as a side effect and pays out on every
+cabinet, every routine. Routine substitution is tactical; the upstream
+items are structural. They're not mutually exclusive but the upstream
+items deserve attention first.
+
+**On the previous agent's working pattern (recorded so future agents
+don't repeat).** The previous agent built three architectural shapes
+without first sitting with the data model. Each attempt failed for a
+different reason; the agent reframed each failure as motivation for
+the next clever shape, culminating in a multi-day refactor proposal.
+The cheaper path the agent never tried: share the main `Compiler`
+instance with body compilation so `dispatch_tables` and
+`compiled_functions` indices match. That's hours, not days. The
+handoff dressed motivated reasoning ("≥2× probability ~25 %") as
+calibration. There was no model under the numbers. Measurement was
+being used to defer thinking, not to validate a design.
+
+**Directive for the agent that picks this up next.**
+
+Pick one item from the table above and implement it. Recommended: a
+mid-table item where the work is defined and the impact is real (item
+2, 3, or 1 — pick what your taste tells you is the cleanest win).
+
+Rules of engagement, set explicitly by the user:
+
+- **No bullshit, no flailing, no "this is different to what I
+  expected" mid-stream pivots.**
+- **No shortcuts.** If you take a shortcut you may be ruining the
+  entire optimisation and it will not be tried again. If you
+  implement something poorly you may be ruining the entire
+  optimisation and it will never be tried again.
+- **No measurement-as-procrastination.** Don't run wedges. Don't
+  diagnose. Don't profile. Sit with the data model, write the code,
+  do it properly.
+- **No bugging the user for decisions.** You have one chance.
+  Implement the entire thing to a high standard.
+- **At the end, run the web benchmark once.** No "gate." No
+  pass/fail framing. Just report the number honestly to the user.
+- **The user decides what to do with the number.** Don't pre-spin
+  the result, don't pre-justify a follow-up. The user will steer.
+- **Then write up the entry in the logbook.** Honestly. Whether
+  the change helped, didn't help, or made things worse. That's the
+  data the project needs.
+
+If you find yourself wanting to deviate from any of the above mid-task,
+stop and re-read this entry. The user has explicitly chosen these
+rules because the previous agent's failure mode was making one-way-door
+architectural decisions silently and then dressing up the recovery as
+analysis.
 
 ## 2026-05-12 — Per-dispatch-key specialisation phase 3 wedge: compile-only verify-mode diagnostic
 
