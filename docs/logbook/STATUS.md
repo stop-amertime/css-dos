@@ -120,10 +120,16 @@ with any kiln/builder change that moves data).
   sidesteps. Files: `bios/corduroy/{entry,handlers,bios_init}.{asm,c}`.
 - **Memory packing pack=2 vs pack=1.** Native probe converges
   ≥500 K ticks; pack=2 slightly faster. Browser verification pending.
-- **Bench harness web target** — driver runs end-to-end on CLI; web
-  bridge tickloop doesn't progress after `bench-run`. Likely
-  SW + viewer-port plumbing the bench page bypasses. Once fixed, the
-  legacy `tests/harness/bench-doom-stages*.mjs` scripts retire.
+- **Bench harness web target — FIXED 2026-05-19.** Root cause was
+  *not* SW/viewer-port plumbing. Two bugs: (1) calcite
+  `WatchKind::Stride` reverted to modulo by `baf3086` broke the
+  wasm poll cadence (fixed calcite `2618249`); (2)
+  `web/shim/calcite-bridge.js` `bench-run` called `engine.reset()`
+  after watches were registered, and `calcite-wasm` `reset()` drops
+  the watch registry (fixed via `startRunning(preserveWatches)`).
+  Web `doom-loading` now reaches in-game (`ok:true`,
+  ticksToInGame≈34.29M). See LOGBOOK 2026-05-19. The legacy
+  `tests/harness/bench-doom-stages*.mjs` scripts can now retire.
 - **Keyboard input via `:active` — done.** Cabinet CSS emits
   `.cpu { &:has(#kb-X:active) { --keyboard:N } }` per key. Calcite
   parses these into `InputEdge`s and applies them pre-tick from

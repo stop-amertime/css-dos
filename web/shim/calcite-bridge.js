@@ -210,8 +210,17 @@ async function compileCabinetBytes(arrayBuffer) {
 
 // Reset engine state to power-on, start the tick loop, mark the bridge
 // as actively running. Idempotent — calling twice is harmless.
-function startRunning() {
-  resetMachine();
+//
+// `preserveWatches`: when true, skip the engine.reset() inside
+// resetMachine(). engine.reset() drops every registered watch (see
+// calcite-wasm reset()), so the bench path — which registers watches
+// BEFORE starting — must not reset, or the watch registry is empty
+// and run_batch_watched degrades to run_batch_silent (no stage
+// detection, run never halts). The engine is already at power-on
+// immediately post-compile (new_from_bytes; nothing has ticked), so
+// for the bench entry the reset is redundant anyway.
+function startRunning(preserveWatches = false) {
+  resetMachine(preserveWatches);
   if (engine) {
     running = true;
     tickLoop();
@@ -224,9 +233,12 @@ function startRunning() {
 // connection — the engine is already compiled, so this only resets
 // runtime state via engine.reset(). Cheap. The CPU restarts at the
 // reset vector; BIOS splash plays; boot proceeds.
-function resetMachine() {
+function resetMachine(preserveWatches = false) {
   if (!engine) return;
-  engine.reset();
+  // engine.reset() also clears the watch registry. The bench path
+  // registers watches before starting and must keep them, so skip the
+  // reset there (engine is already pristine post-compile).
+  if (!preserveWatches) engine.reset();
   // Reset pacing so the adapter relearns for the new run.
   batchCount = MIN_BATCH;
   batchMsEma = TARGET_MS;
@@ -704,13 +716,14 @@ self.onmessage = (ev) => {
   }
   if (d.type === 'bench-run' && engine) {
     // Bench-mode entry: skip the viewer-connected dance (no /_stream/fb
-    // is being fetched by the bench page). Reset the engine to its
-    // initial state (matching what viewer-connected would do via
-    // startRunning's first call) and start the tick loop. Caller
-    // typically registers watches first; the watch-driven loop runs
-    // until a halt action fires.
-    try { engine.reset(); } catch {}
-    startRunning();
+    // is being fetched by the bench page). The caller registered its
+    // watches first; engine.reset() would wipe them (calcite-wasm
+    // reset() drops the watch registry), leaving run_batch_watched with
+    // an empty registry → it degrades to run_batch_silent, no stage is
+    // ever detected, and the run never halts. The engine is already at
+    // power-on right after compile (new_from_bytes; nothing ticked), so
+    // start WITHOUT resetting and keep the watches.
+    startRunning(/* preserveWatches */ true);
     return;
   }
   if (d.type === 'bench-stop') {

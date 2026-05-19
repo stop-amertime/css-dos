@@ -4,7 +4,60 @@ Chronological work entries. Newest first. The durable handbook
 (current state, sentinels, gotchas, how to test) is in
 [`STATUS.md`](STATUS.md).
 
-Last updated: 2026-05-07
+Last updated: 2026-05-19
+
+## 2026-05-19 — keyboard branch "stuck at title" was two infra bugs, not the keyboard
+
+User report: the keyboard branch (calcite `feat/keyboard-pseudo-input`
++ CSS-DOS `feat/retire-keyboard`) doesn't get Doom8088 past the
+Mode-13h title on the web bench. A prior handoff doc claimed the
+keyboard itself was broken. **Both were wrong.** The
+`:has(#kb-X:active)` → input-edge → pre-tick `apply_input_edges`
+model is sound: a clean CLI `doom-loading` run reaches in-game at
+tick **34,650,000** — exact parity with the 2026-05-02
+`setvar_pulse` baseline. Earlier "stuck" reproductions were
+self-inflicted (orphaned multi-GB `calcite-cli` background
+processes starving every run so it couldn't finish inside its
+timeout — kill them, one clean run reaches in-game).
+
+Two real, independent infra bugs made the **web bench** look stuck:
+
+1. **calcite stride regression** (fixed calcite `2618249`,
+   logged `../calcite/docs/log.md` 2026-05-19). `baf3086` reverted
+   `WatchKind::Stride` to `tick % every == 0`. CLI cursor is always
+   `every`-aligned (immune); the wasm `run_batch_watched` polls at
+   unaligned `frame_counter+chunk` ticks → the `poll` stride never
+   fires → every `gate=poll` cond watch (title/menu/loading/ingame
+   in `tests/bench/profiles/doom-loading.mjs`) starves. Engine ran
+   fine (1B+ cycles, mode 0x13) but no stage ever fired.
+
+2. **bridge bench-run watch-wipe** (this commit,
+   `web/shim/calcite-bridge.js`). The `bench-run` handler called
+   `engine.reset()` *after* the profile registered its 9 watches.
+   `calcite-wasm` `reset()` deliberately drops the watch registry
+   ("hosts re-register after reset()"). So `run_batch_watched` saw
+   an empty registry and degraded to `run_batch_silent` — zero
+   stage detection, run never halts. Fix: `bench-run` now starts
+   via `startRunning(preserveWatches=true)`, which threads a flag
+   into `resetMachine()` to skip the `engine.reset()`. The engine
+   is already at power-on right after compile (`new_from_bytes`,
+   nothing ticked), so the reset was redundant *and* harmful for
+   the bench path. Player path (`viewer-connected`) is unchanged —
+   it still resets (no watches, correct).
+
+**Verification.** Post-fix the web `doom-loading` bench reaches
+in-game: `ok:true`, `ticksToInGame=34,294,512`,
+`runMsToInGame≈112.6s`, all six stages fire (text_drdos 0.4M,
+text_doom 1.5M, title 3.9M, menu 4.1M, loading 4.7M, ingame
+34.3M). Matches CLI (ingame 34.65M). Visually confirmed too: the
+real player (`/player/calcite.html`) renders DOOM and the on-screen
+keyboard dismisses the title into the main menu.
+
+Closes the STATUS "Bench harness web target — bridge tickloop
+doesn't progress after bench-run" open item (root cause was the
+watch-wipe above, not SW/viewer-port plumbing as guessed).
+`docs/logbook/NEXT-AGENT-DOOM-MENU.md` is stale (predates the
+working state) — superseded by this entry.
 
 ## 2026-05-07 — `apply_input_edges` regression fixed (recovered 1.83×); BIF2 fusion default-on
 
