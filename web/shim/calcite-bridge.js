@@ -219,12 +219,27 @@ async function compileCabinetBytes(arrayBuffer) {
 // detection, run never halts). The engine is already at power-on
 // immediately post-compile (new_from_bytes; nothing has ticked), so
 // for the bench entry the reset is redundant anyway.
+// Idempotent (master protocol): the iframe player's /_stream/fb
+// viewer-connected and the profile's bench-run can both call this.
+// Whichever is first does the reset+start; the second is a no-op
+// (running-guard) so it can't double-reset and wipe watches the
+// profile registered after `running-started`. After a real start we
+// broadcast `running-started` on cssdos-bridge-stats — the master
+// bench page waits for that before registering watches, guaranteeing
+// the (single) reset already happened.
 function startRunning(preserveWatches = false) {
+  if (running) {
+    postStatus('startRunning called while already running — no-op');
+    return;
+  }
   resetMachine(preserveWatches);
   if (engine) {
     running = true;
     tickLoop();
     startFrameSampler();
+    try {
+      if (benchChannel) benchChannel.postMessage({ type: 'running-started' });
+    } catch {}
   }
 }
 

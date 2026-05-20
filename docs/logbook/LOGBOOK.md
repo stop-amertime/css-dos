@@ -6,6 +6,51 @@ Chronological work entries. Newest first. The durable handbook
 
 Last updated: 2026-05-19
 
+## 2026-05-19 — apples-to-apples doom-all on keyboard branch: ~1.8× throughput regression
+
+Ported master's iframe bench harness onto `feat/retire-keyboard` so
+doom-all runs with the full render pipeline (`<iframe
+src=/player/calcite.html>` + `<img src=/_stream/fb>`), matching the
+methodology of the 2026-05-08 baseline JSONs. Required:
+
+- `tests/bench/page/index.html` — replaced with master's iframe
+  version (side-by-side iframe + log).
+- `web/shim/calcite-bridge.js` — `startRunning` now broadcasts
+  `running-started` on `cssdos-bridge-stats` and is idempotent
+  (running-guard). Master's page waits for `running-started` before
+  registering watches, so the iframe's `viewer-connected` →
+  `engine.reset()` happens FIRST and can't wipe watches the profile
+  registers later. The earlier `preserveWatches` param is kept for
+  the standalone bench-run path but is now unused on the iframe path.
+- `tests/bench/profiles/doom-all.mjs` — ported from master + adapted
+  to this branch's pseudo-class input model (`pseudo_pulse=active,
+  kb-enter`/`kb-left` instead of `setvar_pulse=keyboard,V`).
+
+Clean idle-host run (dev server only, no Chrome/calcite contention),
+archived at `docs/benches/doom-all-2026-05-19-keyboard-branch-
+coupled-run1.json`:
+
+| Metric            | this run        | 2026-05-08 baseline (master, old-kbd) |
+|-------------------|-----------------|---------------------------------------|
+| runMsToInGame     | **135.4 s**     | 76.6 / 77.1 / 77.5 s                  |
+| ticksToInGame     | 34,299,278      | 34.19M–34.54M  ← matches              |
+| doomLoad          | **122.6 s**     | 65.5 / 64.8 / 66.9 s                  |
+| ingameFps         | **0.30**        | 2.15 / 1.70 / 1.85                    |
+| framesChanged/20s | 6               | 43 / 34 / 37                          |
+| ticksPerSecAvg    | 238,463         | —                                     |
+
+**ticksToInGame is identical (engine executes same instructions);
+wall-time is ~1.76× slower with the regression concentrated in
+`doomLoad` (~1.86×) + in-game FPS (~6×).** Not a contention artifact
+— same harness as baseline, clean host, identical tick counts. The
+stride + bench-run fixes are correctness fixes (they let the bench
+*reach* in-game and measure); the throughput regression is in the
+`baf3086` keyboard-branch base, which sits on `ef44f20` (BIF2
+fusion hardcoded OFF) and was split from the genericity bundle —
+plausibly missing the 2026-05-07 `apply_input_edges` recovery that
+landed on master. Not investigated further this session; flagged as
+open work.
+
 ## 2026-05-19 — keyboard branch "stuck at title" was two infra bugs, not the keyboard
 
 User report: the keyboard branch (calcite `feat/keyboard-pseudo-input`
