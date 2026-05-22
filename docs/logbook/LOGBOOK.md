@@ -4,7 +4,68 @@ Chronological work entries. Newest first. The durable handbook
 (current state, sentinels, gotchas, how to test) is in
 [`STATUS.md`](STATUS.md).
 
-Last updated: 2026-05-19
+Last updated: 2026-05-22
+
+## 2026-05-22 — keyboard-branch 1.8× regression fixed (apply_input_edges call-frame overhead)
+
+Root-caused and fixed the throughput regression flagged 2026-05-19 on
+`feat/retire-keyboard`. Calcite-side fix landed as
+[`763d6cd`](https://github.com/stop-amertime/calcite). The previous
+agent's hypothesis ("plausibly missing the 2026-05-07 apply_input_edges
+recovery") was directionally right — the cost was in apply_input_edges
+— but specifically wrong about where: the body already had the
+three-layer fast-out from `6d9e80a` (re-implemented in `baf3086`),
+which my bisect confirmed runs in ~5 wasm ops on the empty-edge
+fast path. The actual problem was the **function-call frame itself**:
+the body is too large for LLVM's default inliner heuristic, so
+`tick_no_diff` paid a real wasm call (~50 ops including arg passing,
+field-load setup, prologue/epilogue) on every tick even when the
+function would early-return.
+
+Bisect path:
+- Replaced `apply_input_edges` body with `return;` at the top.
+  Boot wall **did not recover** (13.7s, same as no-patch).
+- Replaced the **call site** `self.apply_input_edges(state);` in
+  `tick_no_diff` with no-op. Boot wall recovered to **9.5s** (vs
+  master baseline 8.9s). Conclusion: cost is in the call, not the
+  body.
+- Restored the call but guarded it with a tiny `#[inline(always)]`
+  gate `needs_input_edge_apply(&self, &State) -> bool` checking
+  `input_edge_bindings.is_empty()` and the layer-3 short-circuit
+  condition. The gate inlines into the four tick paths, so the
+  function frame is only constructed when the slow path actually
+  needs to run.
+
+Web `doom-demo` bench (input-free; boots, idles at title, no keys
+pressed — same hot tick path as `doomLoad` was hitting):
+
+| Metric                | master  | kbd pre-fix | kbd post-fix |
+|-----------------------|--------:|------------:|-------------:|
+| text_drdos wallMs     | 1059    | 2100        | **1042**     |
+| text_doom wallMs      | 3677    | 5825        | **3681**     |
+| title wallMs          | 8925    | 13737       | **8969**     |
+| ticks/sec (mode 0x3)  | ~420 K  | ~240 K      | **~420 K**   |
+
+Within 0.5% of master at every stage. Per-tick throughput recovered
+fully. The 1.86× `doomLoad` and 6× ingame-FPS regressions reported
+2026-05-19 should likewise resolve (same hot path), pending a full
+`doom-all` re-bench.
+
+**New profile: `tests/bench/profiles/doom-demo.mjs`.** Input-free.
+Boots the cabinet, waits at title for the demo to auto-start
+(gamestate flips to 0 without `_g_usergame=1`), then measures FPS
+over a 20s window. Useful for diagnosing per-tick regressions
+*without* the keypress-edge-detector confounders the existing
+`doom-loading`/`doom-all` profiles have.
+
+Process notes:
+- The Stride fix from `2618249` and the watch-wipe fix from
+  `e9c2625` (CSS-DOS) are still needed — those let the web bench
+  *reach* in-game, separate from the per-tick perf fix.
+- Original 2026-05-07 `apply_input_edges` recovery did the right
+  thing on master (CLI-side, where wasm-specific call-frame costs
+  don't apply). The keyboard branch hit the same shape in wasm
+  where the same Rust source produces a slower compiled artifact.
 
 ## 2026-05-19 — apples-to-apples doom-all on keyboard branch: ~1.8× throughput regression
 

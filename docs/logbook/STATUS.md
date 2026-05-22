@@ -95,16 +95,16 @@ with any kiln/builder change that moves data).
 
 ## Open work
 
-- **Keyboard branch ~1.8× throughput regression vs 2026-05-08
-  master baseline.** Measured 2026-05-19 with the coupled iframe
-  harness (apples-to-apples). runMsToInGame 135.4 s vs ~77 s baseline;
-  doomLoad 122.6 s vs ~66 s; ingameFps 0.30 vs ~1.9. ticksToInGame
-  identical → same instructions, slower per tick. The `baf3086` base
-  is `ef44f20` (BIF2 OFF) split from the genericity bundle, plausibly
-  missing master's 2026-05-07 `apply_input_edges` recovery — not
-  investigated further. Evidence:
-  `docs/benches/doom-all-2026-05-19-keyboard-branch-coupled-run1.json`.
-  See LOGBOOK 2026-05-19.
+- ~~**Keyboard branch ~1.8× throughput regression vs 2026-05-08
+  master baseline.**~~ Fixed 2026-05-22 (calcite `763d6cd`). Cause was
+  function-call-frame overhead on `apply_input_edges` — its body has
+  the right fast-outs (re-implemented from `6d9e80a` in `baf3086`)
+  but is too large to inline, so every tick paid a real wasm call
+  frame. Fix: tiny `#[inline(always)]` gate (`needs_input_edge_apply`)
+  at every tick-path call site. Boot wall on doom-demo: 13.7s → 9.0s
+  (within 0.5% of master 8.9s). Per-tick throughput recovered to
+  ~420K ticks/sec. Full `doom-all` re-bench pending. See LOGBOOK
+  2026-05-22.
 - **Pre-ship Doom8088 FPS push.** Brief in
   [`docs/agent-briefs/2026-05-07-pre-ship-fps-leads.md`](../agent-briefs/2026-05-07-pre-ship-fps-leads.md).
   **2026-05-07: doom-loading wall now 161 s (was 242 s pre-fix).**
