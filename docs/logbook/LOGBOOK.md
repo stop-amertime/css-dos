@@ -46,10 +46,46 @@ pressed — same hot tick path as `doomLoad` was hitting):
 | title wallMs          | 8925    | 13737       | **8969**     |
 | ticks/sec (mode 0x3)  | ~420 K  | ~240 K      | **~420 K**   |
 
-Within 0.5% of master at every stage. Per-tick throughput recovered
-fully. The 1.86× `doomLoad` and 6× ingame-FPS regressions reported
-2026-05-19 should likewise resolve (same hot path), pending a full
-`doom-all` re-bench.
+Within 0.5% of master at every stage on doom-demo. Per-tick throughput
+recovered fully on the boot path.
+
+**Important caveat: doom-all does NOT fully recover.** Re-benched same
+session post-fix:
+
+| Phase           | master 2026-05-08 | kbd pre-fix | kbd post-fix |
+|-----------------|------------------:|------------:|-------------:|
+| dosBoot         |  9.0 s            | ~14 s       |  11.6 s      |
+| doomTitle       |  0.5 s            | —           |   1.05 s     |
+| doomMenuDelay   |  2.6 s            | —           |   2.68 s     |
+| **doomLoad**    | **70.0 s**        | 122.6 s     | **119.4 s**  |
+| **runMsToInGame** | **77.1 s**      | 135.4 s     | **134.7 s**  |
+| ingameFps       |  ~1.9             | 0.30        | 0.65         |
+
+Boot path recovered. doomLoad is still 1.71× slower than master and
+the fix barely moved it (-3.2s out of 122s). During doomLoad no pulse
+watches fire (their conds — title/menu/gamestate=0 — don't hold), so
+the inline gate short-circuits every tick and `apply_input_edges`
+body never runs. The 50-second residual gap is **not in
+apply_input_edges**.
+
+Open question for the next agent: per-tick rate during doomLoad is
+~240K t/s vs master's ~446K t/s (loading 4.69M tick → 33.1M tick over
+115s wall = 247K t/s; master baseline 29M ticks / 65s = 446K). Same
+cabinet, same x86 work (ticksToInGame matches across branches),
+compile.rs unchanged, apply_input_edges short-circuited. Whatever's
+costing 1.78× per tick during loading is in some other code path
+the keyboard branch touched. Candidates not yet ruled out:
+- struct-layout-induced cache effects (State + Evaluator both
+  larger by ~50 bytes — small but could land hot fields on
+  different cache lines)
+- LLVM codegen differences from the new struct fields / functions
+  changing inliner decisions on UNRELATED hot paths
+- Something in `script_eval::poll` (called 1× per chunk, ~30
+  Hz) that the script.rs `PendingReleaseKind` enum split added cost
+  to even when no pulses are active
+
+ingameFps doubled (0.30 → 0.65) and framesChanged/20s went 6→13 —
+not the steady-state 1.7–2.15 master gets but a real movement.
 
 **New profile: `tests/bench/profiles/doom-demo.mjs`.** Input-free.
 Boots the cabinet, waits at title for the demo to auto-start
