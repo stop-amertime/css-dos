@@ -4,7 +4,58 @@ Chronological work entries. Newest first. The durable handbook
 (current state, sentinels, gotchas, how to test) is in
 [`STATUS.md`](STATUS.md).
 
-Last updated: 2026-05-22
+Last updated: 2026-05-26
+
+## 2026-05-26 — keyboard-branch regression: doomLoad residual fixed (apply_input_edges iteration + gen cache)
+
+Cross-link: calcite `docs/log.md` 2026-05-26.
+
+Found and fixed the doomLoad-specific residual left open on 2026-05-22.
+Two methodology errors corrected first:
+
+1. **The 2026-05-22 "post-fix" doom-all measurement used stale wasm.**
+   The wasm bundle was built at 14:10; the fix (`763d6cd`) committed
+   at 14:13. The 14:57 re-bench loaded the pre-fix wasm from
+   `calcite/web/pkg/calcite_wasm_bg.wasm`. That's why the doom-all
+   numbers barely moved from pre-fix (122.6s → 119.4s) when boot was
+   fully recovered: doom-all was running pre-fix calcite.
+
+2. **The "during doomLoad no pulse watches fire" claim was wrong.**
+   `title_tap` has cond `menuactive=0,gamestate=3,bdamode=0x13,repeat`.
+   During doomLoad, bdamode=0x13 still holds and gamestate=3 still
+   holds, so title_tap fires **every** poll. Each fire calls
+   `pseudo_pulse=active,kb-enter` → inserts (active, kb-enter) into
+   `state.pseudo_active`. So pseudo_active is non-empty most of the
+   time, the inline-gate falls through, and the body runs every tick.
+
+Real root cause for the doomLoad residual: with the body running every
+tick during doomLoad, the slow path walked all 59 input edges and
+called `pseudo_class_active_pair` which did
+`self.pseudo_active.contains(&(p.to_string(), s.to_string()))` —
+**two String allocations per lookup**, 118 allocations per tick, ~30M
+allocations/sec at 250K t/s. That allocation pressure was the
+doomLoad bottleneck.
+
+Calcite fix (`889e4d1`):
+- **Inverted iteration**: walk `pseudo_active` (0-2 entries) and
+  reference-compare against each edge. Zero allocations.
+- **Generation cache**: `State.pseudo_active_gen` bumps on every
+  mutation; the per-tick gate short-circuits when the gen hasn't
+  changed. Long stable stretches between pulse releases (50K ticks at
+  a time) skip the recompute entirely.
+
+doom-all web bench, 9 runs avg post-fix (today, with fresh wasm):
+
+| Metric          | pre-fix avg | post-fix avg | master 2026-05-08 |
+|-----------------|------------:|-------------:|------------------:|
+| runMsToInGame   | 174.6 s     | ~92 s        | 77.1 s            |
+| doomLoad        | 155.1 s     | ~78 s        | 70.0 s            |
+| ticksPerSecAvg  | 193 K       | ~377 K       | ~446 K            |
+| ingameFps       | 0.50        | 0.9-1.7      | ~1.9              |
+
+Most of the 1.78× regression closed. Residual ~12 % gap vs master is
+plausibly struct-layout cache effects from the additional HashSet
+field on State — not chased.
 
 ## 2026-05-22 — keyboard-branch 1.8× regression fixed (apply_input_edges call-frame overhead)
 

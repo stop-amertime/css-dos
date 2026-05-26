@@ -95,19 +95,23 @@ with any kiln/builder change that moves data).
 
 ## Open work
 
-- **Keyboard branch ~1.8× throughput regression — partially fixed
-  2026-05-22 (calcite `763d6cd`).** One identified cause was
-  function-call-frame overhead on `apply_input_edges` — body has the
-  right fast-outs (re-implemented from `6d9e80a` in `baf3086`) but is
-  too large to inline, so every tick paid a real wasm call frame. Fix:
-  `#[inline(always)]` gate (`needs_input_edge_apply`) at every
-  tick-path call site. Boot path **fully recovered** (doom-demo
-  9.0s vs master 8.9s, ~420K t/s). doomLoad **still 1.71× slower**
-  on doom-all (119.4s vs master 70.0s) — the residual gap is NOT in
-  apply_input_edges (the inline gate short-circuits every tick during
-  loading; no pulses fire there). Compile.rs unchanged; same x86 work
-  (ticksToInGame matches). Candidates: struct-layout cache effects,
-  LLVM codegen, script_eval::poll. See LOGBOOK 2026-05-22.
+- **Keyboard branch 1.8× throughput regression — mostly fixed
+  2026-05-26 (calcite `889e4d1`, follow-up to `763d6cd`).**
+  Two-part fix:
+  1. `763d6cd` (2026-05-22): `#[inline(always)]` gate
+     `needs_input_edge_apply` eliminates the per-tick call-frame
+     overhead on `apply_input_edges`. Fixed boot path; doom-demo
+     within 0.5 % of master.
+  2. `889e4d1` (2026-05-26): inverted iteration + generation cache
+     fixed the doomLoad-phase residual. Slow path now walks
+     `pseudo_active` (0-2 entries) and reference-compares against
+     edges (zero allocations). `State.pseudo_active_gen` bumps on
+     mutation; the per-tick gate short-circuits when gen unchanged.
+  doom-all web bench (9-run avg post-fix): runMsToInGame ~92s,
+  doomLoad ~80s, ticksPerSecAvg ~377K, ingameFps 0.9-1.7. Master
+  baseline 2026-05-08: 77.1s / 70.0s / ~446K / ~1.9. Residual ~12%
+  gap plausibly struct-layout cache effects from the extra HashSet
+  field on State — not chased. See LOGBOOK 2026-05-26.
 - **Pre-ship Doom8088 FPS push.** Brief in
   [`docs/agent-briefs/2026-05-07-pre-ship-fps-leads.md`](../agent-briefs/2026-05-07-pre-ship-fps-leads.md).
   **2026-05-07: doom-loading wall now 161 s (was 242 s pre-fix).**
