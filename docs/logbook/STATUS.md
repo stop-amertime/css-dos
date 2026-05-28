@@ -95,23 +95,27 @@ with any kiln/builder change that moves data).
 
 ## Open work
 
-- **Keyboard branch 1.8× throughput regression — mostly fixed
-  2026-05-26 (calcite `889e4d1`, follow-up to `763d6cd`).**
-  Two-part fix:
+- **Keyboard branch 1.8× throughput regression — fixed 2026-05-28**
+  (calcite `f4da585`, follow-up to `889e4d1` / `763d6cd`).
+  Three-part fix landing across two sessions:
   1. `763d6cd` (2026-05-22): `#[inline(always)]` gate
      `needs_input_edge_apply` eliminates the per-tick call-frame
      overhead on `apply_input_edges`. Fixed boot path; doom-demo
      within 0.5 % of master.
   2. `889e4d1` (2026-05-26): inverted iteration + generation cache
-     fixed the doomLoad-phase residual. Slow path now walks
-     `pseudo_active` (0-2 entries) and reference-compares against
-     edges (zero allocations). `State.pseudo_active_gen` bumps on
-     mutation; the per-tick gate short-circuits when gen unchanged.
-  doom-all web bench (9-run avg post-fix): runMsToInGame ~92s,
-  doomLoad ~80s, ticksPerSecAvg ~377K, ingameFps 0.9-1.7. Master
-  baseline 2026-05-08: 77.1s / 70.0s / ~446K / ~1.9. Residual ~12%
-  gap plausibly struct-layout cache effects from the extra HashSet
-  field on State — not chased. See LOGBOOK 2026-05-26.
+     fixed the doomLoad-phase slow path. Walks `pseudo_active` (0-2
+     entries) and reference-compares against edges (zero allocations).
+  3. `dcc7dd5` + `f4da585` (2026-05-28): **apply-on-transition.**
+     `State::set_pseudo_class_active` now directly writes the gated
+     state-var slot at mutation time via
+     `state.input_edge_groups`, populated once at engine construction
+     by `Evaluator::wire_state_for_input_edges`. The per-tick gate,
+     `apply_input_edges` body, and lazy build helper are all deleted.
+     Per-tick cost is zero (no gate, no apply).
+  doom-loading web bench (4-run after Phase 4): runMsToInGame ~79.5s,
+  ticksPerSecAvg ~432K. Master baseline 2026-05-08: 77.1s / 446K.
+  **Within ~3 % of master** — most of the residual gap closed. See
+  LOGBOOK 2026-05-28.
 - **Pre-ship Doom8088 FPS push.** Brief in
   [`docs/agent-briefs/2026-05-07-pre-ship-fps-leads.md`](../agent-briefs/2026-05-07-pre-ship-fps-leads.md).
   **2026-05-07: doom-loading wall now 161 s (was 242 s pre-fix).**

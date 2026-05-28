@@ -4,7 +4,67 @@ Chronological work entries. Newest first. The durable handbook
 (current state, sentinels, gotchas, how to test) is in
 [`STATUS.md`](STATUS.md).
 
-Last updated: 2026-05-26
+Last updated: 2026-05-28
+
+## 2026-05-28 — keyboard branch: apply-on-transition (closes the gap)
+
+Cross-link: calcite `docs/log.md` 2026-05-28.
+
+The 2026-05-26 fix recovered the doomLoad slow-path but left a ~12 %
+residual on web doom-loading vs the 2026-05-08 master baseline. This
+session removes the per-tick apply path entirely.
+
+**Two calcite commits:**
+
+1. `dcc7dd5` (Phase 1) — collapsed the gate from a u32-generation
+   compare to a single bool dirty flag. Native A/B (6 runs) showed
+   wash within noise, confirming the gate cost was not the binding
+   constraint. Kept anyway as cleanup: simpler shape, sets up Phase 4.
+
+2. `f4da585` (Phase 4) — moved input-edge apply off the per-tick path
+   entirely. `State::set_pseudo_class_active` now directly writes the
+   affected gated state-var slot(s) at the moment of mutation. No
+   per-tick gate, no per-tick apply.
+
+   Mechanism: new `Evaluator::wire_state_for_input_edges(&mut state)`
+   resolves `(pseudo, selector) → value` bindings against the live
+   state-var index and installs the grouped form on
+   `State::input_edge_groups`. Wired into the same construction path
+   as `wire_state_for_packed_memory` / `windowed_byte_array` — both
+   web (calcite-wasm engine + reset) and native CLI (main.rs +
+   bench.rs primary + iteration loop).
+
+   Mutations cost a recompute of the affected slots' sums (small —
+   1-3 groups, 59 edges on doom8088, 0-2 active set entries in steady
+   state). Ticks cost zero.
+
+**Methodology fix this session:** earlier benches in this work used
+`calcite-cli.exe` directly, which is not the bench tool. The
+authoritative path is `node tests/bench/driver/run.mjs <profile>`
+which loads `tests/bench/page/` in Chromium and runs through the
+wasm bridge — the production path the user actually exercises. CLI
+runs have different runtime characteristics and are not a substitute.
+
+**Web doom-loading bench (4 runs after Phase 4):**
+
+| run | runMsToInGame | ticksPerSecAvg |
+|-----|---------------|----------------|
+| 1   | 87.0 s        | 394 K          |
+| 2   | 79.4 s        | 431 K          |
+| 3   | 79.5 s        | 436 K          |
+| 4   | 79.9 s        | 432 K          |
+
+Median **~79.5 s / ~432 K t/s**. Compare:
+- Pre-Phase-4 (post-2026-05-26 fix): 92 s / 377 K (STATUS 9-run avg).
+- 2026-05-08 master baseline: 77.1 s / 446 K.
+
+**Within ~3 % of master.** Most of the residual gap closed.
+
+Smoke 7/7 PASS. Unit + integration input-edge tests pass.
+
+Cabinet-genericity preserved: the apply path operates over CSS pseudo
+classes, selectors, and state-var slots — no knowledge of what those
+slots represent above the CSS layer (cardinal-rule check ✓).
 
 ## 2026-05-26 — keyboard-branch regression: doomLoad residual fixed (apply_input_edges iteration + gen cache)
 
