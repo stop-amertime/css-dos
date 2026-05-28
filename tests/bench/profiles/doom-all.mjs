@@ -30,8 +30,11 @@ const FB_BYTES = 320 * 200;
 const MEASURE_SECONDS = 20;
 const WARMUP_SECONDS  = 8;
 
-const ENTER = 0x1c0d;
-const LEFT  = 0x4b00;
+// Pseudo-class input model: the host flips the (active, kb-X) edge and
+// the cabinet's `&:has(#kb-X:active){--keyboard:V}` rule produces V via
+// calcite's input-edge recogniser. Same shape as doom-loading.mjs.
+const ENTER_SELECTOR = 'kb-enter';
+const LEFT_SELECTOR  = 'kb-left';
 const TAP_HOLD = 50_000;
 
 // Same watch list as doom-ingame-fps: full boot stages + walk_left
@@ -41,12 +44,12 @@ const WATCH_SPECS = [
   `text_drdos:cond:${ADDR_BDA_MODE}=0x03,pattern@${ADDR_TEXT_VRAM}:2:${TEXT_VRAM_BYTES}=DR-DOS:gate=poll:then=emit`,
   `text_doom:cond:${ADDR_BDA_MODE}=0x03,pattern@${ADDR_TEXT_VRAM}:2:${TEXT_VRAM_BYTES}=DOOM8088:gate=poll:then=emit`,
   `title:cond:${ADDR_MENUACTIVE}=0,${ADDR_GAMESTATE}=3,${ADDR_BDA_MODE}=0x13:gate=poll:then=emit`,
-  `title_tap:cond:${ADDR_MENUACTIVE}=0,${ADDR_GAMESTATE}=3,${ADDR_BDA_MODE}=0x13,repeat:gate=poll:then=setvar_pulse=keyboard,${ENTER},${TAP_HOLD}`,
+  `title_tap:cond:${ADDR_MENUACTIVE}=0,${ADDR_GAMESTATE}=3,${ADDR_BDA_MODE}=0x13,repeat:gate=poll:then=pseudo_pulse=active,${ENTER_SELECTOR},${TAP_HOLD}`,
   `menu:cond:${ADDR_MENUACTIVE}=1:gate=poll:then=emit`,
-  `menu_tap:cond:${ADDR_MENUACTIVE}=1,repeat:gate=poll:then=setvar_pulse=keyboard,${ENTER},${TAP_HOLD}`,
+  `menu_tap:cond:${ADDR_MENUACTIVE}=1,repeat:gate=poll:then=pseudo_pulse=active,${ENTER_SELECTOR},${TAP_HOLD}`,
   `loading:cond:${ADDR_USERGAME}=1,${ADDR_GAMESTATE}=3:gate=poll:then=emit`,
   `ingame:cond:${ADDR_USERGAME}=1,${ADDR_GAMESTATE}=0:gate=poll:then=emit`,
-  `walk_left:cond:${ADDR_GAMESTATE}=0,repeat:gate=poll:then=setvar_pulse=keyboard,${LEFT},${TAP_HOLD}`,
+  `walk_left:cond:${ADDR_GAMESTATE}=0,repeat:gate=poll:then=pseudo_pulse=active,${LEFT_SELECTOR},${TAP_HOLD}`,
 ];
 
 export const manifest = {

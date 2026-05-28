@@ -4,7 +4,7 @@ Chronological work entries. Newest first. The durable handbook
 (current state, sentinels, gotchas, how to test) is in
 [`STATUS.md`](STATUS.md).
 
-Last updated: 2026-05-18
+Last updated: 2026-05-28
 
 Entries are individual files in [`entries/`](entries/). This page is
 the **index only** — read the tag + one-line summary, open the 1–3
@@ -22,7 +22,8 @@ See [`PROTOCOL.md`](PROTOCOL.md).
 
 | Date | Tag | Entry |
 |------|-----|-------|
-| 2026-05-18 | FINDING | [Keyboard branch (feat/keyboard-pseudo-input) fails web bench: boots to Mode-13h title @~1fps, never advances in 600s; pseudo_pulse never dismisses title. Engine ticks fine (~450K cyc/s) — functionally stuck not slow. Cannot be perf-benched; "162K→297K fixed" is unverified logbook prose. Also fixed stale bench driver (launch+SW-claim+DOM-log) on retire-keyboard](entries/2026-05-18-keyboard-branch-stuck-at-title-web-bench.md) |
+| 2026-05-28 | LANDED | [Keyboard branch 1.8× regression closed: apply-on-transition (calcite f4da585) writes gated slot at set_pseudo_class_active time, per-tick path deleted; web doom-loading 79.5s/432K t/s vs 77.1s/446K master baseline, within ~3%](entries/2026-05-28-keyboard-branch-regression-closed.md) |
+| 2026-05-18 | SUPERSEDED | [Keyboard branch (feat/keyboard-pseudo-input) fails web bench: boots to Mode-13h title @~1fps, never advances in 600s; pseudo_pulse never dismisses title. — superseded by 2026-05-19 fix (bridge bench-watch-wipe + Stride modulo regression) + 2026-05-28 regression close; branch now reaches in-game and benches at 79.5s/432K t/s.](entries/2026-05-18-keyboard-branch-stuck-at-title-web-bench.md) |
 | 2026-05-18 | FINDING | [Genericity↔perf cost BENCHED: feat/calcite-genericity 75.9s/448.5K t/s vs ef44f20-baseline 77-82s/416-443K — NO regression (measured, not from logbook); apply_input_edges drop is keyboard-branch not this one](entries/2026-05-18-genericity-perf-cost-isolated-no-per-tick-regression.md) |
 | 2026-05-18 | LANDED | [calcite feat/retire-keyboard hand-partitioned into feat/keyboard-pseudo-input + feat/calcite-genericity; both build clean, now on origin](entries/2026-05-18-calcite-feat-retire-keyboard-bundle-hand-partitioned-into-tw.md) |
 | 2026-05-15 | LANDED | [Branch reorg: calcite main reset to ef44f20 (old-kbd state), retire-keyboard/genericity parked on feat/retire-keyboard; cherry-pick disentangle abandoned (one ball)](entries/2026-05-15-branch-reorg-calcite-main-working-keyboard-state-retire-keyb.md) |
