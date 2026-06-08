@@ -58,23 +58,32 @@ agrees: every new pattern module
 not present on this branch; the `old-kbd` revert threw away the
 *keyboard* stack, not this one.
 
-**Honest summary:** the blocker is "**the generic `rep_fast_forward`
-replacement applier was never built and is the only genericity
-change whose perf cost is genuinely unknown — unknown because the
-code doesn't exist yet.**" Not "a slow generic path needs speeding
-up." Build the applier (active-work #2), then bench *that*.
+**Honest summary (updated 2026-06-08):** the applier now EXISTS
+(calcite `feat/rep-generic` `247b274`, recovered 2026-06-08) and
+deletes the hardcoded cheat — but it is **not yet correct on real
+cabinets**: smoke 6/7 panic because the recogniser doesn't capture
+`ip_extra_advance_slot` for the `_repContinue`-gated per-key IP shape.
+So the blocker has moved from "never built" to "built, recogniser gap
+remains; perf cost still unmeasured because it can't clear smoke yet."
+Fix the recogniser shape (active-work #1), pass smoke 7/7, THEN bench.
 
 ## Active work (detail in `../plans/`; done/dead → LOGBOOK only)
 
 1. **`rep_fast_forward` generic applier** — THE unblocking task and
-   the actual cheat removal. Recogniser + validator exist on the
-   branch; the perf-gated applier (±1%, must replace the hardcoded
-   path) was deferred, never built. **This is the only genericity
-   change whose perf cost is unknown** (per the 2026-05-18 isolation
-   — everything else is compile-time/default-off/measured). Plan:
-   `../plans/2026-05-06-rep-fast-forward-genericity.md` (its
-   "phases 1–3a landed" status is branch-only, not on `main`).
-   Isolation done: `../plans/2026-05-18-genericity-perf-cost-isolation.md`.
+   the actual cheat removal. **UPDATE 2026-06-08: the applier WAS
+   built** (recovered from a wedged 2026-05-29 session, now committed
+   `247b274` + pushed on calcite `feat/rep-generic`). It deletes the
+   341-line x86 table and routes purely through `LoopDescriptor` →
+   `BulkClass`. Unit-green, all binaries build — **but smoke 6/7
+   PANIC**: the recogniser's `extract_ip_extra_advance_slot` models
+   IP-advance as top-level `Add(dispatch, prefixLenVar)` while real
+   cabinets encode a per-opcode `_repContinue`-gated body
+   (`IP − prefixLen` during REP, `IP + 1` after). The unit tests
+   hand-build the *wrong* shape → false-green. **Remaining: teach the
+   recogniser that gated-subtraction shape, then smoke 7/7 + ±1% perf
+   bench (neither passed — branch-only, NOT landed).** Full analysis:
+   calcite `docs/log.md` 2026-06-08 + LOGBOOK
+   2026-06-08. Plan: `../plans/2026-05-06-rep-fast-forward-genericity.md`.
 3. **Per-dispatch-key specialisation** — structurally upstream of
    all perf work; probed on the branch 2026-05-12 (not on `main`).
    Plan: `../plans/2026-05-12-per-dispatch-key-specialisation.md`.
@@ -82,13 +91,19 @@ up." Build the applier (active-work #2), then bench *that*.
    (2026-05-11 cycle-weighted heatmap). Pure plan, no code anywhere.
    Plan: `../plans/2026-05-12-routine-semantic-substitution.md`.
 
-## Git state (verified 2026-05-18)
+## Git state (verified 2026-06-08)
 
-- **CSS-DOS** `master`: clean, in sync with origin (1 local logbook
-  commit).
-- **calcite** `main` == `origin/main` == `ef44f20`. No divergence,
-  no force-push pending. The 2026-05-15 history rewrite has already
-  been reconciled with origin.
+- **CSS-DOS** `master`: clean except pending logbook/STATUS commit for
+  this 2026-06-08 work.
+- **calcite** `main` == `origin/main` == **`8de61a8`** (advanced past
+  the old `ef44f20` baseline — the keyboard branch
+  `feat/keyboard-pseudo-input` merged in; older STATUS revisions that
+  say `main == ef44f20` are stale).
+- **NEW: calcite `feat/rep-generic` (`247b274`, on origin)** — the
+  recovered rep_fast_forward cheat-removal dispatcher. Branched from
+  `8de61a8`. Unit-green, builds, but smoke 6/7 panic (recogniser gap,
+  active-work #1). Its worktree
+  `calcite/.claude/worktrees/rep-generic` is clean (work committed).
 - Genericity work safe on `origin/feat/calcite-genericity`
   (`3592bf0`); keyboard rework on
   `origin/feat/keyboard-pseudo-input` (`baf3086`); both
