@@ -4,7 +4,7 @@ Chronological work entries. Newest first. The durable handbook
 (current state, sentinels, gotchas, how to test) is in
 [`STATUS.md`](STATUS.md).
 
-Last updated: 2026-05-28
+Last updated: 2026-06-09
 
 Entries are individual files in [`entries/`](entries/). This page is
 the **index only** — read the tag + one-line summary, open the 1–3
@@ -22,6 +22,8 @@ See [`PROTOCOL.md`](PROTOCOL.md).
 
 | Date | Tag | Entry |
 |------|-----|-------|
+| 2026-06-09 | FINDING | [doomLoad re-weighted by ticks (= calcite wall): EDR-DOS kernel 0x55 is ~49% of doomLoad, __I4D ~22% not 46%; cycle-weighting was the wrong metric; kernel file-I/O path is the untouched, cardinal-rule-free lever](entries/2026-06-09-doomload-tick-weighted-heatmap-kernel-is-the-lion.md) |
+| 2026-06-09 | FINDING | [Per-tick op profile: 845 dispatched ops per guest instruction; LoadSlot 28% + LoadLit 8% — copy elimination is the biggest unlisted perf lever; item-5 (unchecked slots) was already done 2026-04-14; detail in calcite log 2026-06-09](entries/2026-06-09-per-tick-op-profile-845-ops-copy-movement.md) |
 | 2026-06-08 | BRANCH | [rep-generic cheat-removal dispatcher recovered from wedged 2026-05-29 session (committed 247b274, pushed); deletes 341-line x86 string-op table, unit-green — but smoke 6/7 PANIC: recogniser's ip_extra_advance_slot models top-level Add(dispatch,prefixLen) while real cabinets encode _repContinue-gated IP−prefixLen body; not shippable, full analysis in calcite log 2026-06-08](entries/2026-06-08-rep-generic-dispatcher-recovered-ip-slot-gap.md) |
 | 2026-05-28 | LANDED | [Keyboard branch 1.8× regression closed: apply-on-transition (calcite f4da585) writes gated slot at set_pseudo_class_active time, per-tick path deleted; web doom-loading 79.5s/432K t/s vs 77.1s/446K master baseline, within ~3%](entries/2026-05-28-keyboard-branch-regression-closed.md) |
 | 2026-05-18 | SUPERSEDED | [Keyboard branch (feat/keyboard-pseudo-input) fails web bench: boots to Mode-13h title @~1fps, never advances in 600s; pseudo_pulse never dismisses title. — superseded by 2026-05-19 fix (bridge bench-watch-wipe + Stride modulo regression) + 2026-05-28 regression close; branch now reaches in-game and benches at 79.5s/432K t/s.](entries/2026-05-18-keyboard-branch-stuck-at-title-web-bench.md) |
@@ -38,7 +40,7 @@ See [`PROTOCOL.md`](PROTOCOL.md).
 | 2026-05-12 | DEAD | [Identity-branch pruning built but broke doom8088 boot; downstream pass keys on dispatch-key set; not on main](entries/2026-05-12-identity-branch-pruning-tried-broke-doom8088-parked-6.md) |
 | 2026-05-12 | PLAN | [Filed __I4D whole-routine semantic substitution plan (compile-time region recogniser + symbolic evaluator); six phases, no env gate](entries/2026-05-12-plan-filed-i4d-whole-routine-semantic-substitution-7.md) |
 | 2026-05-11 | LANDED | [Release landing page web/site/index.html: 4-step DOS-EDIT wizard wrapping build.js; verified end-to-end in web preview](entries/2026-05-11-release-oriented-landing-page-index-html.md) |
-| 2026-05-11 | FINDING | [doomLoad cycle-weighted heatmap: Watcom __I4D 32-bit divide is 46.1% of cycles (seg-0x55 67.8% was a count-weighted artefact); r_draw 24%](entries/2026-05-11-doomload-cycle-weighted-heatmap-i4d-32-bit-divide-is-the-lio-2.md) |
+| 2026-05-11 | SUPERSEDED | [doomLoad cycle-weighted heatmap: __I4D 46.1% of cycles — interpretation corrected 2026-06-09: by ticks (= wall) kernel 0x55 is 48.6% and __I4D 22.3%; raw data + segment resolution still valid](entries/2026-05-11-doomload-cycle-weighted-heatmap-i4d-32-bit-divide-is-the-lio-2.md) |
 | 2026-05-11 | FINDING | [FPS baseline reframed: use fuzzy ~1-2 fps noisy band not 1.70; added bench-host hygiene rule; no code changed](entries/2026-05-11-fps-baseline-reframed-as-fuzzy-1-2-fps-bench-host-hygiene-ru-3.md) |
 | 2026-05-08 | FINDING | [BIF2 fusion isolated on web bench: real win +4.5% throughput / +8% fps; the 2026-05-07 +47% was a debunked CLI-bench artefact](entries/2026-05-08-bif2-fusion-isolated-4-5-throughput-8-in-game-fps.md) |
 | 2026-05-08 | FINDING | [Canonical bench set fixed at three profiles; 2026-05-08 old-kbd baseline 77.1s engine-run, doomLoad 84.9% of wall; CALCITE_REPO harness fix](entries/2026-05-08-canonical-bench-set-2026-05-08-baseline-old-kbd-branch-2.md) |

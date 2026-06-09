@@ -1,10 +1,20 @@
 # Whole-routine semantic substitution for hot guest sub-routines
 
-**Status**: planning, **REFRAMED 2026-05-12**. First target: Watcom's
+> **CORRECTION 2026-06-09 — DEPRIORITISED.** The motivating "46.1 %
+> of doomLoad" is guest-cycle-weighted. Calcite wall time follows
+> **ticks**, and by ticks `__I4D` is ~22 % while the EDR-DOS kernel
+> is ~49 % (LOGBOOK 2026-06-09). This plan's payoff ceiling is
+> therefore ≤~22 % of doomLoad, and the kernel file-I/O path (no
+> cardinal-rule constraint) is the bigger, cheaper lever. Phases
+> below unchanged; revisit after the kernel side is characterised.
+
+**Status**: planning, **REFRAMED 2026-05-12**, deprioritised
+2026-06-09 (see correction above). First target: Watcom's
 `__I4D` (32-bit signed divide). 46.1 % of doomLoad cycles per the
 2026-05-11 cycle-weighted heatmap. Expected wall improvement on
-`doomLoad`: 15-20 % (projection, not measured). See LOGBOOK 2026-05-11
-— `__I4D` heatmap entry for the finding that motivated this plan.
+`doomLoad`: 15-20 % (projection, not measured — and overstated, per
+the correction). See LOGBOOK 2026-05-11 — `__I4D` heatmap entry for
+the finding that motivated this plan.
 
 ## 2026-05-12 reframing: regions live in guest memory, not the Op stream
 

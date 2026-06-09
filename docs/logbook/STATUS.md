@@ -87,9 +87,16 @@ Fix the recogniser shape (active-work #1), pass smoke 7/7, THEN bench.
 3. **Per-dispatch-key specialisation** — structurally upstream of
    all perf work; probed on the branch 2026-05-12 (not on `main`).
    Plan: `../plans/2026-05-12-per-dispatch-key-specialisation.md`.
-4. **`__I4D` routine substitution** — 46% of doomLoad cycles
-   (2026-05-11 cycle-weighted heatmap). Pure plan, no code anywhere.
-   Plan: `../plans/2026-05-12-routine-semantic-substitution.md`.
+4. **`__I4D` routine substitution** — DEPRIORITISED 2026-06-09: the
+   46% figure was guest-cycle-weighted; by ticks (= calcite wall)
+   `__I4D` is ~22% and the **EDR-DOS kernel is ~49% of doomLoad**.
+   Plan (correction note added):
+   `../plans/2026-05-12-routine-semantic-substitution.md`.
+5. **doomLoad kernel-side characterisation** — NEW 2026-06-09. Half
+   of doomLoad ticks are the DOS kernel's file-I/O loops — platform
+   work, no cardinal rule. Also queued from the same analysis:
+   calcite copy-elimination (36% of dispatched ops are moves; calcite
+   log 2026-06-09). LOGBOOK 2026-06-09 ×2 for both findings.
 
 ## Git state (verified 2026-06-08)
 

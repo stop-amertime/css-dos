@@ -1,3 +1,10 @@
+> **INTERPRETATION CORRECTED 2026-06-09:** cycle-weighting answers
+> "where do guest cycles go", not "where does calcite wall go" — wall
+> follows ticks. By tick-share (verified against the burst samples,
+> no aliasing artefact): kernel 0x55 = 48.6%, `__I4D` = 22.3%. The
+> raw data, LOAD_SEG resolution and pipeline notes below remain
+> valid. See `2026-06-09-doomload-tick-weighted-heatmap-kernel-is-the-lion.md`.
+
 ## 2026-05-11 — doomLoad cycle-weighted heatmap: `__I4D` (32-bit divide) is the lion
 
 **Measurement.** Added a `cycles` column to calcite-cli's
