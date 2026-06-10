@@ -7,7 +7,7 @@ relevant file in `../plans/`.
 
 Every factual claim here is meant to be verified against code/git,
 not copied from prose. If you find a contradiction, fix it here
-first, then log it. Last verified: 2026-05-18.
+first, then log it. Last verified: 2026-06-09.
 
 ## Release bar (what "done" means)
 
@@ -58,32 +58,34 @@ agrees: every new pattern module
 not present on this branch; the `old-kbd` revert threw away the
 *keyboard* stack, not this one.
 
-**Honest summary (updated 2026-06-08):** the applier now EXISTS
-(calcite `feat/rep-generic` `247b274`, recovered 2026-06-08) and
-deletes the hardcoded cheat — but it is **not yet correct on real
-cabinets**: smoke 6/7 panic because the recogniser doesn't capture
-`ip_extra_advance_slot` for the `_repContinue`-gated per-key IP shape.
-So the blocker has moved from "never built" to "built, recogniser gap
-remains; perf cost still unmeasured because it can't clear smoke yet."
-Fix the recogniser shape (active-work #1), pass smoke 7/7, THEN bench.
+**Honest summary (updated 2026-06-09):** the applier is now **built,
+correct, and verified on the branch** (calcite `feat/rep-generic`
+`17fe7da`, pushed). The 2026-06-08 "one recogniser gap" was five
+layered defects (subtrahend capture, mirror-name routing, missing
+continuation gate, source-base scaling, silent flags commit) — all
+fixed with shape-true tests. Verified: smoke **7/7**; calcite-cli A/B
+vs `main` **byte-identical** (cycles+IP, all 7 smoke carts × 2M
+ticks); 3-run `doom-all --headed` medians **+0.50% wall / −1.49% t/s /
++0.85% doomLoad** vs a fresh main baseline (t/s inside the ±3% run
+noise; JSONs in `docs/benches/doom-all-2026-06-09-*`). The blocker has
+moved from "built, broken" to **"verified on branch — merge to calcite
+main is the remaining step"** (plus the merge-review warts in calcite
+log 2026-06-09: hardcoded "IP"/"cycleCount" commit names, `--opcode`
+diagnostic reads, LODS loud hole).
 
 ## Active work (detail in `../plans/`; done/dead → LOGBOOK only)
 
-1. **`rep_fast_forward` generic applier** — THE unblocking task and
-   the actual cheat removal. **UPDATE 2026-06-08: the applier WAS
-   built** (recovered from a wedged 2026-05-29 session, now committed
-   `247b274` + pushed on calcite `feat/rep-generic`). It deletes the
-   341-line x86 table and routes purely through `LoopDescriptor` →
-   `BulkClass`. Unit-green, all binaries build — **but smoke 6/7
-   PANIC**: the recogniser's `extract_ip_extra_advance_slot` models
-   IP-advance as top-level `Add(dispatch, prefixLenVar)` while real
-   cabinets encode a per-opcode `_repContinue`-gated body
-   (`IP − prefixLen` during REP, `IP + 1` after). The unit tests
-   hand-build the *wrong* shape → false-green. **Remaining: teach the
-   recogniser that gated-subtraction shape, then smoke 7/7 + ±1% perf
-   bench (neither passed — branch-only, NOT landed).** Full analysis:
-   calcite `docs/log.md` 2026-06-08 + LOGBOOK
-   2026-06-08. Plan: `../plans/2026-05-06-rep-fast-forward-genericity.md`.
+1. **`rep_fast_forward` generic applier — VERIFIED ON BRANCH
+   2026-06-09; remaining step is the merge.** Calcite
+   `feat/rep-generic` `17fe7da` (pushed) deletes the 341-line x86
+   table and routes purely through `LoopDescriptor` → `BulkClass`.
+   Smoke 7/7; A/B vs main byte-identical (7 carts × 2M ticks); bench
+   +0.5% wall / −1.5% t/s (inside noise). Remaining: merge review on
+   calcite (warts listed in calcite log 2026-06-09 — hardcoded
+   "IP"/"cycleCount" commit names should become descriptor fields,
+   `--opcode` diagnostic reads, LODS Full-commit loud hole), then
+   merge to calcite `main` and re-run smoke + a doom spot-check from
+   main. Plan: `../plans/2026-05-06-rep-fast-forward-genericity.md`.
 3. **Per-dispatch-key specialisation** — structurally upstream of
    all perf work; probed on the branch 2026-05-12 (not on `main`).
    Plan: `../plans/2026-05-12-per-dispatch-key-specialisation.md`.
@@ -98,18 +100,20 @@ Fix the recogniser shape (active-work #1), pass smoke 7/7, THEN bench.
    calcite copy-elimination (36% of dispatched ops are moves; calcite
    log 2026-06-09). LOGBOOK 2026-06-09 ×2 for both findings.
 
-## Git state (verified 2026-06-08)
+## Git state (verified 2026-06-09)
 
-- **CSS-DOS** `master`: clean except pending logbook/STATUS commit for
-  this 2026-06-08 work.
-- **calcite** `main` == `origin/main` == **`8de61a8`** (advanced past
-  the old `ef44f20` baseline — the keyboard branch
-  `feat/keyboard-pseudo-input` merged in; older STATUS revisions that
-  say `main == ef44f20` are stale).
-- **NEW: calcite `feat/rep-generic` (`247b274`, on origin)** — the
-  recovered rep_fast_forward cheat-removal dispatcher. Branched from
-  `8de61a8`. Unit-green, builds, but smoke 6/7 panic (recogniser gap,
-  active-work #1). Its worktree
+- **CSS-DOS** `master`: pending commit for this 2026-06-09 work
+  (logbook/STATUS/plans + `docs/benches/doom-all-2026-06-09-*`).
+  Pre-existing untracked `broken-session-transcript.txt` and modified
+  `web/prebake/{corduroy,gossamer}.meta.json` are NOT from this
+  session — left untouched for owner triage.
+- **calcite** `main` == `origin/main` == **`2fe54c6`** (docs/log
+  commits on top of `8de61a8`; code unchanged since the keyboard
+  merge).
+- **calcite `feat/rep-generic` (`17fe7da`, on origin)** — the
+  rep_fast_forward cheat removal, now **verified** (smoke 7/7,
+  byte-identical A/B, bench within gate — see ship-blocker section).
+  Branched from `8de61a8`. Its worktree
   `calcite/.claude/worktrees/rep-generic` is clean (work committed).
 - Genericity work safe on `origin/feat/calcite-genericity`
   (`3592bf0`); keyboard rework on

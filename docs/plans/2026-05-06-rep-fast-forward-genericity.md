@@ -1,10 +1,20 @@
 # `rep_fast_forward` — generic CSS-shape recogniser
 
-**Status**: planning, multi-session mission.
-**Owner**: rotates. Pick up at the next unchecked checkpoint.
-**Cross-link**: see `docs/logbook/STATUS.md` "Open work" and
-`../calcite/docs/log.md` 2026-05-05 for the audit-list context this
-mission closes.
+**Status**: VERIFIED ON BRANCH 2026-06-09 — calcite
+`feat/rep-generic` `17fe7da` deletes the hardcoded path entirely and
+passes every gate (smoke 7/7; calcite-cli A/B vs main byte-identical
+on all 7 smoke carts × 2M ticks; doom-all 3-run medians +0.50% wall /
+−1.49% t/s / +0.85% doomLoad vs fresh main baseline — wall inside ±1%,
+t/s inside the ±3% run-noise band with overlapping distributions).
+Checkpoints 3b/4/5 below were collapsed by the branch's
+dispatcher rewrite (no env flag, no fallback — the descriptor path is
+the only path). **Remaining: merge review + merge to calcite `main`**
+— review the warts in calcite log 2026-06-09 (hardcoded
+"IP"/"cycleCount" commit names should become descriptor fields,
+`--opcode` diagnostic reads, LODS Full-commit deliberately refuses),
+then merge, then re-run smoke + a doom spot-check from main.
+**Owner**: rotates. **Cross-link**: `docs/logbook/STATUS.md`
+ship-blocker; calcite `docs/log.md` 2026-06-08 + 2026-06-09.
 
 ## Why this exists
 
@@ -396,49 +406,43 @@ diagnostic-bedded validator, **phase 3 lands in two halves**:
 - [x] Smoke 7/7 unchanged.
 - [x] All 13 unit tests pass.
 
-#### Phase 3b (future) — applier flip
+#### Phases 3b / 4 / 5 — collapsed by the branch dispatcher rewrite — DONE ON BRANCH 2026-06-09
 
-- [ ] Implement the descriptor-driven applier behind the same
-      `CALCITE_REP_GENERIC=1` flag, but now *replacing* the hardcoded
-      path when on (validator becomes redundant — collapse into the
-      applier itself).
-- [ ] Bulk paths consult `state.virtual_regions` instead of the
-      hardcoded 0xD0000/0xF0000 carve-out. (0xF0000+ stays a State
-      invariant since it's the extended-map boundary.)
-- [ ] Diff calcite-cli memory snapshots between the two paths every
-      100K ticks during doom8088 boot. Zero divergence.
-- [ ] Behaviour-parity sweeps still pass.
-- [ ] Perf parity: with `CALCITE_REP_GENERIC=1`, doom8088 web and
-      CLI within ±1% of `CALCITE_REP_GENERIC=0`.
+The recovered Task-3.5 dispatcher (calcite `feat/rep-generic`
+`247b274`) skipped the staged flag-flip: it deleted the opcode-table
+path outright and made the descriptor path the only path (no
+`CALCITE_REP_GENERIC`, no fallback). The 2026-06-09 session
+(`880714f`/`70c8a07`/`17fe7da`) then fixed the five correctness gaps
+that surfaced and ran the verification ladder:
 
-### Checkpoint 4 — flip the default
+- [x] Descriptor-driven applier replaces the hardcoded path
+      unconditionally; unsupported shapes panic loudly (no silent
+      slow path).
+- [x] Loop-continuation gate (`evaluate_loop_predicate` + recorded
+      polarity) replaces the hasREP / already-exited guards.
+- [x] Behaviour parity: calcite-cli A/B vs `main` byte-identical
+      (cycleCount + IP) on all 7 smoke cabinets at 2M ticks.
+- [x] Smoke 7/7 PASS through the harness (debugger path).
+- [x] Perf: doom-all `--headed` 3-run medians vs fresh main baseline:
+      +0.50% runMsToInGame / −1.49% t/s / +0.85% doomLoad. Wall
+      metrics inside ±1%; t/s inside documented ±3% noise. JSONs in
+      `docs/benches/doom-all-2026-06-09-*`.
+- [x] Old helpers `rep_fast_forward_cmps_scas` + the 341-line opcode
+      table gone; `compute_sub_flags` / `ranges_overlap_virtual` /
+      `rep_fast_forward_panic` retained as generic primitives the
+      descriptor path uses.
 
-- [ ] `CALCITE_REP_GENERIC=1` becomes the default. Old path still
-      compilable with `CALCITE_REP_GENERIC=0` for the immediate A/B
-      that decides whether to roll back.
-- [ ] Smoke 7/7.
-- [ ] doom8088 boots to in-game (gamestate=GS_LEVEL) on both web and
-      CLI.
-- [ ] zork boots to the `>` prompt on both web and CLI.
-- [ ] doom-loading bench `runMsToInGame` within ±1% of pre-mission.
+### Checkpoint 6 (remaining) — merge to calcite main
 
-If all four pass in one sitting, the new path is the path. Git
-history holds the old code; there's no value in keeping the
-fallback live as a soak. Move straight to checkpoint 5.
-
-### Checkpoint 5 — delete the old path
-
-- [ ] Remove `rep_fast_forward` (the opcode-keyed body and helpers
-      `rep_fast_forward_cmps_scas`, `compute_sub_flags`,
-      `rep_fast_forward_panic`, `ranges_overlap_virtual`).
-- [ ] Remove `CALCITE_REP_GENERIC` flag (descriptor path is
-      unconditional).
-- [ ] Update STATUS.md "Open work" — remove the rep_fast_forward
-      bullet.
-- [ ] Update calcite log.md — note the cardinal-rule audit list is
-      now empty.
-- [ ] Verify the genericity probe one more time on a mock 6502
-      cabinet (used during checkpoint 1).
+- [ ] Merge review: the warts in calcite log 2026-06-09
+      (`commit_ip_and_cycles` hardcoded "IP"/"cycleCount" names →
+      descriptor fields; `--opcode` diagnostic reads; LODS
+      Full-commit loud hole).
+- [ ] Merge `feat/rep-generic` → calcite `main`.
+- [ ] From main: smoke 7/7 + doom8088 in-game spot-check (web).
+- [ ] Update STATUS ship-blocker section (cheat removed ON MAIN) and
+      retag the 2026-06-09 LOGBOOK row BRANCH → LANDED.
+- [ ] Delete this plan (history lives in the logbook).
 
 ## Success criteria
 
