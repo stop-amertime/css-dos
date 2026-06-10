@@ -4,7 +4,7 @@ Chronological work entries. Newest first. The durable handbook
 (current state, sentinels, gotchas, how to test) is in
 [`STATUS.md`](STATUS.md).
 
-Last updated: 2026-06-09
+Last updated: 2026-06-10
 
 Entries are individual files in [`entries/`](entries/). This page is
 the **index only** — read the tag + one-line summary, open the 1–3
@@ -22,7 +22,8 @@ See [`PROTOCOL.md`](PROTOCOL.md).
 
 | Date | Tag | Entry |
 |------|-----|-------|
-| 2026-06-09 | BRANCH | [rep-generic VERIFIED: five layered recogniser/applier defects fixed (subtrahend capture, mirror-name routing, continuation gate, base scaling, flags commit); smoke 7/7, calcite-cli A/B vs main byte-identical on all 7 carts × 2M ticks, doom-all bench +0.5% wall / −1.5% t/s (inside noise); on calcite feat/rep-generic 17fe7da — NOT merged to calcite main yet](entries/2026-06-09-rep-generic-verified-smoke-and-bench.md) |
+| 2026-06-10 | LANDED | [rep-generic MERGED to calcite main cc729b2: 341-line x86 string-op cheat deleted; merge-review fixes first (descriptor-carried IP/cycle commit names, key_property routing, descriptor-driven diagnostics — zero literal cabinet names in the rep path); verified pre-merge (288 tests, byte-identical A/B, smoke 7/7) and post-merge from main (288 tests, smoke 7/7, doom title @6M ticks)](entries/2026-06-10-rep-generic-merged-to-calcite-main.md) |
+| 2026-06-09 | LANDED | [rep-generic VERIFIED: five layered recogniser/applier defects fixed (subtrahend capture, mirror-name routing, continuation gate, base scaling, flags commit); smoke 7/7, calcite-cli A/B vs main byte-identical on all 7 carts × 2M ticks, doom-all bench +0.5% wall / −1.5% t/s (inside noise); was BRANCH on feat/rep-generic 17fe7da — merged to calcite main 2026-06-10](entries/2026-06-09-rep-generic-verified-smoke-and-bench.md) |
 | 2026-06-09 | FINDING | [doomLoad re-weighted by ticks (= calcite wall): EDR-DOS kernel 0x55 is ~49% of doomLoad, __I4D ~22% not 46%; cycle-weighting was the wrong metric; kernel file-I/O path is the untouched, cardinal-rule-free lever](entries/2026-06-09-doomload-tick-weighted-heatmap-kernel-is-the-lion.md) |
 | 2026-06-09 | FINDING | [Per-tick op profile: 845 dispatched ops per guest instruction; LoadSlot 28% + LoadLit 8% — copy elimination is the biggest unlisted perf lever; item-5 (unchecked slots) was already done 2026-04-14; detail in calcite log 2026-06-09](entries/2026-06-09-per-tick-op-profile-845-ops-copy-movement.md) |
 | 2026-06-08 | BRANCH | [rep-generic cheat-removal dispatcher recovered from wedged 2026-05-29 session (committed 247b274, pushed); deletes 341-line x86 string-op table, unit-green — but smoke 6/7 PANIC: recogniser's ip_extra_advance_slot models top-level Add(dispatch,prefixLen) while real cabinets encode _repContinue-gated IP−prefixLen body; not shippable, full analysis in calcite log 2026-06-08](entries/2026-06-08-rep-generic-dispatcher-recovered-ip-slot-gap.md) |

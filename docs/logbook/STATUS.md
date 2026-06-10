@@ -7,7 +7,7 @@ relevant file in `../plans/`.
 
 Every factual claim here is meant to be verified against code/git,
 not copied from prose. If you find a contradiction, fix it here
-first, then log it. Last verified: 2026-06-09.
+first, then log it. Last verified: 2026-06-10.
 
 ## Release bar (what "done" means)
 
@@ -17,75 +17,49 @@ first, then log it. Last verified: 2026-06-09.
 2. **Performance — improve if possible, NOT a gate.** Faster is
    better; slow-but-honest ships, fast-but-cheating does not.
 
-These two fight each other, and that tension *is* the project's
-central problem — not a side issue. See "The ship-blocker" below.
+These two fight each other, and that tension *was* the project's
+central problem. As of 2026-06-10 the gate is met for the rep path
+(see below); the tension still applies to every future optimisation.
 
-## The ship-blocker (verified 2026-05-18)
+## The ship-blocker — RESOLVED 2026-06-10
 
-**`main` still cheats.** `rep_fast_forward` in
-`crates/calcite-core/src/compile.rs` is ~341 lines of hardcoded x86
-string-op semantics. On calcite `main` (`ef44f20`) there is **no
-generic path at all** — verified: `CALCITE_REP_GENERIC`,
-`discover_hot_key`, `dispatch_specialise` have **zero references on
-`main`**.
+**The rep_fast_forward cheat is gone from calcite `main`.** Merge
+`cc729b2` (pushed) deletes the ~341-line hardcoded x86 string-op
+table; the post-tick dispatcher routes purely through the structural
+recogniser (`pattern/loop_descriptor.rs`) → `BulkClass` appliers
+(`pattern/rep_applier.rs`). Before merging, the 2026-06-09 review
+warts were fixed (`b2dc52d`): IP/cycle commits go through
+descriptor-carried names (`ip_property`, `CycleCharge.property` —
+no literal "IP"/"cycleCount"), dispatch routing uses each
+descriptor's `key_property` (no literal `--opcode`), and the
+panic/diag tables are descriptor-driven (x86 opname decode deleted).
+**Zero literal cabinet-property names remain in the generic rep
+path** — a `--pc_y`/`--zorch`-named cabinet commits to its own slots
+(tested).
 
-The generic work exists **only on the unmerged branch
-`feat/calcite-genericity`** (one squashed commit `a89067a` over
-`ef44f20`; also in the un-split `feat/retire-keyboard` bundle). What
-it actually contains: a structural recogniser + a **read-only
-diagnostic validator** behind `CALCITE_REP_GENERIC=1` (default off).
-**The replacement applier that would let the hardcoded cheat be
-deleted was never built — it was explicitly deferred** (branch
-`docs/log.md` line 280: the ±1% perf gate "is deferred to a future"
-phase).
+**Verification.** Pre-merge on the branch: 288 unit tests;
+calcite-cli A/B vs main **byte-identical** (cycles+IP, 7 smoke carts
+× 2M ticks); smoke 7/7; 3-run `doom-all --headed` medians **+0.50%
+wall / −1.49% t/s / +0.85% doomLoad** vs fresh main baseline (inside
+gate/noise; JSONs `docs/benches/doom-all-2026-06-09-*`). Post-merge
+from `main`: 288 tests, smoke 7/7, doom8088 title via fast-shoot
+@6M ticks.
 
-**The genericity↔perf cost is isolated AND empirically benched
-(2026-05-18,
-`../plans/2026-05-18-genericity-perf-cost-isolation.md`): there is
-no regression on `feat/calcite-genericity`.** Measured, not argued:
-one `doom-all --headed` run on `3592bf0` vs the on-disk
-`ef44f20`/BIF2-off baseline — genericity is **75.9 s / 448.5K t/s /
-doomLoad 64.8 s** vs baseline **77–82 s / 416–443K / 65–70 s**, i.e.
-at or below the *fastest* baseline run on every metric. (Prior
-LOGBOOK perf numbers were treated as untrusted; this conclusion
-rests on the fresh bench, JSON in `../benches/`.) Static analysis
-agrees: every new pattern module
-(`loop_descriptor`/`dispatch_specialise`/`identity_prune`) is called
-*only* from `from_parsed` (compile-time) or behind a default-off
-`OnceLock` gate — nothing in `execute`/`exec_ops`. The
-`apply_input_edges` regression STATUS used to attribute here is a
-**keyboard-branch** per-tick cost (`feat/keyboard-pseudo-input`),
-not present on this branch; the `old-kbd` revert threw away the
-*keyboard* stack, not this one.
-
-**Honest summary (updated 2026-06-09):** the applier is now **built,
-correct, and verified on the branch** (calcite `feat/rep-generic`
-`17fe7da`, pushed). The 2026-06-08 "one recogniser gap" was five
-layered defects (subtrahend capture, mirror-name routing, missing
-continuation gate, source-base scaling, silent flags commit) — all
-fixed with shape-true tests. Verified: smoke **7/7**; calcite-cli A/B
-vs `main` **byte-identical** (cycles+IP, all 7 smoke carts × 2M
-ticks); 3-run `doom-all --headed` medians **+0.50% wall / −1.49% t/s /
-+0.85% doomLoad** vs a fresh main baseline (t/s inside the ±3% run
-noise; JSONs in `docs/benches/doom-all-2026-06-09-*`). The blocker has
-moved from "built, broken" to **"verified on branch — merge to calcite
-main is the remaining step"** (plus the merge-review warts in calcite
-log 2026-06-09: hardcoded "IP"/"cycleCount" commit names, `--opcode`
-diagnostic reads, LODS loud hole).
+**Remaining genericity residue (tracked, NOT active cheats):**
+`column_drawer_fast_forward` + `COLUMN_DRAWER_BODY` (~280 lines of
+upstream-knowledge code in compile.rs) is **default-off** (env
+`CALCITE_FUSION_FASTFWD`, disabled 2026-04-29 as a perf net-loss,
+hard-`false` on wasm) — dead code queued for deletion. LODS-shape
+`Full` commit refuses loudly (accumulator not modelled; unreached by
+any current cart, proven by the A/B).
 
 ## Active work (detail in `../plans/`; done/dead → LOGBOOK only)
 
-1. **`rep_fast_forward` generic applier — VERIFIED ON BRANCH
-   2026-06-09; remaining step is the merge.** Calcite
-   `feat/rep-generic` `17fe7da` (pushed) deletes the 341-line x86
-   table and routes purely through `LoopDescriptor` → `BulkClass`.
-   Smoke 7/7; A/B vs main byte-identical (7 carts × 2M ticks); bench
-   +0.5% wall / −1.5% t/s (inside noise). Remaining: merge review on
-   calcite (warts listed in calcite log 2026-06-09 — hardcoded
-   "IP"/"cycleCount" commit names should become descriptor fields,
-   `--opcode` diagnostic reads, LODS Full-commit loud hole), then
-   merge to calcite `main` and re-run smoke + a doom spot-check from
-   main. Plan: `../plans/2026-05-06-rep-fast-forward-genericity.md`.
+1. **Delete `column_drawer_fast_forward` dead code** — ~280 lines of
+   default-off upstream-knowledge code in calcite `compile.rs`
+   (`CALCITE_FUSION_FASTFWD` gate, disabled 2026-04-29 as a perf
+   net-loss). Never runs; deleting it removes the last x86-aware
+   code block from calcite. Small, supervised-cleanup-sized.
 3. **Per-dispatch-key specialisation** — structurally upstream of
    all perf work; probed on the branch 2026-05-12 (not on `main`).
    Plan: `../plans/2026-05-12-per-dispatch-key-specialisation.md`.
@@ -100,21 +74,19 @@ diagnostic reads, LODS loud hole).
    calcite copy-elimination (36% of dispatched ops are moves; calcite
    log 2026-06-09). LOGBOOK 2026-06-09 ×2 for both findings.
 
-## Git state (verified 2026-06-09)
+## Git state (verified 2026-06-10)
 
-- **CSS-DOS** `master`: pending commit for this 2026-06-09 work
-  (logbook/STATUS/plans + `docs/benches/doom-all-2026-06-09-*`).
-  Pre-existing untracked `broken-session-transcript.txt` and modified
+- **CSS-DOS** `master`: pending commit for the 2026-06-10 docs
+  (logbook/STATUS/plan deletion). Pre-existing untracked
+  `broken-session-transcript.txt` and modified
   `web/prebake/{corduroy,gossamer}.meta.json` are NOT from this
   session — left untouched for owner triage.
-- **calcite** `main` == `origin/main` == **`2fe54c6`** (docs/log
-  commits on top of `8de61a8`; code unchanged since the keyboard
-  merge).
-- **calcite `feat/rep-generic` (`17fe7da`, on origin)** — the
-  rep_fast_forward cheat removal, now **verified** (smoke 7/7,
-  byte-identical A/B, bench within gate — see ship-blocker section).
-  Branched from `8de61a8`. Its worktree
-  `calcite/.claude/worktrees/rep-generic` is clean (work committed).
+- **calcite** `main` == `origin/main` == **`92af379`** (log entry on
+  top of merge `cc729b2`, which lands `feat/rep-generic` — the
+  rep_fast_forward cheat removal + merge-review fixes; see
+  ship-blocker section). Branch `feat/rep-generic` (`b2dc52d`, on
+  origin) is now merged; its worktree
+  `calcite/.claude/worktrees/rep-generic` is clean.
 - Genericity work safe on `origin/feat/calcite-genericity`
   (`3592bf0`); keyboard rework on
   `origin/feat/keyboard-pseudo-input` (`baf3086`); both
@@ -128,10 +100,11 @@ diagnostic reads, LODS loud hole).
 - **Deferred git cleanup (NOT done — needs owner triage):** 7 calcite
   worktrees under `.claude/worktrees/` each have uncommitted changes
   (2–33 files); pruning any destroys that work. `worktree-rep-3b`
-  (`645f497`, on `origin/worktree-rep-3b`) is **live ship-blocker
-  work** (rep_fast_forward phase 3b applier), NOT stale — do not
-  prune. The stale worktree/branch removal is its own supervised
-  task, not a docs-session action.
+  (`645f497`, on `origin/worktree-rep-3b`) was an alternative
+  rep_fast_forward phase-3b applier — **superseded by the 2026-06-10
+  merge** of `feat/rep-generic`; now a pruning candidate, but the
+  stale worktree/branch removal is its own supervised task, not a
+  docs-session action.
 - Pre-existing base debt: `ef44f20`'s calcite lib-*test* target
   fails to compile (`script.rs` `Stride{every,last_fired_at}` vs
   `script_spec.rs:309` `Stride{every}`). `cargo build` is green;
