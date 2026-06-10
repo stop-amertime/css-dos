@@ -91,31 +91,38 @@ methodology has to be consistent or those comparisons are noise.
 optimisation pays off most, and it's also where regressions hide.
 Watch this number specifically.
 
-### Current baseline (2026-05-08, old-kbd branch, BIF2 OFF, 3-run `doom-all` median)
+### Current baseline (2026-06-10, calcite `9ecc6de` post copy-elim, 3-run `doom-all` median)
 
 | Phase / metric | Value |
 |---|---:|
-| compile        | 27.8 s |
-| dosBoot        | 9.0 s |
+| compile        | ~33 s (drifts — see note) |
+| dosBoot        | 8.0 s |
 | doomTitle      | 0.5 s |
-| doomMenuDelay  | 2.6 s |
-| **doomLoad**   | **68.5 s** (≈85 % of engine-run wall) |
+| doomMenuDelay  | 1.1 s |
+| **doomLoad**   | **60.8 s** (≈86 % of engine-run wall) |
 | warmup         | 8.0 s |
 | measure        | 20.0 s |
-| **runMsToInGame** | **79.7 s** |
-| **ticksPerSecAvg** | **423 K** |
+| **runMsToInGame** | **70.5 s** |
+| **ticksPerSecAvg** | **477 K** |
 | **ingameFps**     | **~1-2** (noisy) |
 
-The FPS figure is **fuzzy**: across the 2026-05-08 3-run sample it
-ranged 0.70-1.80 — a ±2× spread that's host-CPU / Chrome-GC noise.
-User observed ~1-2 fps interactively on 2026-05-11. Don't compare
-single FPS numbers; use ticksPerSecAvg or `runMsToInGame` (both
-±3 %) as the actual perf signal.
+Raw JSONs under `docs/benches/doom-all-2026-06-10-copyelim-*.json`.
+History: 2026-06-09 (rep-generic) 75.0 s / 456 K / doomLoad 63.65 s;
+2026-05-08 (old-kbd, BIF2 OFF) 79.7 s / 423 K / doomLoad 68.5 s.
 
-Raw JSONs under `docs/benches/doom-all-2026-05-08-old-kbd-*.json`.
-With BIF2 fusion ON: 77.1 s / 443 K ticks/sec (~+4-5 % throughput;
-FPS delta is inside the noise floor — don't quote a percent-FPS
-win unless you've run enough samples to push the band below it).
+**Compile-wall drift warning:** compileMs is NOT comparable across
+days — pass-off measured 31.6 s on 2026-06-10 vs 24.6 s on
+2026-06-09 on the same code (host/Chrome state). For compile-cost
+claims, A/B the same day (`compile-only` profile); for perf claims,
+use the runtime metrics (`ticksPerSecAvg`, `runMsToInGame`,
+`doomLoad`), which are stable to ±3 % across days.
+
+The FPS figure is **fuzzy**: ±2× spread from host-CPU / Chrome-GC
+noise. Don't compare single FPS numbers; use ticksPerSecAvg or
+`runMsToInGame` as the actual perf signal.
+
+With BIF2 fusion ON (measured 2026-05-08 era): ~+4-5 % throughput;
+FPS delta inside the noise floor.
 
 ### Before you run a bench — quiet the host
 

@@ -70,19 +70,20 @@ any current cart, proven by the A/B).
    `../plans/2026-05-12-routine-semantic-substitution.md`.
 5. **doomLoad kernel-side characterisation** — NEW 2026-06-09. Half
    of doomLoad ticks are the DOS kernel's file-I/O loops — platform
-   work, no cardinal rule. Also queued from the same analysis:
-   calcite copy-elimination (36% of dispatched ops are moves; calcite
-   log 2026-06-09). LOGBOOK 2026-06-09 ×2 for both findings.
+   work, no cardinal rule. LOGBOOK 2026-06-09. (The other lever from
+   that analysis — calcite copy-elimination — LANDED 2026-06-10 on
+   calcite `main` `967ddad`+`9ecc6de`: ops/tick 846→695, web +4.6%
+   t/s / doomLoad −4.4%; LOGBOOK + calcite log 2026-06-10.)
 
 ## Git state (verified 2026-06-10)
 
-- **CSS-DOS** `master`: pending commit for the 2026-06-10 docs
-  (logbook/STATUS/plan deletion). Pre-existing untracked
-  `broken-session-transcript.txt` and modified
-  `web/prebake/{corduroy,gossamer}.meta.json` are NOT from this
-  session — left untouched for owner triage.
-- **calcite** `main` == `origin/main` == **`92af379`** (log entry on
-  top of merge `cc729b2`, which lands `feat/rep-generic` — the
+- **CSS-DOS** `master`: clean except the 2026-06-10 copy-elim docs
+  commit. Pre-existing untracked `broken-session-transcript.txt` and
+  modified `web/prebake/{corduroy,gossamer}.meta.json` are NOT from
+  this session — left untouched for owner triage.
+- **calcite** `main` == `origin/main` == **`9ecc6de`** (copy-elim
+  pass `967ddad` + its wasm compile-cost fix, on top of `92af379` /
+  merge `cc729b2` which landed `feat/rep-generic` — the
   rep_fast_forward cheat removal + merge-review fixes; see
   ship-blocker section). Branch `feat/rep-generic` (`b2dc52d`, on
   origin) is now merged; its worktree
@@ -122,17 +123,26 @@ Prince of Persia → title screen.
 **Architecture:** V4 single-cycle, one instruction per CSS tick,
 3-word-slot scheme default. Default BIOS: Corduroy.
 
-## Perf baseline (2026-05-08, web `--headed`, 3-run doom-all median)
+## Perf baseline (2026-06-10, web `--headed`, 3-run doom-all median)
+
+Post copy-elimination (calcite `9ecc6de`). JSONs:
+`docs/benches/doom-all-2026-06-10-copyelim-run{1,2,3}.json`.
 
 | Phase | Wall | | Phase | Wall |
 |---|--:|---|---|--:|
-| compile | 27.8 s | | doomLoad | **68.5 s** |
-| dosBoot | 9.0 s | | engine-run total | **79.7 s** |
-| title+menu | 3.1 s | | throughput | 423 K t/s |
+| compile | ~33 s¹ | | doomLoad | **60.8 s** |
+| dosBoot | 8.0 s | | engine-run total | **70.5 s** |
+| title+menu | 1.6 s | | throughput | 477 K t/s |
+
+¹ Web compile wall drifts day-to-day (pass-off measured 31.6 s the
+same day vs 24.6 s on 2026-06-09); the pass itself costs ~1.7 s
+(same-day A/B). Only runtime metrics are cross-day comparable.
+History: 2026-06-09 baseline 75.0 s / 456 K / doomLoad 63.65 s;
+2026-05-08 baseline 79.7 s / 423 K / doomLoad 68.5 s.
 
 Steady-state FPS: fuzzy **~1-2 fps** band (±2× run noise — never
 quote a single FPS number). Wall and ticks/sec are stable to ±3%.
-**doomLoad is ~85% of engine-run — perf attention belongs there.**
+**doomLoad is ~86% of engine-run — perf attention belongs there.**
 BIF2 fusion is a real but modest +4-8% web win (the 2026-05-07
 +47% figure was a CLI-bench artefact against a regressed baseline —
 do not quote it).
