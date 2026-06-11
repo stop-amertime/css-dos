@@ -94,6 +94,11 @@ export function resolveManifest(manifest, files, presets = {}) {
     errors.push(`version: must be semver; got ${JSON.stringify(manifest.version)}`);
   }
 
+  const spc = merged.disk?.sectorsPerCluster;
+  if (spc != null && (!Number.isInteger(spc) || spc < 1 || spc > 128 || (spc & (spc - 1)) !== 0)) {
+    errors.push(`disk.sectorsPerCluster: must be a power of 2 between 1 and 128; got ${JSON.stringify(spc)}`);
+  }
+
   // Source-escapes-cart check — caller (floppy stage) also validates,
   // but a shape check here is cheap.
   if (merged.disk?.files) {

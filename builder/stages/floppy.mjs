@@ -112,7 +112,12 @@ export function buildFloppy({ cart, manifest, cacheDir }) {
     { autofitBytes: contentBytes },
   );
   const totalSectors = diskBytes / 512;
-  const bytes = buildFat12Image(fatFiles, { ...geometry, totalSectors });
+  // disk.sectorsPerCluster (optional) raises the minimum cluster size.
+  // DOS walks a file's FAT chain per seek/read — programs that seek a lot
+  // in a large file (Doom8088's lump loads) burn most of their I/O time
+  // stepping 1 KB clusters. Bigger clusters shorten the chain linearly.
+  const sectorsPerCluster = manifest.disk?.sectorsPerCluster;
+  const bytes = buildFat12Image(fatFiles, { ...geometry, totalSectors, sectorsPerCluster });
 
   // Annotate sizes post-hoc.
   for (const f of layout) {

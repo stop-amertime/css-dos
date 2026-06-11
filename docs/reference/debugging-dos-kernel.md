@@ -8,19 +8,31 @@ kernel code is doing internally.
 
 ### Kernel map file
 
-Location: `dos/ke2044_86f16.zip` -> `bin/kwc8616.map`
+There is no checked-in map. The deployed `dos/bin/kernel.sys` is EDR-DOS
+build `20250427` rev `72ae65f`; regenerate the linker maps by building
+that exact rev from the `../edrdos` clone (rev is an ancestor of HEAD):
 
-Maps addresses to symbol names. When you see the CPU stuck at `9675:61D0`,
-compute the offset from the kernel's relocated base and look up the function.
+```sh
+git -C ../edrdos worktree add /tmp/edrdos-72ae65f 72ae65f
+cd /tmp/edrdos-72ae65f
+# needs OpenWatcom (C:\WATCOM) + JWasm on PATH
+wmake -h clean all SINGLEFILE=1 VERSION=20250427 GIT_REV=72ae65f
+# maps: drdos/bin/drdos.map (file system), drbio/bin/drbio.map (BIO)
+# sanity: bin/kernel.sys differs from dos/bin/kernel.sys only in the
+# two embedded build-timestamp strings (19 ASCII bytes)
+```
 
-**How to use:**
-1. The kernel loads at `0060:0000` (linear `0x600`) and relocates itself upward.
-   The relocated CS is visible in traces (e.g., `CS=9675`).
-2. IP value is the offset from CS. Cross-reference with TGROUP/HMA_TEXT
-   segment offsets in the map.
-3. Key symbols: `_DPBp` (disk parameter blocks), `_sfthead` (system file table),
-   `_first_mcb` (memory control blocks), `_CDSp` (current directory structure),
-   `_syscon` (console device), `_clock` (clock device).
+**How to use (verified 2026-06-11 against the running guest):**
+1. The DRDOS (file-system) module runs with **CS = 0x55** (image base,
+   linear 0x550). IP = linear offset within the image, so a sampled
+   `0x55:IP` resolves directly against `drdos.map` addresses
+   (`seg:off` in the map → linear `seg*16+off`).
+2. The code group `PCMCODE` spans image offsets 0–0xB9E0; `BDOS_CODE`
+   (0x67AA–0xB0BA) is where file-I/O hot spots live (`fatptr`,
+   `getblk`, `fdosrw`, `locate_buffer`, `div32`).
+3. **Beware the old FreeDOS map**: git history contains
+   `dos/bin/kwc8616.map` (deleted in `d60f8af`) from a FreeDOS-kernel
+   era. Its symbols do NOT match the EDR-DOS kernel — don't use it.
 
 ### EDR-DOS source
 

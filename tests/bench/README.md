@@ -87,33 +87,34 @@ methodology has to be consistent or those comparisons are noise.
 }
 ```
 
-**doomLoad is ~85 % of the engine-run wall** — that's where perf
-optimisation pays off most, and it's also where regressions hide.
-Watch this number specifically.
+**doomLoad is ~67 % of the engine-run wall** (was ~86 % before the
+2026-06-11 FAT-cluster fix) — still where perf optimisation pays off
+most, and where regressions hide. Watch this number specifically.
 
-### Current baseline (2026-06-10, calcite `9ecc6de` post copy-elim, 3-run `doom-all` median)
+### Current baseline (2026-06-11, post FAT-cluster fix, single healthy run)
 
 | Phase / metric | Value |
 |---|---:|
-| compile        | ~33 s (drifts — see note) |
-| dosBoot        | 8.0 s |
-| doomTitle      | 0.5 s |
-| doomMenuDelay  | 1.1 s |
-| **doomLoad**   | **60.8 s** (≈86 % of engine-run wall) |
+| compile        | ~27 s (drifts — see note) |
+| dosBoot        | 7.8 s |
+| doomTitle      | 0.0 s |
+| doomMenuDelay  | 1.6 s |
+| **doomLoad**   | **19.1 s** (≈67 % of engine-run wall) |
 | warmup         | 8.0 s |
 | measure        | 20.0 s |
-| **runMsToInGame** | **70.5 s** |
-| **ticksPerSecAvg** | **477 K** |
+| **runMsToInGame** | **28.6 s** |
+| **ticksPerSecAvg** | **478 K** |
 | **ingameFps**     | **~1-2** (noisy) |
 
-Raw JSONs under `docs/benches/doom-all-2026-06-10-copyelim-*.json`.
-History: 2026-06-09 (rep-generic) 75.0 s / 456 K / doomLoad 63.65 s;
-2026-05-08 (old-kbd, BIF2 OFF) 79.7 s / 423 K / doomLoad 68.5 s.
-
-Stale by one landing: 2026-06-11 short-dense-chains (calcite
-`f2c8615`) measured ~+3-5 % t/s by same-day A/B on a host running
-~35 % degraded (see the 2026-06-11 JSONs) — absolutes from that day
-are not comparable to this table. Re-baseline on a healthy host.
+Raw JSON `docs/benches/doom-all-2026-06-11-spc32-run1.json`; A/B refs
+`...spcref-run*.json`. The host flapped healthy↔3×-degraded that day,
+so this is a single healthy run, not a 3-run median — a clean median
+re-baseline is owed; ticks are deterministic (boot→ingame 13.5–13.7M
+every run) so tick-based claims are safe. Sanity-check ticksPerSecAvg
+(~478 K healthy vs ~175 K degraded) before trusting any wall number.
+History: 2026-06-10 (copy-elim, pre-cluster-fix, 3-run median) 70.5 s
+/ 477 K / doomLoad 60.8 s; 2026-06-09 (rep-generic) 75.0 s / 456 K /
+63.65 s; 2026-05-08 (old-kbd, BIF2 OFF) 79.7 s / 423 K / 68.5 s.
 
 **Compile-wall drift warning:** compileMs is NOT comparable across
 days — pass-off measured 31.6 s on 2026-06-10 vs 24.6 s on

@@ -68,12 +68,13 @@ any current cart, proven by the A/B).
    `__I4D` is ~22% and the **EDR-DOS kernel is ~49% of doomLoad**.
    Plan (correction note added):
    `../plans/2026-05-12-routine-semantic-substitution.md`.
-5. **doomLoad kernel-side characterisation** — NEW 2026-06-09. Half
-   of doomLoad ticks are the DOS kernel's file-I/O loops — platform
-   work, no cardinal rule. LOGBOOK 2026-06-09. (The other lever from
-   that analysis — calcite copy-elimination — LANDED 2026-06-10 on
-   calcite `main` `967ddad`+`9ecc6de`: ops/tick 846→695, web +4.6%
-   t/s / doomLoad −4.4%; LOGBOOK + calcite log 2026-06-10.)
+5. **doomLoad kernel side — RESOLVED 2026-06-11.** Characterised to
+   EDR-DOS routine level (`fatptr` FAT chain walk = 21% of doomLoad
+   alone) and fixed via new `disk.sectorsPerCluster` cart option
+   (doom8088 → 32, 16K clusters): **doomLoad ticks −68.7%
+   (29.55M→9.25M), web 59.6→19.1 s** (LOGBOOK 2026-06-11).
+   Follow-ups: apply to zork-big / prince-of-persia; remaining
+   per-read syscall overhead (fdrw div64s, deblock copies).
 
 ## Git state (verified 2026-06-10)
 
@@ -125,34 +126,35 @@ Prince of Persia → title screen.
 **Architecture:** V4 single-cycle, one instruction per CSS tick,
 3-word-slot scheme default. Default BIOS: Corduroy.
 
-## Perf baseline (2026-06-10, web `--headed`, 3-run doom-all median)
+## Perf baseline (2026-06-11, web `--headed`, doom-all)
 
-Post copy-elimination (calcite `9ecc6de`). JSONs:
-`docs/benches/doom-all-2026-06-10-copyelim-run{1,2,3}.json`.
-**Stale by one landing:** 2026-06-11 short-dense-chains (`f2c8615`)
-added ~+3–5% t/s by same-day A/B, but the bench host ran ~35%
-degraded that whole day (310K vs 477K t/s) so absolute numbers were
-not comparable — table below is still the 06-10 run. Re-baseline on
-a healthy host before the next perf claim (LOGBOOK 2026-06-11).
+Post FAT-cluster fix (`disk.sectorsPerCluster: 32` for doom8088,
+LOGBOOK 2026-06-11). Single healthy-host run
+(`docs/benches/doom-all-2026-06-11-spc32-run1.json`); the host
+flapped healthy↔3×-degraded that day, so a clean 3-run median is
+still owed — but ticks are deterministic (boot→ingame 13.5–13.7M on
+every run/transport) and within-state wall pairs agree to ±1%.
 
 | Phase | Wall | | Phase | Wall |
 |---|--:|---|---|--:|
-| compile | ~33 s¹ | | doomLoad | **60.8 s** |
-| dosBoot | 8.0 s | | engine-run total | **70.5 s** |
-| title+menu | 1.6 s | | throughput | 477 K t/s |
+| compile | ~27 s¹ | | doomLoad | **19.1 s** |
+| dosBoot | 7.8 s | | engine-run total | **28.6 s** |
+| title+menu | 1.6 s | | throughput | 478 K t/s |
 
-¹ Web compile wall drifts day-to-day (pass-off measured 31.6 s the
-same day vs 24.6 s on 2026-06-09); the pass itself costs ~1.7 s
-(same-day A/B). Only runtime metrics are cross-day comparable.
-History: 2026-06-09 baseline 75.0 s / 456 K / doomLoad 63.65 s;
-2026-05-08 baseline 79.7 s / 423 K / doomLoad 68.5 s.
+¹ Web compile wall drifts day-to-day; only runtime metrics are
+cross-day comparable. History: 2026-06-10 baseline (pre-cluster-fix)
+70.5 s / 477 K / doomLoad 60.8 s; 2026-06-09 75.0 s / 456 K / 63.65;
+2026-05-08 79.7 s / 423 K / 68.5. The 2026-06-11 short-dense-chains
+calcite change (~+3–5% t/s) is also in these numbers.
 
 Steady-state FPS: fuzzy **~1-2 fps** band (±2× run noise — never
-quote a single FPS number). Wall and ticks/sec are stable to ±3%.
-**doomLoad is ~86% of engine-run — perf attention belongs there.**
-BIF2 fusion is a real but modest +4-8% web win (the 2026-05-07
-+47% figure was a CLI-bench artefact against a regressed baseline —
-do not quote it).
+quote a single FPS number). Wall and ticks/sec are stable to ±3%
+when the host is healthy (it ran 3×-degraded for stretches of
+2026-06-10/11 — sanity-check ticks/s before trusting any wall).
+**doomLoad is now ~67% of engine-run** (was 86%); the rest of it is
+per-read syscall overhead + Doom's own load code. BIF2 fusion is a
+real but modest +4-8% web win (the 2026-05-07 +47% figure was a
+CLI-bench artefact against a regressed baseline — do not quote it).
 
 Quote 3-run web medians for any perf claim. Required reading before
 benching: [`tests/bench/README.md`](../../tests/bench/README.md)

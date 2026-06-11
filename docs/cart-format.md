@@ -237,6 +237,21 @@ Floppy size.
 `tools/mkfat12.mjs`. The schema accepts the field; the builder plumbing
 is a follow-up.
 
+#### `disk.sectorsPerCluster` · implemented
+
+Minimum FAT12 cluster size, in 512-byte sectors. Power of 2, 1–128.
+Default: smallest value that keeps the cluster count under the FAT12
+cap (SPC=2 for a 2880K floppy). The builder still doubles it further
+if needed to respect that cap.
+
+Why you'd set it: DOS walks a file's FAT chain entry-by-entry on every
+seek (and from the *start* of the chain on every backward seek). A
+program that seeks around a large file — Doom8088 lump loads — spends
+most of its I/O time stepping the chain. Raising SPC shortens chains
+linearly: at 32 (16 KB clusters) a 1.5 MB file is ~94 links instead of
+~1500. Cost: more slack per file (avg SPC×256 bytes), irrelevant on a
+fixed-size image with few files.
+
 #### `disk.writable` · aspirational
 
 When `true`, INT 13h accepts writes. Writes go to a RAM shadow; nothing

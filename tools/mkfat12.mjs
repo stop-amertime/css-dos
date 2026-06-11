@@ -26,11 +26,16 @@
  * @param {Array<{name: string, bytes: Uint8Array}>} files
  *   Files to include. `name` may use backslash for a single subdirectory
  *   level, e.g. `"DATA\\ZORK1.DAT"`. Names are uppercased automatically.
- * @param {{cyls: number, heads: number, spt: number, totalSectors?: number}} [geometry]
+ * @param {{cyls: number, heads: number, spt: number, totalSectors?: number,
+ *          sectorsPerCluster?: number}} [geometry]
  *   Optional geometry. If provided, the disk is sized to `totalSectors *
  *   512` (or `cyls*heads*spt*512` if totalSectors omitted) and the BPB
  *   records this geometry. If omitted, the disk is auto-sized to fit
  *   content and uses a generic 1.44 MB-style 2/18 geometry.
+ *   `sectorsPerCluster` sets a minimum cluster size (power of 2, max 128);
+ *   it is still doubled as needed to respect the FAT12 cluster-count cap.
+ *   Bigger clusters mean shorter FAT chains — DOS walks the chain per
+ *   seek/read, so cluster size directly scales file-I/O overhead.
  * @returns {Uint8Array} Raw FAT12 disk image.
  */
 export function buildFat12Image(files, geometry) {
@@ -103,8 +108,15 @@ export function buildFat12Image(files, geometry) {
   // sector count, not just "clusters our content actually occupies".
   //
   // So SPC is driven by TOTAL_SECTORS, not by contentSectorsNeeded. We start
-  // at SPC=1 and double until dataClusters <= FAT12_MAX_CLUSTERS.
-  let SECTORS_PER_CLUSTER = 1;
+  // at SPC=1 (or the caller's requested minimum) and double until
+  // dataClusters <= FAT12_MAX_CLUSTERS.
+  const minSpc = geometry?.sectorsPerCluster ?? 1;
+  if (!Number.isInteger(minSpc) || minSpc < 1 || minSpc > 128 || (minSpc & (minSpc - 1)) !== 0) {
+    throw new Error(
+      `buildFat12Image: sectorsPerCluster must be a power of 2 between 1 and 128; got ${minSpc}`
+    );
+  }
+  let SECTORS_PER_CLUSTER = minSpc;
   let FAT_SECTORS, DATA_START_SECTOR, dataSectors, dataClusters;
   for (;;) {
     // dataClusters that DOS will compute on mount = floor((TOTAL - dataStart) / SPC).
