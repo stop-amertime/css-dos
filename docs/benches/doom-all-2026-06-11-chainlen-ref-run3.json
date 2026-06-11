@@ -1,0 +1,1576 @@
+{
+  "ok": true,
+  "profileName": "doom-all",
+  "runMsToInGame": 115731.66499999166,
+  "ticksToInGame": 34632234,
+  "warmupSeconds": 8,
+  "measureSeconds": 20.005205000013113,
+  "framesChanged": 15,
+  "ingameFps": 0.7498048632838388,
+  "fpsSamples": [
+    {
+      "wallMs": 1014,
+      "framesChangedSinceStart": 0,
+      "instantaneousFps": 0
+    },
+    {
+      "wallMs": 2040,
+      "framesChangedSinceStart": 1,
+      "instantaneousFps": 1
+    },
+    {
+      "wallMs": 3052,
+      "framesChangedSinceStart": 2,
+      "instantaneousFps": 1
+    },
+    {
+      "wallMs": 4052,
+      "framesChangedSinceStart": 2,
+      "instantaneousFps": 0
+    },
+    {
+      "wallMs": 5055,
+      "framesChangedSinceStart": 3,
+      "instantaneousFps": 1
+    },
+    {
+      "wallMs": 6098,
+      "framesChangedSinceStart": 3,
+      "instantaneousFps": 0
+    },
+    {
+      "wallMs": 7109,
+      "framesChangedSinceStart": 4,
+      "instantaneousFps": 1
+    },
+    {
+      "wallMs": 8136,
+      "framesChangedSinceStart": 4,
+      "instantaneousFps": 0
+    },
+    {
+      "wallMs": 9136,
+      "framesChangedSinceStart": 6,
+      "instantaneousFps": 2
+    },
+    {
+      "wallMs": 10155,
+      "framesChangedSinceStart": 6,
+      "instantaneousFps": 0
+    },
+    {
+      "wallMs": 11265,
+      "framesChangedSinceStart": 7,
+      "instantaneousFps": 1
+    },
+    {
+      "wallMs": 12294,
+      "framesChangedSinceStart": 8,
+      "instantaneousFps": 1
+    },
+    {
+      "wallMs": 13308,
+      "framesChangedSinceStart": 9,
+      "instantaneousFps": 1
+    },
+    {
+      "wallMs": 14334,
+      "framesChangedSinceStart": 9,
+      "instantaneousFps": 0
+    },
+    {
+      "wallMs": 15363,
+      "framesChangedSinceStart": 10,
+      "instantaneousFps": 1
+    },
+    {
+      "wallMs": 16389,
+      "framesChangedSinceStart": 12,
+      "instantaneousFps": 2
+    },
+    {
+      "wallMs": 17419,
+      "framesChangedSinceStart": 12,
+      "instantaneousFps": 0
+    },
+    {
+      "wallMs": 18435,
+      "framesChangedSinceStart": 14,
+      "instantaneousFps": 2
+    },
+    {
+      "wallMs": 19456,
+      "framesChangedSinceStart": 14,
+      "instantaneousFps": 0
+    }
+  ],
+  "stages": {
+    "text_drdos": {
+      "tick": 414156,
+      "wallMs": 1075.7450000047684
+    },
+    "text_doom": {
+      "tick": 1559472,
+      "wallMs": 4820.824999988079
+    },
+    "title": {
+      "tick": 3844815,
+      "wallMs": 12195.659999996424
+    },
+    "menu": {
+      "tick": 4111473,
+      "wallMs": 12739.669999986887
+    },
+    "loading": {
+      "tick": 5097052,
+      "wallMs": 16423.919999986887
+    },
+    "ingame": {
+      "tick": 34632234,
+      "wallMs": 115731.66499999166
+    }
+  },
+  "phases": {
+    "dosBoot": 12195.659999996424,
+    "doomTitle": 544.0099999904633,
+    "doomMenuDelay": 3684.25,
+    "doomLoad": 99307.74500000477,
+    "warmup": 8000,
+    "measure": 20005
+  },
+  "statsSamples": [
+    {
+      "wallMs": 1061,
+      "cycles": 5130606,
+      "ticks": 336273,
+      "framesEncoded": 13,
+      "fpsWindow": 13,
+      "batchCount": 11126,
+      "batchMsEma": 34.1087230224363,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 2033,
+      "cycles": 12356398,
+      "ticks": 629218,
+      "framesEncoded": 27,
+      "fpsWindow": 14,
+      "batchCount": 14016,
+      "batchMsEma": 32.69983952511626,
+      "videoMode": 3
+    },
+    {
+      "wallMs": 3051,
+      "cycles": 16069376,
+      "ticks": 966144,
+      "framesEncoded": 41,
+      "fpsWindow": 14,
+      "batchCount": 9601,
+      "batchMsEma": 31.866876736379304,
+      "videoMode": 3
+    },
+    {
+      "wallMs": 4061,
+      "cycles": 19628385,
+      "ticks": 1305137,
+      "framesEncoded": 57,
+      "fpsWindow": 16,
+      "batchCount": 11445,
+      "batchMsEma": 35.59471077588696,
+      "videoMode": 3
+    },
+    {
+      "wallMs": 5061,
+      "cycles": 24850482,
+      "ticks": 1629354,
+      "framesEncoded": 71,
+      "fpsWindow": 14,
+      "batchCount": 12416,
+      "batchMsEma": 36.31832772658215,
+      "videoMode": 3
+    },
+    {
+      "wallMs": 6031,
+      "cycles": 28785409,
+      "ticks": 1929720,
+      "framesEncoded": 85,
+      "fpsWindow": 14,
+      "batchCount": 10347,
+      "batchMsEma": 32.76610209831971,
+      "videoMode": 3
+    },
+    {
+      "wallMs": 7026,
+      "cycles": 32183474,
+      "ticks": 2238218,
+      "framesEncoded": 99,
+      "fpsWindow": 14,
+      "batchCount": 9662,
+      "batchMsEma": 23.2351683130777,
+      "videoMode": 3
+    },
+    {
+      "wallMs": 8056,
+      "cycles": 34988153,
+      "ticks": 2552668,
+      "framesEncoded": 113,
+      "fpsWindow": 14,
+      "batchCount": 9227,
+      "batchMsEma": 33.164090795842434,
+      "videoMode": 3
+    },
+    {
+      "wallMs": 9055,
+      "cycles": 38589063,
+      "ticks": 2886591,
+      "framesEncoded": 127,
+      "fpsWindow": 14,
+      "batchCount": 10709,
+      "batchMsEma": 32.770156271810635,
+      "videoMode": 3
+    },
+    {
+      "wallMs": 10062,
+      "cycles": 41594547,
+      "ticks": 3213214,
+      "framesEncoded": 142,
+      "fpsWindow": 15,
+      "batchCount": 10559,
+      "batchMsEma": 33.44559548963305,
+      "videoMode": 3
+    },
+    {
+      "wallMs": 11036,
+      "cycles": 44425849,
+      "ticks": 3518650,
+      "framesEncoded": 156,
+      "fpsWindow": 14,
+      "batchCount": 10410,
+      "batchMsEma": 34.0118382650127,
+      "videoMode": 3
+    },
+    {
+      "wallMs": 12071,
+      "cycles": 47945302,
+      "ticks": 3844815,
+      "framesEncoded": 171,
+      "fpsWindow": 15,
+      "batchCount": 11614,
+      "batchMsEma": 33.13233764186085,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 13047,
+      "cycles": 54125059,
+      "ticks": 4153065,
+      "framesEncoded": 186,
+      "fpsWindow": 15,
+      "batchCount": 10858,
+      "batchMsEma": 32.58978530090934,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 14054,
+      "cycles": 57863655,
+      "ticks": 4473316,
+      "framesEncoded": 201,
+      "fpsWindow": 15,
+      "batchCount": 10586,
+      "batchMsEma": 31.850221500883585,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 15059,
+      "cycles": 60838350,
+      "ticks": 4721752,
+      "framesEncoded": 215,
+      "fpsWindow": 14,
+      "batchCount": 6902,
+      "batchMsEma": 38.50090430812223,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 16048,
+      "cycles": 64363744,
+      "ticks": 4979258,
+      "framesEncoded": 229,
+      "fpsWindow": 14,
+      "batchCount": 9953,
+      "batchMsEma": 34.53513381238408,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 17033,
+      "cycles": 68652777,
+      "ticks": 5285605,
+      "framesEncoded": 243,
+      "fpsWindow": 14,
+      "batchCount": 10054,
+      "batchMsEma": 32.54754966671649,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 18046,
+      "cycles": 71745524,
+      "ticks": 5571875,
+      "framesEncoded": 257,
+      "fpsWindow": 14,
+      "batchCount": 9022,
+      "batchMsEma": 32.97442147682055,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 19063,
+      "cycles": 75251756,
+      "ticks": 5897651,
+      "framesEncoded": 272,
+      "fpsWindow": 15,
+      "batchCount": 16984,
+      "batchMsEma": 32.131361570669355,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 20037,
+      "cycles": 78357209,
+      "ticks": 6177293,
+      "framesEncoded": 286,
+      "fpsWindow": 14,
+      "batchCount": 7859,
+      "batchMsEma": 33.779696368048256,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 21050,
+      "cycles": 80988580,
+      "ticks": 6424962,
+      "framesEncoded": 301,
+      "fpsWindow": 15,
+      "batchCount": 7981,
+      "batchMsEma": 33.2426648049045,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 22033,
+      "cycles": 83931711,
+      "ticks": 6691569,
+      "framesEncoded": 314,
+      "fpsWindow": 13,
+      "batchCount": 11736,
+      "batchMsEma": 28.182787917021862,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 23043,
+      "cycles": 87294573,
+      "ticks": 6995295,
+      "framesEncoded": 328,
+      "fpsWindow": 14,
+      "batchCount": 12580,
+      "batchMsEma": 28.833582556473417,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 24068,
+      "cycles": 90477480,
+      "ticks": 7290295,
+      "framesEncoded": 343,
+      "fpsWindow": 15,
+      "batchCount": 10613,
+      "batchMsEma": 32.83511704533558,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 25051,
+      "cycles": 93975058,
+      "ticks": 7605608,
+      "framesEncoded": 357,
+      "fpsWindow": 14,
+      "batchCount": 9149,
+      "batchMsEma": 32.34262891933975,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 26063,
+      "cycles": 97300271,
+      "ticks": 7913274,
+      "framesEncoded": 372,
+      "fpsWindow": 15,
+      "batchCount": 9725,
+      "batchMsEma": 33.91241616899969,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 27043,
+      "cycles": 100627398,
+      "ticks": 8213805,
+      "framesEncoded": 386,
+      "fpsWindow": 14,
+      "batchCount": 8508,
+      "batchMsEma": 36.2401407151376,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 28047,
+      "cycles": 103693450,
+      "ticks": 8497764,
+      "framesEncoded": 401,
+      "fpsWindow": 15,
+      "batchCount": 7519,
+      "batchMsEma": 32.309475575378315,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 29046,
+      "cycles": 106573718,
+      "ticks": 8759577,
+      "framesEncoded": 416,
+      "fpsWindow": 15,
+      "batchCount": 8698,
+      "batchMsEma": 30.16379670021356,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 30059,
+      "cycles": 109637553,
+      "ticks": 9036695,
+      "framesEncoded": 430,
+      "fpsWindow": 14,
+      "batchCount": 10524,
+      "batchMsEma": 32.52178323000502,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 31044,
+      "cycles": 112781341,
+      "ticks": 9327521,
+      "framesEncoded": 444,
+      "fpsWindow": 14,
+      "batchCount": 9130,
+      "batchMsEma": 34.37371896602333,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 32049,
+      "cycles": 116112908,
+      "ticks": 9629164,
+      "framesEncoded": 458,
+      "fpsWindow": 14,
+      "batchCount": 9770,
+      "batchMsEma": 34.166933196969474,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 33053,
+      "cycles": 119430342,
+      "ticks": 9931067,
+      "framesEncoded": 472,
+      "fpsWindow": 14,
+      "batchCount": 9941,
+      "batchMsEma": 33.146439284236635,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 34062,
+      "cycles": 122785937,
+      "ticks": 10238808,
+      "framesEncoded": 486,
+      "fpsWindow": 14,
+      "batchCount": 9941,
+      "batchMsEma": 34.50640079968051,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 35023,
+      "cycles": 126085113,
+      "ticks": 10535291,
+      "framesEncoded": 501,
+      "fpsWindow": 15,
+      "batchCount": 11051,
+      "batchMsEma": 30.511443564265452,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 36038,
+      "cycles": 129499904,
+      "ticks": 10852091,
+      "framesEncoded": 515,
+      "fpsWindow": 14,
+      "batchCount": 10646,
+      "batchMsEma": 33.03862209918349,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 37055,
+      "cycles": 133027799,
+      "ticks": 11171853,
+      "framesEncoded": 530,
+      "fpsWindow": 15,
+      "batchCount": 9215,
+      "batchMsEma": 33.52809610970673,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 38055,
+      "cycles": 136417319,
+      "ticks": 11483490,
+      "framesEncoded": 544,
+      "fpsWindow": 14,
+      "batchCount": 11408,
+      "batchMsEma": 33.347921599493205,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 39061,
+      "cycles": 139903746,
+      "ticks": 11800888,
+      "framesEncoded": 557,
+      "fpsWindow": 13,
+      "batchCount": 10362,
+      "batchMsEma": 33.21170744934919,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 40042,
+      "cycles": 143320829,
+      "ticks": 12113639,
+      "framesEncoded": 571,
+      "fpsWindow": 14,
+      "batchCount": 10192,
+      "batchMsEma": 35.46361982166715,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 41037,
+      "cycles": 146820602,
+      "ticks": 12434600,
+      "framesEncoded": 586,
+      "fpsWindow": 15,
+      "batchCount": 10793,
+      "batchMsEma": 30.999073360754235,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 42054,
+      "cycles": 150426783,
+      "ticks": 12761406,
+      "framesEncoded": 600,
+      "fpsWindow": 14,
+      "batchCount": 10170,
+      "batchMsEma": 33.99173653862207,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 43059,
+      "cycles": 153758604,
+      "ticks": 13070167,
+      "framesEncoded": 615,
+      "fpsWindow": 15,
+      "batchCount": 10094,
+      "batchMsEma": 32.55677719783333,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 44034,
+      "cycles": 157097228,
+      "ticks": 13370826,
+      "framesEncoded": 630,
+      "fpsWindow": 15,
+      "batchCount": 10490,
+      "batchMsEma": 33.45303806428538,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 45045,
+      "cycles": 160411406,
+      "ticks": 13674587,
+      "framesEncoded": 645,
+      "fpsWindow": 15,
+      "batchCount": 10385,
+      "batchMsEma": 33.937331543057894,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 46141,
+      "cycles": 164028383,
+      "ticks": 14003436,
+      "framesEncoded": 659,
+      "fpsWindow": 14,
+      "batchCount": 5354,
+      "batchMsEma": 58.54054586533249,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 47064,
+      "cycles": 167178361,
+      "ticks": 14291424,
+      "framesEncoded": 672,
+      "fpsWindow": 13,
+      "batchCount": 10903,
+      "batchMsEma": 32.947666646486596,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 48047,
+      "cycles": 170664761,
+      "ticks": 14610212,
+      "framesEncoded": 686,
+      "fpsWindow": 14,
+      "batchCount": 9809,
+      "batchMsEma": 34.389258910674926,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 49058,
+      "cycles": 173986707,
+      "ticks": 14912890,
+      "framesEncoded": 701,
+      "fpsWindow": 15,
+      "batchCount": 8858,
+      "batchMsEma": 33.02238026842701,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 50032,
+      "cycles": 176783196,
+      "ticks": 15170923,
+      "framesEncoded": 716,
+      "fpsWindow": 15,
+      "batchCount": 9848,
+      "batchMsEma": 31.178233877439556,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 51043,
+      "cycles": 180111323,
+      "ticks": 15471553,
+      "framesEncoded": 731,
+      "fpsWindow": 15,
+      "batchCount": 10079,
+      "batchMsEma": 32.30192380764227,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 52054,
+      "cycles": 183514567,
+      "ticks": 15785757,
+      "framesEncoded": 744,
+      "fpsWindow": 13,
+      "batchCount": 9864,
+      "batchMsEma": 34.53683202190085,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 53065,
+      "cycles": 187265129,
+      "ticks": 16123564,
+      "framesEncoded": 759,
+      "fpsWindow": 15,
+      "batchCount": 11242,
+      "batchMsEma": 37.2226809173094,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 54068,
+      "cycles": 190856226,
+      "ticks": 16454499,
+      "framesEncoded": 773,
+      "fpsWindow": 14,
+      "batchCount": 10734,
+      "batchMsEma": 34.80927687990213,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 55038,
+      "cycles": 194206861,
+      "ticks": 16757070,
+      "framesEncoded": 787,
+      "fpsWindow": 14,
+      "batchCount": 10202,
+      "batchMsEma": 32.051366964410676,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 56040,
+      "cycles": 197512430,
+      "ticks": 17062647,
+      "framesEncoded": 801,
+      "fpsWindow": 14,
+      "batchCount": 10783,
+      "batchMsEma": 31.374960263786434,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 57039,
+      "cycles": 201129389,
+      "ticks": 17388579,
+      "framesEncoded": 816,
+      "fpsWindow": 15,
+      "batchCount": 11699,
+      "batchMsEma": 26.28866844924695,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 58054,
+      "cycles": 205152889,
+      "ticks": 17757969,
+      "framesEncoded": 830,
+      "fpsWindow": 14,
+      "batchCount": 15510,
+      "batchMsEma": 34.092043065783116,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 59044,
+      "cycles": 208319724,
+      "ticks": 18051550,
+      "framesEncoded": 843,
+      "fpsWindow": 13,
+      "batchCount": 8200,
+      "batchMsEma": 30.237678564100406,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 60043,
+      "cycles": 211721891,
+      "ticks": 18358350,
+      "framesEncoded": 858,
+      "fpsWindow": 15,
+      "batchCount": 8264,
+      "batchMsEma": 39.619219404354396,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 61082,
+      "cycles": 214773882,
+      "ticks": 18634667,
+      "framesEncoded": 872,
+      "fpsWindow": 14,
+      "batchCount": 9185,
+      "batchMsEma": 37.79104296545074,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 62044,
+      "cycles": 217663343,
+      "ticks": 18904936,
+      "framesEncoded": 885,
+      "fpsWindow": 13,
+      "batchCount": 10685,
+      "batchMsEma": 33.93318894228854,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 63050,
+      "cycles": 221252420,
+      "ticks": 19236038,
+      "framesEncoded": 899,
+      "fpsWindow": 14,
+      "batchCount": 9943,
+      "batchMsEma": 31.31030530031881,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 64041,
+      "cycles": 224225596,
+      "ticks": 19509061,
+      "framesEncoded": 914,
+      "fpsWindow": 15,
+      "batchCount": 9586,
+      "batchMsEma": 32.87806285108779,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 65043,
+      "cycles": 227814327,
+      "ticks": 19844630,
+      "framesEncoded": 928,
+      "fpsWindow": 14,
+      "batchCount": 11638,
+      "batchMsEma": 31.08097523238777,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 66063,
+      "cycles": 231021051,
+      "ticks": 20167409,
+      "framesEncoded": 943,
+      "fpsWindow": 15,
+      "batchCount": 9787,
+      "batchMsEma": 33.1474782012173,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 67066,
+      "cycles": 234234276,
+      "ticks": 20471269,
+      "framesEncoded": 957,
+      "fpsWindow": 14,
+      "batchCount": 10247,
+      "batchMsEma": 32.946464991614285,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 68066,
+      "cycles": 237921015,
+      "ticks": 20803076,
+      "framesEncoded": 971,
+      "fpsWindow": 14,
+      "batchCount": 13482,
+      "batchMsEma": 34.143413332436,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 69067,
+      "cycles": 241644084,
+      "ticks": 21157111,
+      "framesEncoded": 984,
+      "fpsWindow": 13,
+      "batchCount": 10665,
+      "batchMsEma": 40.087656685903134,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 70035,
+      "cycles": 244488600,
+      "ticks": 21413800,
+      "framesEncoded": 998,
+      "fpsWindow": 14,
+      "batchCount": 8659,
+      "batchMsEma": 33.20181555159344,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 71033,
+      "cycles": 247270000,
+      "ticks": 21674161,
+      "framesEncoded": 1012,
+      "fpsWindow": 14,
+      "batchCount": 10659,
+      "batchMsEma": 29.96885094538703,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 72044,
+      "cycles": 250644425,
+      "ticks": 21992271,
+      "framesEncoded": 1026,
+      "fpsWindow": 14,
+      "batchCount": 10632,
+      "batchMsEma": 32.70504539359915,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 73044,
+      "cycles": 254183588,
+      "ticks": 22310427,
+      "framesEncoded": 1041,
+      "fpsWindow": 15,
+      "batchCount": 10776,
+      "batchMsEma": 29.249092571139936,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 74062,
+      "cycles": 257678741,
+      "ticks": 22631177,
+      "framesEncoded": 1056,
+      "fpsWindow": 15,
+      "batchCount": 10447,
+      "batchMsEma": 32.95037194342872,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 75046,
+      "cycles": 261008653,
+      "ticks": 22932729,
+      "framesEncoded": 1071,
+      "fpsWindow": 15,
+      "batchCount": 9026,
+      "batchMsEma": 35.473951129634344,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 76044,
+      "cycles": 264124704,
+      "ticks": 23234011,
+      "framesEncoded": 1084,
+      "fpsWindow": 13,
+      "batchCount": 9490,
+      "batchMsEma": 33.69540862233474,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 77048,
+      "cycles": 267252225,
+      "ticks": 23538191,
+      "framesEncoded": 1100,
+      "fpsWindow": 16,
+      "batchCount": 10490,
+      "batchMsEma": 33.17672764027755,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 78057,
+      "cycles": 270447600,
+      "ticks": 23842244,
+      "framesEncoded": 1114,
+      "fpsWindow": 14,
+      "batchCount": 10238,
+      "batchMsEma": 33.946300775296464,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 79061,
+      "cycles": 273587357,
+      "ticks": 24147782,
+      "framesEncoded": 1129,
+      "fpsWindow": 15,
+      "batchCount": 10253,
+      "batchMsEma": 33.1426132366337,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 80039,
+      "cycles": 276471532,
+      "ticks": 24432157,
+      "framesEncoded": 1143,
+      "fpsWindow": 14,
+      "batchCount": 8913,
+      "batchMsEma": 33.074187980280925,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 81046,
+      "cycles": 279284700,
+      "ticks": 24702368,
+      "framesEncoded": 1158,
+      "fpsWindow": 15,
+      "batchCount": 8214,
+      "batchMsEma": 30.717939849495174,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 82034,
+      "cycles": 282031105,
+      "ticks": 24980527,
+      "framesEncoded": 1172,
+      "fpsWindow": 14,
+      "batchCount": 7374,
+      "batchMsEma": 33.2813033128934,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 83064,
+      "cycles": 285182664,
+      "ticks": 25272504,
+      "framesEncoded": 1186,
+      "fpsWindow": 14,
+      "batchCount": 10229,
+      "batchMsEma": 33.033852951571305,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 84044,
+      "cycles": 288636192,
+      "ticks": 25591496,
+      "framesEncoded": 1201,
+      "fpsWindow": 15,
+      "batchCount": 8081,
+      "batchMsEma": 30.87064128076718,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 85046,
+      "cycles": 292176834,
+      "ticks": 25929883,
+      "framesEncoded": 1215,
+      "fpsWindow": 14,
+      "batchCount": 10443,
+      "batchMsEma": 31.203705888676758,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 86040,
+      "cycles": 295449216,
+      "ticks": 26243759,
+      "framesEncoded": 1230,
+      "fpsWindow": 15,
+      "batchCount": 9097,
+      "batchMsEma": 35.258060996165824,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 87064,
+      "cycles": 298914427,
+      "ticks": 26559434,
+      "framesEncoded": 1244,
+      "fpsWindow": 14,
+      "batchCount": 13016,
+      "batchMsEma": 34.311413618519964,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 88042,
+      "cycles": 302204012,
+      "ticks": 26863293,
+      "framesEncoded": 1259,
+      "fpsWindow": 15,
+      "batchCount": 10642,
+      "batchMsEma": 31.044687542303016,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 89050,
+      "cycles": 305739607,
+      "ticks": 27181662,
+      "framesEncoded": 1273,
+      "fpsWindow": 14,
+      "batchCount": 10536,
+      "batchMsEma": 32.362576800386414,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 90043,
+      "cycles": 308615317,
+      "ticks": 27451038,
+      "framesEncoded": 1287,
+      "fpsWindow": 14,
+      "batchCount": 7149,
+      "batchMsEma": 33.60772523758477,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 91057,
+      "cycles": 311299506,
+      "ticks": 27703787,
+      "framesEncoded": 1302,
+      "fpsWindow": 15,
+      "batchCount": 6918,
+      "batchMsEma": 33.84793028506654,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 92032,
+      "cycles": 314107502,
+      "ticks": 27968552,
+      "framesEncoded": 1317,
+      "fpsWindow": 15,
+      "batchCount": 13081,
+      "batchMsEma": 26.764227343559014,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 93067,
+      "cycles": 317446506,
+      "ticks": 28289686,
+      "framesEncoded": 1331,
+      "fpsWindow": 14,
+      "batchCount": 10454,
+      "batchMsEma": 34.6603042933868,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 94033,
+      "cycles": 320642226,
+      "ticks": 28586554,
+      "framesEncoded": 1345,
+      "fpsWindow": 14,
+      "batchCount": 10448,
+      "batchMsEma": 31.873405294437394,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 95048,
+      "cycles": 323924051,
+      "ticks": 28884800,
+      "framesEncoded": 1359,
+      "fpsWindow": 14,
+      "batchCount": 9650,
+      "batchMsEma": 34.648024667521895,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 96053,
+      "cycles": 327265173,
+      "ticks": 29197613,
+      "framesEncoded": 1374,
+      "fpsWindow": 15,
+      "batchCount": 9773,
+      "batchMsEma": 33.126578546974294,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 97059,
+      "cycles": 330820832,
+      "ticks": 29525782,
+      "framesEncoded": 1388,
+      "fpsWindow": 14,
+      "batchCount": 9978,
+      "batchMsEma": 32.63920685693696,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 98031,
+      "cycles": 333705505,
+      "ticks": 29794228,
+      "framesEncoded": 1402,
+      "fpsWindow": 14,
+      "batchCount": 9295,
+      "batchMsEma": 30.75481984548582,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 99045,
+      "cycles": 336485643,
+      "ticks": 30074565,
+      "framesEncoded": 1417,
+      "fpsWindow": 15,
+      "batchCount": 8751,
+      "batchMsEma": 32.046705587256824,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 100041,
+      "cycles": 338780315,
+      "ticks": 30286964,
+      "framesEncoded": 1431,
+      "fpsWindow": 14,
+      "batchCount": 6627,
+      "batchMsEma": 33.01075885357651,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 101042,
+      "cycles": 341443827,
+      "ticks": 30534386,
+      "framesEncoded": 1445,
+      "fpsWindow": 14,
+      "batchCount": 7455,
+      "batchMsEma": 30.92132873173282,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 102043,
+      "cycles": 343930275,
+      "ticks": 30766239,
+      "framesEncoded": 1459,
+      "fpsWindow": 14,
+      "batchCount": 5343,
+      "batchMsEma": 34.66525578920162,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 103030,
+      "cycles": 346286207,
+      "ticks": 30980750,
+      "framesEncoded": 1473,
+      "fpsWindow": 14,
+      "batchCount": 8282,
+      "batchMsEma": 29.475214229530977,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 104030,
+      "cycles": 348752357,
+      "ticks": 31216388,
+      "framesEncoded": 1487,
+      "fpsWindow": 14,
+      "batchCount": 6475,
+      "batchMsEma": 32.96534749309578,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 105069,
+      "cycles": 351577690,
+      "ticks": 31468004,
+      "framesEncoded": 1502,
+      "fpsWindow": 15,
+      "batchCount": 8777,
+      "batchMsEma": 34.167224672818335,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 106039,
+      "cycles": 355694867,
+      "ticks": 31773150,
+      "framesEncoded": 1517,
+      "fpsWindow": 15,
+      "batchCount": 10694,
+      "batchMsEma": 32.865295203431884,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 107058,
+      "cycles": 359017028,
+      "ticks": 32054925,
+      "framesEncoded": 1531,
+      "fpsWindow": 14,
+      "batchCount": 10281,
+      "batchMsEma": 31.859766507068176,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 108032,
+      "cycles": 362532511,
+      "ticks": 32354666,
+      "framesEncoded": 1546,
+      "fpsWindow": 15,
+      "batchCount": 9833,
+      "batchMsEma": 30.80442669921994,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 109052,
+      "cycles": 365993290,
+      "ticks": 32645189,
+      "framesEncoded": 1560,
+      "fpsWindow": 14,
+      "batchCount": 13506,
+      "batchMsEma": 35.903253246884375,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 110029,
+      "cycles": 369680841,
+      "ticks": 32955142,
+      "framesEncoded": 1574,
+      "fpsWindow": 14,
+      "batchCount": 9516,
+      "batchMsEma": 31.273866661940467,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 111038,
+      "cycles": 373769455,
+      "ticks": 33281200,
+      "framesEncoded": 1589,
+      "fpsWindow": 15,
+      "batchCount": 9760,
+      "batchMsEma": 31.20583424296867,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 112052,
+      "cycles": 377794708,
+      "ticks": 33621038,
+      "framesEncoded": 1602,
+      "fpsWindow": 13,
+      "batchCount": 8689,
+      "batchMsEma": 32.98067871802498,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 113065,
+      "cycles": 381212291,
+      "ticks": 33888144,
+      "framesEncoded": 1616,
+      "fpsWindow": 14,
+      "batchCount": 8721,
+      "batchMsEma": 33.03967599447207,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 114061,
+      "cycles": 384034079,
+      "ticks": 34136637,
+      "framesEncoded": 1631,
+      "fpsWindow": 15,
+      "batchCount": 11110,
+      "batchMsEma": 31.20182521440507,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 115124,
+      "cycles": 387577448,
+      "ticks": 34442501,
+      "framesEncoded": 1644,
+      "fpsWindow": 13,
+      "batchCount": 7131,
+      "batchMsEma": 47.756084100859525,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 116035,
+      "cycles": 390447486,
+      "ticks": 34697183,
+      "framesEncoded": 1657,
+      "fpsWindow": 13,
+      "batchCount": 9029,
+      "batchMsEma": 34.019873745854355,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 117050,
+      "cycles": 395158076,
+      "ticks": 35005391,
+      "framesEncoded": 1671,
+      "fpsWindow": 14,
+      "batchCount": 8129,
+      "batchMsEma": 34.695413518553025,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 118049,
+      "cycles": 399455683,
+      "ticks": 35316176,
+      "framesEncoded": 1684,
+      "fpsWindow": 13,
+      "batchCount": 10215,
+      "batchMsEma": 34.41687912819459,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 119060,
+      "cycles": 403842161,
+      "ticks": 35622438,
+      "framesEncoded": 1699,
+      "fpsWindow": 15,
+      "batchCount": 10432,
+      "batchMsEma": 34.198926675665454,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 120071,
+      "cycles": 409382353,
+      "ticks": 35942132,
+      "framesEncoded": 1713,
+      "fpsWindow": 14,
+      "batchCount": 9514,
+      "batchMsEma": 34.5522084423727,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 121038,
+      "cycles": 422734270,
+      "ticks": 36223615,
+      "framesEncoded": 1728,
+      "fpsWindow": 15,
+      "batchCount": 10504,
+      "batchMsEma": 31.533399886865418,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 122044,
+      "cycles": 440191168,
+      "ticks": 36495973,
+      "framesEncoded": 1741,
+      "fpsWindow": 13,
+      "batchCount": 9319,
+      "batchMsEma": 29.758670400817515,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 123062,
+      "cycles": 460227659,
+      "ticks": 36808970,
+      "framesEncoded": 1757,
+      "fpsWindow": 16,
+      "batchCount": 12160,
+      "batchMsEma": 37.29617761589939,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 124047,
+      "cycles": 469210101,
+      "ticks": 37075108,
+      "framesEncoded": 1771,
+      "fpsWindow": 14,
+      "batchCount": 7333,
+      "batchMsEma": 31.466810951824876,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 125043,
+      "cycles": 472168447,
+      "ticks": 37347767,
+      "framesEncoded": 1785,
+      "fpsWindow": 14,
+      "batchCount": 9519,
+      "batchMsEma": 33.44495263708859,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 126065,
+      "cycles": 475683118,
+      "ticks": 37648720,
+      "framesEncoded": 1801,
+      "fpsWindow": 16,
+      "batchCount": 10237,
+      "batchMsEma": 32.58128186923338,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 127080,
+      "cycles": 479249840,
+      "ticks": 37958110,
+      "framesEncoded": 1814,
+      "fpsWindow": 13,
+      "batchCount": 13534,
+      "batchMsEma": 34.34414090049374,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 128042,
+      "cycles": 482483330,
+      "ticks": 38244508,
+      "framesEncoded": 1828,
+      "fpsWindow": 14,
+      "batchCount": 9677,
+      "batchMsEma": 33.73973366551358,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 129045,
+      "cycles": 485903571,
+      "ticks": 38521702,
+      "framesEncoded": 1842,
+      "fpsWindow": 14,
+      "batchCount": 8864,
+      "batchMsEma": 37.737385324691786,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 130038,
+      "cycles": 489561980,
+      "ticks": 38843737,
+      "framesEncoded": 1857,
+      "fpsWindow": 15,
+      "batchCount": 14552,
+      "batchMsEma": 32.06727885593129,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 131036,
+      "cycles": 493133299,
+      "ticks": 39133535,
+      "framesEncoded": 1870,
+      "fpsWindow": 13,
+      "batchCount": 9518,
+      "batchMsEma": 29.96185352697561,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 132051,
+      "cycles": 496260352,
+      "ticks": 39422453,
+      "framesEncoded": 1885,
+      "fpsWindow": 15,
+      "batchCount": 10450,
+      "batchMsEma": 31.184647217893282,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 133049,
+      "cycles": 498968212,
+      "ticks": 39672107,
+      "framesEncoded": 1899,
+      "fpsWindow": 14,
+      "batchCount": 10981,
+      "batchMsEma": 30.587061707532264,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 134046,
+      "cycles": 502105843,
+      "ticks": 39940314,
+      "framesEncoded": 1913,
+      "fpsWindow": 14,
+      "batchCount": 9271,
+      "batchMsEma": 31.966032289379523,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 135045,
+      "cycles": 505113259,
+      "ticks": 40217762,
+      "framesEncoded": 1926,
+      "fpsWindow": 13,
+      "batchCount": 9538,
+      "batchMsEma": 36.43790509501389,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 136062,
+      "cycles": 508284238,
+      "ticks": 40490158,
+      "framesEncoded": 1939,
+      "fpsWindow": 13,
+      "batchCount": 10396,
+      "batchMsEma": 32.10803065331886,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 137045,
+      "cycles": 511517954,
+      "ticks": 40782439,
+      "framesEncoded": 1953,
+      "fpsWindow": 14,
+      "batchCount": 10695,
+      "batchMsEma": 32.52710676539343,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 138039,
+      "cycles": 514676361,
+      "ticks": 41066344,
+      "framesEncoded": 1968,
+      "fpsWindow": 15,
+      "batchCount": 10385,
+      "batchMsEma": 32.86896507550312,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 139057,
+      "cycles": 517814748,
+      "ticks": 41357463,
+      "framesEncoded": 1982,
+      "fpsWindow": 14,
+      "batchCount": 11130,
+      "batchMsEma": 32.43337529172281,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 140056,
+      "cycles": 520820982,
+      "ticks": 41619391,
+      "framesEncoded": 1996,
+      "fpsWindow": 14,
+      "batchCount": 8876,
+      "batchMsEma": 30.98499796132634,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 141046,
+      "cycles": 523854927,
+      "ticks": 41894502,
+      "framesEncoded": 2010,
+      "fpsWindow": 14,
+      "batchCount": 8755,
+      "batchMsEma": 29.923978323792607,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 142050,
+      "cycles": 527023034,
+      "ticks": 42177202,
+      "framesEncoded": 2023,
+      "fpsWindow": 13,
+      "batchCount": 8136,
+      "batchMsEma": 34.43113842262949,
+      "videoMode": 19
+    },
+    {
+      "wallMs": 143024,
+      "cycles": 529819055,
+      "ticks": 42449278,
+      "framesEncoded": 2037,
+      "fpsWindow": 14,
+      "batchCount": 9739,
+      "batchMsEma": 30.891406162824943,
+      "videoMode": 19
+    }
+  ],
+  "ticksPerSecAvg": 296648,
+  "compileMs": 29625.32499998808,
+  "cabinetBytes": 332261673
+}

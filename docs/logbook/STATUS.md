@@ -7,7 +7,7 @@ relevant file in `../plans/`.
 
 Every factual claim here is meant to be verified against code/git,
 not copied from prose. If you find a contradiction, fix it here
-first, then log it. Last verified: 2026-06-10.
+first, then log it. Last verified: 2026-06-11.
 
 ## Release bar (what "done" means)
 
@@ -77,11 +77,13 @@ any current cart, proven by the A/B).
 
 ## Git state (verified 2026-06-10)
 
-- **CSS-DOS** `master`: clean except the 2026-06-10 copy-elim docs
-  commit. Pre-existing untracked `broken-session-transcript.txt` and
-  modified `web/prebake/{corduroy,gossamer}.meta.json` are NOT from
-  this session — left untouched for owner triage.
-- **calcite** `main` == `origin/main` == **`9ecc6de`** (copy-elim
+- **CSS-DOS** `master`: clean except the 2026-06-10/11 perf docs +
+  bench-JSON commits. Pre-existing untracked
+  `broken-session-transcript.txt` and modified
+  `web/prebake/{corduroy,gossamer}.meta.json` are NOT from these
+  sessions — left untouched for owner triage.
+- **calcite** `main` == `origin/main` == **`854867d`** (short dense
+  dispatch chains `f2c8615` + log, on top of `9ecc6de` — copy-elim
   pass `967ddad` + its wasm compile-cost fix, on top of `92af379` /
   merge `cc729b2` which landed `feat/rep-generic` — the
   rep_fast_forward cheat removal + merge-review fixes; see
@@ -127,6 +129,11 @@ Prince of Persia → title screen.
 
 Post copy-elimination (calcite `9ecc6de`). JSONs:
 `docs/benches/doom-all-2026-06-10-copyelim-run{1,2,3}.json`.
+**Stale by one landing:** 2026-06-11 short-dense-chains (`f2c8615`)
+added ~+3–5% t/s by same-day A/B, but the bench host ran ~35%
+degraded that whole day (310K vs 477K t/s) so absolute numbers were
+not comparable — table below is still the 06-10 run. Re-baseline on
+a healthy host before the next perf claim (LOGBOOK 2026-06-11).
 
 | Phase | Wall | | Phase | Wall |
 |---|--:|---|---|--:|

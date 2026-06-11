@@ -4,7 +4,7 @@ Chronological work entries. Newest first. The durable handbook
 (current state, sentinels, gotchas, how to test) is in
 [`STATUS.md`](STATUS.md).
 
-Last updated: 2026-06-10
+Last updated: 2026-06-11
 
 Entries are individual files in [`entries/`](entries/). This page is
 the **index only** — read the tag + one-line summary, open the 1–3
@@ -22,6 +22,7 @@ See [`PROTOCOL.md`](PROTOCOL.md).
 
 | Date | Tag | Entry |
 |------|-----|-------|
+| 2026-06-11 | LANDED | [Short dense dispatch chains on calcite main (f2c8615): BIfNEL chain conversion threshold 6→2 on the flat-array path; ops/tick 700→678, BIfNEL 178→137/tick; same-day web A/B +4.8% t/s / −4.4% doomLoad (~+3–5% band — host ran 35% degraded, cross-day absolutes invalid); byte-identical dump, 300 tests, smoke 7/7](entries/2026-06-11-short-dense-dispatch-chains-calcite.md) |
 | 2026-06-10 | LANDED | [Copy elimination landed on calcite main (967ddad+9ecc6de): copy propagation + DCE + store-forwarding over op streams; ops/tick 846→695 (−17.8%); web doom-all 3-run medians 70.5s/477.2K t/s/doomLoad 60.8s vs 75.0/456.0K/63.65 baseline; state-dump byte-identical, smoke 7/7, 300 tests](entries/2026-06-10-copy-elimination-landed-calcite.md) |
 | 2026-06-10 | LANDED | [rep-generic MERGED to calcite main cc729b2: 341-line x86 string-op cheat deleted; merge-review fixes first (descriptor-carried IP/cycle commit names, key_property routing, descriptor-driven diagnostics — zero literal cabinet names in the rep path); verified pre-merge (288 tests, byte-identical A/B, smoke 7/7) and post-merge from main (288 tests, smoke 7/7, doom title @6M ticks)](entries/2026-06-10-rep-generic-merged-to-calcite-main.md) |
 | 2026-06-09 | LANDED | [rep-generic VERIFIED: five layered recogniser/applier defects fixed (subtrahend capture, mirror-name routing, continuation gate, base scaling, flags commit); smoke 7/7, calcite-cli A/B vs main byte-identical on all 7 carts × 2M ticks, doom-all bench +0.5% wall / −1.5% t/s (inside noise); was BRANCH on feat/rep-generic 17fe7da — merged to calcite main 2026-06-10](entries/2026-06-09-rep-generic-verified-smoke-and-bench.md) |

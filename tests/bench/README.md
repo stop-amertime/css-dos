@@ -110,6 +110,11 @@ Raw JSONs under `docs/benches/doom-all-2026-06-10-copyelim-*.json`.
 History: 2026-06-09 (rep-generic) 75.0 s / 456 K / doomLoad 63.65 s;
 2026-05-08 (old-kbd, BIF2 OFF) 79.7 s / 423 K / doomLoad 68.5 s.
 
+Stale by one landing: 2026-06-11 short-dense-chains (calcite
+`f2c8615`) measured ~+3-5 % t/s by same-day A/B on a host running
+~35 % degraded (see the 2026-06-11 JSONs) — absolutes from that day
+are not comparable to this table. Re-baseline on a healthy host.
+
 **Compile-wall drift warning:** compileMs is NOT comparable across
 days — pass-off measured 31.6 s on 2026-06-10 vs 24.6 s on
 2026-06-09 on the same code (host/Chrome state). For compile-cost
