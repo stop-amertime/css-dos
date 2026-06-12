@@ -198,3 +198,8 @@ shift with anything that moves data.
   a deleted transpiler — use `tests/harness/pipeline.mjs fulldiff`.
 - Docs claiming work "landed" may mean *on a branch*, not on `main`.
   Verify against code/git before trusting a status claim.
+- The bench injects keys via `setvar_pulse` watch actions — it does
+  NOT exercise the player's real input path (on-screen key → SW →
+  bridge → `set_pseudo_class_active`). A dead player keyboard keeps
+  every bench green (it did, 5-28→6-12). Real-path coverage:
+  `node web/tests/kbd-e2e.playwright.mjs` (needs dev server).

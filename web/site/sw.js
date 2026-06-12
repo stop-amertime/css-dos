@@ -161,9 +161,13 @@ function handleStream() {
 }
 
 function handleKbd(url) {
-  const key = url.searchParams.get('key');
-  if (key && bridgePort) {
-    bridgePort.postMessage({ type: 'kbd', key: parseInt(key, 16) | 0 });
+  // /_kbd?class=kb-X — pulse the (active, kb-X) pseudo-class edge
+  // through calcite. The cabinet's own
+  // `&:has(#kb-X:active) { --keyboard: V }` rule produces the value
+  // via calcite's input-edge recogniser; the host only flips the gate.
+  const klass = url.searchParams.get('class');
+  if (klass && bridgePort) {
+    bridgePort.postMessage({ type: 'kbd-active', selector: klass });
   }
   // 204 No Content — the target iframe won't re-render, page stays put.
   return new Response(null, {

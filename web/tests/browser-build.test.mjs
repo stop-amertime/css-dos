@@ -54,6 +54,21 @@ test('dos-muslin: builds a minimal DOS cart', async () => {
   assert.match(text, /animation: anim-play 400ms/);
 });
 
+test('dos-muslin: disk.sectorsPerCluster reaches the floppy BPB', async () => {
+  const comBytes = new Uint8Array(readFileSync(resolve(repoRoot, 'tests', 'bcd.com')));
+  const build = (manifest) => buildCabinetInBrowser({
+    preset: 'dos-muslin',
+    programBytes: comBytes,
+    programName: 'BCD.COM',
+    manifest,
+  });
+  // BPB offset 13 = sectors per cluster.
+  const { diskBytes: defaulted } = await build({});
+  assert.equal(defaulted[13], 1, 'default SPC for a small autofit floppy');
+  const { diskBytes } = await build({ disk: { sectorsPerCluster: 8 } });
+  assert.equal(diskBytes[13], 8, 'manifest SPC should reach the BPB');
+});
+
 test('rejects unsupported preset', async () => {
   await assert.rejects(
     buildCabinetInBrowser({

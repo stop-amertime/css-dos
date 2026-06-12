@@ -33,6 +33,11 @@ import { resolveFloppySize } from '../../builder/lib/sizes.mjs';
  * @param {string|number} [opts.sizeRequest] Manifest disk.size — 'autofit',
  *                                           a preset string like '720K', or a
  *                                           number of bytes. Defaults to 'autofit'.
+ * @param {number}     [opts.sectorsPerCluster] Manifest disk.sectorsPerCluster —
+ *                                           minimum cluster size (power of 2).
+ *                                           Passed through to buildFat12Image;
+ *                                           keeps browser builds in lockstep
+ *                                           with builder/stages/floppy.mjs.
  * @returns {{ bytes: Uint8Array, layout: [{name, size, source}], geometry: {cyls, heads, spt, totalSectors} }}
  */
 export function buildFloppyInBrowser({
@@ -46,6 +51,7 @@ export function buildFloppyInBrowser({
   runCommand = '',
   ems = false,
   sizeRequest = 'autofit',
+  sectorsPerCluster = undefined,
 }) {
   if (!(kernelBytes instanceof Uint8Array)) {
     throw new Error('buildFloppyInBrowser: kernelBytes must be Uint8Array');
@@ -117,7 +123,7 @@ export function buildFloppyInBrowser({
 
   const imgBytes = buildFat12Image(
     layout.map(f => ({ name: f.name, bytes: f.bytes })),
-    { ...geometry, totalSectors },
+    { ...geometry, totalSectors, sectorsPerCluster },
   );
 
   return {

@@ -217,6 +217,7 @@ export async function buildCabinetInBrowser({
       runCommand: floppyRunCommand,
       ems: floppyEms,
       sizeRequest: manifest.disk?.size ?? 'autofit',
+      sectorsPerCluster: manifest.disk?.sectorsPerCluster,
     });
 
     // Build header after floppy so floppyLayout is available.
