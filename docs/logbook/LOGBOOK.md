@@ -22,6 +22,7 @@ See [`PROTOCOL.md`](PROTOCOL.md).
 
 | Date | Tag | Entry |
 |------|-----|-------|
+| 2026-06-12 | LANDED | [VGA webfont self-hosted + CC BY-SA attribution fixed: was hotlinking a third-party mirror with no credit (license violation); now served from web/player/fonts/ with license file, README provenance, visible site credit](entries/2026-06-12-vga-webfont-self-hosted-attribution.md) |
 | 2026-06-12 | LANDED | [calcite column_drawer_fast_forward DELETED (calcite main 788389d, −308 lines): last x86-aware code block gone, audit found no other upstream knowledge in crates/ — cardinal rule holds tree-wide; build+tests+smoke 7/7](entries/2026-06-12-calcite-column-drawer-deleted-fully-generic.md) |
 | 2026-06-12 | LANDED | [Player keyboard was DEAD since the 2026-05-28 merge: host stack (player/SW/bridge) kept the old `set_keyboard` model while calcite deleted that API; clicks threw into a swallowed catch. Pseudo-input host stack restored (`/_kbd?class=` → `kbd-active` → `set_pseudo_class_active` pulses, bridge v48); browser-builder now plumbs `disk.sectorsPerCluster`; new real-input e2e `web/tests/kbd-e2e.playwright.mjs` covers the bench's blind spot](entries/2026-06-12-player-keyboard-dead-pseudo-input-host-restored.md) |
 | 2026-06-12 | LANDED | [Player full keyboard restored (Esc/F1–F10/Tab/Caps/Shift/Ctrl) — lost in the keyboard side-channel reverts, never re-merged; plus owner-reviewed resize: 640px screen+keyboard with uniform margin, rotated-► uniform arrows, ↵ Enter](entries/2026-06-12-player-full-keyboard-restored.md) |
