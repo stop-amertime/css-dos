@@ -672,6 +672,17 @@ self.onmessage = (ev) => {
     kbdTrace(`[kbd-trace] toggle enabled=${kbdTraceEnabled}`);
     return;
   }
+  // Per-phase compile timing (JSON) recorded by calcite during the engine
+  // constructor. Worker console logs don't reach the host page, so this is
+  // the only way to see the wasm compile breakdown.
+  if (d.type === 'phase-report' && engine && ev.ports && ev.ports[0]) {
+    try {
+      ev.ports[0].postMessage({ ok: true, report: engine.compile_phase_report() });
+    } catch (e) {
+      ev.ports[0].postMessage({ ok: false, err: String(e) });
+    }
+    return;
+  }
   if (d.type === 'bridge-info' && ev.ports && ev.ports[0]) {
     ev.ports[0].postMessage({
       ok: true,

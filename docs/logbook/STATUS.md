@@ -91,8 +91,10 @@ proven by the A/B).
   `rogue1_0`; modified `web/prebake/*.meta.json` + `manifest.json`).
   Owner paused cart deletions mid-audit (2026-06-12) — do NOT commit
   or extend the re-cut without owner direction.
-- **calcite** `main` == `origin/main` == **`788389d`**
-  (column_drawer dead-code deletion 2026-06-12, on top of `854867d`
+- **calcite** `main` == `origin/main` == **`e4eb19f`** (2026-06-12
+  compile-wall work: 5 commits `6228955`…`3099813` + log — see
+  LOGBOOK compile-wall row; on top of `788389d` —
+  column_drawer dead-code deletion 2026-06-12, on top of `854867d`
   — short dense dispatch chains `f2c8615` + log, on top of `9ecc6de`
   — copy-elim pass `967ddad` + its wasm compile-cost fix, on top of
   `92af379` / merge `cc729b2` which landed `feat/rep-generic` — the
@@ -150,13 +152,15 @@ every run/transport) and within-state wall pairs agree to ±1%.
 
 | Phase | Wall | | Phase | Wall |
 |---|--:|---|---|--:|
-| compile | ~27 s¹ | | doomLoad | **19.1 s** |
+| compile | **~10.6 s**¹ | | doomLoad | **19.1 s** |
 | dosBoot | 7.8 s | | engine-run total | **28.6 s** |
 | title+menu | 1.6 s | | throughput | 478 K t/s |
 
-¹ Web compile wall drifts day-to-day; only runtime metrics are
-cross-day comparable. History: 2026-06-10 baseline (pre-cluster-fix)
-70.5 s / 477 K / doomLoad 60.8 s; 2026-06-09 75.0 s / 456 K / 63.65;
+¹ Re-measured 2026-06-12 after the calcite compile-time work
+(LOGBOOK compile-wall row): same-day driver A/B 30.0 → 10.6 s.
+Compile wall drifts day-to-day; only runtime metrics are cross-day
+comparable. History: 2026-06-10 baseline (pre-cluster-fix) 70.5 s /
+477 K / doomLoad 60.8 s; 2026-06-09 75.0 s / 456 K / 63.65;
 2026-05-08 79.7 s / 423 K / 68.5. The 2026-06-11 short-dense-chains
 calcite change (~+3–5% t/s) is also in these numbers.
 
