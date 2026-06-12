@@ -56,11 +56,16 @@ proven by the A/B).
 
 ## Active work (detail in `../plans/`; done/dead → LOGBOOK only)
 
-1. **Release cleanup (2026-06-12, in progress).** Cart lineup being
-   re-cut for licensing (see LOGBOOK 2026-06-12 licensing row when
-   landed): lemmings/montezuma/PoP/epyx-rogue/zork1/crazy-digger
-   are out or being replaced; smoke-set cart list may need updating
-   to match. Website presentation pass pending with owner.
+1. **Release cleanup (2026-06-12, in progress).** Cart re-cut state:
+   previous session's deletions sit uncommitted (see Git state);
+   owner paused further cart deletions — zork1 + prince-of-persia
+   stay for now. Replacements verified booting via fast-shoot:
+   rogue1_0 (title + name prompt), pop1_4 (PoP title; needed the
+   INT 10h AH=1Ah BIOS fix, sound drivers renamed `.BAK`, two
+   press-any-key dialogs at boot — see LOGBOOK 2026-06-12).
+   Smoke set runs 6 carts while montezuma is deleted on disk.
+   Final lineup, smoke-list update + website presentation pass are
+   owner-collab.
 3. **Per-dispatch-key specialisation** — structurally upstream of
    all perf work; probed on the branch 2026-05-12 (not on `main`).
    Plan: `../plans/2026-05-12-per-dispatch-key-specialisation.md`.
@@ -79,11 +84,13 @@ proven by the A/B).
 
 ## Git state (verified 2026-06-10)
 
-- **CSS-DOS** `master`: clean except the 2026-06-10/11 perf docs +
-  bench-JSON commits. Pre-existing untracked
-  `broken-session-transcript.txt` and modified
-  `web/prebake/{corduroy,gossamer}.meta.json` are NOT from these
-  sessions — left untouched for owner triage.
+- **CSS-DOS** `master`: the 2026-06-12 licensing re-cut sits
+  **uncommitted in the worktree** (94 cart-file deletions: digger,
+  lemmings, montezuma, rogue, rogue36, five doom8088 variants,
+  vsync-poll moved to test-carts; untracked replacements `pop1_4`,
+  `rogue1_0`; modified `web/prebake/*.meta.json` + `manifest.json`).
+  Owner paused cart deletions mid-audit (2026-06-12) — do NOT commit
+  or extend the re-cut without owner direction.
 - **calcite** `main` == `origin/main` == **`788389d`**
   (column_drawer dead-code deletion 2026-06-12, on top of `854867d`
   — short dense dispatch chains `f2c8615` + log, on top of `9ecc6de`
@@ -197,8 +204,10 @@ shift with anything that moves data.
   makes write ports whose CSS sink bypasses `write_mem` invisible.
 - Don't accumulate defensive fixes whose root cause you can't
   reproduce.
-- `tools/fulldiff.mjs` / `compare-dos.mjs` / `ref-dos.mjs` reference
-  a deleted transpiler — use `tests/harness/pipeline.mjs fulldiff`.
+- The legacy `tools/fulldiff.mjs` / `compare-dos.mjs` / `ref-dos.mjs`
+  scripts were deleted (both repos) — `tests/harness/pipeline.mjs
+  fulldiff` is the fulldiff path. `tools/compare.mjs` (gossamer
+  conformance shortcut) still exists and works.
 - Docs claiming work "landed" may mean *on a branch*, not on `main`.
   Verify against code/git before trusting a status claim.
 - The bench injects keys via `setvar_pulse` watch actions — it does

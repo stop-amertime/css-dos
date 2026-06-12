@@ -48,9 +48,8 @@ Start at the top, go as deep as you need.
 | [`script-primitives.md`](script-primitives.md) | Watch-spec grammar. The DSL bench profiles use to detect stages and react to engine state. |
 | [`perf-iteration.md`](perf-iteration.md) | Perf-iteration tooling: snapshots, CS:IP sampling, op-distribution profiling, calcite worktrees. Read when you're optimising. |
 | [`debugging/workflow.md`](debugging/workflow.md) | Standard debugging process: find divergence, diagnose, fix, verify. |
-| [`debugging/known-bugs.md`](debugging/known-bugs.md) | Known + **open** bugs and patterns to watch for. The Doom perf mission framing now lives in `STATUS.md` (release bar + active work); `agent-briefs/` was removed 2026-05-18. |
+| [`debugging/known-bugs.md`](debugging/known-bugs.md) | Known bugs (all currently fixed/closed) and patterns to watch for. The Doom perf mission framing now lives in `STATUS.md` (release bar + active work); `agent-briefs/` was removed 2026-05-18. |
 | [`debugging/calcite-debugger.md`](debugging/calcite-debugger.md) | HTTP API, endpoints, typical sessions. Points at [Agent-oriented tooling](../../calcite/docs/debugger.md#agent-oriented-tooling) for the MCP surface. |
-| [`debugging/known-bugs.md`](debugging/known-bugs.md) | Known bugs + patterns to watch for. |
 | [`reference/kernel-boot-sequence.md`](reference/kernel-boot-sequence.md) | What EDR-DOS does during boot; what BIOS services it needs. |
 | [`reference/tick-benchmarks.md`](reference/tick-benchmarks.md) | Rough tick counts for boot milestones — size debugger runs, spot stalls. |
 | [`reference/debugging-dos-kernel.md`](reference/debugging-dos-kernel.md) | EDR-DOS internals, map file, Ralf Brown's, edrdos source. |
@@ -78,6 +77,6 @@ Start at the top, go as deep as you need.
 |---|---|
 | `../calcite/CLAUDE.md` | Calcite's architecture and cardinal rule. |
 | `../calcite/docs/debugger.md` | MCP debug server API. |
-| `../calcite/docs/conformance-testing.md` | Conformance concepts. (The legacy `tools/fulldiff.mjs` / `diagnose.mjs` / `ref-dos.mjs` are broken — use `tests/harness/pipeline.mjs fulldiff` instead.) |
+| `../calcite/docs/conformance-testing.md` | Conformance concepts. (The legacy `fulldiff.mjs` / `diagnose.mjs` / `ref-dos.mjs` scripts were removed — use `tests/harness/pipeline.mjs fulldiff` instead.) |
 | `../calcite/docs/codebug.md` | Co-execution debugger for side-by-side JS/calcite comparison. |
 | `../calcite/docs/benchmarking.md` | **Low-level Rust profiling** (Criterion, `calcite-bench` binary, --profile flame breakdowns). For internal calcite engine work only — **NOT for headline perf claims.** Use [`tests/bench/`](../tests/bench/README.md) for those. |

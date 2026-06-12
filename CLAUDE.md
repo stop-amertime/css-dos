@@ -279,9 +279,9 @@ ticks. For raw byte dumps without rendering,
 file at end-of-run (repeatable for multiple regions).
 
 The legacy `fulldiff.mjs` / `ref-dos.mjs` / `compare-dos.mjs` scripts
-under `tools/` and `../calcite/tools/` import a deleted `transpiler/`
-directory and don't work. The replacement is
-`node tests/harness/pipeline.mjs fulldiff <cabinet>.css`.
+(which imported a deleted `transpiler/` directory) have been removed
+from both repos. Use `node tests/harness/pipeline.mjs fulldiff
+<cabinet>.css`.
 
 ## Quick orientation
 

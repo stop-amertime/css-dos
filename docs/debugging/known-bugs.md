@@ -3,29 +3,21 @@
 Bugs that have been found and fixed, plus patterns to watch for. These are
 detailed enough that a future agent hitting a similar bug can recognize it.
 
-## Open bugs
-
-### Input-edge fast-path freeze in the web player (2026-05-08)
-
-**Status:** OPEN. **Repro:** web player only; CLI bench unaffected;
-smoke 7/7 passes (harness doesn't exercise the input path).
-
-**Symptom:** in the browser, Zork shows the first 1–2 keypresses then
-appears frozen until an Enter "snaps" it forward; Doom8088 is black,
-doesn't pass mode-13h init. CPU side is fine (CLI + fast-shoot render
-correctly) — it's web-bridge / rendering / input-edge specific.
-
-**Suspect:** calcite `6d9e80a` (the `apply_input_edges` fast-path
-that recovered the 1.83× throughput). That fix is **branch-only**
-(not on calcite `main` — see STATUS), so whether this bug is live on
-`master` depends on which calcite branch is in use. Verify the repro
-against the current branch before chasing.
-
-Full handover (suspect set, what was tried, investigation order,
-acceptance criteria):
-[`2026-05-08-input-edge-fastpath-bug.md`](2026-05-08-input-edge-fastpath-bug.md).
-
 ## Fixed bugs
+
+### Web-player input freeze / dead keyboard (2026-05-08 → fixed 2026-06-12)
+
+**Symptom:** in the browser, keypresses stopped registering (Zork
+frozen after 1–2 keys; later the player keyboard was fully dead).
+CLI and bench unaffected — the bench injects keys via `setvar_pulse`
+watches and never exercises the player's real input path.
+
+**Resolution:** the keyboard model was replaced wholesale by the
+`:active` pseudo-input model (calcite `baf3086`), and the player-side
+host stack that had silently kept the deleted `set_keyboard` API was
+restored 2026-06-12 (LOGBOOK entry
+`2026-06-12-player-keyboard-dead-pseudo-input-host-restored.md`).
+Real-input e2e coverage: `node web/tests/kbd-e2e.playwright.mjs`.
 
 ### kiln D0 ROL/ROR missing → libc memcmp returns garbage (2026-04-26)
 
@@ -188,18 +180,12 @@ code spanned both zones.
 
 **Fix:** Single contiguous 0-0xA0000 zone.
 
-## Active bug
+### Seg-override memory write address (2026-04-13 report — verified gone 2026-06-12)
 
-### Seg-override memory write address (instruction 3740)
-
-**Symptom:** `CS: POP [0x8633]` (2E 8F 06 33 86) — high byte of POP'd word
-written with 0xF0 instead of 0x00.
-
-**Status:** Not yet investigated. Likely same class as the prefixLen wrapper
-bug but in memory write address computation rather than IP.
-
-**How to reproduce:**
-```sh
-node builder/build.mjs ../calcite/programs/bootle.com -o /tmp/bootle.css
-node tests/harness/pipeline.mjs fulldiff /tmp/bootle.css --max-ticks=5000
-```
+**Symptom (as reported):** `CS: POP [0x8633]` (2E 8F 06 33 86) — high
+byte of the POP'd word written as 0xF0 instead of 0x00. The original
+repro (`../calcite/programs/bootle.com`) no longer exists.
+**Re-verified in isolation 2026-06-12:** a minimal .COM doing
+`push 0x1234; cs: pop word [0x8633]` run via calcite-cli writes
+exactly 34 12 at CS:0x8633. Whatever the 2026-04 report saw, the
+current machine executes seg-override POP-to-memory correctly.
