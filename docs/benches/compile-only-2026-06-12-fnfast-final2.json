@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "profileName": "compile-only",
+  "note": "bridge spawned, cabinet posted, compile-done observed",
+  "statsSamples": [],
+  "ticksPerSecAvg": null,
+  "compileMs": 4587.6449999809265,
+  "cabinetBytes": 332170471
+}

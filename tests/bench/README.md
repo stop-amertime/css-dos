@@ -95,7 +95,7 @@ most, and where regressions hide. Watch this number specifically.
 
 | Phase / metric | Value |
 |---|---:|
-| compile        | ~10.6 s (2026-06-12 compile-wall work; drifts — see note) |
+| compile        | ~4.6 s (2026-06-12 compile-wall work; drifts — see note) |
 | dosBoot        | 7.8 s |
 | doomTitle      | 0.0 s |
 | doomMenuDelay  | 1.6 s |
