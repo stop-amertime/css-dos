@@ -4,7 +4,7 @@ Chronological work entries. Newest first. The durable handbook
 (current state, sentinels, gotchas, how to test) is in
 [`STATUS.md`](STATUS.md).
 
-Last updated: 2026-06-11
+Last updated: 2026-06-12
 
 Entries are individual files in [`entries/`](entries/). This page is
 the **index only** — read the tag + one-line summary, open the 1–3
@@ -22,6 +22,7 @@ See [`PROTOCOL.md`](PROTOCOL.md).
 
 | Date | Tag | Entry |
 |------|-----|-------|
+| 2026-06-12 | LANDED | [Player full keyboard restored (Esc/F1–F10/Tab/Caps/Shift/Ctrl) — lost in the keyboard side-channel reverts, never re-merged; plus owner-reviewed resize: 640px screen+keyboard with uniform margin, rotated-► uniform arrows, ↵ Enter](entries/2026-06-12-player-full-keyboard-restored.md) |
 | 2026-06-11 | LANDED | [doomLoad kernel characterised + fixed: EDR-DOS `fatptr` FAT chain walk was 21% of doomLoad (div32+getblk+locate_buffer chain ~41% total; map regenerated from edrdos rev 72ae65f, byte-verified vs guest); new `disk.sectorsPerCluster` cart option, doom8088 → 32 (16K clusters): doomLoad ticks 29.55M→9.25M (−68.7%), web doomLoad 59.6→19.1 s healthy-pair; smoke 7/7](entries/2026-06-11-doomload-kernel-characterisation-fat-cluster-fix.md) |
 | 2026-06-11 | LANDED | [Short dense dispatch chains on calcite main (f2c8615): BIfNEL chain conversion threshold 6→2 on the flat-array path; ops/tick 700→678, BIfNEL 178→137/tick; same-day web A/B +4.8% t/s / −4.4% doomLoad (~+3–5% band — host ran 35% degraded, cross-day absolutes invalid); byte-identical dump, 300 tests, smoke 7/7](entries/2026-06-11-short-dense-dispatch-chains-calcite.md) |
 | 2026-06-10 | LANDED | [Copy elimination landed on calcite main (967ddad+9ecc6de): copy propagation + DCE + store-forwarding over op streams; ops/tick 846→695 (−17.8%); web doom-all 3-run medians 70.5s/477.2K t/s/doomLoad 60.8s vs 75.0/456.0K/63.65 baseline; state-dump byte-identical, smoke 7/7, 300 tests](entries/2026-06-10-copy-elimination-landed-calcite.md) |

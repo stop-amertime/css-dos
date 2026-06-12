@@ -92,10 +92,13 @@ any current cart, proven by the A/B).
   origin) is now merged; its worktree
   `calcite/.claude/worktrees/rep-generic` is clean.
 - Genericity work safe on `origin/feat/calcite-genericity`
-  (`3592bf0`); keyboard rework on
-  `origin/feat/keyboard-pseudo-input` (`baf3086`); both
-  byte-identical local↔origin. `feat/retire-keyboard` (`a05d85c`)
-  retained intact, also on origin.
+  (`3592bf0`), byte-identical local↔origin. The keyboard rework
+  commit `baf3086` (:active pseudo-input model) is an ancestor of
+  calcite `main` — verified 2026-06-12; the old
+  `feat/keyboard-pseudo-input` branch no longer exists.
+  `feat/retire-keyboard` (`a05d85c`) retained intact, also on
+  origin. The player-side full keyboard UI, lost in the 2026-05
+  reverts, was restored 2026-06-12 (LOGBOOK).
 - **No loss risk remaining (as of 2026-05-18):** the only at-risk
   branches `calcite-v2` (`432c131`) / `calcite-v2-rewrite`
   (`3745e3c`) — dead compiler-rewrite experiments — were pushed to
