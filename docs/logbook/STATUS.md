@@ -7,7 +7,7 @@ relevant file in `../plans/`.
 
 Every factual claim here is meant to be verified against code/git,
 not copied from prose. If you find a contradiction, fix it here
-first, then log it. Last verified: 2026-06-11.
+first, then log it. Last verified: 2026-06-12.
 
 ## Release bar (what "done" means)
 
@@ -45,21 +45,22 @@ gate/noise; JSONs `docs/benches/doom-all-2026-06-09-*`). Post-merge
 from `main`: 288 tests, smoke 7/7, doom8088 title via fast-shoot
 @6M ticks.
 
-**Remaining genericity residue (tracked, NOT active cheats):**
-`column_drawer_fast_forward` + `COLUMN_DRAWER_BODY` (~280 lines of
-upstream-knowledge code in compile.rs) is **default-off** (env
-`CALCITE_FUSION_FASTFWD`, disabled 2026-04-29 as a perf net-loss,
-hard-`false` on wasm) — dead code queued for deletion. LODS-shape
-`Full` commit refuses loudly (accumulator not modelled; unreached by
-any current cart, proven by the A/B).
+**Remaining genericity residue: NONE in code (2026-06-12).**
+`column_drawer_fast_forward` + `COLUMN_DRAWER_BODY` was **deleted**
+from calcite `main` (`788389d`, −308 lines incl. CLI diag hooks;
+calcite log 2026-06-12). A release-audit sweep found no other
+upstream knowledge outside comments/test fixtures — the cardinal
+rule now holds tree-wide. LODS-shape `Full` commit still refuses
+loudly (accumulator not modelled; unreached by any current cart,
+proven by the A/B).
 
 ## Active work (detail in `../plans/`; done/dead → LOGBOOK only)
 
-1. **Delete `column_drawer_fast_forward` dead code** — ~280 lines of
-   default-off upstream-knowledge code in calcite `compile.rs`
-   (`CALCITE_FUSION_FASTFWD` gate, disabled 2026-04-29 as a perf
-   net-loss). Never runs; deleting it removes the last x86-aware
-   code block from calcite. Small, supervised-cleanup-sized.
+1. **Release cleanup (2026-06-12, in progress).** Cart lineup being
+   re-cut for licensing (see LOGBOOK 2026-06-12 licensing row when
+   landed): lemmings/montezuma/PoP/epyx-rogue/zork1/crazy-digger
+   are out or being replaced; smoke-set cart list may need updating
+   to match. Website presentation pass pending with owner.
 3. **Per-dispatch-key specialisation** — structurally upstream of
    all perf work; probed on the branch 2026-05-12 (not on `main`).
    Plan: `../plans/2026-05-12-per-dispatch-key-specialisation.md`.
@@ -83,10 +84,11 @@ any current cart, proven by the A/B).
   `broken-session-transcript.txt` and modified
   `web/prebake/{corduroy,gossamer}.meta.json` are NOT from these
   sessions — left untouched for owner triage.
-- **calcite** `main` == `origin/main` == **`854867d`** (short dense
-  dispatch chains `f2c8615` + log, on top of `9ecc6de` — copy-elim
-  pass `967ddad` + its wasm compile-cost fix, on top of `92af379` /
-  merge `cc729b2` which landed `feat/rep-generic` — the
+- **calcite** `main` == `origin/main` == **`788389d`**
+  (column_drawer dead-code deletion 2026-06-12, on top of `854867d`
+  — short dense dispatch chains `f2c8615` + log, on top of `9ecc6de`
+  — copy-elim pass `967ddad` + its wasm compile-cost fix, on top of
+  `92af379` / merge `cc729b2` which landed `feat/rep-generic` — the
   rep_fast_forward cheat removal + merge-review fixes; see
   ship-blocker section). Branch `feat/rep-generic` (`b2dc52d`, on
   origin) is now merged; its worktree
@@ -120,9 +122,10 @@ any current cart, proven by the A/B).
 
 ## Working state
 
-**Working carts:** zork, montezuma, sokoban, zork-big (2.88 MB),
-command-bare, shelltest, smoke set. Doom8088 in-game on web + cli.
-Prince of Persia → title screen.
+**Working carts:** in flux — the 2026-06-12 licensing re-cut is
+removing/replacing several (see Active work #1). Doom8088 in-game on
+web + cli; zork-big (2.88 MB), command-bare, shelltest, smoke set
+unaffected.
 
 **Regression gate:** `node tests/harness/run.mjs smoke` (7 carts).
 
