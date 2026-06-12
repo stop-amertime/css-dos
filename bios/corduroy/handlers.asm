@@ -890,9 +890,11 @@ int10h_handler:
 .get_display_combo:
     ; AH=1Ah: Get/Set Display Combination Code
     ; Return VGA color (0x08) — programs use this to detect VGA.
-    cmp bl, 0
+    ; AL selects get (00h) vs set (01h); BL is an output, callers
+    ; leave it undefined (PoP 1.4 probes with AX=1A00h, BL=junk).
+    cmp al, 0
     jne .dcc_set
-    ; BL=00h: Get DCC
+    ; AL=00h: Get DCC
     mov bl, 0x08            ; active display: VGA color
     mov bh, 0x00            ; inactive: none
     pop bp
