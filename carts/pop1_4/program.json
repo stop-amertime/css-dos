@@ -1,0 +1,8 @@
+{
+  "schema": "cart@1",
+  "name": "Prince of Persia",
+  "description": "Prince of Persia 1.4 (1990). Classic platformer. Sound drivers disabled (renamed .BAK): the bundled SB Pro / speaker-digital drivers run a ~7 kHz PIT ISR that starves a 4.77 MHz 8086. Boot shows two 'press any key' sound dialogs.",
+  "preset": "dos-corduroy",
+  "memory": { "conventional": "640K", "gfx": true, "textVga": true },
+  "boot": { "runCommand": "PRINCE" }
+}

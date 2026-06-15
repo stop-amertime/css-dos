@@ -1,7 +1,8 @@
 {
   "flavor": "corduroy",
+  "version": "0.2.0",
   "entrySegment": 61440,
   "entryOffset": 0,
   "sizeBytes": 8420,
-  "sourceHash": "d0c5a7b35dd9e49df00b6ab118ec1697fb5170a23b3567e664e10a20c0145e99"
+  "sourceHash": "b86adbe2fbd6cb3e7e04fc397a5a2700790e0df223587cb0690d258765e7fde7"
 }
