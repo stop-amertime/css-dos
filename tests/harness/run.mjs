@@ -116,7 +116,6 @@ const REFERENCE_CARTS = [
   'carts/test-carts/cga5-mono',
   'carts/test-carts/cga6-hires',
   'carts/zork1',
-  'carts/montezuma',
 ];
 
 function existingCarts(list) {

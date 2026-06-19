@@ -1,0 +1,32 @@
+{
+  "name": "css-dos",
+  "version": "0.1.0",
+  "description": "An Intel 8086 PC implemented in pure CSS. Builds DOS programs into self-contained .css cabinets; runs them in Chrome or fast via the sibling Calcite JIT.",
+  "license": "GPL-3.0-only",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "css-dos-build": "builder/build.mjs"
+  },
+  "scripts": {
+    "build": "node builder/build.mjs",
+    "dev": "node web/scripts/dev.mjs",
+    "prebake": "node web/scripts/prebake.mjs",
+    "smoke": "node tests/harness/run.mjs smoke",
+    "test": "node --test \"web/tests/**/*.test.mjs\" \"tests/bench/lib/**/*.test.mjs\"",
+    "bench:compile": "node tests/bench/driver/run.mjs compile-only",
+    "bench:doom": "node tests/bench/driver/run.mjs doom-all --headed",
+    "playwright:install": "playwright install chromium"
+  },
+  "devDependencies": {
+    "playwright": "^1.44.0"
+  },
+  "comments": {
+    "purpose": "css-dos has no runtime npm dependencies: all build/run JS uses Node builtins (node:fs, node:http, node:child_process, ...). Playwright is the only external package, used by the perf bench (tests/bench/) and the e2e/keyboard harness (web/tests/*.playwright.mjs) to drive Chrome. The core 'cart -> cabinet -> run in Chrome' path does not need it.",
+    "calcite": "The fast path needs the sibling Rust repo ../calcite (cargo build --release for calcite-cli, and wasm-pack for the in-browser WASM). Those manifests live in ../calcite (Cargo.toml, rust-toolchain.toml). See CLAUDE.md.",
+    "nasm": "NASM (assembler) and OpenWatcom (WCC) are only needed to rebuild the Muslin/Corduroy BIOS sources or assembly conformance tests; prebuilt BIOS binaries ship in the repo. Path configured via the NASM env var (see CLAUDE.md)."
+  }
+}

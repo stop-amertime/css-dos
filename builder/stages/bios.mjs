@@ -43,7 +43,7 @@ function readFlavorVersion(flavor) {
 }
 
 // NOTE: NASM path is Windows-specific here. Override via NASM env var.
-const NASM = process.env.NASM || resolve('C:\\Users\\AdmT9N0CX01V65438A\\AppData\\Local\\bin\\NASM\\nasm.exe');
+const NASM = process.env.NASM || resolve('C:\\Users\\Ahmed Amer\\AppData\\Local\\bin\\NASM\\nasm.exe');
 
 export function buildBios({ flavor }) {
   if (flavor === 'gossamer')  return buildGossamer();

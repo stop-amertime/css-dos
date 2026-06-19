@@ -4,8 +4,8 @@
 //
 // Usage: node web/scripts/prebake.mjs
 
-import { readFileSync, writeFileSync, mkdirSync, unlinkSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { readFileSync, writeFileSync, mkdirSync, unlinkSync, existsSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,12 +13,53 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, '..', '..');
 const prebakeDir = resolve(__dirname, '..', 'prebake');
-const NASM = process.env.NASM || 'C:\\Users\\AdmT9N0CX01V65438A\\AppData\\Local\\bin\\NASM\\nasm.exe';
+const NASM = resolveNasm();
 
 mkdirSync(prebakeDir, { recursive: true });
 
 function sha256(buf) {
   return createHash('sha256').update(buf).digest('hex');
+}
+
+function readFlavorVersion(flavor) {
+  const versionPath = resolve(repoRoot, 'bios', flavor, 'VERSION');
+  return existsSync(versionPath) ? readFileSync(versionPath, 'utf8').trim() : null;
+}
+
+function findOnPath(command) {
+  const lookup = process.platform === 'win32' ? 'where.exe' : 'which';
+  const r = spawnSync(lookup, [command], { encoding: 'utf8' });
+  if (r.status !== 0) return null;
+  return r.stdout.split(/\r?\n/).map(s => s.trim()).find(Boolean) || null;
+}
+
+function resolveNasm() {
+  if (process.env.NASM) return process.env.NASM;
+
+  const onPath = findOnPath('nasm');
+  if (onPath) return onPath;
+
+  const candidates = [];
+  if (process.platform === 'win32' && process.env.USERPROFILE) {
+    candidates.push(resolve(process.env.USERPROFILE, 'AppData', 'Local', 'bin', 'NASM', 'nasm.exe'));
+  }
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) return candidate;
+  }
+
+  throw new Error(
+    'NASM not found. Set NASM to nasm.exe, or put nasm on PATH. ' +
+    'Expected local Windows install at %USERPROFILE%\\AppData\\Local\\bin\\NASM\\nasm.exe.'
+  );
+}
+
+function runNasm(args) {
+  const r = spawnSync(NASM, args, { encoding: 'utf8' });
+  if (r.error) throw r.error;
+  if (r.status !== 0) {
+    const detail = [r.stdout, r.stderr].filter(Boolean).join('\n').trim();
+    throw new Error(`NASM failed with exit code ${r.status}${detail ? `:\n${detail}` : ''}`);
+  }
 }
 
 function findSymbol(listing, symbol) {
@@ -36,7 +77,7 @@ function bakeMuslin() {
   const asm = resolve(repoRoot, 'bios', 'muslin', 'muslin.asm');
   const bin = join(prebakeDir, 'muslin.bin');
   const lst = join(prebakeDir, 'muslin.lst');
-  execSync(`"${NASM}" -f bin -o "${bin}" "${asm}" -l "${lst}"`, { stdio: 'pipe' });
+  runNasm(['-f', 'bin', '-o', bin, asm, '-l', lst]);
   const bytes = readFileSync(bin);
   const listing = readFileSync(lst, 'utf8');
   // Remove intermediate listing file — not a deliverable
@@ -44,13 +85,16 @@ function bakeMuslin() {
   const entryOffset = findSymbol(listing, 'bios_init');
   if (entryOffset == null) throw new Error('muslin: could not find bios_init in listing');
   const sourceHash = sha256(readFileSync(asm));
-  writeFileSync(join(prebakeDir, 'muslin.meta.json'), JSON.stringify({
+  const meta = {
     flavor: 'muslin',
     entrySegment: 0xF000,
     entryOffset,
     sizeBytes: bytes.length,
     sourceHash,
-  }, null, 2));
+  };
+  const version = readFlavorVersion('muslin');
+  if (version != null) meta.version = version;
+  writeFileSync(join(prebakeDir, 'muslin.meta.json'), JSON.stringify(meta, null, 2));
   console.log(`muslin.bin: ${bytes.length} bytes, entry=0x${entryOffset.toString(16)}`);
 }
 
@@ -62,6 +106,7 @@ function bakeGossamer() {
   writeFileSync(dst, bytes);
   writeFileSync(join(prebakeDir, 'gossamer.meta.json'), JSON.stringify({
     flavor: 'gossamer',
+    version: readFlavorVersion('gossamer'),
     entrySegment: null,
     entryOffset: null,
     sizeBytes: bytes.length,
@@ -79,6 +124,7 @@ function bakeCorduroy() {
   writeFileSync(dst, bytes);
   writeFileSync(join(prebakeDir, 'corduroy.meta.json'), JSON.stringify({
     flavor: 'corduroy',
+    version: readFlavorVersion('corduroy'),
     entrySegment: 0xF000,
     entryOffset: 0x0000,
     sizeBytes: bytes.length,

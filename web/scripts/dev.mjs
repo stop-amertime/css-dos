@@ -135,9 +135,10 @@ function runStep(label, cmd, args, opts = {}) {
   const ms = Date.now() - started;
   return {
     label,
-    ok: r.status === 0,
+    ok: !r.error && r.status === 0,
     exitCode: r.status,
     ms,
+    errorMessage: r.error?.message || '',
     stdoutTail: (r.stdout || '').split('\n').slice(-10).join('\n'),
     stderrTail: (r.stderr || '').split('\n').slice(-10).join('\n'),
   };
@@ -364,6 +365,9 @@ async function runReset() {
     const status = step.ok === false ? 'FAIL' : 'ok';
     const extra = step.filesDeleted != null ? ` (${step.filesDeleted} files)` : step.ms != null ? ` (${step.ms}ms)` : '';
     console.log(`  [${status}] ${step.label}${extra}`);
+    if (step.ok === false && step.errorMessage) {
+      console.log('         ' + step.errorMessage);
+    }
     if (step.ok === false && step.stderrTail) {
       console.log(step.stderrTail.split('\n').map(l => '         ' + l).join('\n'));
     }

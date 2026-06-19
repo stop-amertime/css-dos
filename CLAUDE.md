@@ -299,8 +299,32 @@ from both repos. Use `node tests/harness/pipeline.mjs fulldiff
 
 ## Tools
 
-**NASM** (assembler): `C:\Users\AdmT9N0CX01V65438A\AppData\Local\bin\NASM\nasm.exe`.
-Not in PATH. Override via `NASM=` env var.
+### Setup / prerequisites
+
+First-time setup on a fresh clone:
+
+- **Node ≥ 20** — all build/run JS (`builder/`, `web/scripts/`,
+  `tests/`) uses only Node builtins. `package.json` exists for scripts
+  + the one external dep (Playwright). Run `npm install` then
+  `npx playwright install chromium` (Playwright is only needed for the
+  bench `tests/bench/` and the e2e/keyboard harness
+  `web/tests/*.playwright.mjs` — the core cart→cabinet→Chrome path
+  doesn't use it). npm scripts: `npm run build|dev|smoke|test`.
+- **Rust (stable) + the calcite repo** — the fast path. From
+  `../calcite`: `cargo build --release -p calcite-cli` builds the
+  native runner; `wasm-pack build crates/calcite-wasm --target web
+  --out-dir ../../web/pkg --release` builds the in-browser WASM (needs
+  `rustup target add wasm32-unknown-unknown` and
+  `cargo install wasm-pack`). The dev server's `/_reset` runs the
+  wasm-pack step for you. `../calcite` ships its own
+  `Cargo.toml` / `rust-toolchain.toml`.
+- **NASM + OpenWatcom** — only to rebuild BIOS sources or assembly
+  conformance tests; prebuilt BIOS binaries ship in the repo, so most
+  work needs neither.
+
+**NASM** (assembler): not installed by default and not in PATH.
+Point at it via the `NASM=` env var (the corduroy/muslin build scripts
+read it). Only needed for BIOS/conformance asm rebuilds.
 
 **Calcite debugger:** See `../calcite/docs/debugger.md` and
 [`docs/debugging/calcite-debugger.md`](docs/debugging/calcite-debugger.md).
