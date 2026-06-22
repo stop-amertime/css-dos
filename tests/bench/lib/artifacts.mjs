@@ -14,6 +14,9 @@
 // (transitive deps) — `cabinet:doom8088` depending on `prebake:corduroy`
 // is the canonical example.
 
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { registerArtifact } from './ensure-fresh.mjs';
 
 // `../calcite/` works for the main CSS-DOS checkout but not for git
@@ -21,7 +24,15 @@ import { registerArtifact } from './ensure-fresh.mjs';
 // to `.claude/worktrees/calcite/` (a sibling worktree, possibly on a
 // different branch — usually the wrong calcite). Honour `CALCITE_REPO`
 // to pick the right one. Default keeps the legacy main-checkout behaviour.
-const CALCITE_REPO = process.env.CALCITE_REPO || '../calcite';
+//
+// Resolved to an ABSOLUTE path: the wasm rebuild passes it as wasm-pack's
+// --out-dir, which wasm-pack interprets relative to the crate manifest (not
+// the shell cwd). A relative CALCITE_REPO would land the bundle in the wrong
+// place — the exact gotcha this guards against.
+// resolve() leaves an absolute CALCITE_REPO untouched and anchors a relative
+// one (the default `../calcite`) to REPO_ROOT, so the result is always absolute.
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+const CALCITE_REPO = resolve(REPO_ROOT, process.env.CALCITE_REPO || '../calcite');
 
 // --- Calcite WASM (used by the web bench / player) ---
 registerArtifact({
@@ -34,7 +45,10 @@ registerArtifact({
     `${CALCITE_REPO}/crates/calcite-wasm/Cargo.toml`,
     `${CALCITE_REPO}/Cargo.toml`,
   ],
-  rebuild: `wasm-pack build "${CALCITE_REPO}/crates/calcite-wasm" --target web --out-dir ../../web/pkg --release`,
+  // --out-dir must be ABSOLUTE: wasm-pack resolves it relative to the crate
+  // manifest, not the shell cwd (ensure-fresh runs this from REPO_ROOT). The
+  // old `../../web/pkg` only landed correctly by coincidence of the layout.
+  rebuild: `wasm-pack build "${CALCITE_REPO}/crates/calcite-wasm" --target web --out-dir "${CALCITE_REPO}/web/pkg" --release`,
 });
 
 // --- Calcite native CLI (used by the CLI bench path) ---
