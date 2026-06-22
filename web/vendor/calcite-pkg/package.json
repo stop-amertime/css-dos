@@ -1,0 +1,17 @@
+{
+  "name": "calcite-wasm",
+  "type": "module",
+  "description": "WASM bindings for calc(ite) — runs in a Web Worker",
+  "version": "0.1.0",
+  "license": "GPL-3.0-only",
+  "files": [
+    "calcite_wasm_bg.wasm",
+    "calcite_wasm.js",
+    "calcite_wasm.d.ts"
+  ],
+  "main": "calcite_wasm.js",
+  "types": "calcite_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

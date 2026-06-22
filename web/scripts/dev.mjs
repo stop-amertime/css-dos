@@ -30,6 +30,23 @@ const calciteRoot = process.env.CALCITE_REPO
   ? resolve(process.env.CALCITE_REPO)
   : resolve(repoRoot, '..', 'calcite');
 
+// Where the calcite WASM bundle is served from for `/calcite/pkg/`.
+//
+// A plain user who just wants to *run* CSS-DOS should not need the calcite
+// repo or a Rust toolchain — the WASM is a prebuilt ~770 KB artifact vendored
+// at web/vendor/calcite-pkg/. A calcite *hacker* points CALCITE_REPO (or has
+// the sibling repo) and gets the freshly-built pkg instead. Resolution order:
+//   1. CALCITE_REPO set, and it has a built pkg → use the sibling build.
+//   2. default sibling ../calcite has a built pkg → use it (lockstep dev).
+//   3. otherwise → the vendored copy in this repo.
+const vendoredCalcitePkg = resolve(__dirname, '..', 'vendor', 'calcite-pkg');
+function resolveCalcitePkgDir() {
+  const siblingPkg = resolve(calciteRoot, 'web', 'pkg');
+  if (existsSync(resolve(siblingPkg, 'calcite_wasm.js'))) return siblingPkg;
+  return vendoredCalcitePkg;
+}
+const calcitePkgDir = resolveCalcitePkgDir();
+
 const MIME = {
   '.html': 'text/html',
   '.css':  'text/css',
@@ -53,6 +70,9 @@ const ALIASES = [
   // /bench/ — the perf bench harness page + profiles + lib (tests/bench/).
   ['/bench/',           resolve(repoRoot, 'tests', 'bench')],
   ['/presets/',         resolve(repoRoot, 'builder', 'presets')],
+  // /calcite/pkg/ resolves to the vendored WASM unless a built sibling repo
+  // is present (see resolveCalcitePkgDir). Must precede the broader /calcite/.
+  ['/calcite/pkg/',     calcitePkgDir],
   ['/calcite/',         resolve(calciteRoot, 'web')],
   ['/tests/',           resolve(__dirname, '..', 'tests')],
   ['/tmp/',             resolve(repoRoot, 'tmp')],
@@ -81,6 +101,8 @@ const ALLOWED_ROOTS = [siteRoot, ...ALIASES.map(([, dir]) => dir)];
 // way to do it from the server; the page just runs the standard SW +
 // Cache Storage unregister + nuke idiom.
 
+// Build *target* for /_reset (a calcite-hacker action; only meaningful with
+// the sibling repo present). For what's actually *served*, see calcitePkgDir.
 const wasmPkgDir  = resolve(calciteRoot, 'web', 'pkg');
 const prebakeDir  = resolve(repoRoot, 'web', 'prebake');
 const calciteWasmCrate = resolve(calciteRoot, 'crates', 'calcite-wasm');
@@ -106,8 +128,9 @@ function statusSnapshot() {
   return {
     cssDosCommit: gitHead(repoRoot),
     calciteCommit: gitHead(calciteRoot),
-    wasm: fileInfo(resolve(wasmPkgDir, 'calcite_wasm_bg.wasm')),
-    wasmPkgFiles: dirFiles(wasmPkgDir),
+    wasmServedFrom: calcitePkgDir === vendoredCalcitePkg ? 'vendored' : 'sibling-repo',
+    wasm: fileInfo(resolve(calcitePkgDir, 'calcite_wasm_bg.wasm')),
+    wasmPkgFiles: dirFiles(calcitePkgDir),
     prebake: {
       corduroyBin: fileInfo(resolve(prebakeDir, 'corduroy.bin')),
       muslinBin:   fileInfo(resolve(prebakeDir, 'muslin.bin')),
