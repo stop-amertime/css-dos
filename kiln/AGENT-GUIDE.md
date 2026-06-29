@@ -119,11 +119,12 @@ After writing your emitter function, you must:
 
 ### Testing
 
-After making changes, run:
+After making changes, build a small cart through Kiln:
 ```
-node transpiler/generate-hacky.mjs examples/fib.com -o tests/fib-pure.css
+node builder/build.mjs carts/test-carts/hello-text -o tmp-hello.css
 ```
-If it generates without errors, the dispatch table has no conflicts.
+If it builds without errors, the dispatch table has no conflicts. For a
+broader check, run the smoke set: `node tests/harness/run.mjs smoke`.
 
 ## Examples
 

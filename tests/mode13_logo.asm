@@ -11,10 +11,11 @@
 ;   source: 32x32 palette indexes at label `logo` (DS=0)
 ;   dest  : 128x128 block, top-left at (96, 36), centered in 320x200
 ;
-; Build:
+; Build the .com:
 ;   nasm -f bin -o tests/mode13_logo.com tests/mode13_logo.asm
-; Generate CSS:
-;   node transpiler/generate-hacky.mjs tests/mode13_logo.com --graphics -o tests/mode13_logo.css
+; To turn a .com like this into a cabinet, wrap it as a hack-preset cart
+; (with graphics memory enabled) and run it through the builder — see
+; docs/hack-path.md.
 ; Render:
 ;   calcite --input tests/mode13_logo.css --ticks 5000000 --halt 0x2110 \
 ;           --framebuffer 0xA0000 320x200 tests/mode13_logo.ppm

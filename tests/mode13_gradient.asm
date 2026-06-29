@@ -9,10 +9,11 @@
 ; - No segment override prefixes
 ; - All memory access uses DS (not ES)
 ;
-; Build:
+; Build the .com:
 ;   nasm -f bin -o tests/mode13_gradient.com tests/mode13_gradient.asm
-; Generate CSS:
-;   node transpiler/generate-hacky.mjs tests/mode13_gradient.com --graphics -o tests/mode13_gradient.css
+; To turn a .com like this into a cabinet, wrap it as a hack-preset cart
+; (with graphics memory enabled) and run it through the builder — see
+; docs/hack-path.md.
 ; Render framebuffer:
 ;   calcite --input tests/mode13_gradient.css --ticks 200000 \
 ;           --halt 0x2110 --framebuffer 0xA0000 320x200 out.ppm
