@@ -1,0 +1,8 @@
+{
+  "schema": "cart@1",
+  "name": "Sokoban",
+  "description": "Sokoban (1982, Hiroyuki Imabayashi). Push every box onto a target. Boots to a system-type prompt (press C for CGA) then an input prompt (press K for keyboard).",
+  "preset": "dos-corduroy",
+  "memory": { "conventional": "640K", "gfx": true, "cgaGfx": true, "textVga": true },
+  "boot": { "runCommand": "SKB" }
+}
