@@ -20,12 +20,11 @@ let chromium;
 try {
   ({ chromium } = require('playwright'));
 } catch {
-  const fallback =
-    process.platform === 'win32'
-      ? 'C:/Users/AdmT9N0CX01V65438A/AppData/Local/npm-cache/_npx/9833c18b2d85bc59/node_modules/playwright'
-      : null;
+  // Set PLAYWRIGHT_DIR to a directory containing the playwright package if it
+  // doesn't resolve from node_modules (e.g. an npx cache entry).
+  const fallback = process.env.PLAYWRIGHT_DIR || null;
   if (!fallback) {
-    console.error('playwright not found and no fallback configured');
+    console.error('playwright not found — install it or set PLAYWRIGHT_DIR');
     process.exit(2);
   }
   ({ chromium } = require(fallback));

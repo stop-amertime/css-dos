@@ -18,9 +18,17 @@
 // PASS = build → title → menu opens on Enter → game starts → ingame,
 // all driven by clicking the player's on-screen Enter key.
 
-const fallback = 'file:///C:/Users/AdmT9N0CX01V65438A/AppData/Local/npm-cache/_npx/9833c18b2d85bc59/node_modules/playwright/index.js';
+// `playwright` normally resolves from node_modules. Set PLAYWRIGHT_DIR to a
+// directory containing the playwright package if it doesn't (e.g. npx cache).
 let pw;
-try { pw = await import('playwright'); } catch { pw = (await import(fallback)).default ?? await import(fallback); }
+try {
+  pw = await import('playwright');
+} catch {
+  const dir = process.env.PLAYWRIGHT_DIR;
+  if (!dir) throw new Error('playwright not found — install it or set PLAYWRIGHT_DIR');
+  const fallback = new URL('index.js', `file:///${dir.replace(/\\/g, '/')}/`).href;
+  pw = (await import(fallback)).default ?? (await import(fallback));
+}
 const { chromium } = pw;
 
 const SYS_CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';

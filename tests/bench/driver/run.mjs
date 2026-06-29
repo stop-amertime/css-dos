@@ -267,17 +267,17 @@ async function runCli(profileName, manifest) {
   };
 }
 
-// ---- Chromium loader (handles Windows npx-cache fallback) ----
+// ---- Chromium loader ----
+// Normally `playwright` resolves from node_modules (it's a devDependency).
+// If you run from a layout where it doesn't, point PLAYWRIGHT_DIR at a
+// directory containing the playwright package (e.g. an npx cache entry).
 async function loadChromium() {
   try { return await import('playwright'); }
   catch {}
-  // Windows npx-cache fallback path that's been working in the existing
-  // bench scripts. If/when the project gets a proper devDependency the
-  // fallback can go away.
-  if (process.platform === 'win32') {
-    const fallback = 'file:///C:/Users/AdmT9N0CX01V65438A/AppData/Local/npm-cache/_npx/9833c18b2d85bc59/node_modules/playwright/index.js';
-    const mod = await import(fallback);
+  const dir = process.env.PLAYWRIGHT_DIR;
+  if (dir) {
+    const mod = await import(new URL('index.js', `file:///${dir.replace(/\\/g, '/')}/`).href);
     return mod.default ?? mod;
   }
-  throw new Error('playwright not found');
+  throw new Error('playwright not found — install it or set PLAYWRIGHT_DIR');
 }

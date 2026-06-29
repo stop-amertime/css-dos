@@ -31,7 +31,7 @@ const evalSource = js8086Source.replace("'use strict';", '').replace('let CPU_18
 const Intel8086 = new Function(evalSource + '\nreturn Intel8086;')();
 
 // --- Assemble BIOS ---
-const NASM = resolve('C:\\Users\\AdmT9N0CX01V65438A\\AppData\\Local\\bin\\NASM\\nasm.exe');
+const NASM = process.env.NASM || 'nasm';
 const biosAsmPath = resolve(projectRoot, 'bios', 'css-emu-bios.asm');
 const biosBinPath = resolve(projectRoot, 'bios', 'css-emu-bios.bin');
 const biosLstPath = resolve(projectRoot, 'bios', 'css-emu-bios.lst');

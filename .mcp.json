@@ -2,7 +2,7 @@
   "mcpServers": {
     "calcite-debugger": {
       "command": "node",
-      "args": ["C:/Users/AdmT9N0CX01V65438A/Documents/src/calcite/tools/mcp-shim.mjs"]
+      "args": ["../calcite/tools/mcp-shim.mjs"]
     }
   }
 }
