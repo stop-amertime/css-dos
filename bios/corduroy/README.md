@@ -67,6 +67,10 @@ when `bios: "corduroy"` is selected.
 
 ## Status
 
-Boots to splash. Kernel boot from Corduroy is not yet fully validated
-against Muslin; treat as experimental until the conformance suite
-adopts a ref-corduroy emulator.
+Corduroy is the default BIOS for DOS carts and boots the working cart
+set (Doom8088, zork, Prince of Persia, the smoke set) end-to-end. What
+is still outstanding is *formal* conformance validation: there is no
+`ref-corduroy` reference emulator yet, so Corduroy hasn't been
+diffed instruction-for-instruction against a known-good run the way the
+hack path is. Until that lands, treat byte-exact conformance (as
+opposed to "it boots and plays") as unverified.

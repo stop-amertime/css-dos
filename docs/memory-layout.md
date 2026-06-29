@@ -90,7 +90,7 @@ addresses. For each address, Kiln emits:
 - A `style(--at: <addr>): var(--__1m<addr>)` branch in `--readMem`.
 - A double-buffer read `--__1m<addr>: var(--__2m<addr>, <init>)`.
 - A write rule `--m<addr>: if(... else: var(--__1m<addr>))` that
-  checks the 6 parallel write slots. Each slot is nested behind a
+  checks the 3 parallel write slots. Each slot is nested behind a
   `style(--_slotNLive: 1)` gate so that on ticks where slot N is idle,
   none of its per-byte `style(--memAddrN: addr)` branches are
   evaluated. Non-writing instructions (NOP, MOV reg,reg, jumps, most

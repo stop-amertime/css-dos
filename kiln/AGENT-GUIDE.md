@@ -19,7 +19,8 @@ Key methods:
   `expr` when the current opcode matches. **One entry per (reg, opcode) pair** —
   duplicates throw an error.
 - `dispatch.addMemWrite(opcode, addrExpr, valExpr, comment)` — queue a memory
-  write. Each opcode can use up to 6 write slots (for INT which pushes 3 words).
+  write. Each opcode can use up to `NUM_WRITE_SLOTS` (3) word slots — the max
+  is INT, which pushes FLAGS/CS/IP = 3 words.
 
 ### Register names
 

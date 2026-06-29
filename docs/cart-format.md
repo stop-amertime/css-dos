@@ -167,8 +167,8 @@ Which BIOS to boot. One of:
 | Value | Which BIOS | Source |
 |---|---|---|
 | `gossamer` | The hack-path shim BIOS — minimal handlers for running a lone `.COM`. | `bios/gossamer/` |
-| `muslin` | The current real BIOS — faithfully implements the IBM PC BIOS contract well enough to boot DOS. | `bios/muslin/` |
-| `corduroy` | The structured C BIOS — same contract as Muslin, built modularly in C. Experimental. | `bios/corduroy/` |
+| `corduroy` | **The default BIOS** — the structured C BIOS; implements the IBM PC BIOS contract well enough to boot DOS, built modularly in C. | `bios/corduroy/` |
+| `muslin` | The assembly DOS BIOS — same contract as Corduroy, hand-written in asm. Still available. | `bios/muslin/` |
 
 See [`docs/bios-flavors.md`](bios-flavors.md) for details on each.
 
