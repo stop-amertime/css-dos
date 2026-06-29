@@ -6,13 +6,7 @@
 // Wrap logic flag expressions to preserve AF+TF+IF+DF from previous tick.
 const pKeep = (flagExpr, mask = 1808) => `calc(${flagExpr} + --and(var(--__1flags), ${mask}))`;
 
-const REG16 = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI'];
-const SPLIT_REGS = [
-  { reg: 'AX', lowIdx: 0, highIdx: 4 },
-  { reg: 'CX', lowIdx: 1, highIdx: 5 },
-  { reg: 'DX', lowIdx: 2, highIdx: 6 },
-  { reg: 'BX', lowIdx: 3, highIdx: 7 },
-];
+import { REG16, SPLIT_REGS } from './regs.mjs';
 
 /**
  * Group 0xFE: byte operations on r/m8

@@ -102,14 +102,17 @@ order (slot 0 first, then 1, etc.) as you already would.
 - rm 0-3 = AL,CL,DL,BL (low bytes of AX,CX,DX,BX)
 - rm 4-7 = AH,CH,DH,BH (high bytes of AX,CX,DX,BX)
 
-Use SPLIT_REGS pattern:
+Use the shared `SPLIT_REGS` table (and `REG16` for 16-bit destinations),
+imported from `patterns/regs.mjs`:
 ```js
-const SPLIT_REGS = [
-  { reg: 'AX', lowIdx: 0, highIdx: 4 },
-  { reg: 'CX', lowIdx: 1, highIdx: 5 },
-  { reg: 'DX', lowIdx: 2, highIdx: 6 },
-  { reg: 'BX', lowIdx: 3, highIdx: 7 },
-];
+import { REG16, SPLIT_REGS } from './regs.mjs';
+
+// SPLIT_REGS = [
+//   { reg: 'AX', lowIdx: 0, highIdx: 4 },
+//   { reg: 'CX', lowIdx: 1, highIdx: 5 },
+//   { reg: 'DX', lowIdx: 2, highIdx: 6 },
+//   { reg: 'BX', lowIdx: 3, highIdx: 7 },
+// ];
 ```
 
 ### Wiring up

@@ -1,5 +1,7 @@
 // Miscellaneous instructions: HLT, NOP, LODSB, MOV r/m imm, flag manipulation, etc.
 
+import { REG16, SPLIT_REGS } from './regs.mjs';
+
 // ===== REP PREFIX HELPERS =====
 // These helpers wrap string operation expressions to handle REP/REPE/REPNE prefixes.
 // When hasREP=1 and CX=0, the string op is skipped (register/memory unchanged).
@@ -101,14 +103,6 @@ export function emitLODS(dispatch) {
  * ModR/M byte selects destination. Immediate follows ModR/M+disp.
  */
 export function emitMOV_RMimm(dispatch) {
-  const REG16 = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI'];
-  const SPLIT_REGS = [
-    { reg: 'AX', lowIdx: 0, highIdx: 4 },
-    { reg: 'CX', lowIdx: 1, highIdx: 5 },
-    { reg: 'DX', lowIdx: 2, highIdx: 6 },
-    { reg: 'BX', lowIdx: 3, highIdx: 7 },
-  ];
-
   // 0xC7: MOV r/m16, imm16 — immWord is after ModR/M+disp
   for (let r = 0; r < 8; r++) {
     dispatch.addEntry(REG16[r], 0xC7,
@@ -247,7 +241,6 @@ export function emitSTOS(dispatch) {
  * XCHG AX, reg16 (0x91-0x97) — exchange AX with another register.
  */
 export function emitXCHG_AXreg(dispatch) {
-  const REG16 = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI'];
   for (let r = 1; r < 8; r++) { // 0x91-0x97 (skip 0x90=NOP)
     const opcode = 0x90 + r;
     // AX gets the other register's value
@@ -357,14 +350,6 @@ export function emitSCAS(dispatch) {
  * XCHG reg8, r/m8 (0x86): exchange 8-bit register with r/m operand.
  */
 export function emitXCHG_RM(dispatch) {
-  const REG16 = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI'];
-  const SPLIT_REGS = [
-    { reg: 'AX', lowIdx: 0, highIdx: 4 },
-    { reg: 'CX', lowIdx: 1, highIdx: 5 },
-    { reg: 'DX', lowIdx: 2, highIdx: 6 },
-    { reg: 'BX', lowIdx: 3, highIdx: 7 },
-  ];
-
   // 0x87: XCHG reg16, r/m16
   // reg field register gets rmVal16, rm operand gets regVal16
   for (let r = 0; r < 8; r++) {
@@ -428,8 +413,6 @@ export function emitXCHG_RM(dispatch) {
  * Only reg=0 is defined.
  */
 export function emitPOP_RM(dispatch) {
-  const REG16 = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI'];
-
   // Pop value from stack into register (mod=3)
   for (let r = 0; r < 8; r++) {
     if (r === 4) continue; // SP handled separately

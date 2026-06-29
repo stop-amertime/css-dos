@@ -1,6 +1,6 @@
 // Stack operations: PUSH/POP reg16, PUSH/POP segreg, PUSHF, POPF
 
-const REG16 = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI'];
+import { REG16 } from './regs.mjs';
 
 // Stack-write address: SS*16 + (SP - offset) wrapped to 16 bits.
 // SP is a 16-bit register on x86; when a PUSH at SP=0 decrements first,

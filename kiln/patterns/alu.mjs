@@ -7,13 +7,7 @@
 //   base+4: AL, imm8
 //   base+5: AX, imm16
 
-const REG16 = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI'];
-const SPLIT_REGS = [
-  { reg: 'AX', lowIdx: 0, highIdx: 4 },
-  { reg: 'CX', lowIdx: 1, highIdx: 5 },
-  { reg: 'DX', lowIdx: 2, highIdx: 6 },
-  { reg: 'BX', lowIdx: 3, highIdx: 7 },
-];
+import { REG16, SPLIT_REGS } from './regs.mjs';
 
 /**
  * ALU operation definitions.
