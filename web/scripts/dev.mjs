@@ -71,7 +71,7 @@ const ALLOWED_ROOTS = [siteRoot, ...ALIASES.map(([, dir]) => dir)];
 // BIOS binary (web/prebake/*.bin), a cached cabinet in Cache Storage, a
 // registered service worker from a previous session, or the browser's HTTP
 // module cache. When calcite and CSS-DOS evolve in lockstep this matters
-// a lot — see VSYNC-PLAN session / the 2026-04-20 investigation.
+// a lot.
 //
 // /_status  → JSON snapshot of what the server is currently serving
 // /_reset   → wipe WASM + prebake, rebuild both from HEAD

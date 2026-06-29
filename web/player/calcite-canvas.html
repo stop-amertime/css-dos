@@ -238,7 +238,7 @@
     }
 
     // --- vsync paint mode ---
-    // See VSYNC-PLAN.md. Three modes:
+    // Three modes:
     //   sim:   paint on simulated 70 Hz vsync (cycleCount crosses CYCLES_PER_FRAME)
     //   wall:  paint on real 70 Hz wall clock (~14.3 ms between paints)
     //   turbo: paint every worker batch (previous behaviour — max visibility)
@@ -386,7 +386,7 @@
           }
           currentVideoMode = data.videoMode;
 
-          // Paint-mode gate (see VSYNC-PLAN.md). Decides whether this
+          // Paint-mode gate. Decides whether this
           // tick-result should trigger a canvas repaint. In all modes we
           // still *have* the VRAM bytes — we just choose not to blit.
           //   sim:   paint on simulated 70 Hz (cycleCount frame bucket changed)

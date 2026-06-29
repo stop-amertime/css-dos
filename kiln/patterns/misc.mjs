@@ -617,7 +617,6 @@ export function emitIRQCompute() {
  *   Port 0x3DA (VGA input status 1) returns a byte whose bit 3 is the
  *     vertical retrace signal and bit 0 is display-enable (not in vsync).
  *     Both are derived from --cycleCount on a 70 Hz / 4.77 MHz timebase.
- *     See VSYNC-PLAN.md.
  *   All other ports return 0.
  *
  * Writes (state lives in --picMask/--picInService/--pitMode/--pitReload/
