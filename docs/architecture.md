@@ -46,7 +46,8 @@ Depth: [`cart-format.md`](cart-format.md).
 
 ### 3. What stage of the build you're in
 
-Four stages, each a module in `builder/stages/`:
+Five stages (the build modules in `builder/stages/`, plus the resolve
+helpers in `builder/lib/`):
 
 1. `resolveCart` — find the cart (folder or zip), parse
    `program.json`, list files.

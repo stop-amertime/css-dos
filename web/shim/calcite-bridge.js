@@ -139,10 +139,10 @@ function setPseudoActive(selector, value) {
 
 // ---------- Bootstrap ----------
 
-// Canary — bump this when you change this file so you can confirm the
-// browser is actually serving the new version. Shows up in every status
-// line so it's impossible to miss in the console.
-const BRIDGE_VERSION = 'v48-pseudo-input-restored';
+// Cache-busting canary — bump this when you change this file so you can
+// confirm the browser is serving the new version (it appears in the
+// status line and the bridge-info reply).
+const BRIDGE_VERSION = 'bridge-1';
 
 async function boot() {
   postStatus(`bridge boot ${BRIDGE_VERSION}`);

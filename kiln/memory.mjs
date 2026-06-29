@@ -209,43 +209,6 @@ export function dosMemoryZones(programBytes, programOffset, memBytes, embeddedDa
 }
 
 /**
- * Emit the --readMem @function.
- * Only addresses in the address set get writable property branches.
- * BIOS region is always included as read-only constants.
- */
-export function emitReadMem(opts) {
-  const { addresses, biosBytes } = opts;
-
-  const lines = [];
-  lines.push(`@function --readMem(--at <integer>) returns <integer> {`);
-  lines.push(`  result: if(`);
-
-  // Writable memory region: read from --__1mN (previous tick's value)
-  for (const addr of addresses) {
-    if (addr === 0x0500) {
-      lines.push(`    style(--at: 1280): --lowerBytes(var(--__1keyboard), 8);`);
-    } else if (addr === 0x0501) {
-      lines.push(`    style(--at: 1281): --rightShift(var(--__1keyboard), 8);`);
-    } else {
-      lines.push(`    style(--at: ${addr}): var(--__1m${addr});`);
-    }
-  }
-
-  // BIOS region (read-only constants) — always included
-  if (biosBytes && biosBytes.length > 0) {
-    for (let i = 0; i < biosBytes.length; i++) {
-      if (biosBytes[i] !== 0) {
-        lines.push(`    style(--at: ${BIOS_LINEAR + i}): ${biosBytes[i]};`);
-      }
-    }
-  }
-
-  lines.push(`  else: 0);`);
-  lines.push(`}`);
-  return lines.join('\n');
-}
-
-/**
  * Build the set of cell indices covering the writable address set.
  * Returns a sorted array of cell indices (each cell covers PACK_SIZE bytes
  * starting at cellIdx * PACK_SIZE).
@@ -312,95 +275,6 @@ export function buildInitialMemory(opts) {
   }
 
   return initMem;
-}
-
-/**
- * Emit @property declarations for writable memory bytes.
- */
-export function emitMemoryProperties(opts) {
-  const { addresses } = opts;
-  const initMem = buildInitialMemory(opts);
-  const lines = [];
-
-  for (const addr of addresses) {
-    const init = initMem.get(addr) || 0;
-    lines.push(`@property --m${addr} {
-  syntax: '<integer>';
-  inherits: true;
-  initial-value: ${init};
-}`);
-  }
-
-  return lines.join('\n\n');
-}
-
-/**
- * Emit the per-byte write rules for writable memory (inside .cpu) — the
- * unpacked (PACK_SIZE=1) path. Each byte tests all NUM_WRITE_SLOTS slots
- * twice: once as the slot's lo/byte half (matched at --memAddrN: addr),
- * once as the slot's hi half when the slot is width=2 (matched at
- * --memAddrN: addr-1). Width=2 means the slot writes 2 consecutive bytes
- * starting at --memAddrN; the slot's value is a 16-bit word with lo at
- * --memAddrN and hi at --memAddrN+1.
- *
- * Width=1 byte value: --memValN.
- * Width=2 lo half:    --lowerBytes(--memValN, 8).
- * Width=2 hi half:    --rightShift(--memValN, 8).
- */
-export function emitMemoryWriteRules(opts) {
-  const { addresses } = opts;
-  const lines = [];
-  for (const addr of addresses) {
-    const slotLines = [];
-    for (let i = 0; i < NUM_WRITE_SLOTS; i++) {
-      // Slot's lo half lands at addr — value is byte (width=1) or low byte of word (width=2).
-      slotLines.push(`    style(--memAddr${i}: ${addr}): if(style(--_writeWidth: 2): --lowerBytes(var(--memVal${i}), 8); else: var(--memVal${i}));`);
-      // Slot's hi half lands at addr when memAddrN: addr-1 AND width=2.
-      slotLines.push(`    style(--memAddr${i}: ${addr - 1}) and style(--_writeWidth: 2): --rightShift(var(--memVal${i}), 8);`);
-    }
-    lines.push(`  --m${addr}: if(\n${slotLines.join('\n')}\n  else: var(--__1m${addr}));`);
-  }
-  return lines.join('\n');
-}
-
-/**
- * Emit buffer reads for memory bytes (--__1mN: var(--__2mN, init))
- */
-export function emitMemoryBufferReads(opts) {
-  const { addresses } = opts;
-  const initMem = buildInitialMemory(opts);
-  const lines = [];
-  for (const addr of addresses) {
-    const init = initMem.get(addr) || 0;
-    lines.push(`  --__1m${addr}: var(--__2m${addr}, ${init});`);
-  }
-  return lines.join('\n');
-}
-
-/**
- * Emit store keyframe entries for memory bytes (--__2mN: var(--__0mN, init))
- */
-export function emitMemoryStoreKeyframe(opts) {
-  const { addresses } = opts;
-  const initMem = buildInitialMemory(opts);
-  const lines = [];
-  for (const addr of addresses) {
-    const init = initMem.get(addr) || 0;
-    lines.push(`    --__2m${addr}: var(--__0m${addr}, ${init});`);
-  }
-  return lines.join('\n');
-}
-
-/**
- * Emit execute keyframe entries for memory bytes (--__0mN: var(--mN))
- */
-export function emitMemoryExecuteKeyframe(opts) {
-  const { addresses } = opts;
-  const lines = [];
-  for (const addr of addresses) {
-    lines.push(`    --__0m${addr}: var(--m${addr});`);
-  }
-  return lines.join('\n');
 }
 
 /**

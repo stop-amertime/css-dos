@@ -37,7 +37,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, '..');
 
 // --- Paths ---
-const NASM = resolve('C:\\Users\\AdmT9N0CX01V65438A\\AppData\\Local\\bin\\NASM\\nasm.exe');
+const NASM = process.env.NASM || 'nasm';
 const BIOS_ASM = resolve(projectRoot, 'bios', 'css-emu-bios.asm');
 const BIOS_BIN = resolve(projectRoot, 'bios', 'css-emu-bios.bin');
 const BIOS_LST = resolve(projectRoot, 'bios', 'css-emu-bios.lst');

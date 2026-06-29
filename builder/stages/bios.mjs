@@ -42,8 +42,9 @@ function readFlavorVersion(flavor) {
   return readFileSync(vPath, 'utf8').trim();
 }
 
-// NOTE: NASM path is Windows-specific here. Override via NASM env var.
-const NASM = process.env.NASM || resolve('C:\\Users\\Ahmed Amer\\AppData\\Local\\bin\\NASM\\nasm.exe');
+// NASM is resolved from PATH by default. Override via the NASM env var to
+// point at a specific binary (the corduroy/muslin toolchain.env do this).
+const NASM = process.env.NASM || 'nasm';
 
 export function buildBios({ flavor }) {
   if (flavor === 'gossamer')  return buildGossamer();

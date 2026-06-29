@@ -13,9 +13,17 @@
 // compile spends its time. Needs the dev server:
 //   node web/scripts/dev.mjs            (default port 5173)
 //   node web/tests/compile-phase-capture.playwright.mjs [port]
-const fallback = 'file:///C:/Users/AdmT9N0CX01V65438A/AppData/Local/npm-cache/_npx/9833c18b2d85bc59/node_modules/playwright/index.js';
+// `playwright` normally resolves from node_modules. Set PLAYWRIGHT_DIR to a
+// directory containing the playwright package if it doesn't (e.g. npx cache).
 let pw;
-try { pw = await import('playwright'); } catch { pw = (await import(fallback)).default ?? await import(fallback); }
+try {
+  pw = await import('playwright');
+} catch {
+  const dir = process.env.PLAYWRIGHT_DIR;
+  if (!dir) throw new Error('playwright not found — install it or set PLAYWRIGHT_DIR');
+  const fallback = new URL('index.js', `file:///${dir.replace(/\\/g, '/')}/`).href;
+  pw = (await import(fallback)).default ?? (await import(fallback));
+}
 const { chromium } = pw;
 const port = process.argv[2] || '5173';
 

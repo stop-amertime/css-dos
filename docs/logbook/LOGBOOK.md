@@ -4,7 +4,7 @@ Chronological work entries. Newest first. The durable handbook
 (current state, sentinels, gotchas, how to test) is in
 [`STATUS.md`](STATUS.md).
 
-Last updated: 2026-06-12
+Last updated: 2026-06-29
 
 Entries are individual files in [`entries/`](entries/). This page is
 the **index only** — read the tag + one-line summary, open the 1–3
@@ -22,6 +22,8 @@ See [`PROTOCOL.md`](PROTOCOL.md).
 
 | Date | Tag | Entry |
 |------|-----|-------|
+| 2026-06-29 | BRANCH | [Sokoban cart made buildable (branch `cleanup/public-presentation`): `carts.js` advertised sokoban but `carts/sokoban/` had no `program.json`, so the public grid offered an unbuildable cart. `SKB.EXE` is genuinely Sokoban (verified via embedded strings); authored `program.json` (`cart@1`, `runCommand: SKB`, CGA `cgaGfx: true`); builds + fast-shoot @4M ticks reaches its title/system-select screen](entries/2026-06-29-sokoban-program-json.md) |
+| 2026-06-29 | BRANCH | [Public-presentation cleanup sweep (branch `cleanup/public-presentation`, 7 commits): personal-path leaks scrubbed (2 usernames — NASM + Playwright fallbacks → env/PATH, `.mcp.json` relativised), dead/broken scripts deleted (fb-pack-diff, bit-rotted ref-muslin), stale cart refs fixed (carts.js, artifacts.mjs), noisy dev docs gitignored (`docs/benches/`) + archive cruft pruned, stale `transpiler/`→`kiln/` refs, web honesty (menu comments, VSYNC-PLAN refs, bridge canary), doc-vs-code contradictions (write slots 6→3, stages four→five, Corduroy default not "experimental"), dead code removed (6 emitters, ghost JSDoc, no-op flag); smoke 6/6](entries/2026-06-29-public-presentation-cleanup.md) |
 | 2026-06-16 | FINDING | [Phase 0 settles the compiler road: Doom ingame is dispatch-bound NOT memory-bound (v2's excuse refuted) — hot-region work is 595× the interpreter even via hashmap, 11,564× in V8; interpret-vs-compile 849× ceiling / ~4.5× floor; v2 lost 45× from whole-tick DAG eval + per-read host crossings, both fixable; verdict GO, codegen the v1 branch-skipping op stream to flat-linear-memory wasm](entries/2026-06-16-phase0-compiler-road-dispatch-bound.md) |
 | 2026-06-12 | LANDED | [Cabinet compile wall 30.0 → 4.6 s web (−85%, same-day driver A/B): calcite byte-level fast paths for data-as-code (literal dispatch runs, buffer-copy runs) + dispatch-table/function-branch deep copies eliminated; every step state-dump byte-identical at 2M ticks; new bridge `phase-report` + capture script expose the wasm compile breakdown](entries/2026-06-12-compile-wall-fastpath.md) |
 | 2026-06-12 | LANDED | [Release audit: Corduroy INT 10h AH=1Ah dispatched DCC on BL not AL (PoP 1.4 "Graphics mode not available") — fixed, smoke PASS; pop1_4 + rogue1_0 verified booting (pop1_4 needs sound drivers .BAK'd — 7 kHz PIT ISR starves an 8086); calcite genericity sweep clean; 2026-04 seg-override POP report verified gone; dead plans + stale debugging docs pruned](entries/2026-06-12-release-audit-bios-dcc-fix-cart-verification.md) |

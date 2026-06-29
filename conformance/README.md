@@ -6,11 +6,16 @@ run of the same cart. Each reference emulator mirrors one BIOS flavor.
 | File | BIOS flavor | Used for |
 |---|---|---|
 | `ref-hack.mjs`    | Gossamer | .COM programs via the hack path. No DOS. |
-| `ref-muslin.mjs`  | Muslin   | Full DOS boot with the current Muslin BIOS. |
 | `ref-corduroy.mjs`| Corduroy | (Future — will land when Corduroy stabilizes.) |
 
-All three share the same JS 8086 core (`tools/js8086.js`) and the
+They share the same JS 8086 core (`tools/js8086.js`) and the
 peripheral/BIOS-handler shims in `tools/lib/`.
+
+> The old `ref-muslin.mjs` (Muslin full-DOS reference) was removed: it
+> had bit-rotted past the BIOS reorganisation (it assembled a BIOS
+> source that now lives in `legacy/`, and read a disk image that was
+> never part of the repo). The current full-DOS conformance path is
+> `node tests/harness/pipeline.mjs fulldiff <cabinet>.css`.
 
 ## Running
 
@@ -18,13 +23,11 @@ Each ref emulator is a standalone node script. See the file header for
 flags. In general:
 
 ```
-node conformance/ref-muslin.mjs <cabinet-or-cart> [--ticks N] [--trace]
+node conformance/ref-hack.mjs <program.com> <gossamer.bin> <ticks> [--json]
 ```
 
-## Relationship to calcite's diff tools
+For full-DOS carts, use the harness fulldiff path instead:
 
-Calcite's `tools/` directory has a separate, ad-hoc collection of
-divergence-finding utilities (`fulldiff.mjs`, `diagnose.mjs`,
-`boot-trace.mjs`, `codebug.mjs`, `compare.mjs`). Those consume traces
-produced by the ref emulators here. The long-term plan is to collapse
-them into `calcite-debugger` subcommands; for now they stay as-is.
+```
+node tests/harness/pipeline.mjs fulldiff <cabinet>.css
+```

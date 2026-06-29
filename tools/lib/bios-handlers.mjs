@@ -248,9 +248,11 @@ export function createBiosHandlers(memory, pic, kbd, getRegs, setRegs) {
   }
 
   // --- DOS-path handlers (INT 08h, 11h, 12h, 13h, 15h, 19h) ---
-  // These are needed for the DOS kernel boot path where gossamer-dos.asm
-  // is replaced by microcode handlers. They match the CSS microcode in
-  // transpiler/src/patterns/bios.mjs.
+  // The conformance emulator needs these to exercise the DOS kernel boot
+  // path. On the CSS side the equivalent services are provided by the
+  // assembly BIOS (bios/muslin/, bios/corduroy/), not by these JS shims.
+  // (An earlier V3 design emitted them as CSS microcode; that lives only
+  // in legacy/v3/transpiler/src/patterns/bios.mjs now.)
 
   function int08h() {
     // Timer IRQ: increment BDA tick counter, send EOI

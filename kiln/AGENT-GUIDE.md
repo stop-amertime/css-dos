@@ -19,7 +19,8 @@ Key methods:
   `expr` when the current opcode matches. **One entry per (reg, opcode) pair** —
   duplicates throw an error.
 - `dispatch.addMemWrite(opcode, addrExpr, valExpr, comment)` — queue a memory
-  write. Each opcode can use up to 6 write slots (for INT which pushes 3 words).
+  write. Each opcode can use up to `NUM_WRITE_SLOTS` (3) word slots — the max
+  is INT, which pushes FLAGS/CS/IP = 3 words.
 
 ### Register names
 
@@ -101,14 +102,17 @@ order (slot 0 first, then 1, etc.) as you already would.
 - rm 0-3 = AL,CL,DL,BL (low bytes of AX,CX,DX,BX)
 - rm 4-7 = AH,CH,DH,BH (high bytes of AX,CX,DX,BX)
 
-Use SPLIT_REGS pattern:
+Use the shared `SPLIT_REGS` table (and `REG16` for 16-bit destinations),
+imported from `patterns/regs.mjs`:
 ```js
-const SPLIT_REGS = [
-  { reg: 'AX', lowIdx: 0, highIdx: 4 },
-  { reg: 'CX', lowIdx: 1, highIdx: 5 },
-  { reg: 'DX', lowIdx: 2, highIdx: 6 },
-  { reg: 'BX', lowIdx: 3, highIdx: 7 },
-];
+import { REG16, SPLIT_REGS } from './regs.mjs';
+
+// SPLIT_REGS = [
+//   { reg: 'AX', lowIdx: 0, highIdx: 4 },
+//   { reg: 'CX', lowIdx: 1, highIdx: 5 },
+//   { reg: 'DX', lowIdx: 2, highIdx: 6 },
+//   { reg: 'BX', lowIdx: 3, highIdx: 7 },
+// ];
 ```
 
 ### Wiring up
@@ -119,11 +123,12 @@ After writing your emitter function, you must:
 
 ### Testing
 
-After making changes, run:
+After making changes, build a small cart through Kiln:
 ```
-node transpiler/generate-hacky.mjs examples/fib.com -o tests/fib-pure.css
+node builder/build.mjs carts/test-carts/hello-text -o tmp-hello.css
 ```
-If it generates without errors, the dispatch table has no conflicts.
+If it builds without errors, the dispatch table has no conflicts. For a
+broader check, run the smoke set: `node tests/harness/run.mjs smoke`.
 
 ## Examples
 

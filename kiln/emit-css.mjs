@@ -304,12 +304,6 @@ class DispatchTable {
   }
 
   /**
-   * Emit --_slot{N}Width: per-tick 1 or 2 indicating whether this slot
-   * writes a single byte or a (lo, hi) word pair. Default is 1 — only
-   * opcodes that produced a fused pair set width to 2 for that slot.
-   * TF trap and IRQ delivery use 3 word-aligned writes (width=2 on all slots).
-   */
-  /**
    * Emit a single global --_writeWidth gate.
    *
    * In practice no opcode the kiln currently emits *mixes* byte and word

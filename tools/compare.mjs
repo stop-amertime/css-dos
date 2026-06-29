@@ -10,7 +10,7 @@
 //
 // Conformance comparison: reference 8086 emulator vs calcite
 //
-// Usage: node tools/compare.mjs <program.com> <gossamer.bin> <program.css> [--ticks=N] [--dump-slots]
+// Usage: node tools/compare.mjs <program.com> <gossamer.bin> <program.css> [--ticks=N]
 //
 // Runs both emulators, finds the first tick where registers diverge,
 // and outputs a diagnostic report.
@@ -40,7 +40,7 @@ const flags = Object.fromEntries(
 );
 
 if (positional.length < 3) {
-  console.error('Usage: node tools/compare.mjs <program.com> <gossamer.bin> <program.css> [--ticks=N] [--dump-slots]');
+  console.error('Usage: node tools/compare.mjs <program.com> <gossamer.bin> <program.css> [--ticks=N]');
   process.exit(1);
 }
 
@@ -49,7 +49,6 @@ const biosPath = resolve(positional[1]);
 const cssPath = resolve(positional[2]);
 const maxTicks = parseInt(flags.ticks || '500');
 const calciteTicks = parseInt(flags['calcite-ticks'] || String(maxTicks * 10));
-const dumpSlots = 'dump-slots' in flags;
 
 // Parse key events: --key-events=100:0x1E61,150:0
 const keyEvents = [];

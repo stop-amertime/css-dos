@@ -2,13 +2,7 @@
 // reg field selects operation:
 // 0=ROL, 1=ROR, 2=RCL, 3=RCR, 4=SHL/SAL, 5=SHR, 6=-(unused), 7=SAR
 
-const REG16 = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI'];
-const SPLIT_REGS = [
-  { reg: 'AX', lowIdx: 0, highIdx: 4 },
-  { reg: 'CX', lowIdx: 1, highIdx: 5 },
-  { reg: 'DX', lowIdx: 2, highIdx: 6 },
-  { reg: 'BX', lowIdx: 3, highIdx: 7 },
-];
+import { REG16, SPLIT_REGS } from './regs.mjs';
 
 /**
  * Group 0xD1: shift/rotate r/m16 by 1

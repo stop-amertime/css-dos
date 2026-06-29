@@ -286,7 +286,8 @@ from both repos. Use `node tests/harness/pipeline.mjs fulldiff
 ## Quick orientation
 
 - **Current architecture:** V4 single-cycle. Every instruction completes
-  in one CSS tick with a configurable number of memory write slots (minimum 6)
+  in one CSS tick. Memory writes use `NUM_WRITE_SLOTS` (3) word slots
+  (`kiln/memory.mjs`); INT's FLAGS/CS/IP push is the 3-slot worst case.
 - **Default BIOS:** Corduroy (`bios/corduroy/`). Muslin (`bios/muslin/muslin.asm`) still available.  
 - **Build entry:** `node builder/build.mjs <cart>`.
 - **Transpiler:** [`kiln/`](kiln/) — see [`kiln/README.md`](kiln/README.md).

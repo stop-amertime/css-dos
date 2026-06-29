@@ -35,27 +35,9 @@ window.CARTS = [
     cover: '/assets/boxart/sokoban.jpg',
   },
   {
-    id: 'rogue',
+    id: 'rogue1_0',
     name: 'Rogue',
     desc: 'Michael Toy & Ken Arnold, 1980. The original dungeon-crawler. ASCII forever.',
     placeholderPalette: ['#55ff55', '#000000'],
-  },
-  {
-    id: 'digger',
-    name: 'Digger',
-    desc: 'Windmill Software, 1983. Dig tunnels, dodge nobbins, collect gold. CGA classic.',
-    placeholderPalette: ['#ffff55', '#aa0000'],
-  },
-  {
-    id: 'lemmings',
-    name: 'Lemmings',
-    desc: 'DMA Design, 1991. Save the lemmings from themselves. Click on each one fast.',
-    placeholderPalette: ['#55ffff', '#aa00aa'],
-  },
-  {
-    id: 'montezuma',
-    name: "Montezuma's Revenge",
-    desc: 'Parker Bros, 1984. Find the treasure of Montezuma II. Brutal platformer.',
-    placeholderPalette: ['#ff55ff', '#0000aa'],
   },
 ];

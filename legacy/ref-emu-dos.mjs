@@ -41,7 +41,7 @@ const DISK_LINEAR   = 0xD0000;
 const BIOS_LINEAR   = 0xF0000;
 
 // --- Assemble init stub ---
-const NASM = resolve('C:\\Users\\AdmT9N0CX01V65438A\\AppData\\Local\\bin\\NASM\\nasm.exe');
+const NASM = process.env.NASM || 'nasm';
 const initAsmPath = resolve(projectRoot, 'bios', 'init.asm');
 const initBinPath = resolve(projectRoot, 'bios', 'init.bin');
 execSync(`"${NASM}" -f bin -o "${initBinPath}" "${initAsmPath}"`, { stdio: 'pipe' });

@@ -8,7 +8,7 @@
 //   0x6A  PUSH imm8 (sign-extended to 16 bits)
 //   0x6B  IMUL r16, r/m16, imm8    (signed, imm sign-extended)
 
-const REG16 = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI'];
+import { REG16 } from './regs.mjs';
 
 // Signed versions of r/m16 and the immediates. Inlined rather than added to
 // decode.mjs so these helpers only pay their evaluation cost on the 4 opcodes

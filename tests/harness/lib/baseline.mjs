@@ -104,7 +104,7 @@ export async function recordBaseline({ cssPath, ticks, out = null, session = 'ba
     }
     const manifest = {
       recordedAt: new Date().toISOString(),
-      cabinet: resolve(cssPath),
+      cabinet: basename(cssPath),
       ticks: captures.map(c => ({
         tick: c.tick,
         mode: c.mode,
