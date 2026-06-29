@@ -59,7 +59,7 @@ const BIOS_SEG = 0xF000;
 const BDA_SEG = 0x0040;
 const BDA_BASE = 0x0400;
 
-const NASM = resolve('C:\\Users\\AdmT9N0CX01V65438A\\AppData\\Local\\bin\\NASM\\nasm.exe');
+const NASM = process.env.NASM || 'nasm';
 
 // --- CLI argument parsing ---
 const args = process.argv.slice(2);
