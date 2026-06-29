@@ -85,3 +85,7 @@ trace-*.json
 # Ephemeral planning artifacts from superpowers workflow
 docs/superpowers/
 entry.err
+
+# Raw benchmark JSON dumps — machine output kept only as local provenance
+# while iterating on perf. Headline numbers live in docs/logbook/STATUS.md.
+docs/benches/

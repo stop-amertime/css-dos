@@ -3,14 +3,12 @@
 Completed specs, old plans, and session notes. Read these only if you need
 historical context for a specific decision.
 
-## Session handoff notes (2026-04-13)
+## Root-cause analysis (2026-04-13)
 
-These were the original inter-session handoff docs before the logbook was
-established. The logbook now serves this purpose.
-
-- `2026-04-13-v3-handoff-session1.md` — Calcite slot aliasing fix, INT 09h working
-- `2026-04-13-v3-handoff-session2.md` — IRET fix, new handlers, DOS path rewrite
 - `2026-04-13-calcite-slot-aliasing-bug.md` — Detailed root cause analysis of calcite compiler bug
+
+(The original inter-session handoff notes that sat here were removed once
+the logbook took over that role.)
 
 ## Design specs
 
