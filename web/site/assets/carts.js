@@ -14,19 +14,19 @@ window.CARTS = [
     id: 'doom8088',
     name: 'Doom (8088)',
     desc: 'id Software, 1993. 8088-class port by FrenkelS. Cacodemons in mode 13h.',
-    cover: '/assets/boxart/doom.jpg',
+    cover: '/assets/boxart/doom-alt.jpg',
   },
   {
     id: 'prince-of-persia',
     name: 'Prince of Persia',
     desc: 'Brøderbund, 1989. Jordan Mechner. Rotoscoped platformer, original DOS release.',
-    cover: '/assets/boxart/persia.jpg',
+    cover: '/assets/boxart/pop-alt.jpg',
   },
   {
     id: 'zork1',
     name: 'Zork I',
     desc: 'Infocom, 1980. The Great Underground Empire. Z-machine interpreter, text only.',
-    cover: '/assets/boxart/zork.jpg',
+    cover: '/assets/boxart/zork-box-2.webp',
   },
   {
     id: 'sokoban',

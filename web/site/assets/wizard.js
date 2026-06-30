@@ -164,7 +164,7 @@
   // and fire a `change` event so build.js does the rest.
 
   const cartGrid = $('#cart-grid');
-  const cartSelected = $('#cart-selected');
+  const cartDetail = $('#cart-detail');
 
   function renderCartGrid(serverCarts) {
     // serverCarts: [{ name, files, program }] from build.js's fetch.
@@ -207,13 +207,9 @@
       }
       card.appendChild(cover);
 
-      const body = document.createElement('div');
-      body.className = 'cart-body';
-      body.innerHTML = `
-        <div class="cart-name">${escapeHtml(meta.name)}</div>
-        <div class="cart-desc">${escapeHtml(meta.desc || '')}</div>
-      `;
-      card.appendChild(body);
+      // No per-card name/desc text any more — the cover (box art) speaks for
+      // itself, and the selected cart's name + description live in the
+      // #cart-detail box below the grid (see selectCartCard).
 
       card.addEventListener('click', () => selectCartCard(meta.id));
       cartGrid.appendChild(card);
@@ -230,14 +226,17 @@
     return wrap;
   }
 
-  // The Custom card's cover: a big question mark on the palette colour.
+  // The Custom card has no box art. Since the cards no longer carry name/desc
+  // text below them, the custom card puts its name + blurb inside the cover
+  // area itself — dashed border, muted fill (styled in wizard.css).
   function makeCustomCover(meta) {
     const wrap = document.createElement('div');
     wrap.className = 'cart-cover-placeholder cart-cover-custom';
-    const [fg, bg] = meta.placeholderPalette || ['#ffffff', '#aa0000'];
-    wrap.style.background = bg;
-    wrap.style.color = fg;
-    wrap.innerHTML = `<div class="ph-glyph">?</div>`;
+    wrap.innerHTML = `
+      <div class="ph-glyph">+</div>
+      <div class="ph-name">${escapeHtml(meta.name)}</div>
+      <div class="ph-sub">${escapeHtml(meta.desc || '')}</div>
+    `;
     return wrap;
   }
 
@@ -246,9 +245,20 @@
     const meta = (window.CARTS || []).find((c) => c.id === id);
     const isCustom = !!meta?.custom;
 
-    // Update visible state.
+    // Update visible state: outline the selected card.
     $$('.cart-card').forEach((c) => c.classList.toggle('selected', c.dataset.cartId === id));
-    if (cartSelected) cartSelected.textContent = meta?.name || id;
+
+    // Populate the detail box (name as a header + description). The custom
+    // card carries its own text inside the card, so hide the box for it.
+    if (cartDetail) {
+      cartDetail.hidden = isCustom;
+      if (!isCustom) {
+        const nameEl = cartDetail.querySelector('.cart-detail-name');
+        const descEl = cartDetail.querySelector('.cart-detail-desc');
+        if (nameEl) nameEl.textContent = meta?.name || id;
+        if (descEl) descEl.textContent = meta?.desc || '';
+      }
+    }
 
     // Show the custom upload panel only when the Custom card is selected.
     $('#custom-panel').hidden = !isCustom;
@@ -331,7 +341,17 @@
     $$('.cart-card').forEach((c) => c.classList.toggle('selected', c.dataset.cartId === cardId));
     $('#custom-panel').hidden = !!id;
     const meta = (window.CARTS || []).find((c) => c.id === cardId);
-    if (cartSelected) cartSelected.textContent = meta?.name || id || '(none)';
+    // Mirror the detail box. Custom card (empty id) carries its own text, so
+    // hide the box for it.
+    if (cartDetail) {
+      cartDetail.hidden = !id;
+      if (id) {
+        const nameEl = cartDetail.querySelector('.cart-detail-name');
+        const descEl = cartDetail.querySelector('.cart-detail-desc');
+        if (nameEl) nameEl.textContent = meta?.name || id;
+        if (descEl) descEl.textContent = meta?.desc || '';
+      }
+    }
     if (id) $('#build-hint').textContent = 'Ready to build.';
   });
 

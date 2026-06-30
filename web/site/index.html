@@ -439,6 +439,14 @@
           <div class="block-body">
             <div class="cart-grid" id="cart-grid"><!-- filled by wizard.js --></div>
 
+            <!-- Detail box for the selected cart: name (header) + blurb.
+                 Populated by wizard.js; hidden for the Custom card, which
+                 carries its own text inside the card. -->
+            <div class="cart-detail" id="cart-detail" hidden>
+              <div class="cart-detail-name"></div>
+              <div class="cart-detail-desc"></div>
+            </div>
+
             <!-- Custom upload panel — hidden until the "Custom Program" card
                  is selected. wizard.js toggles .custom-panel-open. -->
             <div class="custom-panel" id="custom-panel" hidden>
