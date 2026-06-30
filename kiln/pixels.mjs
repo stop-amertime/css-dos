@@ -2,10 +2,16 @@
 // Pure-CSS Mode 13h framebuffer painter.
 //
 // Emits one CSS rule per pixel that reads the pixel's framebuffer byte
-// from packed memory storage (--__1mc{cell}) and (in Task 2) maps it
-// through the live DAC palette to a background-color. ALWAYS emitted;
-// inert in the calcite/bridge players (which have no #pN nodes and
-// render the framebuffer to an <img>). Only the raw player paints.
+// from packed memory storage (--__1mc{cell}) and maps it through the
+// live DAC palette to a background-color. ALWAYS emitted; inert in the
+// calcite/bridge players (which have no #pN nodes and render the
+// framebuffer to an <img>). Only the raw player paints.
+//
+// The framebuffer (0xA0000) and DAC (0x100000) cells are only emitted
+// for carts with gfx memory (memory.mjs prunes them otherwise). For a
+// non-gfx cart the referenced --__1mc{cell} is undeclared, so var()
+// resolves invalid → --ci invalid → the palette's `else` arm →
+// rgb(0 0 0) black. That's correct: such carts never paint Mode 13h.
 //
 // This is CSS-DOS PLATFORM knowledge (Mode 13h geometry, DAC layout)
 // living in the EMITTER, exactly where memory.mjs/patterns/misc.mjs
@@ -16,9 +22,9 @@ import { cellIdxOf, DAC_LINEAR } from './memory.mjs';
 
 const FB_BASE = 0xA0000;
 
-// Per-pixel colour-index read: extract the framebuffer byte at the
-// pixel's linear address from its packed cell.
-function indexExpr(addr) {
+// Extract the byte at linear address `addr` from its packed cell
+// (--__1mc{cell}), the same idiom as emit-css.mjs's memory reads.
+function cellByteExpr(addr) {
   const idx = cellIdxOf(addr);
   return (addr & 1) === 0
     ? `mod(var(--__1mc${idx}), 256)`
@@ -28,12 +34,7 @@ function indexExpr(addr) {
 // DAC byte read for palette entry `e`, channel `c` (0=R,1=G,2=B),
 // 6-bit value expanded to 8-bit.
 function dacChannel8(entry, channel) {
-  const addr = DAC_LINEAR + entry * 3 + channel;
-  const idx = cellIdxOf(addr);
-  const raw = (addr & 1) === 0
-    ? `mod(var(--__1mc${idx}), 256)`
-    : `round(down, var(--__1mc${idx}) / 256)`;
-  return `round(${raw} * 255 / 63)`;
+  return `round(${cellByteExpr(DAC_LINEAR + entry * 3 + channel)} * 255 / 63)`;
 }
 
 // Shared 256-arm palette function: index -> rgb() from the live DAC.
@@ -58,7 +59,7 @@ export function emitPixelPaintRules({ width = 320, height = 200 } = {}) {
   const count = width * height;
   for (let i = 0; i < count; i++) {
     lines.push(
-      `.cpu #p${i} { --ci: ${indexExpr(FB_BASE + i)}; ` +
+      `.cpu #p${i} { --ci: ${cellByteExpr(FB_BASE + i)}; ` +
       `background-color: --paletteRGB(var(--ci)); }`);
   }
   return lines.join('\n');

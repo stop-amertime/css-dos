@@ -37,7 +37,11 @@ assert.ok(!raw.includes('id="calcite-screen"'), 'no <img> screen in raw');
 assert.ok(raw.includes('>RAW<'), 'RAW label in status line');
 
 // Title changed.
-assert.ok(raw.includes('raw CSS'), 'raw CSS in title');
+assert.ok(raw.includes('<title>CSS-DOS · raw CSS</title>'), 'raw CSS in title');
+
+// Menu-bar title changed (separate substitution from <title>).
+assert.ok(raw.includes('CSS-DOS - RAW CSS'), 'menu-bar title is RAW CSS');
+assert.ok(!raw.includes('CSS-DOS - PLAYING'), 'old PLAYING menu title gone');
 
 // Window body has cpu and clock classes.
 assert.ok(raw.includes('class="window-body clock cpu"'), '.window-body has clock and cpu classes');
