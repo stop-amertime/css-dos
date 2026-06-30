@@ -30,14 +30,13 @@
   const $$ = (s) => Array.from(document.querySelectorAll(s));
 
   const wizWindow  = $('.window.wizard');
-  const wizTitle   = $('#wiz-title');
   const wizCounter = $('#wiz-counter');
   const prevBtn    = $('#prev');
   const nextBtn    = $('#next');
   const statusMsg  = $('#status-msg');
   const startBtn   = $('#start');
 
-  const STEP_TITLES = ['Learn', 'Build cabinet', 'Play'];
+  const STEP_TITLES = ['About', 'Build cabinet', 'Play'];
 
   // ── Step navigation ─────────────────────────────────────────────────
 
@@ -57,7 +56,7 @@
     if (step === LEARN_STEP) renderSub();
     // Only the Play step gets the wide dialog; Learn/Build stay reading-width.
     wizWindow.classList.toggle('play-wide', step === PLAY_STEP);
-    wizTitle.textContent  = `Step ${step} of ${TOTAL_STEPS} — ${STEP_TITLES[step - 1]}`;
+    document.title = `CSS-DOS — ${STEP_TITLES[step - 1]}`;
     // Three step-dots: mark current + completed.
     wizCounter.querySelectorAll('li').forEach((li) => {
       const j = Number(li.dataset.jump);
