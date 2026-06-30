@@ -109,7 +109,220 @@
   color: var(--edit-black);
 }
 
-/* ===== Step 2 — pipeline ===== */
+/* ===== Step 1 — Learn (sub-pages + widgets) ===== */
+
+/* Sub-page dot indicator */
+.subdots {
+  display: flex;
+  gap: 8px;
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+  flex-wrap: wrap;
+}
+.subdots li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  line-height: 16px;
+  color: #666;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 10px 4px 8px;
+  border: 1px solid transparent;
+}
+.subdots li .dot {
+  width: 10px; height: 10px;
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+  display: inline-block;
+}
+.subdots li.done .dot { background: #666; }
+.subdots li.current {
+  color: var(--edit-black);
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+}
+.subdots li.current .dot { background: var(--edit-red); }
+.subdots li + li::before {
+  content: '\2192';
+  color: #999;
+  margin-right: 2px;
+}
+
+.learn-step .placeholder-note {
+  color: var(--edit-red);
+  font-style: italic;
+}
+.punchline {
+  margin-top: 16px !important;
+  border-left: 4px solid var(--edit-red);
+  padding-left: 12px;
+  line-height: 18px !important;
+}
+
+/* — CSS code-flicker demo — */
+.css-demo {
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+  box-shadow: 4px 4px 0 var(--edit-black);
+  margin: 12px 0;
+}
+.css-demo-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  border-bottom: 1px solid var(--edit-black);
+  background: var(--edit-gray);
+}
+.css-demo-tab {
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 14px;
+  padding: 6px 10px;
+  background: var(--edit-gray);
+  color: var(--edit-black);
+  border: none;
+  border-right: 1px solid var(--edit-black);
+  cursor: pointer;
+  user-select: none;
+}
+.css-demo-tab:hover { background: #ccc; }
+.css-demo-tab.current {
+  background: var(--edit-black);
+  color: var(--edit-yellow);
+}
+.css-demo-stage {
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  gap: 0;
+  align-items: stretch;
+}
+.css-demo-code {
+  margin: 0;
+  padding: 12px 16px;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 20px;
+  color: var(--edit-black);
+  background: var(--edit-white);
+  white-space: pre;
+  overflow-x: auto;
+}
+.css-demo-code .tok-sel { color: var(--edit-blue); }
+.css-demo-code .css-demo-rule { color: var(--edit-red); }
+.css-demo-stage {
+  border-left: 0;
+}
+.css-demo-box {
+  margin: 16px;
+  background: var(--edit-red);
+  color: var(--edit-white);
+  border: 1px solid var(--edit-black);
+  min-height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  /* The live box: learn.js rewrites its inline style. The grid cell has a
+     left rule so it reads as a separate "preview" pane. */
+}
+.css-demo-stage > .css-demo-box {
+  align-self: center;
+  justify-self: center;
+  width: 140px;
+}
+.css-demo-stage::before { content: none; }
+
+/* — functions / branching demo — */
+.fn-demo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 8px 0;
+}
+.fn-demo-item {
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+}
+.fn-demo-code {
+  margin: 0;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 16px;
+  background: var(--edit-black);
+  color: #55ff55;
+  white-space: pre;
+  overflow-x: auto;
+}
+.fn-demo-code .tok-fn { color: var(--edit-yellow); }
+.fn-demo-code .tok-at { color: var(--edit-cyan); }
+.fn-demo-result {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fn-demo-bar {
+  height: 14px;
+  background: var(--edit-blue);
+  border: 1px solid var(--edit-black);
+}
+
+/* — cross / sim lists — */
+.cross-list, .sim-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+.cross-list li, .sim-list li { margin-bottom: 6px; line-height: 16px; }
+.cross-list .no { color: var(--edit-red); margin-right: 8px; }
+.sim-list .ok { color: #006600; margin-right: 8px; }
+
+.ext-link-box {
+  border: 1px dashed var(--edit-black);
+  background: var(--edit-white);
+  padding: 10px 14px;
+  margin: 16px 0;
+}
+.ext-link-box p { margin: 0; }
+
+/* — byte-for-byte RAM example — */
+.byte-example {
+  margin: 8px 0;
+  padding: 12px 16px;
+  background: var(--edit-black);
+  color: #55ff55;
+  border: 1px solid var(--edit-black);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 18px;
+  white-space: pre;
+  overflow-x: auto;
+}
+.byte-example .tok-comment { color: #888; }
+.byte-example .tok-prop { color: var(--edit-cyan); }
+.byte-example .tok-num { color: var(--edit-yellow); }
+
+/* — earth–moon visual — */
+.moon-viz {
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+  box-shadow: 4px 4px 0 var(--edit-black);
+  padding: 12px 16px;
+  margin: 16px 0;
+}
+.moon-viz svg { width: 100%; height: auto; display: block; }
+.moon-viz .caption {
+  margin: 8px 0 0;
+  font-size: 16px;
+  line-height: 18px;
+  color: var(--edit-black);
+}
+
+/* ===== Step 2 — pipeline (PARKED, out of flow) ===== */
 .pipeline {
   display: grid;
   grid-template-columns: 1fr 24px 1fr 24px 1fr 24px 1fr;

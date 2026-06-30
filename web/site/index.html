@@ -26,58 +26,205 @@
 
   <div class="window wizard">
     <div class="title-bar">
-      <span id="wiz-title">Step 1 of 4 &mdash; Welcome</span>
+      <span id="wiz-title">Step 1 of 3 &mdash; Learn</span>
     </div>
 
     <ol class="step-strip" id="step-strip" aria-label="Wizard progress">
-      <li data-jump="1" class="current"><span class="num">1</span> Welcome</li>
-      <li data-jump="2"><span class="num">2</span> How it works</li>
-      <li data-jump="3"><span class="num">3</span> Build</li>
-      <li data-jump="4"><span class="num">4</span> Play</li>
+      <li data-jump="1" class="current"><span class="num">1</span> Learn</li>
+      <li data-jump="2"><span class="num">2</span> Build</li>
+      <li data-jump="3"><span class="num">3</span> Play</li>
     </ol>
 
     <div class="window-body">
 
       <!-- ============================================ -->
-      <!-- STEP 1 — Welcome                              -->
+      <!-- STEP 1 — Learn (3 sub-pages)                  -->
+      <!-- Sub-page nav lives in wizard.js: Next walks    -->
+      <!-- 1→2→3, then advances the strip to Build.       -->
       <!-- ============================================ -->
-      <section class="step" data-step="1">
-        <div class="hero-row">
-          <div class="hero-logo">
-            <img src="/assets/css-dos-logo-narrow.png" alt="CSS-DOS">
+      <section class="step learn-step" data-step="1">
+
+        <!-- Sub-page dot indicator (clickable) -->
+        <ol class="subdots" id="learn-subdots" aria-label="Learn progress">
+          <li data-subjump="1" class="current"><span class="dot"></span> What is CSS?</li>
+          <li data-subjump="2"><span class="dot"></span> Why it&rsquo;s strange</li>
+          <li data-subjump="3"><span class="dot"></span> The file</li>
+        </ol>
+
+        <!-- ---------- Learn sub-page 1 — What is CSS? ---------- -->
+        <div class="subpage" data-subpage="1">
+          <div class="hero-row">
+            <div class="hero-logo">
+              <img src="/assets/css-dos-logo-narrow.png" alt="CSS-DOS">
+            </div>
+            <div class="hero-text">
+              <h1>CSS-DOS</h1>
+              <p class="lede">
+                An entire 80s PC, running in a stylesheet &mdash; booting
+                <b>DOS</b>, the first ever operating system, off a
+                simulated floppy disk.
+              </p>
+              <!-- PLACEHOLDER prose — sharpen later -->
+              <p class="dim placeholder-note">
+                [placeholder] One-line hook goes here. Keep it punchy.
+              </p>
+            </div>
           </div>
-          <div class="hero-text">
-            <h1>CSS-DOS</h1>
-            <p class="lede">
-              A working <b>1981 IBM&nbsp;PC</b> &mdash; expressed as a single&nbsp;<code>.css</code>&nbsp;file.
-            </p>
+
+          <h3>What is CSS?</h3>
+          <p>
+            If you&rsquo;re on this page you likely know &mdash; but let&rsquo;s
+            recap. <b>HTML</b> defines the structure of a webpage;
+            <b>CSS</b> adds styles on top of it, like this:
+          </p>
+
+          <!-- WIDGET: live CSS code-flicker demo. Tabs swap a rule on the
+               box; the box updates live. Owned by learn.js. -->
+          <div class="css-demo" id="css-demo">
+            <div class="css-demo-tabs" role="tablist">
+              <button class="css-demo-tab current" data-rule="background-color: #aa0000;">background-color</button>
+              <button class="css-demo-tab" data-rule="border: 6px dashed #0000aa;">border</button>
+              <button class="css-demo-tab" data-rule="font-size: 28px; color: #aa0000;">font-size</button>
+              <button class="css-demo-tab" data-rule="transform: rotate(-6deg);">transform</button>
+              <button class="css-demo-tab" data-rule="border-radius: 24px; background-color: #0000aa; color:#fff;">border-radius</button>
+            </div>
+            <div class="css-demo-stage">
+              <pre class="css-demo-code"><code><span class="tok-sel">.box</span> {
+  <span class="css-demo-rule">background-color: #aa0000;</span>
+}</code></pre>
+              <div class="css-demo-box" id="css-demo-box">box</div>
+            </div>
+          </div>
+
+          <p style="margin-top:12px">
+            CSS also supports some very basic functions and branching:
+          </p>
+
+          <!-- WIDGET: basic functions / branching. Static snippets with a
+               live result swatch. -->
+          <div class="fn-demo">
+            <div class="fn-demo-item">
+              <pre class="fn-demo-code"><code>width: <span class="tok-fn">calc</span>(100% - 40px);</code></pre>
+              <div class="fn-demo-result">
+                <div class="fn-demo-bar" style="width:calc(100% - 40px)"></div>
+                <span class="dim small">arithmetic</span>
+              </div>
+            </div>
+            <div class="fn-demo-item">
+              <pre class="fn-demo-code"><code><span class="tok-at">@media</span> (min-width: 600px) { &hellip; }</code></pre>
+              <div class="fn-demo-result">
+                <span class="dim small">branching on a condition</span>
+              </div>
+            </div>
+          </div>
+
+          <p class="punchline">
+            This language is technically <b>Turing-complete</b> &mdash;
+            which means, <i>in theory</i>, it can run any computation at all.
+          </p>
+        </div>
+
+        <!-- ---------- Learn sub-page 2 — Why it's strange ---------- -->
+        <div class="subpage" data-subpage="2" hidden>
+          <h1>Why is this so strange?</h1>
+          <p>
+            We are very much <b>abusing</b> CSS here. It was never meant
+            to do any of this. CSS has no support for:
+          </p>
+          <ul class="cross-list">
+            <li><span class="no">[ ]</span> Keyboard input</li>
+            <li><span class="no">[ ]</span> Graphics output</li>
+            <li><span class="no">[ ]</span> Reading or writing memory</li>
+            <li><span class="no">[ ]</span> Files of any kind</li>
+            <li><span class="no">[ ]</span> <span class="placeholder-note">[placeholder] &hellip;and a bunch more it doesn&rsquo;t have</span></li>
+          </ul>
+
+          <p class="punchline">
+            But we <i>can</i> emulate every single instruction a CPU
+            executes &mdash; and once you can do that, you can emulate the
+            whole machine around it.
+          </p>
+
+          <div class="ext-link-box">
             <p>
-              Drop in a DOS program. You get back a stylesheet.<br>
-              Load that stylesheet in Chrome and the <i>stylesheet itself</i> is the&nbsp;PC.<br>
-              CPU, memory, BIOS, screen, your program &mdash; all baked into one file.
+              For a clean visual demonstration of the idea, see
+              <!-- PLACEHOLDER URL — drop Lyra's real link -->
+              <a href="#" class="ext-link" id="lyra-link">Lyra&rsquo;s x86 CPU built in CSS</a>.
+              <span class="dim small">[placeholder link]</span>
             </p>
-            <ul class="bullets">
-              <li><span class="ok">[X]</span> No JavaScript</li>
-              <li><span class="ok">[X]</span> No WebAssembly</li>
-              <li><span class="ok">[X]</span> No browser extensions</li>
-              <li><span class="ok">[X]</span> Just CSS, doing the thinking</li>
-            </ul>
+          </div>
+
+          <p style="margin-top:12px">
+            CSS-DOS is an extension of that work. On top of the CPU, it
+            simulates:
+          </p>
+          <ul class="sim-list">
+            <li><span class="ok">[X]</span> A custom <b>BIOS</b></li>
+            <li><span class="ok">[X]</span> Floppy + hard-disk storage</li>
+            <li><span class="ok">[X]</span> 640&nbsp;KB of RAM</li>
+            <li><span class="ok">[X]</span> Text + graphics video</li>
+            <li><span class="ok">[X]</span> <span class="placeholder-note">[placeholder] &hellip;timers, keyboard controller, etc.</span></li>
+          </ul>
+        </div>
+
+        <!-- ---------- Learn sub-page 3 — The file ---------- -->
+        <div class="subpage" data-subpage="3" hidden>
+          <h1>The file</h1>
+          <p>
+            The RAM is defined <b>literally, byte for byte</b>. Every cell
+            of memory is one custom property:
+          </p>
+          <pre class="byte-example"><code><span class="tok-comment">/* 640 KB of RAM, one line each */</span>
+<span class="tok-prop">--mem-00000</span>: <span class="tok-num">0</span>;
+<span class="tok-prop">--mem-00001</span>: <span class="tok-num">85</span>;
+<span class="tok-prop">--mem-00002</span>: <span class="tok-num">238</span>;
+<span class="tok-comment">/* &hellip; ~650,000 more &hellip; */</span></code></pre>
+
+          <p style="margin-top:12px">
+            CSS cannot read files. So we have to <b>bake everything</b>
+            &mdash; the entire computer, the BIOS, and your program&rsquo;s
+            files themselves &mdash; into a <b>single file</b>.
+          </p>
+          <p>
+            That ends up as a <b>~300&nbsp;MB</b> file of pure text. Which
+            is, frankly, ridiculous. For comparison, the original source
+            for Zork is about
+            <span class="placeholder-note">[placeholder: NN KB]</span>.
+          </p>
+
+          <!-- WIDGET: earth–moon distance. SVG, ~1/3 dotted to scale. -->
+          <div class="moon-viz" id="moon-viz">
+            <svg viewBox="0 0 700 160" role="img" aria-label="Earth to Moon distance, one third dotted">
+              <!-- baseline -->
+              <line x1="40" y1="120" x2="660" y2="120" stroke="#888" stroke-width="1" stroke-dasharray="2 4"/>
+              <!-- one-third dotted (the walk) -->
+              <line x1="40" y1="120" x2="247" y2="120" stroke="#aa0000" stroke-width="3" stroke-dasharray="3 5"/>
+              <!-- Earth -->
+              <circle cx="40" cy="120" r="26" fill="#0000aa" stroke="#000" stroke-width="1"/>
+              <text x="40" y="124" text-anchor="middle" font-size="11" fill="#fff" font-family="inherit">EARTH</text>
+              <!-- Moon -->
+              <circle cx="660" cy="120" r="12" fill="#aaa" stroke="#000" stroke-width="1"/>
+              <text x="660" y="98" text-anchor="middle" font-size="11" fill="#000" font-family="inherit">MOON</text>
+              <!-- 1/3 marker -->
+              <text x="247" y="98" text-anchor="middle" font-size="11" fill="#aa0000" font-family="inherit">1/3</text>
+            </svg>
+            <p class="caption">
+              Take one step for every character in the file &mdash; letter,
+              digit, space &mdash; and you&rsquo;d walk
+              <b>about a third of the way to the Moon</b>.
+              <span class="placeholder-note">[placeholder: verify the arithmetic]</span>
+            </p>
           </div>
         </div>
 
-        <div class="hero-machine">
-          <img src="/assets/IBM-PC.jpg" alt="IBM 5150 PC">
-          <p class="caption">
-            The 1981 IBM&nbsp;5150 &mdash; the machine CSS-DOS pretends to&nbsp;be.<br>
-            4.77&nbsp;MHz 8088, 640&nbsp;KB RAM, CGA video, 5.25&#8243; floppy.
-          </p>
-        </div>
       </section>
 
       <!-- ============================================ -->
-      <!-- STEP 2 — How it works (pipeline)              -->
+      <!-- PARKED — old "How it works" pipeline.         -->
+      <!-- Out of the flow (no data-step). Kept for       -->
+      <!-- salvage; delete once nothing's needed from it. -->
       <!-- ============================================ -->
-      <section class="step" data-step="2" hidden>
+      <section class="step parked" data-parked="pipeline" hidden>
         <p class="dim explainer">
           From DOS program to stylesheet, in four steps.
         </p>
@@ -184,9 +331,9 @@
       </section>
 
       <!-- ============================================ -->
-      <!-- STEP 3 — Build (pick + config + build + src)  -->
+      <!-- STEP 2 — Build (pick + config + build + src)  -->
       <!-- ============================================ -->
-      <section class="step" data-step="3" hidden>
+      <section class="step" data-step="2" id="step-build" hidden>
 
         <!-- (A) cart picker — decorative card grid; clicks proxy into
                  the hidden #cart-list radios build.js owns. -->
@@ -410,9 +557,9 @@
       </section>
 
       <!-- ============================================ -->
-      <!-- STEP 4 — Play                                 -->
+      <!-- STEP 3 — Play                                 -->
       <!-- ============================================ -->
-      <section class="step" data-step="4" hidden>
+      <section class="step" data-step="3" hidden>
         <p class="dim explainer">
           Two ways to run the cabinet. Same file in, same pixels out
           &mdash; they only differ in how fast the emulated PC ticks.
@@ -532,6 +679,9 @@
        The actual cart bytes are still loaded by build.js from /carts/<name>/
        via /_carts.json; this file is purely the visible-chrome metadata. -->
   <script src="/assets/carts.js"></script>
+  <!-- learn.js: the interactive Learn-step widgets (CSS code-flicker demo,
+       etc.). Purely cosmetic; no build wiring. -->
+  <script src="/assets/learn.js" defer></script>
   <!-- wizard.js: step navigation + cart-grid renderer + UI bridges into the
        hidden build.js surface. -->
   <script src="/assets/wizard.js" defer></script>

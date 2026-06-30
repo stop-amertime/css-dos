@@ -16,8 +16,13 @@
 (function () {
   'use strict';
 
-  const TOTAL_STEPS = 4;
+  const TOTAL_STEPS = 3;
+  const LEARN_STEP = 1;   // step 1 holds the 3 Learn sub-pages
+  const BUILD_STEP = 2;
+  const PLAY_STEP  = 3;
+  const LEARN_SUBPAGES = 3;
   let step = 1;
+  let sub = 1;            // active Learn sub-page (1..LEARN_SUBPAGES)
   let buildDone = false;
   let buildInFlight = false;
 
@@ -31,26 +36,30 @@
   const statusMsg  = $('#status-msg');
   const startBtn   = $('#start');
 
-  const STEP_TITLES = ['Welcome', 'How it works', 'Build cabinet', 'Play'];
+  const STEP_TITLES = ['Learn', 'Build cabinet', 'Play'];
 
   // ── Step navigation ─────────────────────────────────────────────────
 
   function setStep(n) {
     step = Math.max(1, Math.min(TOTAL_STEPS, n));
     $$('.step').forEach((el) => {
-      el.hidden = Number(el.dataset.step) !== step;
+      // Parked sections (no data-step) stay hidden always.
+      const s = Number(el.dataset.step);
+      el.hidden = !s || s !== step;
     });
     $$('.step-strip li').forEach((li) => {
       const j = Number(li.dataset.jump);
       li.classList.toggle('current', j === step);
       li.classList.toggle('done', j < step);
-      li.classList.toggle('disabled', j === 4 && !buildDone);
+      li.classList.toggle('disabled', j === PLAY_STEP && !buildDone);
     });
+    if (step === LEARN_STEP) renderSub();
     wizTitle.textContent  = `Step ${step} of ${TOTAL_STEPS} — ${STEP_TITLES[step - 1]}`;
     wizCounter.textContent = `Step ${step} of ${TOTAL_STEPS}`;
-    prevBtn.disabled = step === 1;
-    // Gate: step 4 requires a finished build.
-    nextBtn.disabled = (step === 3 && !buildDone);
+    // Back is disabled only at the very start (Learn sub-page 1).
+    prevBtn.disabled = (step === LEARN_STEP && sub === 1);
+    // Gate: Play requires a finished build.
+    nextBtn.disabled = (step === BUILD_STEP && !buildDone);
     nextBtn.innerHTML = step === TOTAL_STEPS
       ? '<span class="hot">R</span>estart'
       : '<span class="hot">N</span>ext &raquo;';
@@ -58,17 +67,64 @@
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
-  prevBtn.addEventListener('click', () => setStep(step - 1));
-  nextBtn.addEventListener('click', () => {
+  // Show Learn sub-page `sub`; update dots + Back-button gating.
+  function renderSub() {
+    sub = Math.max(1, Math.min(LEARN_SUBPAGES, sub));
+    $$('.subpage').forEach((el) => {
+      el.hidden = Number(el.dataset.subpage) !== sub;
+    });
+    $$('#learn-subdots li').forEach((li) => {
+      const j = Number(li.dataset.subjump);
+      li.classList.toggle('current', j === sub);
+      li.classList.toggle('done', j < sub);
+    });
+    prevBtn.disabled = (step === LEARN_STEP && sub === 1);
+  }
+
+  // Forward one logical page: within Learn, advance sub-page; at the last
+  // sub-page, cross into Build.
+  function goNext() {
     if (step === TOTAL_STEPS) {
-      // Restart: clear visible state but DON'T tear down build.js — that
-      // would also evict the just-built cabinet from cache. The user can
-      // click Save or Play first if they want; Restart just rewinds the
-      // wizard.
-      setStep(1);
+      // Restart: rewind the wizard without tearing down build.js (that
+      // would evict the just-built cabinet). Land back on Learn sub-page 1.
+      sub = 1;
+      setStep(LEARN_STEP);
+      return;
+    }
+    if (step === LEARN_STEP && sub < LEARN_SUBPAGES) {
+      sub += 1;
+      renderSub();
+      window.scrollTo({ top: 0, behavior: 'instant' });
       return;
     }
     setStep(step + 1);
+  }
+
+  // Backward one logical page: within Build/Play, step back; entering Learn
+  // from Build lands on the last sub-page; within Learn, retreat sub-page.
+  function goPrev() {
+    if (step === LEARN_STEP) {
+      if (sub > 1) { sub -= 1; renderSub(); window.scrollTo({ top: 0, behavior: 'instant' }); }
+      return;
+    }
+    if (step === BUILD_STEP) {
+      sub = LEARN_SUBPAGES;          // Build → Learn lands on last sub-page
+      setStep(LEARN_STEP);
+      return;
+    }
+    setStep(step - 1);
+  }
+
+  prevBtn.addEventListener('click', goPrev);
+  nextBtn.addEventListener('click', goNext);
+
+  // Sub-dot clicks — jump between Learn sub-pages.
+  $$('#learn-subdots li').forEach((li) => {
+    li.addEventListener('click', () => {
+      sub = Number(li.dataset.subjump);
+      renderSub();
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    });
   });
 
   $$('.step-strip li').forEach((li) => {
@@ -76,10 +132,10 @@
       const j = Number(li.dataset.jump);
       if (j === step) return;
       if (li.classList.contains('disabled')) return;
-      // Allow jumping back freely; forward only to step 3, or 4 if built.
+      // Allow jumping back freely; forward to Build always, Play only if built.
       if (j < step) { setStep(j); return; }
-      if (j === 3) { setStep(j); return; }
-      if (j === 4 && buildDone) { setStep(j); return; }
+      if (j === BUILD_STEP) { setStep(j); return; }
+      if (j === PLAY_STEP && buildDone) { setStep(j); return; }
     });
   });
 
@@ -381,12 +437,12 @@
     buildInFlight = false;
     buildHint.textContent = 'Done. Next: choose how to play.';
     statusMsg.textContent = 'Cabinet built.';
-    // Re-evaluate step-strip gating so step 4 unlocks.
+    // Re-evaluate step-strip gating so the Play step unlocks.
     $$('.step-strip li').forEach((li) => {
       const j = Number(li.dataset.jump);
-      li.classList.toggle('disabled', j === 4 && !buildDone);
+      li.classList.toggle('disabled', j === PLAY_STEP && !buildDone);
     });
-    if (step === 3) nextBtn.disabled = false;
+    if (step === BUILD_STEP) nextBtn.disabled = false;
   }).observe(resultMarker, { attributes: true, attributeFilter: ['hidden'] });
 
   // Show progress block + lock UI when the user clicks Build.
@@ -427,6 +483,18 @@
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  // Kick off.
-  setStep(1);
+  // ── #games deep-link ────────────────────────────────────────────────
+  // /index.html#games (or a /games link that resolves here) jumps straight
+  // to the Build step, skipping the Learn explanation.
+  function applyHash() {
+    if ((location.hash || '').toLowerCase() === '#games') {
+      setStep(BUILD_STEP);
+      return true;
+    }
+    return false;
+  }
+  window.addEventListener('hashchange', applyHash);
+
+  // Kick off — honour #games, else start at Learn sub-page 1.
+  if (!applyHash()) setStep(1);
 })();
