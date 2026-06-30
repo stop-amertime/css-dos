@@ -5,20 +5,24 @@
 /* The wizard dialog itself is constrained to a reading width; the blue
    body background and the fixed top/bottom bars stay full-screen. The
    Play step widens the dialog (its two play cards want the room). */
-/* Centre the wizard dialog vertically on screen, but never let it ride
-   up under the fixed top bar — a minimum top buffer is kept. When the
-   dialog is taller than the viewport it just grows downward and scrolls.
+/* Centre the wizard dialog vertically when it's shorter than the screen,
+   but when it's TALLER than the viewport just start at the top and scroll
+   normally (no clipped, unreachable top edge). `margin: auto` on a flex
+   child does exactly this: it centres with spare room, and collapses to
+   the start edge once content overflows. A min top/bottom gap is kept.
    Scoped to the index page via :has() so build.html is unaffected. */
+/* Centre the dialog when it fits the viewport; when it's taller, fall
+   back to the top edge and scroll normally. `align-content: safe center`
+   does exactly this. Scoped to the index page via :has(). */
 body:has(.window.wizard) {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  display: grid;
+  align-content: safe center;
+  justify-items: center;
 }
 .window.wizard {
   width: 820px;
   max-width: calc(100% - 32px);
-  margin-top: 8px;     /* minimum top buffer below the menu bar */
-  margin-bottom: 8px;
+  margin: 8px auto;    /* min top/bottom gap */
 }
 .window.wizard.play-wide {
   width: 1180px;

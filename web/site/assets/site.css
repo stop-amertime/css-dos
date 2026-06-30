@@ -35,7 +35,9 @@
   --cell-h: 16px;
 }
 
-html, body { height: 100%; }
+/* min-height (not a hard height:100%) so pages taller than the viewport
+   grow and scroll naturally instead of clamping to one screen. */
+html, body { min-height: 100%; }
 
 body {
   font-family: 'WebVGA', 'Perfect DOS VGA 437', 'Fixedsys', 'Terminal', monospace;
@@ -61,6 +63,10 @@ body {
   height: 16px;
   background: var(--edit-gray);
   color: var(--edit-black);
+  /* A hard separator line below the bar so it never visually merges with
+     the (same-grey) dialog scrolling underneath it. box-shadow keeps the
+     16px height exact (no layout shift). */
+  box-shadow: 0 1px 0 0 var(--edit-black);
   display: flex;
   align-items: center;
   padding: 0 8px;
@@ -91,6 +97,8 @@ body {
   height: 16px;
   background: var(--edit-gray);
   color: var(--edit-black);
+  /* Hard separator line above the bar (mirror of .menu-bar). */
+  box-shadow: 0 -1px 0 0 var(--edit-black);
   display: flex;
   align-items: center;
   gap: 32px;
