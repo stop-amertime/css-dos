@@ -4,7 +4,7 @@ Chronological work entries. Newest first. The durable handbook
 (current state, sentinels, gotchas, how to test) is in
 [`STATUS.md`](STATUS.md).
 
-Last updated: 2026-06-29
+Last updated: 2026-06-30
 
 Entries are individual files in [`entries/`](entries/). This page is
 the **index only** — read the tag + one-line summary, open the 1–3
@@ -22,6 +22,7 @@ See [`PROTOCOL.md`](PROTOCOL.md).
 
 | Date | Tag | Entry |
 |------|-----|-------|
+| 2026-06-30 | LANDED | [Raw player fixed + paintable: `raw.html` now derives from `calcite.html` (`raw-regen.mjs`) so chrome/keyboard match exactly, `<img>`→64,000-element CSS pixel grid under a `.window-body.clock.cpu` host, label `RAW`. New `kiln/pixels.mjs` (always emitted, inert in calcite path) paints each Mode 13h pixel from `--__1mc{cell}` via a 256-arm `@function --paletteRGB()` over the live DAC; 8×8 render proof passes in real Chromium 149 (CSS `@function`/`if()`/`style()` supported); smoke 6/6; painter +6.17 MB fixed; full 64k grid crashes headless Chrome — the "theoretical player" by design](entries/2026-06-30-raw-player-pixel-grid.md) |
 | 2026-06-29 | BRANCH | [Sokoban cart made buildable (branch `cleanup/public-presentation`): `carts.js` advertised sokoban but `carts/sokoban/` had no `program.json`, so the public grid offered an unbuildable cart. `SKB.EXE` is genuinely Sokoban (verified via embedded strings); authored `program.json` (`cart@1`, `runCommand: SKB`, CGA `cgaGfx: true`); builds + fast-shoot @4M ticks reaches its title/system-select screen](entries/2026-06-29-sokoban-program-json.md) |
 | 2026-06-29 | BRANCH | [Public-presentation cleanup sweep (branch `cleanup/public-presentation`, 7 commits): personal-path leaks scrubbed (2 usernames — NASM + Playwright fallbacks → env/PATH, `.mcp.json` relativised), dead/broken scripts deleted (fb-pack-diff, bit-rotted ref-muslin), stale cart refs fixed (carts.js, artifacts.mjs), noisy dev docs gitignored (`docs/benches/`) + archive cruft pruned, stale `transpiler/`→`kiln/` refs, web honesty (menu comments, VSYNC-PLAN refs, bridge canary), doc-vs-code contradictions (write slots 6→3, stages four→five, Corduroy default not "experimental"), dead code removed (6 emitters, ghost JSDoc, no-op flag); smoke 6/6](entries/2026-06-29-public-presentation-cleanup.md) |
 | 2026-06-16 | FINDING | [Phase 0 settles the compiler road: Doom ingame is dispatch-bound NOT memory-bound (v2's excuse refuted) — hot-region work is 595× the interpreter even via hashmap, 11,564× in V8; interpret-vs-compile 849× ceiling / ~4.5× floor; v2 lost 45× from whole-tick DAG eval + per-read host crossings, both fixable; verdict GO, codegen the v1 branch-skipping op stream to flat-linear-memory wasm](entries/2026-06-16-phase0-compiler-road-dispatch-bound.md) |

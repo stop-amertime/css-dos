@@ -66,6 +66,17 @@ proven by the A/B).
    Smoke set runs 6 carts while montezuma is deleted on disk.
    Final lineup, smoke-list update + website presentation pass are
    owner-collab.
+2. **Raw player paintable — LANDED 2026-06-30.** `raw.html` now
+   mirrors `calcite.html` chrome (derived by `raw-regen.mjs`) with a
+   64,000-element CSS pixel grid in place of the `<img>`; new
+   `kiln/pixels.mjs` paints each Mode 13h pixel from the framebuffer
+   via a 256-arm `@function --paletteRGB()` (proven in real
+   Chromium 149). Inert in the calcite path (smoke 6/6). **Open
+   assessment:** the painter is ALWAYS emitted (+6.17 MB fixed per
+   cabinet) — calcite compile-only bench not yet run (deferred; was
+   a concurrent session). Escape hatch if compile time regresses: a
+   build flag gating `emitPixelPaintRules()` (~5 lines). See LOGBOOK
+   2026-06-30.
 3. **Per-dispatch-key specialisation** — structurally upstream of
    all perf work; probed on the branch 2026-05-12 (not on `main`).
    Plan: `../plans/2026-05-12-per-dispatch-key-specialisation.md`.
