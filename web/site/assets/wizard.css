@@ -67,6 +67,15 @@
   padding: 0 4px;
   border: 1px solid var(--edit-black);
 }
+/* The boxed look is for inline <code> in prose only. Inside the Learn
+   code widgets, <code> sits in a styled <pre> and must be plain. */
+.css-demo-code code,
+.fn-demo-code code,
+.byte-example code {
+  background: none;
+  border: none;
+  padding: 0;
+}
 .step .explainer { max-width: 900px; margin-bottom: 16px; }
 
 /* ===== Step 1 — Welcome ===== */
