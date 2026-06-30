@@ -1019,101 +1019,119 @@ details.advanced .advanced-body .row:last-child { margin-bottom: 0; }
   color: var(--edit-black);
 }
 
-/* ===== Step 4 — Play cards ===== */
-.play-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
+/* ===== Step 3 — Play ===== */
+/* Intro prose (h1 + explanation), matching the build-step intro. */
+.play-intro { margin-bottom: 24px; }
+.play-intro h1 { margin: 0 0 12px; }
+.play-intro p { margin: 0 0 12px; }
+.play-intro code {
+  background: none; border: none; padding: 0;
 }
-.play-card {
+
+/* "Is this cheating?" disclosure. */
+.cheat-box {
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+  margin-top: 16px;
+}
+.cheat-box summary {
+  cursor: pointer;
+  padding: 10px 14px;
+  background: var(--edit-gray);
+  list-style: none;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.cheat-box summary::-webkit-details-marker { display: none; }
+.cheat-box summary::before {
+  content: '\25B8'; /* ▸ */
+  color: var(--edit-red);
+  margin-right: 4px;
+}
+.cheat-box[open] summary::before { content: '\25BE'; /* ▾ */ }
+.cheat-q { font-weight: bold; }
+.cheat-a { color: var(--edit-blue); }
+.cheat-body {
+  padding: 12px 16px;
+  border-top: 1px solid var(--edit-black);
+}
+.cheat-body p { margin: 0 0 10px; }
+.cheat-list {
+  margin: 0;
+  padding-left: 22px;
   display: flex;
   flex-direction: column;
+  gap: 10px;
+}
+.cheat-list code, .cheat-body code {
+  background: none; border: none; padding: 0;
+}
+
+/* Two run options — small, side by side. */
+.run-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.run-opt {
+  display: block;
   border: 1px solid var(--edit-black);
   background: var(--edit-white);
   color: var(--edit-black);
-  box-shadow: 6px 6px 0 var(--edit-black);
+  box-shadow: 4px 4px 0 var(--edit-black);
   text-decoration: none;
+  padding: 14px 16px;
   cursor: pointer;
-  min-height: 360px;
 }
-.play-card:hover { background: #ddddff; }
-.play-card:active {
-  transform: translate(6px, 6px);
+.run-opt:hover { background: #ddddff; }
+.run-opt:active {
+  transform: translate(4px, 4px);
   box-shadow: none;
 }
-.play-card.disabled {
+.run-opt.disabled {
   cursor: not-allowed;
   opacity: 0.5;
   pointer-events: none;
 }
-.play-card-head {
-  background: var(--edit-black);
-  color: var(--edit-yellow);
-  padding: 6px 12px;
+.run-opt-head {
+  font-size: 17px;
+  line-height: 18px;
+  font-weight: bold;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-}
-.play-card-title { font-size: 16px; line-height: 16px; }
-.play-card-tag {
-  background: var(--edit-yellow);
-  color: var(--edit-black);
-  padding: 0 6px;
-  font-size: 16px; line-height: 16px;
-}
-.play-raw .play-card-tag {
-  background: var(--edit-red);
-  color: var(--edit-white);
-}
-.play-card-body {
-  padding: 12px 16px;
-  flex: 1;
-  display: flex; flex-direction: column;
   gap: 8px;
 }
-.play-card-body p { margin: 0; }
-.play-card-foot {
-  border-top: 1px solid var(--edit-black);
-  padding: 8px 16px;
-  background: var(--edit-gray);
-  font-size: 16px; line-height: 16px;
-  text-align: right;
+.run-opt-sub {
+  margin: 6px 0 0;
+  color: var(--edit-black);
 }
-.warning-box {
+.run-opt-rec {
+  background: var(--edit-blue);
+  color: var(--edit-white);
+  font-size: 12px;
+  line-height: 14px;
+  font-weight: normal;
+  padding: 1px 6px;
+}
+.run-calcite { box-shadow: 4px 4px 0 var(--edit-blue); }
+.run-calcite .run-opt-head { color: var(--edit-blue); }
+.run-opt-warn {
+  margin-top: 10px;
   border: 1px solid var(--edit-red);
   background: #ffeeee;
   padding: 8px 10px;
   display: flex; gap: 8px;
   align-items: flex-start;
 }
-.warning-box .warn-glyph {
+.run-opt-warn .warn-glyph {
   color: var(--edit-red);
-  font-size: 24px;
+  font-size: 22px;
   line-height: 16px;
   flex-shrink: 0;
 }
-.warning-box b { color: var(--edit-red); }
-.warning-box u { text-decoration: underline; }
-.ext-link {
-  color: var(--edit-blue);
-  text-decoration: underline;
-}
-.ext-link:hover { color: var(--edit-red); }
-
-/* The third play option (canvas) doesn't deserve its own card — small
-   text link under the grid, like a footnote. */
-.play-extra {
-  margin-top: 16px;
-  font-size: 14px;
-  line-height: 14px;
-  color: var(--edit-black);
-  text-align: center;
-}
-.play-extra a {
-  color: var(--edit-blue);
-  text-decoration: underline;
-}
-.play-extra a:hover { color: var(--edit-red); }
+.run-opt-warn u { text-decoration: underline; }
 
 /* ===== Wizard nav ===== */
 .wiz-nav {
@@ -1152,6 +1170,6 @@ details.advanced .advanced-body .row:last-child { margin-bottom: 0; }
   .pipeline { grid-template-columns: 1fr; }
   .pipe-arrow { transform: rotate(90deg); }
   .cart-grid { grid-template-columns: repeat(2, 1fr); }
-  .play-grid { grid-template-columns: 1fr; }
+  .run-options { grid-template-columns: 1fr; }
   .result-row { grid-template-columns: 1fr; text-align: center; }
 }
