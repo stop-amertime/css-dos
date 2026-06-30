@@ -20,7 +20,7 @@
   const LEARN_STEP = 1;   // step 1 holds the 3 Learn sub-pages
   const BUILD_STEP = 2;
   const PLAY_STEP  = 3;
-  const LEARN_SUBPAGES = 4;
+  const LEARN_SUBPAGES = 5;
   let step = 1;
   let sub = 1;            // active Learn sub-page (1..LEARN_SUBPAGES)
   let buildDone = false;

@@ -396,6 +396,34 @@ body:has(.window.wizard) {
 }
 .ext-link-box p { margin: 0; }
 
+/* — Credits sub-page — */
+.credits-head {
+  margin: 18px 0 8px;
+  font-size: 16px;
+  line-height: 16px;
+  color: var(--edit-black);
+  border-bottom: 1px solid var(--edit-black);
+  padding-bottom: 4px;
+}
+.credits-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.credits-list li {
+  position: relative;
+  padding-left: 20px;
+  margin-bottom: 10px;
+  font-size: 16px;
+  line-height: 19px;
+}
+.credits-list li::before {
+  content: '>';
+  position: absolute;
+  left: 0;
+  color: var(--edit-red);
+}
+
 /* — byte-for-byte RAM example — */
 .byte-example {
   margin: 8px 0;
