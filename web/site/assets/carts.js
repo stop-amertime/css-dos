@@ -26,7 +26,7 @@ window.CARTS = [
     id: 'zork1',
     name: 'Zork I',
     desc: 'Infocom, 1980. The Great Underground Empire. Z-machine interpreter, text only.',
-    cover: '/assets/boxart/zork-box-2.webp',
+    cover: '/assets/boxart/zork1-alt.jpg',
   },
   {
     id: 'sokoban',
