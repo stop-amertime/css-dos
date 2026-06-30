@@ -1,128 +1,91 @@
 #!/usr/bin/env node
 // web/scripts/raw-regen.mjs
-// Generate player/raw.html — the "theoretical" (non-working)
-// player. Writes 320×200 = 64,000 <i> pixel elements for the Mode 13h
-// framebuffer, plus the .cpu/.screen/.kb-* scaffolding the cabinet
-// CSS's selectors target, plus two <link rel="stylesheet"> tags (the
-// player stylesheet and the cabinet itself). No JS.
+// Generate player/raw.html by deriving it from calcite.html, so the
+// two players share chrome/keyboard verbatim and cannot drift. The
+// ONLY differences: the <img> screen becomes a 320x200 = 64000-element
+// CSS pixel grid, the cabinet loads as a real stylesheet, .window-body
+// gains .clock and .cpu classes to host the cabinet's .cpu-scoped rules,
+// and the label reads RAW.
 //
-// In principle Chrome loads the cabinet, evaluates its rules, and the
-// machine runs entirely through CSS custom properties driving pixel
-// elements. In practice Chrome crashes or hangs on the cabinet's
-// size — that's the point. This page represents the spec-correct
-// rendering path; calcite runs the same machine at playable speed.
+// In principle Chrome evaluates the cabinet and the pixel painter
+// (kiln/pixels.mjs) drives #p0..#p63999 from the Mode 13h framebuffer.
+// In practice Chrome hangs/crashes on the cabinet's size — the point of
+// the "raw" player. calcite.html runs the same machine at speed.
 //
-// Run this whenever the scaffolding needs to change:
 //   node web/scripts/raw-regen.mjs
 
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const out = resolve(__dirname, '..', 'player', 'raw.html');
+const calcitePath = resolve(__dirname, '..', 'player', 'calcite.html');
+const outPath = resolve(__dirname, '..', 'player', 'raw.html');
 
-const PIXEL_W = 320;
-const PIXEL_H = 200;
+const W = 320, H = 200;
 
-// Flat list of pixel <i> elements. Each gets an id pN so cabinet
-// selectors like `#p12345` can target a specific pixel.
 function pixelGrid() {
-  const parts = new Array(PIXEL_W * PIXEL_H);
-  for (let i = 0; i < parts.length; i++) {
-    parts[i] = `<i id=p${i}></i>`;
-  }
-  // 320 per row so editors don't choke, but with display:grid on the
-  // parent this wraps correctly regardless of whitespace.
+  const cells = new Array(W * H);
+  for (let i = 0; i < cells.length; i++) cells[i] = `<i id="p${i}">`;
+  // newline per row keeps editors from choking; grid layout ignores whitespace.
   const rows = [];
-  for (let y = 0; y < PIXEL_H; y++) {
-    rows.push(parts.slice(y * PIXEL_W, (y + 1) * PIXEL_W).join(''));
-  }
-  return rows.join('\n');
+  for (let y = 0; y < H; y++) rows.push(cells.slice(y * W, (y + 1) * W).join(''));
+  return `<div id="grid" class="screen-grid">\n${rows.join('\n')}\n</div>`;
 }
 
-const KEYS = [
-  ['1','2','3','4','5','6','7','8','9','0'],
-  ['q','w','e','r','t','y','u','i','o','p'],
-  ['a','s','d','f','g','h','j','k','l','enter'],
-  ['z','x','c','v','b','n','m','space'],
-];
-
-function keyboard() {
-  const rows = KEYS.map(row =>
-    row.map(k => {
-      if (k === 'enter') return `<button id=kb-enter class=kb-wide>&#8629;</button>`;
-      if (k === 'space') return `<button id=kb-space class=kb-space>&#9251;</button>`;
-      return `<button id=kb-${k}>${k.toUpperCase()}</button>`;
-    }).join('')
-  ).join('\n          ');
-  return `<key-board class="kb-layout">
-        <div class="kb-main">
-          ${rows}
-        </div>
-        <div class="kb-side">
-          <div class="kb-mods">
-            <button id=kb-esc>Esc</button><button id=kb-tab>Tab</button><button id=kb-bksp>Bksp</button>
-          </div>
-          <div class="kb-arrows">
-            <button id=kb-up>&#8593;</button>
-            <button id=kb-left>&#8592;</button><button id=kb-down>&#8595;</button><button id=kb-right>&#8594;</button>
-          </div>
-        </div>
-      </key-board>`;
-}
-
-function html() {
-  return `<!DOCTYPE html>
-<!-- AUTOGEN by web/scripts/raw-regen.mjs. Do not edit. -->
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>CSS-DOS · raw CSS</title>
-  <!--
-    The "theoretical" player. Loads /cabinet.css directly — no calcite,
-    no bridge, no worker, no JS. In principle Chrome evaluates the
-    cabinet and its rules drive the .cpu / .screen / #p0 .. #p63999
-    pixels and .kb-* keys entirely through CSS custom properties.
-
-    In practice Chrome crashes or hangs on the cabinet's millions of
-    properties. This page exists to represent the spec-correct
-    rendering path. calcite (in calcite.html and calcite-canvas.html)
-    runs the same machine at playable speed.
-
-    The pixel grid is ${PIXEL_W}×${PIXEL_H} = ${PIXEL_W * PIXEL_H} <i>
-    elements, matching VGA Mode 13h.
-  -->
-  <link rel="stylesheet" href="assets/player.css">
-  <link rel="stylesheet" href="/cabinet.css">
-  <style>
-    /* Minimal scaffolding so the page at least has pixel geometry
-       even if cabinet CSS doesn't load or doesn't match. */
-    .screen {
+const gridStyle = `  <style>
+    /* AUTOGEN raw-player pixel grid — replaces the calcite <img>. */
+    .screen-grid {
       display: grid;
-      grid-template-columns: repeat(${PIXEL_W}, 1px);
-      grid-auto-rows: 1px;
-      width: ${PIXEL_W}px;
-      height: ${PIXEL_H}px;
+      grid-template-columns: repeat(${W}, 2px);
+      grid-auto-rows: 2px;
+      width: ${W * 2}px;
+      height: ${H * 2}px;
+      max-width: 640px;
       image-rendering: pixelated;
       background: #000;
+      margin: 0 auto;
     }
-    .screen > i { display: block; width: 1px; height: 1px; background: transparent; }
+    .screen-grid > i { display: block; width: 2px; height: 2px; background: transparent; }
   </style>
-</head>
-<body>
-  <div class="clock">
-    <div class="cpu">
-      <div class="screen">
-${pixelGrid()}
-      </div>
-      ${keyboard()}
-    </div>
-  </div>
-</body>
-</html>
 `;
-}
 
-writeFileSync(out, html());
-console.log(`raw-regen: wrote ${out} (${html().length} bytes, ${PIXEL_W * PIXEL_H} pixels)`);
+let html = readFileSync(calcitePath, 'utf8');
+
+// (1) Replace the <img> screen with the pixel grid.
+//     The img tag spans lines 317-321 in calcite.html:
+//       <img id="calcite-screen"
+//            class="screen"
+//            src="/_stream/fb"
+//            alt=""
+//            width="640" height="400">
+html = html.replace(
+  /<img id="calcite-screen"[\s\S]*?width="640" height="400">/,
+  pixelGrid());
+
+// (2) Add .clock and .cpu classes to .window-body so cabinet
+//     .cpu-scoped rules (keyboard :has, pixel painter) have a host.
+//     Simpler and more robust than wrapping with new divs.
+html = html.replace(
+  '<div class="window-body">',
+  '<div class="window-body clock cpu">');
+
+// (3) Cabinet as a real stylesheet instead of <link rel="alternate">.
+html = html.replace(
+  '<link rel="alternate" href="/cabinet.css" type="text/css" title="cabinet">',
+  '<link rel="stylesheet" href="/cabinet.css">');
+
+// (4) Distinguishing title + label.
+html = html.replace(/<title>[^<]*<\/title>/, '<title>CSS-DOS · raw CSS</title>');
+html = html.replace('>CALCITE<', '>RAW<');
+html = html.replace('CSS-DOS - PLAYING', 'CSS-DOS - RAW CSS');
+
+// (5) Grid geometry styles, injected before </head>.
+html = html.replace('</head>', `${gridStyle}</head>`);
+
+// Mark the file autogenerated.
+html = html.replace('<!DOCTYPE html>',
+  `<!DOCTYPE html>\n<!-- AUTOGEN by web/scripts/raw-regen.mjs from calcite.html. Do not edit. -->`);
+
+writeFileSync(outPath, html);
+console.log(`raw-regen: wrote ${outPath} (${html.length} bytes, ${W * H} pixels)`);
