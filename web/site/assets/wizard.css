@@ -2,9 +2,15 @@
    /index.html. Visual chrome only; all real build wiring lives in
    build.js, driven through hidden form elements in step 3. */
 
+/* The wizard dialog itself is constrained to a reading width; the blue
+   body background and the fixed top/bottom bars stay full-screen. The
+   Play step widens the dialog (its two play cards want the room). */
 .window.wizard {
-  width: 1180px;
+  width: 820px;
   max-width: calc(100% - 32px);
+}
+.window.wizard.play-wide {
+  width: 1180px;
 }
 .window.wizard .window-body {
   padding: 24px 28px 16px;
@@ -111,13 +117,6 @@
 
 /* ===== Step 1 — Learn (sub-pages + widgets) ===== */
 
-/* Learn and Build sit at a comfortable reading measure, centred. Only
-   the Play step keeps the full window width. */
-.learn-step,
-#step-build {
-  max-width: 760px;
-  margin: 0 auto;
-}
 
 /* Compact hero on Learn sub-page 1 — logo beside the heading, sized for
    the narrow reading column (independent of the old wide-hero grid). */
