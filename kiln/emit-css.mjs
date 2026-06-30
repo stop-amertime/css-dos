@@ -10,6 +10,7 @@ import {
   emitClockAndCpuBase, emitDebugDisplay,
   emitKeyboardRules,
 } from './template.mjs';
+import { emitPixelPaintRules } from './pixels.mjs';
 import { emitWriteSlotProperties, buildInitialMemory, buildAddressSet, NUM_WRITE_SLOTS,
          PACK_SIZE, buildCellSet, buildInitialMemoryPacked, cellIdxOf, cellOffOf } from './memory.mjs';
 import { emitFlagFunctions } from './patterns/flags.mjs';
@@ -778,6 +779,9 @@ export function emitCSS(opts, writeStream) {
 
   // 7. Keyboard :active rules (separate .cpu block)
   w(emitKeyboardRules());
+
+  // 7b. Mode 13h pixel painter (raw player only; inert in calcite path).
+  w(emitPixelPaintRules());
 
   // =====================================================================
   // THE BULK — @property declarations, memory, buffer reads, keyframes
