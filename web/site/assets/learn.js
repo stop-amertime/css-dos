@@ -5,36 +5,29 @@
 (function () {
   'use strict';
 
-  // ── CSS code-flicker demo ───────────────────────────────────────────
-  // Tabs each carry a `data-rule` (a single CSS declaration string). Click
-  // one and we (a) apply it to the live box and (b) reflect it in the shown
-  // code snippet, so the user sees rule → effect side by side.
+  // ── Tabbed CSS demo ─────────────────────────────────────────────────
+  // Each tab (data-demo) maps to one panel (data-demo-panel) showing a
+  // code snippet + its own inline result. Click a tab → show its panel.
   const demo = document.getElementById('css-demo');
   if (demo) {
-    const box   = document.getElementById('css-demo-box');
-    const ruleEl = demo.querySelector('.css-demo-rule');
-    const tabs  = Array.from(demo.querySelectorAll('.css-demo-tab'));
+    const tabs   = Array.from(demo.querySelectorAll('.css-demo-tab'));
+    const panels = Array.from(demo.querySelectorAll('.css-demo-panel'));
 
-    function applyRule(rule) {
-      // The box keeps its base look (from .css-demo-box in CSS); the chosen
-      // declaration layers on top so single properties like `color: white`
-      // or `width: 200px` read clearly against that base.
-      box.style.cssText = rule;
-      // Reflect in the code view. Show each declaration on its own line.
-      ruleEl.textContent = rule.split(';')
-        .map((d) => d.trim()).filter(Boolean)
-        .map((d) => d + ';').join('\n  ');
+    function show(name) {
+      tabs.forEach((t) => t.classList.toggle('current', t.dataset.demo === name));
+      panels.forEach((p) => {
+        const match = p.dataset.demoPanel === name;
+        p.classList.toggle('current', match);
+        p.hidden = !match;
+      });
     }
 
     tabs.forEach((tab) => {
-      tab.addEventListener('click', () => {
-        tabs.forEach((t) => t.classList.toggle('current', t === tab));
-        applyRule(tab.dataset.rule || '');
-      });
+      tab.addEventListener('click', () => show(tab.dataset.demo));
     });
 
     // Initialise from whichever tab is marked current (first by default).
     const initial = tabs.find((t) => t.classList.contains('current')) || tabs[0];
-    if (initial) applyRule(initial.dataset.rule || '');
+    if (initial) show(initial.dataset.demo);
   }
 })();

@@ -46,73 +46,96 @@
 
         <!-- Sub-page dot indicator (clickable) -->
         <ol class="subdots" id="learn-subdots" aria-label="Learn progress">
-          <li data-subjump="1" class="current"><span class="dot"></span> What is CSS?</li>
-          <li data-subjump="2"><span class="dot"></span> Why it&rsquo;s strange</li>
-          <li data-subjump="3"><span class="dot"></span> The file</li>
+          <li data-subjump="1" class="current"><span class="dot"></span> Intro</li>
+          <li data-subjump="2"><span class="dot"></span> What is CSS?</li>
+          <li data-subjump="3"><span class="dot"></span> Why it&rsquo;s strange</li>
+          <li data-subjump="4"><span class="dot"></span> The file</li>
         </ol>
 
-        <!-- ---------- Learn sub-page 1 — What is CSS? ---------- -->
-        <div class="subpage" data-subpage="1">
-          <div class="hero-row">
-            <div class="hero-logo">
+        <!-- ---------- Learn sub-page 1 — Intro ---------- -->
+        <div class="subpage subpage-intro" data-subpage="1">
+          <div class="intro-hero">
+            <div class="intro-logo">
               <img src="/assets/css-dos-logo-narrow.png" alt="CSS-DOS">
             </div>
-            <div class="hero-text">
-              <h1>CSS-DOS</h1>
-              <p class="lede">
-                An entire 80s PC, running in a stylesheet &mdash; booting
-                <b>DOS</b>, the first ever operating system, off a
-                simulated floppy disk.
-              </p>
-              <!-- PLACEHOLDER prose — sharpen later -->
-              <p class="dim placeholder-note">
-                [placeholder] One-line hook goes here. Keep it punchy.
-              </p>
-            </div>
+            <h1>CSS-DOS</h1>
+            <p class="lede">
+              An entire 80s PC, running in a stylesheet &mdash; booting
+              <b>DOS</b>, the first ever operating system, off a simulated
+              floppy disk.
+            </p>
+            <!-- PLACEHOLDER prose — sharpen later -->
+            <p class="dim placeholder-note">
+              [placeholder] One-line hook goes here. Keep it punchy.
+            </p>
           </div>
+        </div>
 
-          <h3>What is CSS?</h3>
+        <!-- ---------- Learn sub-page 2 — What is CSS? ---------- -->
+        <div class="subpage" data-subpage="2" hidden>
+          <h1>What is CSS?</h1>
           <p>
             If you&rsquo;re on this page you likely know &mdash; but let&rsquo;s
             recap. <b>HTML</b> defines the structure of a webpage;
-            <b>CSS</b> adds styles on top of it, like this:
+            <b>CSS</b> adds styles on top of it. It can do simple things,
+            but also has variables, functions, and branching:
           </p>
 
-          <!-- WIDGET: live CSS code-flicker demo. Tabs swap a rule on the
-               box; the box updates live. Owned by learn.js. -->
+          <!-- WIDGET: tabbed CSS demo. Each tab shows a snippet + its own
+               inline result. Owned by learn.js. -->
           <div class="css-demo" id="css-demo">
             <div class="css-demo-tabs" role="tablist">
-              <button class="css-demo-tab current" data-rule="background-color: blue;">background-color</button>
-              <button class="css-demo-tab" data-rule="color: white;">color</button>
-              <button class="css-demo-tab" data-rule="width: 200px;">width</button>
-              <button class="css-demo-tab" data-rule="border: 4px solid red;">border</button>
+              <button class="css-demo-tab current" data-demo="basics">Basics</button>
+              <button class="css-demo-tab" data-demo="variable">Variable</button>
+              <button class="css-demo-tab" data-demo="function">Function</button>
+              <button class="css-demo-tab" data-demo="branching">Branching</button>
             </div>
-            <div class="css-demo-stage">
+
+            <!-- Basics -->
+            <div class="css-demo-panel current" data-demo-panel="basics">
               <pre class="css-demo-code"><code><span class="tok-sel">.box</span> {
-  <span class="css-demo-rule">background-color: blue;</span>
+  background-color: blue;
+  color: white;
+  width: 120px;
 }</code></pre>
-              <div class="css-demo-box" id="css-demo-box">box</div>
-            </div>
-          </div>
-
-          <p style="margin-top:12px">
-            CSS also supports some very basic functions and branching:
-          </p>
-
-          <!-- WIDGET: basic functions / branching. Static snippets with a
-               live result swatch. -->
-          <div class="fn-demo">
-            <div class="fn-demo-item">
-              <pre class="fn-demo-code"><code>width: <span class="tok-fn">calc</span>(100% - 40px);</code></pre>
-              <div class="fn-demo-result">
-                <div class="fn-demo-bar" style="width:calc(100% - 40px)"></div>
-                <span class="dim small">arithmetic</span>
+              <div class="css-demo-result">
+                <div class="demo-box" style="background:blue;color:#fff;width:120px">box</div>
+                <span class="dim small">a few plain declarations</span>
               </div>
             </div>
-            <div class="fn-demo-item">
-              <pre class="fn-demo-code"><code><span class="tok-at">@media</span> (min-width: 600px) { &hellip; }</code></pre>
-              <div class="fn-demo-result">
-                <span class="dim small">branching on a condition</span>
+
+            <!-- Variable -->
+            <div class="css-demo-panel" data-demo-panel="variable" hidden>
+              <pre class="css-demo-code"><code><span class="tok-sel">:root</span> { <span class="tok-prop">--accent</span>: red; }
+
+<span class="tok-sel">.box</span> {
+  background-color: <span class="tok-fn">var</span>(<span class="tok-prop">--accent</span>);
+}</code></pre>
+              <div class="css-demo-result">
+                <div class="demo-box" style="background:red;color:#fff;width:120px">box</div>
+                <span class="dim small">store a value once, reuse it</span>
+              </div>
+            </div>
+
+            <!-- Function -->
+            <div class="css-demo-panel" data-demo-panel="function" hidden>
+              <pre class="css-demo-code"><code><span class="tok-sel">.box</span> {
+  width: <span class="tok-fn">calc</span>(100% - 40px);
+}</code></pre>
+              <div class="css-demo-result">
+                <div class="demo-bar" style="width:calc(100% - 40px)"></div>
+                <span class="dim small">do arithmetic on values</span>
+              </div>
+            </div>
+
+            <!-- Branching -->
+            <div class="css-demo-panel" data-demo-panel="branching" hidden>
+              <pre class="css-demo-code"><code><span class="tok-at">@media</span> (min-width: 600px) {
+  <span class="tok-sel">.box</span> { background-color: green; }
+}</code></pre>
+              <div class="css-demo-result">
+                <div class="demo-box demo-box-branch" style="width:120px">box</div>
+                <span class="dim small">apply rules only when a condition holds</span>
               </div>
             </div>
           </div>
@@ -123,8 +146,8 @@
           </p>
         </div>
 
-        <!-- ---------- Learn sub-page 2 — Why it's strange ---------- -->
-        <div class="subpage" data-subpage="2" hidden>
+        <!-- ---------- Learn sub-page 3 — Why it's strange ---------- -->
+        <div class="subpage" data-subpage="3" hidden>
           <h1>Why is this so strange?</h1>
           <p>
             We are very much <b>abusing</b> CSS here. It was never meant
@@ -166,8 +189,8 @@
           </ul>
         </div>
 
-        <!-- ---------- Learn sub-page 3 — The file ---------- -->
-        <div class="subpage" data-subpage="3" hidden>
+        <!-- ---------- Learn sub-page 4 — The file ---------- -->
+        <div class="subpage" data-subpage="4" hidden>
           <h1>The file</h1>
           <p>
             The RAM is defined <b>literally, byte for byte</b>. Every cell
@@ -620,7 +643,11 @@
     <div class="wiz-nav">
       <button id="prev" class="btn">&laquo; <span class="hot">B</span>ack</button>
       <span class="wiz-nav-spacer"></span>
-      <span id="wiz-counter" class="dim">Step 1 of 4</span>
+      <ol id="wiz-counter" class="step-dots" aria-label="Step">
+        <li data-jump="1" class="current"></li>
+        <li data-jump="2"></li>
+        <li data-jump="3"></li>
+      </ol>
       <span class="wiz-nav-spacer"></span>
       <button id="next" class="btn primary"><span class="hot">N</span>ext &raquo;</button>
     </div>

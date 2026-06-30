@@ -70,7 +70,6 @@
 /* The boxed look is for inline <code> in prose only. Inside the Learn
    code widgets, <code> sits in a styled <pre> and must be plain. */
 .css-demo-code code,
-.fn-demo-code code,
 .byte-example code {
   background: none;
   border: none;
@@ -138,6 +137,38 @@
 .learn-step .hero-logo { padding: 8px; }
 .learn-step .hero-logo img { width: 80px; height: 80px; }
 .learn-step .hero-text h1 { margin-bottom: 6px; }
+
+/* Intro sub-page — a centred welcome before "What is CSS?". */
+.subpage-intro { padding: 24px 0; }
+.intro-hero {
+  text-align: center;
+  max-width: 560px;
+  margin: 0 auto;
+}
+.intro-logo {
+  display: inline-block;
+  background: var(--edit-white);
+  border: 1px solid var(--edit-black);
+  box-shadow: 4px 4px 0 var(--edit-black);
+  padding: 16px;
+  margin-bottom: 20px;
+}
+.intro-logo img {
+  width: 128px;
+  height: 128px;
+  display: block;
+  image-rendering: pixelated;
+}
+.intro-hero h1 {
+  font-size: 40px;
+  line-height: 40px;
+  margin-bottom: 16px;
+}
+.intro-hero .lede {
+  font-size: 16px;
+  line-height: 20px;
+  margin-bottom: 12px;
+}
 
 /* Sub-page dot indicator */
 .subdots {
@@ -221,12 +252,16 @@
   background: var(--edit-black);
   color: var(--edit-yellow);
 }
-.css-demo-stage {
+/* Each tab maps to one panel: code on the left, its own inline result
+   on the right. learn.js shows the panel matching the active tab. */
+.css-demo-panel {
   display: grid;
   grid-template-columns: 1fr 200px;
-  gap: 0;
   align-items: stretch;
 }
+/* `display: grid` above defeats the `hidden` attribute, so re-hide
+   explicitly — only the active panel shows. */
+.css-demo-panel[hidden] { display: none; }
 .css-demo-code {
   margin: 0;
   padding: 12px 16px;
@@ -238,64 +273,40 @@
   white-space: pre;
   overflow-x: auto;
 }
-.css-demo-code .tok-sel { color: var(--edit-blue); }
-.css-demo-code .css-demo-rule { color: var(--edit-red); }
-.css-demo-stage {
-  border-left: 0;
+.css-demo-code .tok-sel  { color: var(--edit-blue); }
+.css-demo-code .tok-prop { color: var(--edit-red); }
+.css-demo-code .tok-fn   { color: #006600; }
+.css-demo-code .tok-at   { color: var(--edit-blue); }
+.css-demo-result {
+  border-left: 1px solid var(--edit-black);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
 }
-.css-demo-box {
-  /* Neutral base look so single-property demos (color: white,
-     background-color: blue, width, border) each read clearly. learn.js
-     layers the chosen declaration on top via inline style. */
-  margin: 16px;
-  background: var(--edit-gray);
-  color: var(--edit-black);
+.css-demo-result .demo-box {
+  min-height: 72px;
   border: 1px solid var(--edit-black);
-  min-height: 96px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 16px;
 }
-.css-demo-stage > .css-demo-box {
-  align-self: center;
-  justify-self: center;
-  width: 100px;
+/* The branching panel's box shows the @media result at the wizard's
+   reading width (>600px), i.e. green. */
+.css-demo-result .demo-box-branch {
+  background: var(--edit-gray);
+  color: var(--edit-black);
 }
-.css-demo-stage::before { content: none; }
-
-/* — functions / branching demo — */
-.fn-demo {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin: 8px 0;
+@media (min-width: 600px) {
+  .css-demo-result .demo-box-branch { background: green; color: #fff; }
 }
-.fn-demo-item {
-  border: 1px solid var(--edit-black);
-  background: var(--edit-white);
-}
-.fn-demo-code {
-  margin: 0;
-  padding: 8px 12px;
-  font-family: inherit;
-  font-size: 14px;
-  line-height: 16px;
-  background: var(--edit-black);
-  color: #55ff55;
-  white-space: pre;
-  overflow-x: auto;
-}
-.fn-demo-code .tok-fn { color: var(--edit-yellow); }
-.fn-demo-code .tok-at { color: var(--edit-cyan); }
-.fn-demo-result {
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.fn-demo-bar {
-  height: 14px;
+.css-demo-result .demo-bar {
+  height: 16px;
+  width: 100%;
   background: var(--edit-blue);
   border: 1px solid var(--edit-black);
 }
@@ -938,7 +949,25 @@ details.advanced .advanced-body .row:last-child { margin-bottom: 0; }
 }
 .wiz-nav .btn { margin-bottom: 0; }
 .wiz-nav-spacer { flex: 1; }
-.wiz-nav #wiz-counter { padding: 0 16px; color: var(--edit-black); }
+/* Three step-dots replacing the "Step N of 3" counter. */
+.step-dots {
+  display: flex;
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0 16px;
+  align-items: center;
+}
+.step-dots li {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+  cursor: pointer;
+}
+.step-dots li.done { background: #666; }
+.step-dots li.current { background: var(--edit-red); }
 .btn.primary {
   background: var(--edit-blue);
   color: var(--edit-white);

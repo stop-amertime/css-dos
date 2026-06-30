@@ -20,7 +20,7 @@
   const LEARN_STEP = 1;   // step 1 holds the 3 Learn sub-pages
   const BUILD_STEP = 2;
   const PLAY_STEP  = 3;
-  const LEARN_SUBPAGES = 3;
+  const LEARN_SUBPAGES = 4;
   let step = 1;
   let sub = 1;            // active Learn sub-page (1..LEARN_SUBPAGES)
   let buildDone = false;
@@ -58,7 +58,12 @@
     // Only the Play step gets the wide dialog; Learn/Build stay reading-width.
     wizWindow.classList.toggle('play-wide', step === PLAY_STEP);
     wizTitle.textContent  = `Step ${step} of ${TOTAL_STEPS} — ${STEP_TITLES[step - 1]}`;
-    wizCounter.textContent = `Step ${step} of ${TOTAL_STEPS}`;
+    // Three step-dots: mark current + completed.
+    wizCounter.querySelectorAll('li').forEach((li) => {
+      const j = Number(li.dataset.jump);
+      li.classList.toggle('current', j === step);
+      li.classList.toggle('done', j < step);
+    });
     // Back is disabled only at the very start (Learn sub-page 1).
     prevBtn.disabled = (step === LEARN_STEP && sub === 1);
     // Gate: Play requires a finished build.
@@ -130,16 +135,23 @@
     });
   });
 
+  // Shared jump logic for the top step-strip and the bottom step-dots.
+  function jumpToStep(j) {
+    if (j === step) return;
+    // Allow jumping back freely; forward to Build always, Play only if built.
+    if (j < step) { setStep(j); return; }
+    if (j === BUILD_STEP) { setStep(j); return; }
+    if (j === PLAY_STEP && buildDone) { setStep(j); return; }
+  }
+
   $$('.step-strip li').forEach((li) => {
     li.addEventListener('click', () => {
-      const j = Number(li.dataset.jump);
-      if (j === step) return;
       if (li.classList.contains('disabled')) return;
-      // Allow jumping back freely; forward to Build always, Play only if built.
-      if (j < step) { setStep(j); return; }
-      if (j === BUILD_STEP) { setStep(j); return; }
-      if (j === PLAY_STEP && buildDone) { setStep(j); return; }
+      jumpToStep(Number(li.dataset.jump));
     });
+  });
+  $$('#wiz-counter li').forEach((li) => {
+    li.addEventListener('click', () => jumpToStep(Number(li.dataset.jump)));
   });
 
   document.addEventListener('keydown', (e) => {
