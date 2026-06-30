@@ -61,6 +61,16 @@
                 Booting <b>DOS</b>, the first ever operating system, off an
                 emulated floppy disk.
               </p>
+              <p class="lede">Yes, it runs <b>DOOM</b> (very poorly).</p>
+              <p class="intro-claim">
+                This is the first time real<a href="#intro-fn" class="fn-ref">*</a>
+                production computer programs have run in CSS.
+              </p>
+              <p class="intro-fn small" id="intro-fn">
+                * &ldquo;real&rdquo; meaning production programs &mdash; the
+                command shell, early computer games, and so on. Anything that
+                runs on DOS may work here.
+              </p>
             </div>
           </div>
         </div>
@@ -111,25 +121,35 @@
               </div>
             </div>
 
-            <!-- Function -->
+            <!-- Function — a real custom @function with a typed parameter -->
             <div class="css-demo-panel" data-demo-panel="function" hidden>
-              <pre class="css-demo-code"><code><span class="tok-sel">.box</span> {
-  width: <span class="tok-fn">calc</span>(100% - 40px);
+              <pre class="css-demo-code"><code><span class="tok-at">@function</span> <span class="tok-fn">--double</span>(<span class="tok-prop">--n</span>) {
+  <span class="tok-prop">result</span>: <span class="tok-fn">calc</span>(<span class="tok-fn">var</span>(<span class="tok-prop">--n</span>) * 2);
+}
+
+<span class="tok-sel">.box</span> {
+  width: <span class="tok-fn">--double</span>(60px);
 }</code></pre>
               <div class="css-demo-result">
-                <div class="demo-bar" style="width:calc(100% - 40px)"></div>
-                <span class="dim small">do arithmetic on values</span>
+                <div class="demo-box demo-box-fn">box</div>
+                <span class="dim small">define your own functions, with parameters</span>
               </div>
             </div>
 
-            <!-- Branching -->
+            <!-- Branching — real if() switching on a custom property -->
             <div class="css-demo-panel" data-demo-panel="branching" hidden>
-              <pre class="css-demo-code"><code><span class="tok-at">@media</span> (min-width: 600px) {
-  <span class="tok-sel">.box</span> { background-color: green; }
+              <pre class="css-demo-code"><code><span class="tok-sel">.box</span> {
+  background-color: <span class="tok-fn">if</span>(
+    <span class="tok-fn">style</span>(<span class="tok-prop">--on</span>: 1): green;
+    <span class="tok-fn">else</span>: red
+  );
 }</code></pre>
               <div class="css-demo-result">
-                <div class="demo-box demo-box-branch" style="width:120px">box</div>
-                <span class="dim small">apply rules only when a condition holds</span>
+                <div class="demo-box demo-box-branch" id="branch-box">box</div>
+                <button class="demo-toggle" id="branch-toggle" type="button">
+                  toggle --on
+                </button>
+                <span class="dim small">pick a value from an <code>if()</code> condition</span>
               </div>
             </div>
           </div>

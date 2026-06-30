@@ -158,6 +158,9 @@ body:has(.window.wizard) {
   justify-content: center;
   min-height: 420px;
 }
+/* `display: flex` defeats the `hidden` attribute — re-hide explicitly so
+   the intro hero only shows on sub-page 1. */
+.subpage-intro[hidden] { display: none; }
 .intro-hero {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -186,7 +189,23 @@ body:has(.window.wizard) {
   line-height: 20px;
   margin-bottom: 10px;
 }
-.intro-hero .lede:last-child { margin-bottom: 0; }
+.intro-hero .intro-claim {
+  margin: 14px 0 6px;
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: bold;
+}
+.intro-hero .fn-ref {
+  color: var(--edit-red);
+  text-decoration: none;
+  vertical-align: super;
+  font-size: 12px;
+}
+.intro-hero .intro-fn {
+  margin: 0;
+  color: #555;
+  line-height: 14px;
+}
 
 /* Sub-page dot indicator */
 .subdots {
@@ -307,26 +326,52 @@ body:has(.window.wizard) {
 }
 .css-demo-result .demo-box {
   min-height: 72px;
+  background: var(--edit-gray);
+  color: var(--edit-black);
   border: 1px solid var(--edit-black);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 16px;
 }
-/* The branching panel's box shows the @media result at the wizard's
-   reading width (>600px), i.e. green. */
-.css-demo-result .demo-box-branch {
-  background: var(--edit-gray);
-  color: var(--edit-black);
+
+/* The Function panel's box is sized by a REAL custom @function — the same
+   kind of @function CSS-DOS itself uses (kiln/css-lib.mjs). If the browser
+   doesn't support @function it falls back to the plain width below. */
+@function --double(--n) {
+  result: calc(var(--n) * 2);
 }
-@media (min-width: 600px) {
-  .css-demo-result .demo-box-branch { background: green; color: #fff; }
-}
-.css-demo-result .demo-bar {
-  height: 16px;
-  width: 100%;
+.css-demo-result .demo-box-fn {
+  width: 60px;                 /* fallback */
+  width: --double(60px);       /* real: 120px */
   background: var(--edit-blue);
+  color: var(--edit-white);
+}
+
+/* The Branching panel's box picks its colour with a REAL if(style())
+   conditional — the same construct CSS-DOS uses for its shift/branch
+   tables. #branch-toggle flips --on; falls back to red if if() is
+   unsupported. */
+.css-demo-result .demo-box-branch {
+  --on: 0;
+  background: red;             /* fallback */
+  background: if(style(--on: 1): green; else: red);
+  color: var(--edit-white);
+}
+.css-demo-result .demo-box-branch.on { --on: 1; }
+.css-demo-result .demo-toggle {
+  font-family: inherit;
+  font-size: 14px;
+  padding: 4px 10px;
+  background: var(--edit-white);
+  color: var(--edit-black);
   border: 1px solid var(--edit-black);
+  box-shadow: 2px 2px 0 var(--edit-black);
+  cursor: pointer;
+}
+.css-demo-result .demo-toggle:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
 /* — cross / sim lists — */

@@ -29,5 +29,15 @@
     // Initialise from whichever tab is marked current (first by default).
     const initial = tabs.find((t) => t.classList.contains('current')) || tabs[0];
     if (initial) show(initial.dataset.demo);
+
+    // Branching panel: the toggle flips --on (via .on) so the real
+    // if(style(--on:1)…) conditional re-picks the box colour live.
+    const branchBox = document.getElementById('branch-box');
+    const branchToggle = document.getElementById('branch-toggle');
+    if (branchBox && branchToggle) {
+      branchToggle.addEventListener('click', () => {
+        branchBox.classList.toggle('on');
+      });
+    }
   }
 })();
