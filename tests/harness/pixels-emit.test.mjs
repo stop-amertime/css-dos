@@ -18,3 +18,23 @@ assert.match(css, /\.cpu\s+#p0\b|\.cpu\s*>\s*[^{]*#p0\b|#p0[^{]*\{[^}]*--ci/,
   'pixel rules present');
 
 console.log('PASS pixels-emit index extraction');
+
+const css2 = emitPixelPaintRules({ width: 2, height: 2 });
+
+// The shared palette @function is emitted exactly once.
+assert.equal((css2.match(/@function --paletteRGB/g) || []).length, 1,
+  'one shared palette function');
+
+// It reads DAC cells. Entry 1 R-byte @ DAC_LINEAR + 3 = 0x100003 (odd)
+// → high byte of cell 0x80001 (0x100003>>1 = 0x80001).
+assert.match(css2, /round\(down,\s*var\(--__1mc524289\)\s*\/\s*256\)/,
+  'palette reads DAC entry 1 red from correct cell/half');
+
+// 6->8 bit expansion present.
+assert.match(css2, /\*\s*255\s*\/\s*63|255\s*\/\s*63/, '6->8 bit expansion');
+
+// Each pixel paints from the function.
+assert.match(css2, /#p0[^}]*background-color:\s*--paletteRGB\(var\(--ci\)\)/,
+  'pixel 0 paints via palette function');
+
+console.log('PASS pixels-emit palette');
