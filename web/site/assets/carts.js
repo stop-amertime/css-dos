@@ -38,6 +38,15 @@ window.CARTS = [
     id: 'rogue1_0',
     name: 'Rogue',
     desc: 'Michael Toy & Ken Arnold, 1980. The original dungeon-crawler. ASCII forever.',
-    placeholderPalette: ['#55ff55', '#000000'],
+    cover: '/assets/boxart/rogue.jpg',
+  },
+  {
+    // Synthetic card — not a folder under carts/. Selecting it surfaces the
+    // custom file/folder upload panel. wizard.js special-cases id 'custom'.
+    id: 'custom',
+    name: 'Custom Program',
+    desc: 'Load your own .COM, .EXE, or a folder of program + data files.',
+    custom: true,
+    placeholderPalette: ['#ffffff', '#aa0000'],
   },
 ];

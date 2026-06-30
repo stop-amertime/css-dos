@@ -382,18 +382,37 @@
           </div>
           <div class="block-body">
             <div class="cart-grid" id="cart-grid"><!-- filled by wizard.js --></div>
-            <p class="dim small" style="margin-top:12px">
+
+            <!-- Custom upload panel — hidden until the "Custom Program" card
+                 is selected. wizard.js toggles .custom-panel-open. -->
+            <div class="custom-panel" id="custom-panel" hidden>
+              <div class="custom-panel-head">Load your own program</div>
+              <p class="custom-panel-lede">
+                Pick a single <code>.COM</code> or <code>.EXE</code>, or a
+                whole folder if your program ships with data files. It runs
+                from a fresh DOS boot, exactly like the built-in carts.
+              </p>
+              <div class="custom-drop">
+                <label class="custom-choice" for="com-file">
+                  <span class="custom-choice-glyph">&#128196;</span>
+                  <span class="custom-choice-title"><span class="hot">O</span>pen file&hellip;</span>
+                  <span class="custom-choice-sub">.com or .exe</span>
+                </label>
+                <label class="custom-choice" for="dir-file">
+                  <span class="custom-choice-glyph">&#128193;</span>
+                  <span class="custom-choice-title">Open f<span class="hot">o</span>lder&hellip;</span>
+                  <span class="custom-choice-sub">program + data files</span>
+                </label>
+              </div>
+              <p class="custom-selected">
+                Selected: <span id="file-name" class="dim">No file selected</span>
+              </p>
+            </div>
+
+            <p class="dim small cart-selected-line">
               Selected: <span id="cart-selected">(none)</span>
-              &nbsp;&middot;&nbsp;
-              <label class="file-label" for="com-file" style="cursor:pointer;text-decoration:underline">
-                <span class="hot">O</span>pen file&hellip;
-              </label>
-              &nbsp;&middot;&nbsp;
-              <label class="file-label" for="dir-file" style="cursor:pointer;text-decoration:underline">
-                Open f<span class="hot">o</span>lder&hellip;
-              </label>
-              &nbsp;<span id="file-name" class="dim">No file selected</span>
             </p>
+
             <input type="file" id="com-file" accept=".com,.exe">
             <input type="file" id="dir-file" webkitdirectory directory multiple>
           </div>

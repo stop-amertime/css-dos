@@ -190,37 +190,39 @@
     const serverIds = new Set(serverCarts.map((c) => c.name));
     const ordered = [];
     for (const c of manifest) {
+      // The synthetic "custom" card isn't a server cart — always include it.
+      if (c.custom) { ordered.push({ meta: c, server: null }); continue; }
       if (serverIds.has(c.id)) ordered.push({ meta: c, server: serverCarts.find((s) => s.name === c.id) });
     }
 
     for (const { meta, server } of ordered) {
       const card = document.createElement('div');
-      card.className = 'cart-card';
+      card.className = 'cart-card' + (meta.custom ? ' cart-card-custom' : '');
       card.dataset.cartId = meta.id;
 
       const cover = document.createElement('div');
       cover.className = 'cart-cover';
-      if (meta.cover) {
+      if (meta.custom) {
+        cover.appendChild(makeCustomCover(meta));
+      } else if (meta.cover) {
         const img = document.createElement('img');
         img.src = meta.cover;
         img.alt = meta.name;
         img.onerror = () => {
           cover.innerHTML = '';
-          cover.appendChild(makePlaceholder(meta, server));
+          cover.appendChild(makePlaceholder(meta));
         };
         cover.appendChild(img);
       } else {
-        cover.appendChild(makePlaceholder(meta, server));
+        cover.appendChild(makePlaceholder(meta));
       }
       card.appendChild(cover);
 
       const body = document.createElement('div');
       body.className = 'cart-body';
-      const preset = server?.program?.preset || 'dos-corduroy';
       body.innerHTML = `
         <div class="cart-name">${escapeHtml(meta.name)}</div>
         <div class="cart-desc">${escapeHtml(meta.desc || '')}</div>
-        <div class="cart-meta">${escapeHtml(presetLabel(preset))}</div>
       `;
       card.appendChild(body);
 
@@ -229,29 +231,44 @@
     }
   }
 
-  function makePlaceholder(meta, server) {
+  function makePlaceholder(meta) {
     const wrap = document.createElement('div');
     wrap.className = 'cart-cover-placeholder';
     const [fg, bg] = meta.placeholderPalette || ['#ffffff', '#0000aa'];
     wrap.style.background = bg;
     wrap.style.color = fg;
-    const sub = (server?.program?.preset) || '';
-    wrap.innerHTML = `
-      <div class="ph-name">${escapeHtml(meta.name)}</div>
-      <div class="ph-sub">${escapeHtml(sub)}</div>
-    `;
+    wrap.innerHTML = `<div class="ph-name">${escapeHtml(meta.name)}</div>`;
+    return wrap;
+  }
+
+  // The Custom card's cover: a big question mark on the palette colour.
+  function makeCustomCover(meta) {
+    const wrap = document.createElement('div');
+    wrap.className = 'cart-cover-placeholder cart-cover-custom';
+    const [fg, bg] = meta.placeholderPalette || ['#ffffff', '#aa0000'];
+    wrap.style.background = bg;
+    wrap.style.color = fg;
+    wrap.innerHTML = `<div class="ph-glyph">?</div>`;
     return wrap;
   }
 
   function selectCartCard(id) {
     if (buildInFlight) return;
+    const meta = (window.CARTS || []).find((c) => c.id === id);
+    const isCustom = !!meta?.custom;
+
     // Update visible state.
     $$('.cart-card').forEach((c) => c.classList.toggle('selected', c.dataset.cartId === id));
-    const meta = (window.CARTS || []).find((c) => c.id === id);
     cartSelected.textContent = meta?.name || id;
 
-    // Fire change on the hidden radio — build.js will fetch + load the cart.
-    const radio = document.querySelector(`#cart-list input[name="cart"][value="${cssEscape(id)}"]`);
+    // Show the custom upload panel only when the Custom card is selected.
+    $('#custom-panel').hidden = !isCustom;
+
+    // Fire change on the hidden radio build.js owns. Built-in carts have a
+    // radio keyed by id; the Custom card maps to the empty-value "(custom)"
+    // radio build.js already provides for file/folder uploads.
+    const value = isCustom ? '' : id;
+    const radio = document.querySelector(`#cart-list input[name="cart"][value="${cssEscape(value)}"]`);
     if (radio) {
       radio.checked = true;
       radio.dispatchEvent(new Event('change', { bubbles: true }));
@@ -320,14 +337,13 @@
   cartList.addEventListener('change', (ev) => {
     if (ev.target?.name !== 'cart') return;
     const id = ev.target.value;
-    $$('.cart-card').forEach((c) => c.classList.toggle('selected', c.dataset.cartId === id));
-    if (id) {
-      const meta = (window.CARTS || []).find((c) => c.id === id);
-      cartSelected.textContent = meta?.name || id;
-      $('#build-hint').textContent = 'Ready to build.';
-    } else {
-      cartSelected.textContent = '(none)';
-    }
+    // Empty value = the Custom card (file/folder upload).
+    const cardId = id || 'custom';
+    $$('.cart-card').forEach((c) => c.classList.toggle('selected', c.dataset.cartId === cardId));
+    $('#custom-panel').hidden = !!id;
+    const meta = (window.CARTS || []).find((c) => c.id === cardId);
+    cartSelected.textContent = meta?.name || id || '(none)';
+    if (id) $('#build-hint').textContent = 'Ready to build.';
   });
 
   // ── Spec table mirror ───────────────────────────────────────────────
