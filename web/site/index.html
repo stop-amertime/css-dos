@@ -172,7 +172,7 @@
             <li><span class="no">[ ]</span> Graphics output</li>
             <li><span class="no">[ ]</span> Reading or writing memory</li>
             <li><span class="no">[ ]</span> Files of any kind</li>
-            <li><span class="no">[ ]</span> <span class="placeholder-note">[placeholder] &hellip;and a bunch more it doesn&rsquo;t have</span></li>
+            <li><span class="no">[ ]</span> Loops, or running the same rule twice</li>
           </ul>
 
           <p class="punchline">
@@ -183,10 +183,10 @@
 
           <div class="ext-link-box">
             <p>
-              For a clean visual demonstration of the idea, see
-              <!-- PLACEHOLDER URL — drop Lyra's real link -->
-              <a href="#" class="ext-link" id="lyra-link">Lyra&rsquo;s x86 CPU built in CSS</a>.
-              <span class="dim small">[placeholder link]</span>
+              The idea isn&rsquo;t ours. Lyra Rebane first built a working
+              <a href="https://lyra.horse/x86css/" class="ext-link"
+                 target="_blank" rel="noopener">x86 CPU in pure CSS</a> &mdash;
+              a clean, visual demonstration that the trick works at all.
             </p>
           </div>
 
@@ -195,11 +195,11 @@
             simulates:
           </p>
           <ul class="sim-list">
-            <li><span class="ok">[X]</span> A custom <b>BIOS</b></li>
-            <li><span class="ok">[X]</span> Floppy + hard-disk storage</li>
+            <li><span class="ok">[X]</span> A custom <b>BIOS</b>, booting real <b>DOS</b></li>
+            <li><span class="ok">[X]</span> A FAT12 floppy disk, with your files on it</li>
             <li><span class="ok">[X]</span> 640&nbsp;KB of RAM</li>
-            <li><span class="ok">[X]</span> Text + graphics video</li>
-            <li><span class="ok">[X]</span> <span class="placeholder-note">[placeholder] &hellip;timers, keyboard controller, etc.</span></li>
+            <li><span class="ok">[X]</span> Text + VGA graphics (Mode&nbsp;13h)</li>
+            <li><span class="ok">[X]</span> A keyboard, a timer, and hardware interrupts</li>
           </ul>
         </div>
 
@@ -222,33 +222,35 @@
             files themselves &mdash; into a <b>single file</b>.
           </p>
           <p>
-            That ends up as a <b>~300&nbsp;MB</b> file of pure text. Which
-            is, frankly, ridiculous. For comparison, the original source
-            for Zork is about
-            <span class="placeholder-note">[placeholder: NN KB]</span>.
+            The Doom cabinet ends up at <b>332&nbsp;MB</b> of pure text.
+            Which is, frankly, ridiculous. The entire original game of Zork
+            is about <b>85&nbsp;KB</b> &mdash; this stylesheet is roughly
+            <b>4,000&times;</b> bigger.
           </p>
 
-          <!-- WIDGET: earth–moon distance. SVG, ~1/3 dotted to scale. -->
+          <!-- WIDGET: earth–moon distance. The dotted walk is ~2/3 of the
+               baseline: 332M chars x ~0.75 m/step ≈ 249,000 km ≈ 65% of the
+               384,400 km mean Earth–Moon distance. Baseline x=40..660. -->
           <div class="moon-viz" id="moon-viz">
-            <svg viewBox="0 0 700 160" role="img" aria-label="Earth to Moon distance, one third dotted">
+            <svg viewBox="0 0 700 160" role="img" aria-label="Earth to Moon distance, about two thirds dotted">
               <!-- baseline -->
               <line x1="40" y1="120" x2="660" y2="120" stroke="#888" stroke-width="1" stroke-dasharray="2 4"/>
-              <!-- one-third dotted (the walk) -->
-              <line x1="40" y1="120" x2="247" y2="120" stroke="#aa0000" stroke-width="3" stroke-dasharray="3 5"/>
+              <!-- the walk: ~2/3 of the way (x=40 -> x=443) -->
+              <line x1="40" y1="120" x2="443" y2="120" stroke="#aa0000" stroke-width="3" stroke-dasharray="3 5"/>
               <!-- Earth -->
               <circle cx="40" cy="120" r="26" fill="#0000aa" stroke="#000" stroke-width="1"/>
               <text x="40" y="124" text-anchor="middle" font-size="11" fill="#fff" font-family="inherit">EARTH</text>
               <!-- Moon -->
               <circle cx="660" cy="120" r="12" fill="#aaa" stroke="#000" stroke-width="1"/>
               <text x="660" y="98" text-anchor="middle" font-size="11" fill="#000" font-family="inherit">MOON</text>
-              <!-- 1/3 marker -->
-              <text x="247" y="98" text-anchor="middle" font-size="11" fill="#aa0000" font-family="inherit">1/3</text>
+              <!-- ~2/3 marker -->
+              <text x="443" y="98" text-anchor="middle" font-size="11" fill="#aa0000" font-family="inherit">~2/3</text>
             </svg>
             <p class="caption">
               Take one step for every character in the file &mdash; letter,
               digit, space &mdash; and you&rsquo;d walk
-              <b>about a third of the way to the Moon</b>.
-              <span class="placeholder-note">[placeholder: verify the arithmetic]</span>
+              <b>about two-thirds of the way to the Moon</b>
+              (some 250,000&nbsp;km).
             </p>
           </div>
         </div>
