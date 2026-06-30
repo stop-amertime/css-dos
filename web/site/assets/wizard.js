@@ -64,6 +64,7 @@
       ? '<span class="hot">R</span>estart'
       : '<span class="hot">N</span>ext &raquo;';
     statusMsg.textContent = `Step ${step}/${TOTAL_STEPS}`;
+    writeHash(step);
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
@@ -522,18 +523,41 @@
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  // ── #games deep-link ────────────────────────────────────────────────
-  // /index.html#games (or a /games link that resolves here) jumps straight
-  // to the Build step, skipping the Learn explanation.
+  // ── Hash routing ────────────────────────────────────────────────────
+  // The wizard is a single page; the URL hash is the "route" so a refresh
+  // (or a shared link) lands back on the same step instead of resetting to
+  // About. #games is kept as a historical alias for #build.
+  const HASH_TO_STEP = {
+    '#about': LEARN_STEP, '#learn': LEARN_STEP,
+    '#build': BUILD_STEP, '#games': BUILD_STEP,
+    '#play':  PLAY_STEP,
+  };
+  const STEP_TO_HASH = { [LEARN_STEP]: '#about', [BUILD_STEP]: '#build', [PLAY_STEP]: '#play' };
+
+  // setStep() calls writeHash(); the resulting hashchange must not loop back
+  // into setStep(). This flag suppresses that echo.
+  let syncingHash = false;
+  function writeHash(n) {
+    const want = STEP_TO_HASH[n];
+    if (!want || location.hash.toLowerCase() === want) return;
+    syncingHash = true;
+    location.hash = want;
+    // hashchange fires async; clear the guard on the next frame.
+    setTimeout(() => { syncingHash = false; }, 0);
+  }
+
+  // Read the hash and move there, honouring the same gating as a tab click
+  // (Play only once a build exists; an ungated forward jump is ignored).
   function applyHash() {
-    if ((location.hash || '').toLowerCase() === '#games') {
-      setStep(BUILD_STEP);
-      return true;
-    }
-    return false;
+    if (syncingHash) return true;
+    const target = HASH_TO_STEP[(location.hash || '').toLowerCase()];
+    if (!target) return false;
+    if (target === PLAY_STEP && !buildDone) { setStep(BUILD_STEP); return true; }
+    setStep(target);
+    return true;
   }
   window.addEventListener('hashchange', applyHash);
 
-  // Kick off — honour #games, else start at Learn sub-page 1.
+  // Kick off — honour the hash, else start at Learn sub-page 1.
   if (!applyHash()) setStep(1);
 })();
