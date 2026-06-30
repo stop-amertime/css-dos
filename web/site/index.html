@@ -412,6 +412,23 @@
       <!-- ============================================ -->
       <section class="step" data-step="2" id="step-build" hidden>
 
+        <!-- Build-step intro -->
+        <div class="build-intro">
+          <h1>Build the <code>.css</code> file</h1>
+          <p>
+            CSS can&rsquo;t read files, so the entire computer &mdash; and your
+            program &mdash; has to be baked into one stylesheet. This page
+            builds that file for you, because:
+          </p>
+          <ol class="build-why">
+            <li>Downloading 300&nbsp;MB of CSS text for every program would be
+              annoying.</li>
+            <li>It lets you build a cabinet from your <b>own</b> program.
+              <span class="dim small">(Any DOS program should at least run
+              &mdash; but no guarantees on compatibility.)</span></li>
+          </ol>
+        </div>
+
         <!-- (A) cart picker — decorative card grid; clicks proxy into
                  the hidden #cart-list radios build.js owns. -->
         <div class="build-block" id="block-pick">
@@ -447,10 +464,6 @@
                 Selected: <span id="file-name" class="dim">No file selected</span>
               </p>
             </div>
-
-            <p class="dim small cart-selected-line">
-              Selected: <span id="cart-selected">(none)</span>
-            </p>
 
             <input type="file" id="com-file" accept=".com,.exe">
             <input type="file" id="dir-file" webkitdirectory directory multiple>
@@ -710,12 +723,6 @@
 
     <div class="wiz-nav">
       <button id="prev" class="btn">&laquo; <span class="hot">B</span>ack</button>
-      <span class="wiz-nav-spacer"></span>
-      <ol id="wiz-counter" class="step-dots" aria-label="Step">
-        <li data-jump="1" class="current"></li>
-        <li data-jump="2"></li>
-        <li data-jump="3"></li>
-      </ol>
       <span class="wiz-nav-spacer"></span>
       <button id="next" class="btn primary"><span class="hot">N</span>ext &raquo;</button>
     </div>

@@ -30,7 +30,6 @@
   const $$ = (s) => Array.from(document.querySelectorAll(s));
 
   const wizWindow  = $('.window.wizard');
-  const wizCounter = $('#wiz-counter');
   const prevBtn    = $('#prev');
   const nextBtn    = $('#next');
   const statusMsg  = $('#status-msg');
@@ -57,12 +56,6 @@
     // Only the Play step gets the wide dialog; Learn/Build stay reading-width.
     wizWindow.classList.toggle('play-wide', step === PLAY_STEP);
     document.title = `CSS-DOS — ${STEP_TITLES[step - 1]}`;
-    // Three step-dots: mark current + completed.
-    wizCounter.querySelectorAll('li').forEach((li) => {
-      const j = Number(li.dataset.jump);
-      li.classList.toggle('current', j === step);
-      li.classList.toggle('done', j < step);
-    });
     // Back is disabled only at the very start (Learn sub-page 1).
     prevBtn.disabled = (step === LEARN_STEP && sub === 1);
     // Gate: Play requires a finished build.
@@ -149,10 +142,6 @@
       jumpToStep(Number(li.dataset.jump));
     });
   });
-  $$('#wiz-counter li').forEach((li) => {
-    li.addEventListener('click', () => jumpToStep(Number(li.dataset.jump)));
-  });
-
   document.addEventListener('keydown', (e) => {
     // e.target on a document-level keydown can be the document itself (no
     // .matches), or a form control. Skip when the focus is in a typeable
@@ -259,7 +248,7 @@
 
     // Update visible state.
     $$('.cart-card').forEach((c) => c.classList.toggle('selected', c.dataset.cartId === id));
-    cartSelected.textContent = meta?.name || id;
+    if (cartSelected) cartSelected.textContent = meta?.name || id;
 
     // Show the custom upload panel only when the Custom card is selected.
     $('#custom-panel').hidden = !isCustom;
@@ -342,7 +331,7 @@
     $$('.cart-card').forEach((c) => c.classList.toggle('selected', c.dataset.cartId === cardId));
     $('#custom-panel').hidden = !!id;
     const meta = (window.CARTS || []).find((c) => c.id === cardId);
-    cartSelected.textContent = meta?.name || id || '(none)';
+    if (cartSelected) cartSelected.textContent = meta?.name || id || '(none)';
     if (id) $('#build-hint').textContent = 'Ready to build.';
   });
 

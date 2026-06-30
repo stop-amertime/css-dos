@@ -625,7 +625,20 @@ body:has(.window.wizard) {
 .css-body span { font-size: 12px; }
 .css-body .dim { color: #888; }
 
-/* ===== Step 3 — Build blocks ===== */
+/* ===== Step 2 — Build intro + blocks ===== */
+.build-intro { margin-bottom: 20px; }
+.build-intro h1 { margin-bottom: 10px; }
+.build-intro p { font-size: 16px; line-height: 19px; margin: 0 0 10px; }
+.build-why {
+  margin: 0;
+  padding-left: 24px;
+}
+.build-why li {
+  font-size: 16px;
+  line-height: 19px;
+  margin-bottom: 8px;
+}
+
 .build-block {
   border: 1px solid var(--edit-black);
   background: var(--edit-white);
@@ -1112,25 +1125,6 @@ details.advanced .advanced-body .row:last-child { margin-bottom: 0; }
 }
 .wiz-nav .btn { margin-bottom: 0; }
 .wiz-nav-spacer { flex: 1; }
-/* Three step-dots replacing the "Step N of 3" counter. */
-.step-dots {
-  display: flex;
-  gap: 12px;
-  list-style: none;
-  margin: 0;
-  padding: 0 16px;
-  align-items: center;
-}
-.step-dots li {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 1px solid var(--edit-black);
-  background: var(--edit-white);
-  cursor: pointer;
-}
-.step-dots li.done { background: #666; }
-.step-dots li.current { background: var(--edit-red); }
 .btn.primary {
   background: var(--edit-blue);
   color: var(--edit-white);
