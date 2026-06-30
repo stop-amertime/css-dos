@@ -111,6 +111,26 @@
 
 /* ===== Step 1 — Learn (sub-pages + widgets) ===== */
 
+/* Learn and Build sit at a comfortable reading measure, centred. Only
+   the Play step keeps the full window width. */
+.learn-step,
+#step-build {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+/* Compact hero on Learn sub-page 1 — logo beside the heading, sized for
+   the narrow reading column (independent of the old wide-hero grid). */
+.learn-step .hero-row {
+  grid-template-columns: 96px 1fr;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.learn-step .hero-logo { padding: 8px; }
+.learn-step .hero-logo img { width: 80px; height: 80px; }
+.learn-step .hero-text h1 { margin-bottom: 6px; }
+
 /* Sub-page dot indicator */
 .subdots {
   display: flex;
@@ -216,22 +236,23 @@
   border-left: 0;
 }
 .css-demo-box {
+  /* Neutral base look so single-property demos (color: white,
+     background-color: blue, width, border) each read clearly. learn.js
+     layers the chosen declaration on top via inline style. */
   margin: 16px;
-  background: var(--edit-red);
-  color: var(--edit-white);
+  background: var(--edit-gray);
+  color: var(--edit-black);
   border: 1px solid var(--edit-black);
   min-height: 96px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 16px;
-  /* The live box: learn.js rewrites its inline style. The grid cell has a
-     left rule so it reads as a separate "preview" pane. */
 }
 .css-demo-stage > .css-demo-box {
   align-self: center;
   justify-self: center;
-  width: 140px;
+  width: 100px;
 }
 .css-demo-stage::before { content: none; }
 
@@ -520,7 +541,7 @@
 /* cart grid — PC-box ratio, big title, small desc */
 .cart-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
 .cart-card {

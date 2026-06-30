@@ -16,8 +16,9 @@
     const tabs  = Array.from(demo.querySelectorAll('.css-demo-tab'));
 
     function applyRule(rule) {
-      // Reset the box to its base look, then apply the chosen declaration.
-      box.style.cssText = '';
+      // The box keeps its base look (from .css-demo-box in CSS); the chosen
+      // declaration layers on top so single properties like `color: white`
+      // or `width: 200px` read clearly against that base.
       box.style.cssText = rule;
       // Reflect in the code view. Show each declaration on its own line.
       ruleEl.textContent = rule.split(';')
