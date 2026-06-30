@@ -907,8 +907,15 @@ details.advanced .advanced-body .row:last-child { margin-bottom: 0; }
 }
 
 /* The paginated source viewer — same green-on-black look as build.html,
-   but at the size that fits inside the wizard's window-body. */
-.window.wizard #source-pre { height: 320px; }
+   shown directly in the result panel (no longer behind a dropdown). */
+.window.wizard #source-pre { height: 960px; }
+.source-viewer-block { margin-top: 16px; }
+.source-viewer-head {
+  margin: 0 0 8px;
+  font-size: 16px;
+  line-height: 16px;
+  color: var(--edit-black);
+}
 
 /* ===== Step 4 — Play cards ===== */
 .play-grid {

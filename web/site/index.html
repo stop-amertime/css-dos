@@ -569,27 +569,21 @@
               </div>
             </div>
 
-            <!-- Source viewer — paginated by build.js. Hidden by default
-                 inside another details so the result panel stays compact. -->
-            <details class="advanced" style="margin-top:16px" id="source-viewer-toggle">
-              <summary>
-                <span class="adv-glyph"></span> View cabinet source
-              </summary>
-              <div class="advanced-body" style="background:var(--edit-white)">
-                <section id="source-viewer">
-                  <p class="pager-info">
-                    Page <span id="page-num">1</span> of <span id="page-total">0</span>
-                    &middot; <span id="page-bytes"></span>
-                  </p>
-                  <div class="row pager-controls">
-                    <button id="page-prev" class="btn">&#171; Prev</button>
-                    <input id="page-jump" class="field page-jump-input" type="number" min="1" value="1">
-                    <button id="page-next" class="btn">Next &#187;</button>
-                  </div>
-                  <pre id="source-pre" class="source-pre"><code id="source-code" class="language-css"></code></pre>
-                </section>
+            <!-- Source viewer — paginated by build.js. Shown directly so
+                 the cabinet's CSS is visible without a click. -->
+            <section id="source-viewer" class="source-viewer-block">
+              <h3 class="source-viewer-head">Cabinet source</h3>
+              <p class="pager-info">
+                Page <span id="page-num">1</span> of <span id="page-total">0</span>
+                &middot; <span id="page-bytes"></span>
+              </p>
+              <div class="row pager-controls">
+                <button id="page-prev" class="btn">&#171; Prev</button>
+                <input id="page-jump" class="field page-jump-input" type="number" min="1" value="1">
+                <button id="page-next" class="btn">Next &#187;</button>
               </div>
-            </details>
+              <pre id="source-pre" class="source-pre"><code id="source-code" class="language-css"></code></pre>
+            </section>
           </div>
         </div>
       </section>
