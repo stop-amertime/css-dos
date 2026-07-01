@@ -1,5 +1,7 @@
 /* result-floppy.css — the CSS-drawn floppy-disk graphic in the "Cabinet
-   ready" result panel. Carved from assets/wizard.css. */
+   ready" result panel. Carved verbatim from assets/wizard.css.
+   (There is no bare `.result-floppy` rule in the source — the floppy is
+   styled via `.result-floppy .floppy` and its descendants.) */
 
 .result-floppy .floppy {
   width: 140px; height: 140px;

@@ -1,5 +1,6 @@
 /* step-dots.css — the numbered top breadcrumb strip (.step-strip) AND the
-   Learn sub-page dot indicator (.subdots). Carved from assets/wizard.css. */
+   Learn/Build sub-page dot indicator (.subdots). Carved verbatim from
+   assets/wizard.css. */
 
 /* ===== Step breadcrumb strip ===== */
 .step-strip {

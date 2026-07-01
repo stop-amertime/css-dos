@@ -2,6 +2,7 @@
   "schema": "cart@1",
   "name": "Rogue",
   "description": "Rogue 1.0 (1983). The original dungeon crawler.",
+  "display": { "cover": "rogue.jpg" },
   "preset": "dos-corduroy",
   "memory": { "conventional": "640K", "gfx": true, "cgaGfx": false, "textVga": true },
   "boot": { "runCommand": "ROGUE" }

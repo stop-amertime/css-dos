@@ -1,16 +1,21 @@
-/* about.css — the Learn / About step (STEP 1). Carved from assets/wizard.css.
-   EXCLUDES the CSS code-flicker demo (css-demo.css) and the earth–moon
-   visual (moon-viz.css), which have their own fragments.
+/* about.css — the Learn / About step (STEP 1). Carved verbatim from the
+   current assets/wizard.css. EXCLUDES the CSS code-flicker demo
+   (css-demo.css) and the earth–moon visual (moon-viz.css), which have their
+   own fragments.
 
    NOTE: the base .hero-row / .hero-logo / .hero-text / .bullets /
    .hero-machine rules are the old wide-hero primitives from the Welcome
    step; the current Learn markup uses .intro-hero, but the
    `.learn-step .hero-row` overrides below still cascade off these base
-   rules, so they are kept here (about-step scoped). */
+   rules, so they are kept here (about-step scoped).
+
+   The current source has NO `.ext-link` rule — dropped from wizard.css —
+   so none is carved here (the markup's .ext-link anchors fall back to plain
+   link styling). */
 
 /* The boxed look is for inline <code> in prose only. Inside the Learn
    code widgets, <code> sits in a styled <pre> and must be plain.
-   (.css-demo-code lives in css-demo.css; this side is about-owned.) */
+   (.css-demo-code half of this combined rule lives in css-demo.css.) */
 .byte-example code {
   background: none;
   border: none;
@@ -90,16 +95,10 @@
    the intro hero only shows on sub-page 1. */
 .subpage-intro[hidden] { display: none; }
 .intro-hero {
-  display: grid;
-  grid-template-columns: auto 1fr;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 28px;
-}
-.intro-logo {
-  background: var(--edit-white);
-  border: 1px solid var(--edit-black);
-  box-shadow: 4px 4px 0 var(--edit-black);
-  padding: 12px;
+  gap: 20px;
 }
 .intro-logo img {
   width: 128px;
@@ -107,9 +106,13 @@
   display: block;
   image-rendering: pixelated;
 }
+.intro-text {
+  max-width: 520px;
+  text-align: left;
+}
 .intro-hero h1 {
-  font-size: 40px;
-  line-height: 40px;
+  font-size: 28px;
+  line-height: 28px;
   margin-bottom: 16px;
 }
 .intro-hero .lede {
@@ -208,16 +211,6 @@
 .byte-example .tok-comment { color: #888; }
 .byte-example .tok-prop { color: var(--edit-cyan); }
 .byte-example .tok-num { color: var(--edit-yellow); }
-
-/* — external-link styling used in the about prose — */
-/* NOTE: .ext-link is ALSO used in the Play step (see play.css); this same
-   rule is duplicated there. Kept here because the task assigns .ext-link to
-   about; if these fragments are ever concatenated, dedupe one copy. */
-.ext-link {
-  color: var(--edit-blue);
-  text-decoration: underline;
-}
-.ext-link:hover { color: var(--edit-red); }
 
 /* ===== responsive (about-step heroes) — split out of wizard.css's
    combined `.hero-row, .hero-machine, .machine-row` rule ===== */

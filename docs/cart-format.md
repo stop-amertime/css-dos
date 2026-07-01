@@ -305,6 +305,18 @@ for a cart with `FROTZ.EXE` becomes `SHELL=\FROTZ.EXE ZORK1.Z3`.
 Hack carts only. Filename of the `.COM` to load raw at `0x100`. Mutually
 exclusive with `boot.autorun`. Required on hack carts.
 
+### `display.cover` · implemented (website)
+
+Boxart filename for the landing-page cart grid, e.g. `"doom-alt.jpg"`.
+Resolved by the site against its own boxart directory
+(`web/site/public/assets/boxart/`) — it is **not** a path inside the cart
+and never lands on the floppy. Presence of this field is also what opts a
+cart **into** the featured landing grid: carts without `display.cover`
+still build (via `/build` and the picker), they just aren't showcased on
+the front page. The card's title and blurb come from the cart's own
+`name` / `description` — the website holds no per-cart metadata of its own.
+Ignored by the builder.
+
 ### `display.vsyncMode` · aspirational
 
 Which paint cadence the player should use when running this cart. One of:

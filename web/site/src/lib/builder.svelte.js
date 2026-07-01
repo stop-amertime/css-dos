@@ -37,6 +37,7 @@ class Build {
   folderFiles = $state(null); // FileList
   cart = $state(null);        // { name, files:[{name,bytes}], program }
   serverCarts = $state([]);   // [{ name, files, program }] from /_carts.json
+  selectedId = $state(null);  // card id highlighted in the grid ('custom' for the upload card)
 
   options = $state({
     preset: 'dos-corduroy',
@@ -61,6 +62,26 @@ class Build {
   get isDos() { return this.options.preset !== 'hack'; }
   get hasSource() { return this.source !== null; }
   get canBuild() { return this.hasSource && !this.busy; }
+
+  // Landing grid: a cart opts in by declaring display.cover in its
+  // program.json. name/description come from the same program.json — no
+  // second frontend manifest. The synthetic "custom" upload card is appended.
+  get featuredCarts() {
+    const carts = this.serverCarts
+      .filter((c) => c.program?.display?.cover)
+      .map((c) => ({
+        id: c.name,
+        name: c.program.name || c.name,
+        desc: c.program.description || '',
+        cover: `/assets/boxart/${c.program.display.cover}`,
+      }));
+    carts.push({ id: 'custom', name: 'Custom Program', custom: true });
+    return carts;
+  }
+
+  get selectedDetail() {
+    return this.featuredCarts.find((c) => c.id === this.selectedId) || null;
+  }
 
   get sizeLabel() {
     if (!this.cabinetBlob) return '—';
@@ -143,6 +164,7 @@ class Build {
     this.file = null;
     this.folderFiles = null;
     this.cart = { name: id, files, program: meta.program };
+    this.selectedId = id;
     this.#invalidateBuild();
     this.applyProgramJson(meta.program);
     this.status = `Loaded "${meta.program?.name ?? id}". Tweak options or Build.`;
@@ -180,9 +202,24 @@ class Build {
     this.status = `Folder loaded: ${fileList.length} files.`;
   }
 
+  // Boot-mode radio: 'program' restores the cart's default run command,
+  // 'shell' blanks it (drop to the DOS prompt). Mirrors the old wizard.js
+  // behaviour of toggling #run-cmd between the stored default and empty.
+  setBootMode(mode) {
+    this.options.bootMode = mode;
+    if (mode === 'shell') {
+      this.options.runCommand = '';
+    } else {
+      const stored = this.cart?.program?.boot?.runCommand;
+      if (stored) this.options.runCommand = stored;
+      else this.#suggestRunCommand();
+    }
+  }
+
   selectCustom() {
     // Custom card selected but no file yet — clear cart state, keep pickers.
     this.cart = null;
+    this.selectedId = 'custom';
     if (this.source === 'cart') { this.source = null; this.#invalidateBuild(); }
     this.status = 'Custom: pick a file or folder.';
   }

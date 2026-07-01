@@ -27,7 +27,7 @@
 :root {
   /* EGA palette, matching what the cabinets emit. */
   --edit-blue:    #0000aa;   /* desktop background */
-  --edit-gray:    #aaaaaa;   /* dialog fill */
+  --edit-gray:    #c8c8c8;   /* dialog fill (lightened from EGA #aaaaaa) */
   --edit-black:   #000000;
   --edit-white:   #ffffff;
   --edit-red:     #aa0000;   /* alt accent (Default / Help in EDIT) */
@@ -333,6 +333,7 @@ section + section { margin-top: 0; }
    does exactly this. Scoped to the index page via :has(). */
 body:has(.window.wizard) {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-content: safe center;
   justify-items: center;
 }
@@ -355,6 +356,7 @@ body:has(.window.wizard) {
   font-family: inherit;
   font-size: 32px;
   line-height: 32px;
+  font-weight: normal;
   margin: 0 0 8px;
   letter-spacing: -1px;
 }
@@ -362,6 +364,7 @@ body:has(.window.wizard) {
   font-family: inherit;
   font-size: 16px;
   line-height: 16px;
+  font-weight: normal;
   margin: 0 0 4px;
 }
 .step p { margin: 0 0 8px; font-size: 16px; line-height: 16px; }

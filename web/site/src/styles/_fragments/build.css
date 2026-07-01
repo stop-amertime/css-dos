@@ -1,12 +1,17 @@
-/* build.css — the Build step (STEP 2) container bits. Carved from
+/* build.css — the Build step (STEP 2) container bits. Carved verbatim from
    assets/wizard.css and assets/site.css.
 
    Progress-bar internals (.build-progress .bar / fill / meta / log and the
    #stages list) live in build-progress.css. The cart card grid + custom
    upload panel live in cart-grid.css. The result floppy graphic lives in
-   result-floppy.css. This file keeps the intro, machine/config,
-   build-block chrome, #build-progress-wrap layout wrapper, result-row
-   layout, and the source viewer (+ its Prism token overrides). */
+   result-floppy.css. This file keeps the intro, machine/config, the
+   #build-progress-wrap layout wrapper, result-row layout, and the source
+   viewer (+ its Prism token overrides).
+
+   NOTE: the older `.build-block/.block-head/.block-num/.block-title`
+   numbered-panel chrome is GONE from the current wizard.css (the Build
+   sub-pages sit directly in the reading flow via `.subpage`), so no such
+   rules are carved here. */
 
 /* ===== Build-step intro ===== */
 .build-intro { margin-bottom: 20px; }
@@ -22,32 +27,22 @@
   margin-bottom: 8px;
 }
 
-/* ===== build-block — the numbered "01 Pick a program" panels ===== */
-.build-block {
-  border: 1px solid var(--edit-black);
-  background: var(--edit-white);
-  padding: 0;
-  margin-bottom: 16px;
-}
-.build-block > .block-body {
-  padding: 12px 16px;
-}
-.block-head {
-  display: flex;
-  gap: 12px;
+/* Build step's own sub-pages (pick / configure+build / cabinet ready) sit
+   directly in the reading flow — no per-block border/header chrome, same
+   as Learn's sub-pages. */
+.subpage[data-build-subpage] { margin-top: 4px; }
+
+.boot-mode-row { margin: 16px 0; }
+.build-row {
   align-items: center;
-  border-bottom: 1px solid var(--edit-black);
-  padding: 4px 16px;
-  background: var(--edit-gray);
+  gap: 12px;
+  margin-top: 16px;
 }
-.block-num {
-  background: var(--edit-black);
-  color: var(--edit-yellow);
-  padding: 0 6px;
-  font-size: 16px;
-  line-height: 16px;
+.btn.primary.big {
+  font-size: 20px;
+  line-height: 22px;
+  padding: 10px 24px;
 }
-.block-title { font-size: 16px; line-height: 16px; color: var(--edit-black); }
 
 /* ===== machine row — IBM PC photo + specs + advanced ===== */
 .machine-row {
@@ -125,7 +120,7 @@ details.advanced .advanced-body .row:last-child { margin-bottom: 0; }
    build-progress.css) ===== */
 #build-progress-wrap { margin-top: 12px; }
 
-/* ===== result row + info ===== */
+/* ===== result row (layout; the floppy graphic lives in result-floppy.css) ===== */
 .result-row {
   display: grid;
   grid-template-columns: 180px 1fr;
@@ -139,7 +134,8 @@ details.advanced .advanced-body .row:last-child { margin-bottom: 0; }
 /* ===== Result section links (from site.css) ===== */
 #result .row a.btn { color: var(--edit-black); }
 
-/* ===== Source viewer — terminal black/green, like a `TYPE` redirect ===== */
+/* ===== Source viewer — terminal black/green, like a `TYPE` redirect
+   (from site.css) ===== */
 .pager-info {
   color: var(--edit-black);
   margin-bottom: 4px;
@@ -180,7 +176,8 @@ details.advanced .advanced-body .row:last-child { margin-bottom: 0; }
 
 /* The paginated source viewer — same green-on-black look as build.html,
    shown directly in the result panel (no longer behind a dropdown).
-   Smaller text so more of the dense cabinet CSS fits on screen. */
+   Smaller text so more of the dense cabinet CSS fits on screen.
+   (from wizard.css) */
 .window.wizard #source-pre {
   height: 960px;
   font-size: 11px;

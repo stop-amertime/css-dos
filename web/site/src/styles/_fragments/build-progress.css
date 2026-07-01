@@ -1,13 +1,11 @@
 /* build-progress.css — the progress bar, stage list, and raw build log
-   under the "Build cabinet" block. Carved from assets/wizard.css (+ the
-   base #stages / .log-pre rules from assets/site.css).
+   under the "Build cabinet" block. Carved verbatim from assets/wizard.css
+   (+ the base #stages / .log-pre rules from assets/site.css).
 
-   RENAMES (per port spec):
+   RENAME (per port spec):
      #build-bar-fill  ->  .bar-fill   (id-selector rewritten as a class)
-     #log             ->  .build-log  (already a class in the source CSS —
-                          the markup's <pre id="log" class="build-log">
-                          has no dedicated #log rule, so this is already
-                          expressed as .build-log; no change was needed).
+   The markup's <pre id="log" class="build-log"> is already styled via the
+   .build-log class in the source, so no #log rule needs renaming.
 
    NOTE ON #stages: kept as an id selector verbatim (not in the rename
    list). The wizard.css block below intentionally OVERRIDES the site.css

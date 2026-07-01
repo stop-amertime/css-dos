@@ -1,6 +1,7 @@
 /* pipeline.css — the PARKED "How it works" pipeline section (out of flow in
-   the old markup, data-parked="pipeline"). Carved from assets/wizard.css so
-   it's not lost even though the parked section may be dropped in the port. */
+   the old markup, data-parked="pipeline"). Carved verbatim from
+   assets/wizard.css so it's not lost even though the parked section may be
+   dropped in the port. */
 
 /* ===== Step 2 — pipeline (PARKED, out of flow) ===== */
 .pipeline {

@@ -2,6 +2,7 @@
   "schema": "cart@1",
   "name": "Doom8088 (Mode 13h, low detail)",
   "description": "FrenkelS/Doom8088 v20260304 - MCGA 320x200 256-color, 8088 low-detail build (D8M13L.EXE). WAD: shareware DOOM1.",
+  "display": { "cover": "doom-alt.jpg" },
   "preset": "dos-corduroy",
   "memory": {
     "conventional": "640K",

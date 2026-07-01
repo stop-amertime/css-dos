@@ -13,7 +13,10 @@
       class:current={n === current}
       class:done={n < current}
       class:disabled={disabled(n)}
+      role="button"
+      tabindex="0"
       onclick={() => !disabled(n) && onjump?.(n)}
+      onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && !disabled(n) && onjump?.(n)}
     >
       {#if variant === 'strip'}
         <span class="num">{n}</span> {item.label}

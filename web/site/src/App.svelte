@@ -13,11 +13,10 @@
 
   function onkeydown(e) {
     if (e.target?.matches?.('input, textarea, select, [contenteditable]')) return;
-    if (e.key === 'ArrowRight' && !nextDisabled) { e.preventDefault(); nav.next(); }
+    if (e.key === 'ArrowRight' && !nav.nextDisabled) { e.preventDefault(); nav.next(); }
     if ((e.key === 'ArrowLeft' || e.key === 'Escape') && !nav.atStart) { e.preventDefault(); nav.prev(); }
   }
 
-  let nextDisabled = $derived(nav.step === 2 && !build.done);
   let nextLabel = $derived(nav.isLast ? ['R', 'estart'] : ['N', 'ext »']);
 </script>
 
@@ -56,7 +55,7 @@
       « <span class="hot">B</span>ack
     </button>
     <span class="wiz-nav-spacer"></span>
-    <button class="btn primary" disabled={nextDisabled} onclick={() => nav.next()}>
+    <button class="btn primary" disabled={nav.nextDisabled} onclick={() => nav.next()}>
       <span class="hot">{nextLabel[0]}</span>{nextLabel[1]}
     </button>
   </div>

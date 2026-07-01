@@ -1,11 +1,11 @@
 /* css-demo.css — the tabbed CSS code-flicker demo widget on Learn
-   sub-page 2. Carved from assets/wizard.css. Includes the real
+   sub-page 2. Carved verbatim from assets/wizard.css. Includes the real
    @function --double() and the if()/style() branch box the demo shows off,
    plus the .tok-* token colours used inside the demo code blocks. */
 
 /* The boxed look is for inline <code> in prose only. Inside the Learn
    code widgets, <code> sits in a styled <pre> and must be plain.
-   (.byte-example code half of this rule lives in about.css.) */
+   (.byte-example code half of this combined rule lives in about.css.) */
 .css-demo-code code {
   background: none;
   border: none;

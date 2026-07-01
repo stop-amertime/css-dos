@@ -1,8 +1,15 @@
 /* cart-grid.css — the Build-step cart picker: the decorative PC-box card
-   grid, the per-card cover/placeholder/detail, and the custom-program
-   upload panel. Carved from assets/wizard.css, PLUS the hidden #cart-list
-   radio rules from assets/site.css (the real radios build.js writes to,
-   which the visible grid mirrors). */
+   grid, the per-card cover/placeholder, the selected-cart detail box, and
+   the custom-program upload panel. Carved verbatim from the current
+   assets/wizard.css, PLUS the hidden #cart-list radio rules from
+   assets/site.css (the real radios build.js writes to, which the visible
+   grid mirrors).
+
+   NOTE vs the port spec: the current wizard.css replaced the old per-card
+   `.cart-body/.cart-name/.cart-desc/.cart-meta` text block with a single
+   `.cart-detail` box below the grid (name + desc). Those four selectors no
+   longer exist in the source, so no rule is carved for them. The custom
+   card is now `.cart-cover-custom` with a dashed border + `.ph-glyph`. */
 
 /* cart grid — PC-box ratio, big title, small desc */
 .cart-grid {
@@ -20,14 +27,13 @@
   flex-direction: column;
 }
 .cart-card:hover { background: #ddddff; }
+/* Selected: a thick green border so the choice is unmistakable, while the
+   box art stays fully legible (no fill). */
 .cart-card.selected {
-  background: var(--edit-black);
-  color: var(--edit-yellow);
+  outline: 4px solid #1faa1f;
+  outline-offset: -2px;
+  box-shadow: 4px 4px 0 #1faa1f;
 }
-.cart-card.selected:hover { background: var(--edit-black); }
-.cart-card.selected .cart-name,
-.cart-card.selected .cart-desc,
-.cart-card.selected .cart-meta { color: var(--edit-yellow); }
 
 .cart-cover {
   /* PC-game-box ratio: ~3:4 portrait */
@@ -40,8 +46,9 @@
 }
 .cart-cover img {
   width: 100%; height: 100%;
-  object-fit: cover;
-  image-rendering: pixelated;
+  /* contain (not cover) so the whole box scan is visible, never cropped.
+     Covers are near-3:4 so the letterbox bars against --edit-black are thin. */
+  object-fit: contain;
   display: block;
 }
 .cart-cover-placeholder {
@@ -65,36 +72,48 @@
   line-height: 14px;
   opacity: 0.75;
 }
-/* Custom card — big question-mark cover. */
+/* Custom card — no box art. Dashed border + muted fill, with the name and
+   blurb living inside the cover (set in wizard.js). */
+.cart-cover-custom {
+  border: 2px dashed #8a8a8a;
+  background: #ededed;
+  color: #444;
+  gap: 6px;
+}
 .cart-cover-custom .ph-glyph {
-  font-size: 96px;
+  font-size: 48px;
   line-height: 1;
   font-weight: bold;
+  color: #8a8a8a;
 }
-.cart-body {
-  padding: 8px 10px;
-  display: flex; flex-direction: column;
-  gap: 4px;
+.cart-cover-custom .ph-name {
+  font-size: 18px;
+  line-height: 20px;
+  color: #333;
 }
-.cart-name {
-  font-size: 16px;
-  line-height: 18px;
+.cart-cover-custom .ph-sub {
+  font-size: 12px;
+  line-height: 15px;
+  opacity: 0.8;
+}
+
+/* Detail box: the selected cart's name (header) + description, shown below
+   the grid. Replaces the per-card text that used to sit under each cover. */
+.cart-detail {
+  margin-top: 12px;
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+  padding: 10px 14px 12px;
+}
+.cart-detail-name {
+  font-size: 22px;
+  line-height: 24px;
   color: var(--edit-black);
 }
-.cart-desc {
-  font-size: 12px;
-  line-height: 14px;
+.cart-detail-desc {
+  font-size: 13px;
+  line-height: 17px;
   color: #444;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  min-height: 42px;
-}
-.cart-meta {
-  font-size: 12px;
-  line-height: 14px;
-  color: var(--edit-red);
   margin-top: 4px;
 }
 
