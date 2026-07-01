@@ -36,7 +36,7 @@ class Build {
   file = $state(null);        // File (single .com/.exe)
   folderFiles = $state(null); // FileList
   cart = $state(null);        // { name, files:[{name,bytes}], program }
-  serverCarts = $state([]);   // [{ name, files, program }] from /_carts.json
+  serverCarts = $state([]);   // [{ name, files, program }] from /carts/index.json
   selectedId = $state(null);  // card id highlighted in the grid ('custom' for the upload card)
 
   options = $state({
@@ -109,10 +109,10 @@ class Build {
 
   async loadServerCarts() {
     try {
-      const res = await fetch('/_carts.json', { cache: 'no-store' });
+      const res = await fetch('/carts/index.json', { cache: 'no-store' });
       if (res.ok) this.serverCarts = await res.json();
     } catch (e) {
-      console.warn('[build] /_carts.json fetch failed:', e);
+      console.warn('[build] /carts/index.json fetch failed:', e);
     }
   }
 

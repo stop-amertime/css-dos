@@ -13,5 +13,10 @@
 <body>
   <div id="app"></div>
   <script type="module" src="/src/main.js"></script>
+  <!-- Spawns the calcite bridge worker (hosts the WASM engine + JPEG
+       encoder) and wires it to the service worker, so a built cabinet
+       streams frames into any open /player/calcite.html tab. Registers
+       the SW itself and sets window.__calciteBridge, which build posts to. -->
+  <script src="/shim/calcite-bridge-boot.js" defer></script>
 </body>
 </html>

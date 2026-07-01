@@ -1,44 +1,100 @@
 import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
-import { resolve } from 'node:path';
+import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { devMiddleware } from './scripts/dev-middleware.mjs';
+import {
+  readFileSync, mkdirSync, writeFileSync, cpSync, existsSync,
+} from 'node:fs';
+import {
+  RUNTIME_COPIES, transformRuntimeFile, resolveRuntimeUrl,
+  cartsIndex, COI_HEADERS, mimeFor,
+} from './scripts/runtime-assets.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
-const webRoot = resolve(here, '..');        // web/
-const repoRoot = resolve(webRoot, '..');    // repo root
+const webRoot = resolve(here, '..');
+const repoRoot = resolve(webRoot, '..');
+const calciteRoot = process.env.CALCITE_REPO
+  ? resolve(process.env.CALCITE_REPO)
+  : resolve(repoRoot, '..', 'calcite');
 
-// Mounts the ported dev.mjs endpoints (/_status, /_reset, /_carts.json,
-// /_clear) and the alias file surface (/player/, /carts/, ...) ahead of
-// Vite's own handling.
-const devEndpoints = {
-  name: 'css-dos-dev-endpoints',
+// DEV: serve the runtime files off disk at their URL paths (same paths prod
+// copies into dist/). Anything not in the copy table falls through to Vite.
+const devRuntime = {
+  name: 'css-dos-dev-runtime',
+  apply: 'serve',
   configureServer(server) {
-    server.middlewares.use(devMiddleware);
+    server.middlewares.use((req, res, next) => {
+      const urlPath = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+      if (urlPath === '/carts/index.json') {
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...COI_HEADERS });
+        return res.end(JSON.stringify(cartsIndex()));
+      }
+      const file = resolveRuntimeUrl(urlPath);
+      if (!file) return next();
+      res.writeHead(200, { 'Content-Type': mimeFor(file), 'Cache-Control': 'no-store', ...COI_HEADERS });
+      return res.end(transformRuntimeFile(file, readFileSync(file)));
+    });
+  },
+};
+
+// PROD: copy the runtime files into dist/, emit carts/index.json, and emit
+// the host header config (COOP/COEP for SharedArrayBuffer).
+const buildRuntime = {
+  name: 'css-dos-build-runtime',
+  apply: 'build',
+  closeBundle() {
+    const dist = resolve(here, 'dist');
+    for (const [urlPath, srcDir] of RUNTIME_COPIES) {
+      if (!existsSync(srcDir)) { this.warn(`runtime source missing, skipped: ${srcDir}`); continue; }
+      const dest = join(dist, urlPath);
+      mkdirSync(resolve(dest, '..'), { recursive: true });
+      cpSync(srcDir, dest, {
+        recursive: true,
+        filter: (src) => !src.endsWith('.d.ts'),
+      });
+    }
+    // Strip the shebang from the copied mkfat12 so the browser can import it.
+    const mkfat = join(dist, 'tools', 'mkfat12.mjs');
+    if (existsSync(mkfat)) writeFileSync(mkfat, transformRuntimeFile(mkfat, readFileSync(mkfat)));
+
+    writeFileSync(join(dist, 'carts', 'index.json'), JSON.stringify(cartsIndex()));
+
+    writeFileSync(join(dist, 'vercel.json'), JSON.stringify({
+      headers: [{
+        source: '/(.*)',
+        headers: [
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+          { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
+        ],
+      }],
+    }, null, 2));
+    // Netlify / Cloudflare Pages fallback.
+    writeFileSync(join(dist, '_headers'),
+      '/*\n  Cross-Origin-Opener-Policy: same-origin\n  Cross-Origin-Embedder-Policy: require-corp\n');
+
+    this.info('staged runtime assets, carts/index.json, and host headers into dist/');
+  },
+};
+
+// builder.svelte.js imports the browser-builder graph as native ESM by its
+// runtime URL (/browser-builder/main.mjs). It is NOT bundled — it's copied
+// into dist/ and resolved by the browser at runtime. Mark it external so
+// Rollup emits the import verbatim instead of following into the shebang'd,
+// CLI-shaped source graph. enforce:'pre' runs before Vite's own resolution.
+const externalRuntimeBuilder = {
+  name: 'css-dos-external-runtime-builder',
+  enforce: 'pre',
+  resolveId(id) {
+    if (id.startsWith('/browser-builder/')) return { id, external: true };
   },
 };
 
 export default defineConfig({
-  plugins: [svelte(), devEndpoints],
-  resolve: {
-    alias: {
-      // The browser builder lives outside the site root; its own imports
-      // are relative (../../builder, ../../tools), so aliasing the entry
-      // dir is enough for Vite to resolve the whole graph on disk.
-      '/browser-builder': resolve(webRoot, 'browser-builder'),
-    },
-  },
+  plugins: [svelte(), externalRuntimeBuilder, devRuntime, buildRuntime],
   server: {
     port: 5173,
-    // browser-builder + its relative imports reach up into builder/ and
-    // tools/, outside the Vite root — allow serving from the repo root.
-    fs: { allow: [repoRoot] },
-    // Cross-origin isolation on every response (SharedArrayBuffer path).
-    headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'require-corp',
-      'Cross-Origin-Resource-Policy': 'same-origin',
-    },
+    fs: { allow: [repoRoot, calciteRoot] },
+    headers: COI_HEADERS,
   },
   build: { outDir: 'dist', emptyOutDir: true },
 });

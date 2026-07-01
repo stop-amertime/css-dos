@@ -2,10 +2,8 @@ import { mount } from 'svelte';
 import './styles/global.css';
 import App from './App.svelte';
 
-// The cabinet-streaming service worker owns /_stream/fb (multipart JPEG →
-// player <img>) and serves cached cabinet bytes to the player tab.
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js', { scope: '/' });
-}
+// The service worker (owns /_stream/fb and cached cabinet bytes for the
+// player tab) is registered by /shim/calcite-bridge-boot.js, loaded from
+// index.html — it also spawns the bridge worker and sets window.__calciteBridge.
 
 export default mount(App, { target: document.getElementById('app') });
