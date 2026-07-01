@@ -454,3 +454,69 @@ body:has(.window.wizard) {
    plus hidden #download / #play-*-link anchors. Keep them present in the
    DOM (for build.js wiring) but invisible. */
 .wizard-hidden { display: none !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Responsive / mobile layer
+   ───────────────────────────────────────────────────────────────────────
+   The desktop layout is a fixed 820px window. On narrow viewports two
+   things break: (1) the window's `max-width: 100% - 32px` is defeated
+   because the step-strip / subdots have `white-space: nowrap`, giving the
+   flex column a min-content width far wider than the screen — `min-width`
+   beats `max-width`, so the window overflows and the page gains a
+   horizontal scrollbar (this is the "refresh doesn't fix the size" bug:
+   it's horizontal overflow with restored scroll, not a stale dimension).
+   (2) the 28px body padding + 24px logo gaps waste scarce width.
+
+   Fix: below 900px let the strip/dots shrink instead of forcing width;
+   below 640px go effectively full-bleed and drop the drop-shadow margins.
+   The 8×16 pixel font itself is NOT scaled (fractional cells look mushy) —
+   only the oversized headings and the chrome breathing-room shrink.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Tablet / small-laptop: window goes fluid, chrome tightens. */
+@media (max-width: 900px) {
+  .window.wizard {
+    /* Anchor width to the VIEWPORT (vw), not a percentage. A `%`/`max-width`
+       cap is circular here — the parent sizes to its content and the child
+       caps at 100% of that, so a stubborn wide child (the source viewer's
+       long CSS lines) still stretches everything. `100vw` is an absolute
+       constraint the source-pre's overflow-x then scrolls inside of. */
+    width: calc(100vw - 16px);
+    max-width: calc(100vw - 16px);
+    margin: 8px;
+    box-shadow: 4px 4px 0 var(--edit-black);
+  }
+  .window.wizard .window-body { padding: 16px 14px 12px; }
+  /* Strip / subdots shrink rules live in step-dots.css so they win the
+     cascade over that fragment's base rules (it loads after global.css). */
+}
+
+/* Phone: full-bleed, minimal chrome, headings scaled down. */
+@media (max-width: 640px) {
+  body {
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .window.wizard {
+    width: calc(100vw - 8px);
+    max-width: calc(100vw - 8px);
+    margin: 4px;
+    max-height: calc(100vh - 72px);
+    min-height: min(480px, calc(100vh - 72px));
+  }
+  .window.wizard .window-body { padding: 12px 10px 10px; }
+
+  /* Drop the big 32px headings to something that fits a phone column. */
+  .window.wizard h1 { font-size: 22px; line-height: 24px; letter-spacing: -0.5px; }
+
+  /* Nav bar: keep Back/Next reachable, a touch tighter. */
+  .wiz-nav { padding: 10px 10px; }
+  .btn { padding: 6px 12px; }
+
+  /* The two trailing custom labels ("CSS-DOS SETUP" top-right, the build
+     status bottom-right) are the only bits that overflow the fixed top/
+     bottom bars on a phone — the menu items and key hints fit. Hide just
+     those two. */
+  .menu-bar .menu-title { display: none; }
+  .status-line .skey:last-child { display: none; }
+}

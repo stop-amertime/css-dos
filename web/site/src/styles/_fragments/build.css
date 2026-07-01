@@ -123,6 +123,10 @@
   padding: 12px 16px;
 }
 .result-floppy { flex: none; }
+/* min-width:0 lets the info column shrink below its content's min-content
+   width (the download line is long) instead of forcing the flex row —
+   and the whole window — wider than a phone viewport. */
+.result-info { min-width: 0; }
 .result-info h3 {
   font-size: 20px;
   line-height: 20px;
@@ -140,6 +144,8 @@
   color: var(--edit-blue);
   text-decoration: underline;
   cursor: pointer;
+  text-align: left;
+  white-space: normal;   /* allow the long download line to wrap on mobile */
 }
 .result-dl:hover { color: #1111cc; }
 
@@ -216,5 +222,9 @@
   font-size: 11px;
   line-height: 12px;
   height: min(1100px, calc(100vh - 320px));
+  /* Cap to the container so the pathologically long cabinet lines scroll
+     INSIDE the box (overflow-x above) instead of stretching the whole
+     wizard wider than the viewport on narrow screens. */
+  max-width: 100%;
 }
-.source-viewer-block { margin-top: 16px; }
+.source-viewer-block { margin-top: 16px; max-width: 100%; }

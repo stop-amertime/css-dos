@@ -40,5 +40,22 @@ server (an actual Zork build → result page, Play unlocked):
   `.ext-link`/`.result-info` notes are now outdated) — left in place, not
   a docs-session deletion.
 
-`vite build` green (623ms; only pre-existing a11y warnings). Old-DOM
-Playwright harnesses untouched.
+**Responsive / mobile layer** (same session, follow-on): the desktop
+layout is a fixed 820px window; on narrow viewports it overflowed
+horizontally (the "refresh doesn't fix the size" report was restored
+h-scroll, not a stale dimension — no ResizeObserver needed). Root cause:
+flex children with `min-width: auto` + `white-space: nowrap` (step-strip,
+subdots) and the source viewer's long CSS lines gave the flex column a
+min-content wider than the screen, defeating `max-width: 100%`. Fix:
+`@media ≤900px` window → fluid, strip/subdots shrink (rules in
+step-dots.css so they win the cascade); `≤640px` full-bleed, headings
+32→22px, strip number chips + the two trailing bar labels ("CSS-DOS
+SETUP" / build status) hidden. The source-viewer overflow needed the
+mobile window anchored to `100vw` (absolute) not `%` (circular: parent
+sizes to child, child caps at 100% of parent) so `.source-pre`'s
+`overflow-x` scrolls the long lines internally. Desktop (>900px)
+unchanged (verified 788px window at 1200vp). All four page types fit at
+390px with no h-scroll.
+
+`vite build` green (only pre-existing a11y warnings). Old-DOM Playwright
+harnesses untouched.

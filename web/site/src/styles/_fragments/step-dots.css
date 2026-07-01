@@ -70,3 +70,31 @@
   color: #999;
   margin-right: 2px;
 }
+
+/* ===== responsive — kept here (not global.css) so these win the cascade
+   over the base rules above; this fragment loads after global.css. ===== */
+@media (max-width: 900px) {
+  /* Strip cells shrink + ellipsize instead of forcing the row wider than
+     the viewport (min-width:0 releases the flex min-content floor — this is
+     what fixes the horizontal-overflow bug). */
+  .step-strip li {
+    min-width: 0;
+    padding: 4px 4px;
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .subdots {
+    gap: 6px;
+    margin: 8px 0;
+    font-size: 13px;
+    line-height: 14px;
+  }
+  .subdots li { padding: 3px 6px; }
+}
+@media (max-width: 640px) {
+  /* Phone: drop the number chips, keep the labels (they wrap fine). */
+  .step-strip li { font-size: 13px; padding: 4px 3px; }
+  .step-strip li .num { display: none; }
+  .subdots li { padding: 3px 5px; }
+}
