@@ -13,7 +13,9 @@
   },
   "scripts": {
     "build": "node builder/build.mjs",
-    "dev": "node web/scripts/dev.mjs",
+    "dev": "npm --prefix web/site run dev",
+    "dev:legacy": "node web/scripts/dev.mjs",
+    "site:build": "npm --prefix web/site run build",
     "prebake": "node web/scripts/prebake.mjs",
     "smoke": "node tests/harness/run.mjs smoke",
     "test": "node --test \"web/tests/**/*.test.mjs\" \"tests/bench/lib/**/*.test.mjs\"",
