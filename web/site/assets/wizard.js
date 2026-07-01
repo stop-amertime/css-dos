@@ -1,13 +1,17 @@
 // wizard.js — visual chrome on top of build.js.
 //
 // This file owns:
-//   * Step navigation (the 4-step strip + Back/Next buttons + arrow keys).
+//   * Step navigation (the 3-step strip + Back/Next buttons + arrow keys),
+//     including two independent sub-page systems (Learn's 5 pages, Build's
+//     3: pick a program / configure & build / cabinet ready).
 //   * The visible cart-card grid: rendered from window.CARTS, mirrors
 //     selection into the hidden #cart-list radio group that build.js owns.
 //   * The spec-table mirror of the advanced controls (memory / preset /
-//     video / run command).
+//     video), plus the boot-mode radio (program vs. DOS shell), which
+//     drives the hidden #run-cmd field build.js reads at submit time.
 //   * Progress-bar + stage mirror: observes #stages mutations build.js
-//     emits, walks the bar fill and reveals #block-source on success.
+//     emits, walks the bar fill and advances to the "cabinet ready"
+//     sub-page on success.
 //   * The "Save cabinet.css" button → proxies to the hidden #download <a>.
 //
 // All real work — fetching /_carts.json, building cabinets, paginating the
@@ -18,11 +22,15 @@
 
   const TOTAL_STEPS = 3;
   const LEARN_STEP = 1;   // step 1 holds the 3 Learn sub-pages
-  const BUILD_STEP = 2;
+  const BUILD_STEP = 2;   // step 2 holds the 3 Build sub-pages
   const PLAY_STEP  = 3;
   const LEARN_SUBPAGES = 5;
+  const BUILD_PICK_SUB   = 1;  // pick a program
+  const BUILD_CONFIG_SUB = 2;  // configure + build button
+  const BUILD_RESULT_SUB = 3;  // cabinet ready (only reachable once built)
   let step = 1;
   let sub = 1;            // active Learn sub-page (1..LEARN_SUBPAGES)
+  let buildSub = 1;       // active Build sub-page (1..3)
   let buildDone = false;
   let buildInFlight = false;
 
@@ -53,13 +61,13 @@
       li.classList.toggle('disabled', j === PLAY_STEP && !buildDone);
     });
     if (step === LEARN_STEP) renderSub();
+    if (step === BUILD_STEP) renderBuildSub();
     // Only the Play step gets the wide dialog; Learn/Build stay reading-width.
     wizWindow.classList.toggle('play-wide', step === PLAY_STEP);
     document.title = `CSS-DOS — ${STEP_TITLES[step - 1]}`;
     // Back is disabled only at the very start (Learn sub-page 1).
     prevBtn.disabled = (step === LEARN_STEP && sub === 1);
-    // Gate: Play requires a finished build.
-    nextBtn.disabled = (step === BUILD_STEP && !buildDone);
+    updateNextGating();
     nextBtn.innerHTML = step === TOTAL_STEPS
       ? '<span class="hot">R</span>estart'
       : '<span class="hot">N</span>ext &raquo;';
@@ -71,7 +79,7 @@
   // Show Learn sub-page `sub`; update dots + Back-button gating.
   function renderSub() {
     sub = Math.max(1, Math.min(LEARN_SUBPAGES, sub));
-    $$('.subpage').forEach((el) => {
+    $$('.subpage[data-subpage]').forEach((el) => {
       el.hidden = Number(el.dataset.subpage) !== sub;
     });
     $$('#learn-subdots li').forEach((li) => {
@@ -82,8 +90,59 @@
     prevBtn.disabled = (step === LEARN_STEP && sub === 1);
   }
 
-  // Forward one logical page: within Learn, advance sub-page; at the last
-  // sub-page, cross into Build.
+  // Show Build sub-page `buildSub`; update dots. The "Cabinet ready" dot
+  // only appears once a build exists — no jumping ahead to a page with
+  // nothing on it.
+  function renderBuildSub() {
+    buildSub = Math.max(1, Math.min(BUILD_RESULT_SUB, buildSub));
+    if (buildSub === BUILD_RESULT_SUB && !buildDone) buildSub = BUILD_CONFIG_SUB;
+    $$('.subpage[data-build-subpage]').forEach((el) => {
+      el.hidden = Number(el.dataset.buildSubpage) !== buildSub;
+    });
+    $$('#build-subdots li').forEach((li) => {
+      const j = Number(li.dataset.subjump);
+      li.hidden = (j === BUILD_RESULT_SUB && !buildDone);
+      li.classList.toggle('current', j === buildSub);
+      li.classList.toggle('done', j < buildSub);
+    });
+    updateNextGating();
+  }
+
+  // A program is "picked" exactly when build.js's own #start button would
+  // allow a build — that's the one place build.js already tracks "do we
+  // have bytes to build from" (built-in cart selected, or a custom file/
+  // folder actually chosen). Reusing it means this can't drift out of sync
+  // with build.js across its several independent selection paths.
+  function cartPicked() {
+    return !startBtn.disabled;
+  }
+
+  // build.js flips #start.disabled asynchronously (after its cart-file
+  // fetch resolves), well after the cart-list `change` event that triggers
+  // it — a plain post-selection call to updateNextGating() would read the
+  // stale (still-disabled) value. Observing the attribute directly catches
+  // the moment it actually changes, regardless of how long the fetch took.
+  new MutationObserver(updateNextGating)
+    .observe(startBtn, { attributes: true, attributeFilter: ['disabled'] });
+
+  // Next is disabled (with an explanatory tooltip) whenever the current
+  // page has nothing to advance to yet: Build sub-page 1 with no cart
+  // picked, or the Build step overall before a cabinet exists.
+  function updateNextGating() {
+    if (step === BUILD_STEP && buildSub === BUILD_PICK_SUB && !cartPicked()) {
+      nextBtn.disabled = true;
+      nextBtn.title = 'Select a program first';
+    } else if (step === BUILD_STEP && buildSub === BUILD_CONFIG_SUB && !buildDone) {
+      nextBtn.disabled = true;
+      nextBtn.title = 'Build the cabinet first';
+    } else {
+      nextBtn.disabled = false;
+      nextBtn.title = '';
+    }
+  }
+
+  // Forward one logical page: within Learn, advance sub-page; within Build,
+  // advance sub-page; at the last sub-page of either, cross to the next step.
   function goNext() {
     if (step === TOTAL_STEPS) {
       // Restart: rewind the wizard without tearing down build.js (that
@@ -98,17 +157,34 @@
       window.scrollTo({ top: 0, behavior: 'instant' });
       return;
     }
+    if (step === BUILD_STEP && buildSub < BUILD_CONFIG_SUB) {
+      if (!cartPicked()) return; // gated — nextBtn is disabled, but belt & braces
+      buildSub += 1;
+      renderBuildSub();
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      return;
+    }
+    if (step === BUILD_STEP && buildSub === BUILD_CONFIG_SUB && !buildDone) {
+      return; // gated — build the cabinet first
+    }
     setStep(step + 1);
   }
 
   // Backward one logical page: within Build/Play, step back; entering Learn
-  // from Build lands on the last sub-page; within Learn, retreat sub-page.
+  // from Build lands on the last sub-page; within Learn/Build, retreat
+  // sub-page.
   function goPrev() {
     if (step === LEARN_STEP) {
       if (sub > 1) { sub -= 1; renderSub(); window.scrollTo({ top: 0, behavior: 'instant' }); }
       return;
     }
     if (step === BUILD_STEP) {
+      if (buildSub > 1) {
+        buildSub -= 1;
+        renderBuildSub();
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        return;
+      }
       sub = LEARN_SUBPAGES;          // Build → Learn lands on last sub-page
       setStep(LEARN_STEP);
       return;
@@ -124,6 +200,22 @@
     li.addEventListener('click', () => {
       sub = Number(li.dataset.subjump);
       renderSub();
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    });
+  });
+
+  // Sub-dot clicks — jump between Build sub-pages. Forward jumps respect
+  // the same gates as Next (can't skip to Configure with no cart picked,
+  // can't skip to Cabinet ready with no build).
+  $$('#build-subdots li').forEach((li) => {
+    li.addEventListener('click', () => {
+      const j = Number(li.dataset.subjump);
+      if (j > buildSub) {
+        if (j >= BUILD_CONFIG_SUB && !cartPicked()) return;
+        if (j >= BUILD_RESULT_SUB && !buildDone) return;
+      }
+      buildSub = j;
+      renderBuildSub();
       window.scrollTo({ top: 0, behavior: 'instant' });
     });
   });
@@ -281,17 +373,19 @@
       $('#build-progress-wrap').hidden = true;
       resetProgressUI();
       $('#build-hint').textContent = 'Selection changed — rebuild.';
-      nextBtn.disabled = true;
+      if (buildSub === BUILD_RESULT_SUB) buildSub = BUILD_CONFIG_SUB;
+      renderBuildSub();
     } else {
       $('#build-hint').textContent = 'Ready to build.';
+      updateNextGating();
     }
   }
 
   function presetLabel(p) {
     return {
-      'dos-corduroy': 'DOS + Corduroy BIOS',
-      'dos-muslin':   'DOS + Muslin BIOS',
-      'hack':         'hack (.com, no DOS)',
+      'dos-corduroy': 'Corduroy + DOS',
+      'dos-muslin':   'Muslin + DOS',
+      'hack':         'hack (no BIOS, no DOS)',
     }[p] || p;
   }
 
@@ -354,7 +448,14 @@
       }
     }
     if (id) $('#build-hint').textContent = 'Ready to build.';
+    updateNextGating();
   });
+
+  // Custom file/folder pick is a third path (independent of the cart-list
+  // radio) that flips build.js's #start.disabled — re-check the gate here
+  // too so Next unlocks the moment a file is actually chosen.
+  $('#com-file')?.addEventListener('change', updateNextGating);
+  $('#dir-file')?.addEventListener('change', updateNextGating);
 
   // ── Spec table mirror ───────────────────────────────────────────────
 
@@ -376,8 +477,11 @@
 
     const run = ($('#run-cmd')?.value || '').trim();
     const isHack = (document.querySelector('#preset-group input:checked')?.value) === 'hack';
+    const isShell = (document.querySelector('#boot-mode-group input:checked')?.value) === 'shell';
     $('#spec-run').textContent = isHack
       ? 'n/a (hack: bare .com)'
+      : isShell
+      ? 'DOS shell (COMMAND.COM)'
       : (run || 'auto (from program.json)');
   }
 
@@ -409,6 +513,35 @@
   // single-roundtrip cart loads, and slower ones.
   cartList.addEventListener('change', () => {
     [0, 100, 500, 1500].forEach((ms) => setTimeout(refreshSpecTable, ms));
+    // A new cart always starts in "boot into the program" mode — simplest
+    // and least surprising, and it sidesteps having to guess whether a
+    // stale captured default from the *previous* cart is still valid.
+    const programRadio = document.querySelector('#boot-mode-group input[value="program"]');
+    if (programRadio) programRadio.checked = true;
+    [0, 100, 500, 1500].forEach((ms) => setTimeout(captureBootModeDefault, ms));
+  });
+
+  // ── Boot-mode radio ─────────────────────────────────────────────────
+  //
+  // #run-cmd is still the field build.js reads at submit time, but it's
+  // never shown — this 2-option radio drives it instead. "The program"
+  // restores whatever build.js/program.json set as the default run
+  // command (captured below, right after each cart load); "DOS shell"
+  // clears it to boot to a bare COMMAND.COM prompt.
+  let runCmdDefault = '';
+  const runCmdField = $('#run-cmd');
+
+  function captureBootModeDefault() {
+    if (!runCmdField) return;
+    runCmdDefault = runCmdField.value;
+  }
+
+  $$('#boot-mode-group input').forEach((r) => {
+    r.addEventListener('change', () => {
+      if (!runCmdField) return;
+      runCmdField.value = (r.value === 'shell') ? '' : runCmdDefault;
+      runCmdField.dispatchEvent(new Event('input', { bubbles: true }));
+    });
   });
 
   // ── Build progress mirror ───────────────────────────────────────────
@@ -456,6 +589,7 @@
       buildHint.textContent = 'Build failed — see log.';
       buildInFlight = false;
       startBtn.disabled = false;
+      updateNextGating();
     }
   }).observe(stages, { childList: true });
 
@@ -468,8 +602,6 @@
     barFill.style.width = '100%';
     pctEl.textContent = '100%';
     sizeEl.textContent = sizeText.replace(/^Cabinet:\s*/, '');
-    // Reveal the result block on the wizard.
-    blockSource.hidden = false;
     // Populate floppy label.
     const id = (document.querySelector('#cart-list input[name="cart"]:checked')?.value) || 'CABINET';
     $('#floppy-name').textContent = id.slice(0, 8).toUpperCase();
@@ -482,7 +614,12 @@
       const j = Number(li.dataset.jump);
       li.classList.toggle('disabled', j === PLAY_STEP && !buildDone);
     });
-    if (step === BUILD_STEP) nextBtn.disabled = false;
+    // Advance to the "Cabinet ready" sub-page (reveals the block, updates
+    // the sub-dots, and re-checks Next's gate) if still on Build.
+    if (step === BUILD_STEP) {
+      buildSub = BUILD_RESULT_SUB;
+      renderBuildSub();
+    }
   }).observe(resultMarker, { attributes: true, attributeFilter: ['hidden'] });
 
   // Show progress block + lock UI when the user clicks Build.
@@ -496,7 +633,7 @@
     stageCount = 0;
     buildHint.textContent = 'Building…';
     statusMsg.textContent = 'Building…';
-    nextBtn.disabled = true;
+    updateNextGating();
   });
 
   // ── Save button → proxy to the hidden #download <a> ────────────────

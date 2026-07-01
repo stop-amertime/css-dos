@@ -49,11 +49,19 @@ function relativeCartName(file) {
   return inside[0] + '\\' + inside[inside.length - 1];
 }
 
-// Show/hide the rows that only matter for DOS presets (Run command, Video
-// memory). Hack carts run a bare .COM at 0x100 with no shell.
+// Show/hide the rows that only matter for DOS presets (Run command / boot
+// mode, Video memory). Hack carts run a bare .COM at 0x100 with no shell.
+//
+// Two host pages share this file: build.html has the raw #run-cmd-row text
+// field; index.html's wizard replaces that with a #boot-mode-row radio
+// (wizard.js drives #run-cmd's value from it) and keeps #run-cmd-row
+// permanently hidden. Toggle whichever one the current page has.
 function refreshDosOnlyRows() {
   const isDos = radioValue('preset') !== 'hack';
-  $('run-cmd-row').hidden = !isDos;
+  const runCmdRow = $('run-cmd-row');
+  if (runCmdRow) runCmdRow.hidden = !isDos;
+  const bootModeRow = $('boot-mode-row');
+  if (bootModeRow) bootModeRow.hidden = !isDos;
   const videoRow = $('video-row');
   if (videoRow) videoRow.hidden = !isDos;
 }

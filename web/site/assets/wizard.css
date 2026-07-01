@@ -16,6 +16,12 @@
    does exactly this. Scoped to the index page via :has(). */
 body:has(.window.wizard) {
   display: grid;
+  /* Without an explicit column, the implicit grid track sizes to
+     max-content — i.e. to .window.wizard's own 820px — which makes its
+     `max-width: calc(100% - 32px)` resolve against 820px instead of the
+     viewport, defeating the shrink on narrow screens. Pin the track to
+     the viewport so the percentage is meaningful. */
+  grid-template-columns: minmax(0, 1fr);
   align-content: safe center;
   justify-items: center;
 }
@@ -64,6 +70,7 @@ body:has(.window.wizard) {
 .step { color: var(--edit-black); }
 .step h1 {
   font-family: inherit;
+  font-weight: normal;
   font-size: 32px;
   line-height: 32px;
   margin: 0 0 8px;
@@ -71,6 +78,7 @@ body:has(.window.wizard) {
 }
 .step h3 {
   font-family: inherit;
+  font-weight: normal;
   font-size: 16px;
   line-height: 16px;
   margin: 0 0 4px;
@@ -166,16 +174,10 @@ body:has(.window.wizard) {
    the intro hero only shows on sub-page 1. */
 .subpage-intro[hidden] { display: none; }
 .intro-hero {
-  display: grid;
-  grid-template-columns: auto 1fr;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 28px;
-}
-.intro-logo {
-  background: var(--edit-white);
-  border: 1px solid var(--edit-black);
-  box-shadow: 4px 4px 0 var(--edit-black);
-  padding: 12px;
+  gap: 20px;
 }
 .intro-logo img {
   width: 128px;
@@ -183,9 +185,13 @@ body:has(.window.wizard) {
   display: block;
   image-rendering: pixelated;
 }
+.intro-text {
+  max-width: 520px;
+  text-align: left;
+}
 .intro-hero h1 {
-  font-size: 40px;
-  line-height: 40px;
+  font-size: 28px;
+  line-height: 28px;
   margin-bottom: 16px;
 }
 .intro-hero .lede {
@@ -639,31 +645,22 @@ body:has(.window.wizard) {
   margin-bottom: 8px;
 }
 
-.build-block {
-  border: 1px solid var(--edit-black);
-  background: var(--edit-white);
-  padding: 0;
-  margin-bottom: 16px;
-}
-.build-block > .block-body {
-  padding: 12px 16px;
-}
-.block-head {
-  display: flex;
-  gap: 12px;
+/* Build step's own sub-pages (pick / configure+build / cabinet ready) sit
+   directly in the reading flow — no per-block border/header chrome, same
+   as Learn's sub-pages. */
+.subpage[data-build-subpage] { margin-top: 4px; }
+
+.boot-mode-row { margin: 16px 0; }
+.build-row {
   align-items: center;
-  border-bottom: 1px solid var(--edit-black);
-  padding: 4px 16px;
-  background: var(--edit-gray);
+  gap: 12px;
+  margin-top: 16px;
 }
-.block-num {
-  background: var(--edit-black);
-  color: var(--edit-yellow);
-  padding: 0 6px;
-  font-size: 16px;
-  line-height: 16px;
+.btn.primary.big {
+  font-size: 20px;
+  line-height: 22px;
+  padding: 10px 24px;
 }
-.block-title { font-size: 16px; line-height: 16px; color: var(--edit-black); }
 
 /* cart grid — PC-box ratio, big title, small desc */
 .cart-grid {
@@ -1081,10 +1078,10 @@ details.advanced .advanced-body .row:last-child { margin-bottom: 0; }
   background: none; border: none; padding: 0;
 }
 
-/* Two run options — small, side by side. */
+/* Two run options, stacked. */
 .run-options {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 16px;
 }
 .run-opt {
@@ -1182,6 +1179,5 @@ details.advanced .advanced-body .row:last-child { margin-bottom: 0; }
   .pipeline { grid-template-columns: 1fr; }
   .pipe-arrow { transform: rotate(90deg); }
   .cart-grid { grid-template-columns: repeat(2, 1fr); }
-  .run-options { grid-template-columns: 1fr; }
   .result-row { grid-template-columns: 1fr; text-align: center; }
 }

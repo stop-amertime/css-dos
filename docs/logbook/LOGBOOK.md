@@ -4,7 +4,7 @@ Chronological work entries. Newest first. The durable handbook
 (current state, sentinels, gotchas, how to test) is in
 [`STATUS.md`](STATUS.md).
 
-Last updated: 2026-06-30
+Last updated: 2026-07-01
 
 Entries are individual files in [`entries/`](entries/). This page is
 the **index only** — read the tag + one-line summary, open the 1–3
@@ -22,6 +22,7 @@ See [`PROTOCOL.md`](PROTOCOL.md).
 
 | Date | Tag | Entry |
 |------|-----|-------|
+| 2026-07-01 | LANDED | [Build page: headings unbolded, intro sub-page gray lightened + logo un-bordered + centered + one-line title, play step's run-option cards stacked, Build step restructured into 3 sub-pages (pick/configure+build/cabinet ready) mirroring About's dot pattern — replaces the old 01-04 numbered blocks, adds a boot-mode radio (program vs. DOS shell) driving the now-hidden run-command field, gates Next with a tooltip via a `#start.disabled` MutationObserver, hides the redundant `#stages` checkbox-list progress display (small progress window only), relabels BIOS row "Firmware + OS". Along the way fixed a real mobile bug: the wizard's `body{display:grid}` host had no explicit column, so `max-width: calc(100% - 32px)` resolved against the dialog's own 820px instead of the viewport, causing horizontal overflow ≤820px. Playwright-verified desktop+390px, smoke 6/6](entries/2026-07-01-build-page-redesign.md) |
 | 2026-06-30 | LANDED | [Wizard hash routing: the single-page landing/build wizard (About/Build/Play tabs were JS-toggled `.step` sections) now uses the URL hash as the route — `setStep()` writes `#about`/`#build`/`#play`, `applyHash()` restores it on load + hashchange (same gating: `#play` pre-build → `#build`), a `syncingHash` flag breaks the echo loop, `#games` kept as a `#build` alias. Refresh now keeps the step instead of resetting to About. No framework/build step (owner declined SvelteKit-static for the minimal fix). Playwright-verified, console clean](entries/2026-06-30-wizard-hash-routing.md) |
 | 2026-06-30 | LANDED | [Build-page cart picker reworked: box art no longer cropped (`object-fit: cover→contain`, dropped `image-rendering: pixelated`), 3 covers swapped for clean full-box scans (doom-alt/pop-alt/zork-box-2), per-card name/desc text removed in favour of one `#cart-detail` box (name as header + blurb) below the grid, selection now a thick green border (was black fill, invisible against card borders), custom card carries its text inside a dashed muted-fill cover. Both selection sync paths in `wizard.js` updated; Playwright-verified in Chromium, console clean](entries/2026-06-30-build-page-boxart-cards.md) |
 | 2026-06-30 | LANDED | [Raw player fixed + paintable: `raw.html` now derives from `calcite.html` (`raw-regen.mjs`) so chrome/keyboard match exactly, `<img>`→64,000-element CSS pixel grid under a `.window-body.clock.cpu` host, label `RAW`. New `kiln/pixels.mjs` (always emitted, inert in calcite path) paints each Mode 13h pixel from `--__1mc{cell}` via a 256-arm `@function --paletteRGB()` over the live DAC; 8×8 render proof passes in real Chromium 149 (CSS `@function`/`if()`/`style()` supported); smoke 6/6; painter +6.17 MB fixed; full 64k grid crashes headless Chrome — the "theoretical player" by design](entries/2026-06-30-raw-player-pixel-grid.md) |

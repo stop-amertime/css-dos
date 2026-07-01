@@ -34,7 +34,7 @@
     <div class="window-body">
 
       <!-- ============================================ -->
-      <!-- STEP 1 — Learn (3 sub-pages)                  -->
+      <!-- STEP 1 — About (with sub-pages)                  -->
       <!-- Sub-page nav lives in wizard.js: Next walks    -->
       <!-- 1→2→3, then advances the strip to Build.       -->
       <!-- ============================================ -->
@@ -43,7 +43,7 @@
         <!-- Sub-page dot indicator (clickable) -->
         <ol class="subdots" id="learn-subdots" aria-label="Learn progress">
           <li data-subjump="1" class="current"><span class="dot"></span> Intro</li>
-          <li data-subjump="2"><span class="dot"></span> What is CSS?</li>
+          <li data-subjump="2"><span class="dot"></span> What's CSS?</li>
           <li data-subjump="3"><span class="dot"></span> Why it&rsquo;s strange</li>
           <li data-subjump="4"><span class="dot"></span> The file</li>
           <li data-subjump="5"><span class="dot"></span> Credits</li>
@@ -56,8 +56,7 @@
               <img src="/assets/css-dos-logo-narrow.png" alt="CSS-DOS">
             </div>
             <div class="intro-text">
-              <h1>CSS-DOS</h1>
-              <p class="lede">An entire 80s PC, running in a stylesheet.</p>
+              <h1>CSS-DOS: A full 80s PC in a stylesheet.</h1>
               <p class="lede">
                 Booting <b>DOS</b>, the first ever operating system, off an
                 emulated floppy disk.
@@ -184,7 +183,7 @@
 
           <div class="ext-link-box">
             <p>
-              The idea isn&rsquo;t ours. Lyra Rebane first built a working
+              Lyra Rebane first built a working
               <a href="https://lyra.horse/x86css/" class="ext-link"
                  target="_blank" rel="noopener">x86 CPU in pure CSS</a> &mdash;
               a clean, visual demonstration that the trick works at all.
@@ -224,9 +223,7 @@
           </p>
           <p>
             The Doom cabinet ends up at <b>332&nbsp;MB</b> of pure text.
-            Which is, frankly, ridiculous. The entire original game of Zork
-            is about <b>85&nbsp;KB</b> &mdash; this stylesheet is roughly
-            <b>4,000&times;</b> bigger.
+            The entire original game of Zork is about <b>85&nbsp;KB</b> &mdash. 
           </p>
 
           <!-- WIDGET: earth–moon distance. The dotted walk is ~2/3 of the
@@ -249,9 +246,9 @@
             </svg>
             <p class="caption">
               Take one step for every character in the file &mdash; letter,
-              digit, space &mdash; and you&rsquo;d walk
+              digit, etc. &mdash; and you&rsquo;d walk
               <b>about two-thirds of the way to the Moon</b>
-              (some 250,000&nbsp;km).
+              (around 250,000&nbsp;km).
             </p>
           </div>
         </div>
@@ -408,7 +405,9 @@
       </section>
 
       <!-- ============================================ -->
-      <!-- STEP 2 — Build (pick + config + build + src)  -->
+      <!-- STEP 2 — Build (pick + config/build + result) -->
+      <!-- Sub-page nav mirrors the About step: dots +    -->
+      <!-- .subpage sections. Owned by wizard.js.         -->
       <!-- ============================================ -->
       <section class="step" data-step="2" id="step-build" hidden>
 
@@ -429,241 +428,250 @@
           </ol>
         </div>
 
-        <!-- (A) cart picker — decorative card grid; clicks proxy into
-                 the hidden #cart-list radios build.js owns. -->
-        <div class="build-block" id="block-pick">
-          <div class="block-head">
-            <span class="block-num">01</span>
-            <span class="block-title">Pick a program</span>
+        <!-- Sub-page dot indicator (clickable; wizard.js gates forward
+             jumps the same way the top step-strip does). -->
+        <ol class="subdots" id="build-subdots" aria-label="Build progress">
+          <li data-subjump="1" class="current"><span class="dot"></span> Pick a program</li>
+          <li data-subjump="2"><span class="dot"></span> Configure &amp; build</li>
+          <li data-subjump="3" hidden><span class="dot"></span> Cabinet ready</li>
+        </ol>
+
+        <!-- ---------- Build sub-page 1 — pick a program ---------- -->
+        <div class="subpage" data-build-subpage="1">
+          <!-- decorative card grid; clicks proxy into the hidden #cart-list
+               radios build.js owns. -->
+          <div class="cart-grid" id="cart-grid"><!-- filled by wizard.js --></div>
+
+          <!-- Detail box for the selected cart: name (header) + blurb.
+               Populated by wizard.js; hidden for the Custom card, which
+               carries its own text inside the card. -->
+          <div class="cart-detail" id="cart-detail" hidden>
+            <div class="cart-detail-name"></div>
+            <div class="cart-detail-desc"></div>
           </div>
-          <div class="block-body">
-            <div class="cart-grid" id="cart-grid"><!-- filled by wizard.js --></div>
 
-            <!-- Detail box for the selected cart: name (header) + blurb.
-                 Populated by wizard.js; hidden for the Custom card, which
-                 carries its own text inside the card. -->
-            <div class="cart-detail" id="cart-detail" hidden>
-              <div class="cart-detail-name"></div>
-              <div class="cart-detail-desc"></div>
+          <!-- Custom upload panel — hidden until the "Custom Program" card
+               is selected. wizard.js toggles .custom-panel-open. -->
+          <div class="custom-panel" id="custom-panel" hidden>
+            <div class="custom-panel-head">Load your own program</div>
+            <p class="custom-panel-lede">
+              Pick a single <code>.COM</code> or <code>.EXE</code>, or a
+              whole folder if your program ships with data files. It runs
+              from a fresh DOS boot, exactly like the built-in carts.
+            </p>
+            <div class="custom-drop">
+              <label class="custom-choice" for="com-file">
+                <span class="custom-choice-glyph">&#128196;</span>
+                <span class="custom-choice-title"><span class="hot">O</span>pen file&hellip;</span>
+                <span class="custom-choice-sub">.com or .exe</span>
+              </label>
+              <label class="custom-choice" for="dir-file">
+                <span class="custom-choice-glyph">&#128193;</span>
+                <span class="custom-choice-title">Open f<span class="hot">o</span>lder&hellip;</span>
+                <span class="custom-choice-sub">program + data files</span>
+              </label>
             </div>
-
-            <!-- Custom upload panel — hidden until the "Custom Program" card
-                 is selected. wizard.js toggles .custom-panel-open. -->
-            <div class="custom-panel" id="custom-panel" hidden>
-              <div class="custom-panel-head">Load your own program</div>
-              <p class="custom-panel-lede">
-                Pick a single <code>.COM</code> or <code>.EXE</code>, or a
-                whole folder if your program ships with data files. It runs
-                from a fresh DOS boot, exactly like the built-in carts.
-              </p>
-              <div class="custom-drop">
-                <label class="custom-choice" for="com-file">
-                  <span class="custom-choice-glyph">&#128196;</span>
-                  <span class="custom-choice-title"><span class="hot">O</span>pen file&hellip;</span>
-                  <span class="custom-choice-sub">.com or .exe</span>
-                </label>
-                <label class="custom-choice" for="dir-file">
-                  <span class="custom-choice-glyph">&#128193;</span>
-                  <span class="custom-choice-title">Open f<span class="hot">o</span>lder&hellip;</span>
-                  <span class="custom-choice-sub">program + data files</span>
-                </label>
-              </div>
-              <p class="custom-selected">
-                Selected: <span id="file-name" class="dim">No file selected</span>
-              </p>
-            </div>
-
-            <input type="file" id="com-file" accept=".com,.exe">
-            <input type="file" id="dir-file" webkitdirectory directory multiple>
+            <p class="custom-selected">
+              Selected: <span id="file-name" class="dim">No file selected</span>
+            </p>
           </div>
+
+          <input type="file" id="com-file" accept=".com,.exe">
+          <input type="file" id="dir-file" webkitdirectory directory multiple>
         </div>
 
-        <!-- (B) machine + config -->
-        <div class="build-block" id="block-machine">
-          <div class="block-head">
-            <span class="block-num">02</span>
-            <span class="block-title">Configure the machine</span>
-          </div>
-          <div class="block-body">
-            <div class="machine-row">
-              <div class="machine-photo">
-                <img src="/assets/IBM-PC.jpg" alt="IBM 5150 PC">
-                <div class="machine-photo-caption">IBM&nbsp;5150 &middot; 1981</div>
-              </div>
-              <div class="machine-specs">
-                <table class="spec-table">
-                  <tr><th>CPU</th><td>Intel 8088 &middot; 4.77&nbsp;MHz</td></tr>
-                  <tr><th>Memory</th><td><span id="spec-mem">auto-fit</span></td></tr>
-                  <tr><th>Video</th><td><span id="spec-video">Text + Mode 13h</span></td></tr>
-                  <tr><th>BIOS</th><td><span id="spec-preset">DOS + Corduroy BIOS</span></td></tr>
-                  <tr><th>Run</th><td><span id="spec-run" class="dim">auto (from program.json)</span></td></tr>
-                </table>
+        <!-- ---------- Build sub-page 2 — configure + build ---------- -->
+        <div class="subpage" data-build-subpage="2" hidden>
+          <div class="machine-row">
+            <div class="machine-photo">
+              <img src="/assets/IBM-PC.jpg" alt="IBM 5150 PC">
+              <div class="machine-photo-caption">IBM&nbsp;5150 &middot; 1981</div>
+            </div>
+            <div class="machine-specs">
+              <table class="spec-table">
+                <tr><th>CPU</th><td>Intel 8088 &middot; 4.77&nbsp;MHz</td></tr>
+                <tr><th>Memory</th><td><span id="spec-mem">auto-fit</span></td></tr>
+                <tr><th>Video</th><td><span id="spec-video">Text + Mode 13h</span></td></tr>
+                <tr><th>Firmware + OS</th><td><span id="spec-preset">Corduroy + DOS</span></td></tr>
+                <tr><th>Run</th><td><span id="spec-run" class="dim">auto (from program.json)</span></td></tr>
+              </table>
 
-                <details class="advanced">
-                  <summary><span class="adv-glyph"></span> <span class="hot">A</span>dvanced configuration</summary>
-                  <div class="advanced-body">
+              <details class="advanced">
+                <summary><span class="adv-glyph"></span> <span class="hot">A</span>dvanced configuration</summary>
+                <div class="advanced-body">
 
-                    <div class="row" id="preset-row">
-                      <label>Preset:</label>
-                      <div class="radio-group inline" id="preset-group">
-                        <label class="radio">
-                          <input type="radio" name="preset" value="dos-corduroy" checked>
-                          <span class="marker"></span><span>DOS + Corduroy BIOS</span>
-                        </label>
-                        <label class="radio">
-                          <input type="radio" name="preset" value="dos-muslin">
-                          <span class="marker"></span><span>DOS + Muslin BIOS</span>
-                        </label>
-                        <label class="radio">
-                          <input type="radio" name="preset" value="hack">
-                          <span class="marker"></span><span>hack (.com direct, no DOS)</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div class="row" id="memory-row">
-                      <label>Memory:</label>
-                      <div class="radio-group inline" id="memory-group">
-                        <label class="radio">
-                          <input type="radio" name="memory" value="" checked>
-                          <span class="marker"></span><span>Auto-fit</span>
-                        </label>
-                        <label class="radio">
-                          <input type="radio" name="memory" value="128K">
-                          <span class="marker"></span><span>128K</span>
-                        </label>
-                        <label class="radio">
-                          <input type="radio" name="memory" value="256K">
-                          <span class="marker"></span><span>256K</span>
-                        </label>
-                        <label class="radio">
-                          <input type="radio" name="memory" value="512K">
-                          <span class="marker"></span><span>512K</span>
-                        </label>
-                        <label class="radio">
-                          <input type="radio" name="memory" value="640K">
-                          <span class="marker"></span><span>640K (full PC)</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div class="row" id="video-row">
-                      <label>Video:</label>
-                      <label class="check">
-                        <input type="checkbox" id="mem-textVga" checked>
-                        <span class="marker"></span><span>Text (B8000)</span>
+                  <div class="row" id="preset-row">
+                    <label>Preset:</label>
+                    <div class="radio-group inline" id="preset-group">
+                      <label class="radio">
+                        <input type="radio" name="preset" value="dos-corduroy" checked>
+                        <span class="marker"></span><span>Corduroy + DOS</span>
                       </label>
-                      <label class="check">
-                        <input type="checkbox" id="mem-gfx" checked>
-                        <span class="marker"></span><span>Mode 13h (A0000)</span>
+                      <label class="radio">
+                        <input type="radio" name="preset" value="dos-muslin">
+                        <span class="marker"></span><span>Muslin + DOS</span>
                       </label>
-                      <label class="check">
-                        <input type="checkbox" id="mem-cgaGfx">
-                        <span class="marker"></span><span>CGA 0x04 (B8000)</span>
+                      <label class="radio">
+                        <input type="radio" name="preset" value="hack">
+                        <span class="marker"></span><span>hack (.com direct, no BIOS, no DOS)</span>
                       </label>
                     </div>
-
-                    <div class="row" id="run-cmd-row" hidden>
-                      <label for="run-cmd">Run:</label>
-                      <input type="text" id="run-cmd" class="field"
-                             placeholder="e.g. DOOM -noxms -noems -nosound, or empty for prompt"
-                             autocomplete="off" spellcheck="false"
-                             style="flex:1; min-width:280px">
-                    </div>
-
-                    <div class="row">
-                      <label class="check"
-                             title="When on, the cabinet starts parsing/compiling in the background as soon as it's built. When off (default), compile is deferred until you open the player.">
-                        <input type="checkbox" id="eager-compile">
-                        <span class="marker"></span>
-                        <span>Compile in background after build</span>
-                      </label>
-                    </div>
-
                   </div>
-                </details>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        <!-- (C) build -->
-        <div class="build-block" id="block-build">
-          <div class="block-head">
-            <span class="block-num">03</span>
-            <span class="block-title">Build cabinet</span>
-          </div>
-          <div class="block-body">
-            <div class="row">
-              <button id="start" class="btn primary" disabled>
-                <span class="hot">B</span>uild cabinet
-              </button>
-              <span class="dim small" id="build-hint">Pick a program first.</span>
-            </div>
+                  <div class="row" id="memory-row">
+                    <label>Memory:</label>
+                    <div class="radio-group inline" id="memory-group">
+                      <label class="radio">
+                        <input type="radio" name="memory" value="" checked>
+                        <span class="marker"></span><span>Auto-fit</span>
+                      </label>
+                      <label class="radio">
+                        <input type="radio" name="memory" value="128K">
+                        <span class="marker"></span><span>128K</span>
+                      </label>
+                      <label class="radio">
+                        <input type="radio" name="memory" value="256K">
+                        <span class="marker"></span><span>256K</span>
+                      </label>
+                      <label class="radio">
+                        <input type="radio" name="memory" value="512K">
+                        <span class="marker"></span><span>512K</span>
+                      </label>
+                      <label class="radio">
+                        <input type="radio" name="memory" value="640K">
+                        <span class="marker"></span><span>640K (full PC)</span>
+                      </label>
+                    </div>
+                  </div>
 
-            <div id="build-progress-wrap" hidden>
-              <ol id="stages"></ol>
-              <div class="build-progress">
-                <div class="bar"><div id="build-bar-fill"></div></div>
-                <div class="build-progress-meta">
-                  <span id="build-pct">0%</span>
-                  <span id="build-size" class="dim"></span>
+                  <div class="row" id="video-row">
+                    <label>Video:</label>
+                    <label class="check">
+                      <input type="checkbox" id="mem-textVga" checked>
+                      <span class="marker"></span><span>Text (B8000)</span>
+                    </label>
+                    <label class="check">
+                      <input type="checkbox" id="mem-gfx" checked>
+                      <span class="marker"></span><span>Mode 13h (A0000)</span>
+                    </label>
+                    <label class="check">
+                      <input type="checkbox" id="mem-cgaGfx">
+                      <span class="marker"></span><span>CGA 0x04 (B8000)</span>
+                    </label>
+                  </div>
+
+                  <!-- Superseded by #boot-mode-row below: the raw run-command
+                       field, permanently hidden. Deliberately NOT id="run-cmd-row"
+                       — that id is what refreshDosOnlyRows() (build.js) toggles
+                       visible for DOS presets on build.html, which still uses the
+                       raw field. #run-cmd itself keeps its id; build.js reads
+                       .value from it at submit time regardless of visibility. -->
+                  <div class="row wizard-hidden">
+                    <label for="run-cmd">Run:</label>
+                    <input type="text" id="run-cmd" class="field"
+                           placeholder="e.g. DOOM -noxms -noems -nosound, or empty for prompt"
+                           autocomplete="off" spellcheck="false"
+                           style="flex:1; min-width:280px">
+                  </div>
+
+                  <div class="row">
+                    <label class="check"
+                           title="When on, the cabinet starts parsing/compiling in the background as soon as it's built. When off (default), compile is deferred until you open the player.">
+                      <input type="checkbox" id="eager-compile">
+                      <span class="marker"></span>
+                      <span>Compile in background after build</span>
+                    </label>
+                  </div>
+
+                </div>
+              </details>
+
+              <!-- Boot-mode: program.json's default run command vs. a bare
+                   DOS shell. Just toggles #run-cmd between the cart's stored
+                   default and empty — same field build.js already reads. -->
+              <div class="row boot-mode-row" id="boot-mode-row" hidden>
+                <label>Boot into:</label>
+                <div class="radio-group inline" id="boot-mode-group">
+                  <label class="radio">
+                    <input type="radio" name="boot-mode" value="program" checked>
+                    <span class="marker"></span><span>The program</span>
+                  </label>
+                  <label class="radio">
+                    <input type="radio" name="boot-mode" value="shell">
+                    <span class="marker"></span><span>DOS shell (<code>COMMAND.COM</code>)</span>
+                  </label>
                 </div>
               </div>
-              <pre id="log" class="build-log"></pre>
-            </div>
-          </div>
-        </div>
 
-        <!-- (D) result -->
-        <div class="build-block" id="block-source" hidden>
-          <div class="block-head">
-            <span class="block-num">04</span>
-            <span class="block-title">Cabinet ready</span>
-          </div>
-          <div class="block-body">
-            <div class="result-row">
-              <div class="result-floppy" aria-hidden="true">
-                <div class="floppy">
-                  <div class="floppy-shutter"></div>
-                  <div class="floppy-label">
-                    <div class="floppy-label-name" id="floppy-name">CABINET</div>
-                    <div class="floppy-label-sub">CSS-DOS 1.0</div>
+              <div class="row build-row">
+                <button id="start" class="btn primary big" disabled>
+                  <span class="hot">B</span>uild cabinet
+                </button>
+                <span class="dim small" id="build-hint">Pick a program first.</span>
+              </div>
+
+              <!-- #stages stays in the DOM (build.js appends one <li> per
+                   progress callback; wizard.js's MutationObserver counts
+                   those to pace the bar below) but is never shown — the
+                   #log pre underneath already mirrors the same messages. -->
+              <div id="build-progress-wrap" hidden>
+                <ol id="stages" hidden></ol>
+                <div class="build-progress">
+                  <div class="bar"><div id="build-bar-fill"></div></div>
+                  <div class="build-progress-meta">
+                    <span id="build-pct">0%</span>
+                    <span id="build-size" class="dim"></span>
                   </div>
                 </div>
+                <pre id="log" class="build-log"></pre>
               </div>
-              <div class="result-info">
-                <h3>Cabinet built.</h3>
-                <p class="dim" id="size">&mdash;</p>
-                <p class="dim">
-                  One <code>.css</code> file. Open it in Chrome (slow) or
-                  hand it to Calcite (fast) on the next step.
-                </p>
-                <div class="row">
-                  <button id="save-css" class="btn">
-                    <span class="floppy-icon" aria-hidden="true">&#128190;</span>
-                    <span class="hot">S</span>ave cabinet.css
-                  </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ---------- Build sub-page 3 — cabinet ready ---------- -->
+        <div class="subpage" id="block-source" data-build-subpage="3" hidden>
+          <div class="result-row">
+            <div class="result-floppy" aria-hidden="true">
+              <div class="floppy">
+                <div class="floppy-shutter"></div>
+                <div class="floppy-label">
+                  <div class="floppy-label-name" id="floppy-name">CABINET</div>
+                  <div class="floppy-label-sub">CSS-DOS 1.0</div>
                 </div>
               </div>
             </div>
-
-            <!-- Source viewer — paginated by build.js. Shown directly so
-                 the cabinet's CSS is visible without a click. -->
-            <section id="source-viewer" class="source-viewer-block">
-              <h3 class="source-viewer-head">Cabinet source</h3>
-              <p class="pager-info">
-                Page <span id="page-num">1</span> of <span id="page-total">0</span>
-                &middot; <span id="page-bytes"></span>
+            <div class="result-info">
+              <h3>Cabinet built.</h3>
+              <p class="dim" id="size">&mdash;</p>
+              <p class="dim">
+                One <code>.css</code> file. Open it in Chrome (slow) or
+                hand it to Calcite (fast) on the next step.
               </p>
-              <div class="row pager-controls">
-                <button id="page-prev" class="btn">&#171; Prev</button>
-                <input id="page-jump" class="field page-jump-input" type="number" min="1" value="1">
-                <button id="page-next" class="btn">Next &#187;</button>
+              <div class="row">
+                <button id="save-css" class="btn">
+                  <span class="floppy-icon" aria-hidden="true">&#128190;</span>
+                  <span class="hot">S</span>ave cabinet.css
+                </button>
               </div>
-              <pre id="source-pre" class="source-pre"><code id="source-code" class="language-css"></code></pre>
-            </section>
+            </div>
           </div>
+
+          <!-- Source viewer — paginated by build.js. Shown directly so
+               the cabinet's CSS is visible without a click. -->
+          <section id="source-viewer" class="source-viewer-block">
+            <h3 class="source-viewer-head">Cabinet source</h3>
+            <p class="pager-info">
+              Page <span id="page-num">1</span> of <span id="page-total">0</span>
+              &middot; <span id="page-bytes"></span>
+            </p>
+            <div class="row pager-controls">
+              <button id="page-prev" class="btn">&#171; Prev</button>
+              <input id="page-jump" class="field page-jump-input" type="number" min="1" value="1">
+              <button id="page-next" class="btn">Next &#187;</button>
+            </div>
+            <pre id="source-pre" class="source-pre"><code id="source-code" class="language-css"></code></pre>
+          </section>
         </div>
       </section>
 
@@ -701,7 +709,7 @@
           <details class="cheat-box">
             <summary>
               <span class="cheat-q">Is this cheating?</span>
-              <span class="cheat-a">No &mdash; and I made sure of it.</span>
+              <span class="cheat-a">No, and I've taken the question seriously.</span>
             </summary>
             <div class="cheat-body">
               <p>
