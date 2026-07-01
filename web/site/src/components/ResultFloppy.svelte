@@ -14,17 +14,9 @@
     </div>
   </div>
   <div class="result-info">
-    <h3>Cabinet built.</h3>
-    <p class="dim">{build.sizeLabel}</p>
-    <p class="dim">
-      One <code>.css</code> file. Open it in Chrome (slow) or hand it to
-      Calcite (fast) on the next step.
-    </p>
-    <div class="row">
-      <button class="btn" onclick={() => build.download()}>
-        <span class="floppy-icon" aria-hidden="true">&#128190;</span>
-        <span class="hot">S</span>ave cabinet.css
-      </button>
-    </div>
+    <h3>CSS file built</h3>
+    <button class="result-dl" onclick={() => build.download()}>
+      (optional) Download cabinet.css &mdash; {build.sizeMB}
+    </button>
   </div>
 </div>

@@ -45,13 +45,19 @@
 }
 
 /* ===== machine row — IBM PC photo + specs + advanced ===== */
+/* Flex, not a fixed grid: the photo is capped to a sensible width and the
+   specs column takes the rest, wrapping under the photo only when the row
+   gets too narrow to hold both. */
 .machine-row {
-  display: grid;
-  grid-template-columns: 280px 1fr;
+  display: flex;
+  flex-wrap: wrap;
   gap: 24px;
-  align-items: start;
+  align-items: flex-start;
 }
 .machine-photo {
+  flex: 0 0 auto;
+  width: 200px;
+  max-width: 40%;
   border: 1px solid var(--edit-black);
   background: var(--edit-black);
   padding: 6px;
@@ -61,6 +67,10 @@
   width: 100%; height: auto;
   display: block;
   image-rendering: pixelated;
+}
+.machine-specs {
+  flex: 1 1 320px;
+  min-width: 0;
 }
 .machine-photo-caption {
   color: var(--edit-yellow);
@@ -82,79 +92,103 @@
   vertical-align: top;
 }
 .spec-table th {
-  background: var(--edit-blue);
+  /* Not blue — blue is the action colour (Build button / primary), and a
+     blue label column read as clickable. A neutral dark band instead. */
+  background: #333;
   color: var(--edit-white);
   width: 110px;
   font-weight: normal;
 }
 .spec-table td { background: var(--edit-white); }
 
-/* advanced details */
-details.advanced {
-  border: 1px solid var(--edit-black);
-  background: var(--edit-gray);
-  margin-top: 8px;
-}
-details.advanced > summary {
-  list-style: none;
-  cursor: pointer;
-  user-select: none;
-  padding: 6px 10px;
-  background: var(--edit-gray);
-  color: var(--edit-black);
-  font-size: 16px;
-  line-height: 16px;
-}
-details.advanced > summary::-webkit-details-marker { display: none; }
-details.advanced[open] > summary { border-bottom: 1px solid var(--edit-black); }
-details.advanced[open] > summary .adv-glyph::before { content: '[-]'; }
-details.advanced .adv-glyph { color: var(--edit-red); margin-right: 6px; }
-details.advanced .adv-glyph::before { content: '[+]'; }
-details.advanced .advanced-body {
-  padding: 12px;
-  background: var(--edit-gray);
-}
-details.advanced .advanced-body .row:last-child { margin-bottom: 0; }
+/* "Advanced configuration" fold — themed on top of the shared .foldable
+   (foldable.css). Gray body to match the surrounding config panel. */
+.foldable.advanced { margin-top: 8px; }
+.foldable.advanced .fold-body { background: var(--edit-gray); padding: 12px; }
+.foldable.advanced .fold-body .row:last-child { margin-bottom: 0; }
 
 /* ===== build-progress wrapper (layout only; bar/log internals live in
    build-progress.css) ===== */
 #build-progress-wrap { margin-top: 12px; }
 
-/* ===== result row (layout; the floppy graphic lives in result-floppy.css) ===== */
+/* ===== result row — small floppy on the left, "CSS file built" heading and
+   the optional-download line stacked to its right. Kept compact so the tall
+   source viewer below gets the vertical room. ===== */
 .result-row {
-  display: grid;
-  grid-template-columns: 180px 1fr;
-  gap: 24px;
+  display: flex;
   align-items: center;
+  gap: 18px;
   border: 1px solid var(--edit-black);
   background: var(--edit-gray);
-  padding: 16px;
+  padding: 12px 16px;
 }
+.result-floppy { flex: none; }
+.result-info h3 {
+  font-size: 20px;
+  line-height: 20px;
+  margin: 0 0 6px;
+}
+/* The download is optional/secondary — a plain link, not a primary button,
+   so it doesn't compete with the "Play" action on the next step. */
+.result-dl {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 16px;
+  color: var(--edit-blue);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.result-dl:hover { color: #1111cc; }
 
 /* ===== Result section links (from site.css) ===== */
 #result .row a.btn { color: var(--edit-black); }
 
-/* ===== Source viewer — terminal black/green, like a `TYPE` redirect
-   (from site.css) ===== */
-.pager-info {
+/* ===== Source viewer — terminal black/green, like a `TYPE` redirect.
+   One centred pager line ("Source Code: « Prev : Page [1] of N : Next »"),
+   then a tall source box that fills the space. ===== */
+.pager-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
   color: var(--edit-black);
-  margin-bottom: 4px;
 }
-.pager-controls { margin-bottom: 8px; }
-.page-jump-input { width: 64px; text-align: right; }
+.pager-label { font-size: 16px; line-height: 16px; }
+.pager-page {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  line-height: 16px;
+}
+/* Compact inline pager buttons — not the big shadowed dialog .btn. */
+.pager-btn {
+  background: var(--edit-white);
+  color: var(--edit-black);
+  border: 1px solid var(--edit-black);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 16px;
+  padding: 2px 10px;
+  cursor: pointer;
+}
+.pager-btn:hover:not(:disabled) { background: #ddddff; }
+.pager-btn:disabled { color: #999; cursor: default; }
+.page-jump-input { width: 72px; text-align: center; }
 
 .source-pre {
-  height: 400px;
   overflow: auto;
   white-space: pre;
   font-family: 'WebVGA', 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Consolas', monospace;
-  font-size: 16px;
-  line-height: 16px;
   background: var(--edit-black);
   color: #55ff55;
   padding: 8px;
   border: 1px solid var(--edit-black);
-  overflow-x: auto;
 }
 
 /* Prism token colours, tuned to the green-terminal background. */
@@ -174,26 +208,13 @@ details.advanced .advanced-body .row:last-child { margin-bottom: 0; }
 .source-pre .token.keyword     { color: #ff55ff; font-weight: bold; }
 .source-pre .token.variable    { color: #55aaff; }
 
-/* The paginated source viewer — same green-on-black look as build.html,
-   shown directly in the result panel (no longer behind a dropdown).
-   Smaller text so more of the dense cabinet CSS fits on screen.
-   (from wizard.css) */
-.window.wizard #source-pre {
-  height: 960px;
+/* Smaller text so more of the dense cabinet CSS fits, and a tall box that
+   fills the width of the result page. The height is generous (this page is
+   deliberately the tallest one) but bounded so the box itself scrolls, not
+   the whole viewport. */
+.source-pre {
   font-size: 11px;
-  line-height: 13px;
+  line-height: 12px;
+  height: min(1100px, calc(100vh - 320px));
 }
 .source-viewer-block { margin-top: 16px; }
-.source-viewer-head {
-  margin: 0 0 8px;
-  font-size: 16px;
-  line-height: 16px;
-  color: var(--edit-black);
-}
-
-/* ===== responsive (Build-step grids) — split out of wizard.css's
-   combined `.hero-row, .hero-machine, .machine-row` / `.result-row` rule ===== */
-@media (max-width: 900px) {
-  .machine-row { grid-template-columns: 1fr; }
-  .result-row { grid-template-columns: 1fr; text-align: center; }
-}

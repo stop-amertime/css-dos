@@ -6,6 +6,7 @@
   import Wizard from '../components/Wizard.svelte';
   import CartGrid from '../components/CartGrid.svelte';
   import CustomPanel from '../components/CustomPanel.svelte';
+  import Foldable from '../components/Foldable.svelte';
   import RadioGroup from '../components/RadioGroup.svelte';
   import CheckRow from '../components/CheckRow.svelte';
   import SpecTable from '../components/SpecTable.svelte';
@@ -44,7 +45,6 @@
   $effect(() => { if (build.done) nav.buildSub = 3; });
 
   const customSelected = $derived(build.selectedId === 'custom');
-  const showDetail = $derived(build.selectedDetail && !build.selectedDetail.custom);
 </script>
 
 {#snippet subhead()}
@@ -74,12 +74,6 @@
       </ol>
     </div>
     <CartGrid />
-    {#if showDetail}
-      <div class="cart-detail">
-        <div class="cart-detail-name">{build.selectedDetail.name}</div>
-        <div class="cart-detail-desc">{build.selectedDetail.desc}</div>
-      </div>
-    {/if}
     {#if customSelected}<CustomPanel />{/if}
   </div>
 {:else if nav.buildSub === 2}
@@ -92,34 +86,32 @@
       <div class="machine-specs">
         <SpecTable />
 
-        <details class="advanced">
-          <summary><span class="adv-glyph"></span> <span class="hot">A</span>dvanced configuration</summary>
-          <div class="advanced-body">
-            <div class="row">
-              <label>Preset:</label>
-              <RadioGroup name="preset" options={PRESETS} bind:value={build.options.preset} />
-            </div>
-            {#if build.isDos}
-              <div class="row">
-                <label>Memory:</label>
-                <RadioGroup name="memory" options={MEMORY} bind:value={build.options.memory} />
-              </div>
-              <div class="row">
-                <label>Video:</label>
-                <CheckRow bind:checked={build.options.textVga} label="Text (B8000)" />
-                <CheckRow bind:checked={build.options.gfx} label="Mode 13h (A0000)" />
-                <CheckRow bind:checked={build.options.cgaGfx} label="CGA 0x04 (B8000)" />
-              </div>
-            {/if}
-            <div class="row">
-              <CheckRow
-                bind:checked={build.options.eagerCompile}
-                label="Compile in background after build"
-                title="When on, the cabinet starts parsing/compiling in the background as soon as it's built. When off (default), compile is deferred until you open the player."
-              />
-            </div>
+        <Foldable class="advanced">
+          {#snippet summary()}<span class="hot">A</span>dvanced configuration{/snippet}
+          <div class="row">
+            <label>Preset:</label>
+            <RadioGroup name="preset" options={PRESETS} bind:value={build.options.preset} />
           </div>
-        </details>
+          {#if build.isDos}
+            <div class="row">
+              <label>Memory:</label>
+              <RadioGroup name="memory" options={MEMORY} bind:value={build.options.memory} />
+            </div>
+            <div class="row">
+              <label>Video:</label>
+              <CheckRow bind:checked={build.options.textVga} label="Text (B8000)" />
+              <CheckRow bind:checked={build.options.gfx} label="Mode 13h (A0000)" />
+              <CheckRow bind:checked={build.options.cgaGfx} label="CGA 0x04 (B8000)" />
+            </div>
+          {/if}
+          <div class="row">
+            <CheckRow
+              bind:checked={build.options.eagerCompile}
+              label="Compile in background after build"
+              title="When on, the cabinet starts parsing/compiling in the background as soon as it's built. When off (default), compile is deferred until you open the player."
+            />
+          </div>
+        </Foldable>
 
         {#if build.isDos}
           <div class="row boot-mode-row">

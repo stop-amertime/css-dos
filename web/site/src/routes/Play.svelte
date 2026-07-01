@@ -1,11 +1,12 @@
 <script>
   import '../styles/_fragments/play.css';
   import Wizard from '../components/Wizard.svelte';
+  import Foldable from '../components/Foldable.svelte';
 
   let { strip, wizNav } = $props();
 </script>
 
-<Wizard {strip} nav={wizNav} wide>
+<Wizard {strip} nav={wizNav}>
 <!-- Play-step intro -->
 <div class="play-intro">
   <h1>Running the <code>.css</code> file</h1>
@@ -32,12 +33,11 @@
   </p>
 
   <!-- "Is this cheating?" — most of the argument folded away. -->
-  <details class="cheat-box">
-    <summary>
+  <Foldable class="cheat-box">
+    {#snippet summary()}
       <span class="cheat-q">Is this cheating?</span>
       <span class="cheat-a">No, and I've taken the question seriously.</span>
-    </summary>
-    <div class="cheat-body">
+    {/snippet}
       <p>
         The whole point of the project is that the program is written
         in <i>real</i>, spec-compliant CSS. Calcite is allowed to make
@@ -72,8 +72,7 @@
         If Calcite ever produced a different result than a real browser
         would, that would be a bug in Calcite &mdash; not a feature.
       </p>
-    </div>
-  </details>
+  </Foldable>
 </div>
 
 <!-- Two run options — small, side by side. -->

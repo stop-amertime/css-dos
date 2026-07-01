@@ -9,49 +9,19 @@
 .play-intro { margin-bottom: 24px; }
 .play-intro h1 { margin: 0 0 12px; }
 .play-intro p { margin: 0 0 12px; }
-.play-intro code {
-  background: none; border: none; padding: 0;
-}
 
-/* "Is this cheating?" disclosure. */
-.cheat-box {
-  border: 1px solid var(--edit-black);
-  background: var(--edit-white);
-  margin-top: 16px;
-}
-.cheat-box summary {
-  cursor: pointer;
-  padding: 10px 14px;
-  background: var(--edit-gray);
-  list-style: none;
-  display: flex;
-  gap: 8px;
-  align-items: baseline;
-  flex-wrap: wrap;
-}
-.cheat-box summary::-webkit-details-marker { display: none; }
-.cheat-box summary::before {
-  content: '\25B8'; /* ▸ */
-  color: var(--edit-red);
-  margin-right: 4px;
-}
-.cheat-box[open] summary::before { content: '\25BE'; /* ▾ */ }
+/* "Is this cheating?" disclosure — themed on top of the shared .foldable
+   (foldable.css owns the frame + [+]/[-] glyph). */
+.cheat-box { margin-top: 16px; }
 .cheat-q { font-weight: bold; }
 .cheat-a { color: var(--edit-blue); }
-.cheat-body {
-  padding: 12px 16px;
-  border-top: 1px solid var(--edit-black);
-}
-.cheat-body p { margin: 0 0 10px; }
+.cheat-box .fold-body p { margin: 0 0 10px; }
 .cheat-list {
   margin: 0;
   padding-left: 22px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-.cheat-list code, .cheat-body code {
-  background: none; border: none; padding: 0;
 }
 
 /* Two run options, stacked. */

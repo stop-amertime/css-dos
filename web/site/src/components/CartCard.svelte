@@ -16,15 +16,15 @@
 >
   <div class="cart-cover">
     {#if cart.custom}
-      <div class="cart-cover-placeholder cart-cover-custom"><div class="ph-glyph">?</div></div>
+      <div class="cart-cover-placeholder cart-cover-custom">
+        <div class="ph-glyph">+</div>
+        <div class="ph-name">Load your own program</div>
+        <div class="ph-sub">A single .COM or .EXE, or a whole folder mounted as a floppy.</div>
+      </div>
     {:else if cart.cover && !broken}
       <img src={cart.cover} alt={cart.name} onerror={() => (broken = true)} />
     {:else}
       <div class="cart-cover-placeholder"><div class="ph-name">{cart.name}</div></div>
     {/if}
-  </div>
-  <div class="cart-body">
-    <div class="cart-name">{cart.name}</div>
-    <div class="cart-desc">{cart.desc || ''}</div>
   </div>
 </div>

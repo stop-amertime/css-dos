@@ -1,0 +1,36 @@
+/* foldable.css — the shared <Foldable> disclosure widget: a bordered frame
+   with a blue [+]/[-] toggle glyph and a folded body. Used by Build's
+   "Advanced configuration" and Play's "Is this cheating?". */
+
+.foldable {
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+}
+.foldable > summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  padding: 10px 14px;
+  background: var(--edit-gray);
+  color: var(--edit-black);
+  font-size: 16px;
+  line-height: 16px;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.foldable > summary::-webkit-details-marker { display: none; }
+
+/* The toggle glyph — blue, so it reads as the interactive affordance. */
+.foldable .fold-glyph { color: var(--edit-blue); flex: none; }
+.foldable .fold-glyph::before { content: '[+]'; }
+.foldable[open] .fold-glyph::before { content: '[-]'; }
+
+.foldable .fold-summary { flex: 1 1 auto; min-width: 0; }
+
+.foldable[open] > summary { border-bottom: 1px solid var(--edit-black); }
+.foldable .fold-body {
+  padding: 12px 16px;
+  background: var(--edit-white);
+}

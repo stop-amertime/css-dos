@@ -87,6 +87,11 @@ class Build {
     if (!this.cabinetBlob) return '—';
     return `Cabinet: ${(this.cabinetBlob.size / 1024 / 1024).toFixed(1)} MB`;
   }
+  // Bare "320 MB" for the compact download line.
+  get sizeMB() {
+    if (!this.cabinetBlob) return '';
+    return `${Math.round(this.cabinetBlob.size / 1024 / 1024)} MB`;
+  }
   get floppyName() {
     const id = this.source === 'cart' ? this.cart?.name : 'CABINET';
     return (id || 'CABINET').slice(0, 8).toUpperCase();

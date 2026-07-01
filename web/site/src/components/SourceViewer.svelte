@@ -10,7 +10,6 @@
   let pageStarts = [0];
   let exactPageCount = $state(null);
   let totalLabel = $state('0');
-  let bytesLabel = $state('');
   let codeEl;
 
   function estimateTotal() {
@@ -50,9 +49,6 @@
     window.Prism?.highlightElement(codeEl);
     const total = estimateTotal();
     totalLabel = exactPageCount != null ? String(total) : `~${total}`;
-    const firstLine = (n - 1) * LINES_PER_PAGE + 1;
-    bytesLabel = `${(end - start).toLocaleString()} bytes · lines `
-      + `${firstLine.toLocaleString()}–${(firstLine - 1 + text.split('\n').length).toLocaleString()}`;
   }
 
   $effect(() => {
@@ -67,13 +63,16 @@
 </script>
 
 <section class="source-viewer-block">
-  <h3 class="source-viewer-head">Cabinet source</h3>
-  <p class="pager-info">Page {page} of {totalLabel} &middot; {bytesLabel}</p>
-  <div class="row pager-controls">
-    <button class="btn" disabled={page <= 1} onclick={() => render(page - 1)}>&#171; Prev</button>
-    <input class="field page-jump-input" type="number" min="1" value={page}
-           onchange={(e) => render(Math.max(1, parseInt(e.currentTarget.value, 10) || 1))} />
-    <button class="btn" disabled={atEnd} onclick={() => render(page + 1)}>Next &#187;</button>
+  <div class="pager-controls">
+    <span class="pager-label">Source Code:</span>
+    <button class="pager-btn" disabled={page <= 1} onclick={() => render(page - 1)}>&#171; Prev</button>
+    <span class="pager-page">
+      Page
+      <input class="field page-jump-input" type="number" min="1" value={page}
+             onchange={(e) => render(Math.max(1, parseInt(e.currentTarget.value, 10) || 1))} />
+      of {totalLabel}
+    </span>
+    <button class="pager-btn" disabled={atEnd} onclick={() => render(page + 1)}>Next &#187;</button>
   </div>
   <pre class="source-pre"><code bind:this={codeEl} class="language-css"></code></pre>
 </section>

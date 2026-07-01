@@ -38,14 +38,19 @@
             emulated floppy disk.
           </p>
           <p class="lede">Yes, it runs <b>DOOM</b> (very poorly).</p>
-          <p class="intro-claim">
-            This is the first time real<a href="#intro-fn" class="fn-ref">*</a>
-            production computer programs have run in CSS.
-          </p>
+          <div class="flair-burst">
+            <div class="flair-text">
+              <span>The first time real<a href="#intro-fn" class="flair-star">*</a> programs have run in CSS!</span>
+            </div>
+          </div>
           <p class="intro-fn small" id="intro-fn">
-            * &ldquo;real&rdquo; meaning production programs &mdash; the
-            command shell, early computer games, and so on. Anything that
-            runs on DOS may work here.
+            <span class="fn-star">*</span> &ldquo;real&rdquo; meaning
+            production programs &mdash; the command shell, early computer
+            games, and so on. Anything that runs on DOS may work here.
+          </p>
+          <p class="intro-gh">
+            <a href="https://github.com/stop-amertime/css-dos" class="ext-link"
+               target="_blank" rel="noopener">&#9733; View the source on GitHub</a>
           </p>
         </div>
       </div>
@@ -163,6 +168,17 @@
         <li>
           <a href="https://github.com/nicknisi/emu8" class="ext-link" target="_blank" rel="noopener">emu8</a>
           &mdash; the reference 8086 emulator CSS-DOS checks itself against.
+        </li>
+      </ul>
+
+      <h3 class="credits-head">Operating system</h3>
+      <ul class="credits-list">
+        <li>
+          The booted OS is <b>EDR-DOS</b>, from the
+          <a href="https://svardos.org/" class="ext-link" target="_blank" rel="noopener">SvarDOS</a>
+          build &mdash; an open, freely-distributable DR-DOS descendant. CSS-DOS
+          ships its <code>kernel.sys</code> and <code>command.com</code> on the
+          emulated floppy.
         </li>
       </ul>
 

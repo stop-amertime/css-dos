@@ -273,6 +273,7 @@ select.field { min-width: 220px; }
   white-space: pre;
 }
 .radio .marker::before  { content: '( )'; }
+.radio input:checked ~ .marker { color: var(--edit-blue); }
 .radio input:checked ~ .marker::before { content: '(\2022)'; }
 .check .marker::before  { content: '[ ]'; }
 .check input:checked ~ .marker::before { content: '[X]'; }
@@ -351,9 +352,10 @@ body:has(.window.wizard) {
   /* Leave room for the fixed menu bar (top) + status line (bottom) + the
      body's 16px pads + the window's own 8px margins + drop shadow. */
   max-height: calc(100vh - 96px);
-}
-.window.wizard.play-wide {
-  width: 1180px;
+  /* Floor so sparse pages don't collapse to an awkward little box — but
+     never taller than the viewport cap above (min() clamps it on short
+     screens). */
+  min-height: min(600px, calc(100vh - 96px));
 }
 /* Pinned header: the main step strip + (optional) substep dots. The
    separator under the substeps is the visual floor of this band. */
@@ -377,7 +379,11 @@ body:has(.window.wizard) {
 
 /* ===== Step content (shared prose/typography for all steps) ===== */
 .step { color: var(--edit-black); }
-.step h1 {
+/* All wizard headings are non-bold — the 32px WebVGA face carries the
+   emphasis on its own, and a bold weight just muddies the pixel grid.
+   Scoped to the wizard body so it covers every step, not just .step
+   (Build/Play prose sits outside a .step wrapper). */
+.window.wizard h1 {
   font-family: inherit;
   font-size: 32px;
   line-height: 32px;
@@ -393,11 +399,21 @@ body:has(.window.wizard) {
   margin: 0 0 4px;
 }
 .step p { margin: 0 0 8px; font-size: 16px; line-height: 16px; }
-.step code {
+/* Inline <code> reads as a little sunken monospace chip everywhere in the
+   wizard (headings included) — the boxed treatment is what signals "this
+   is a filename / literal", the font is already monospace. Scoped to
+   .window.wizard so Build/Play prose (outside a .step) gets it too. */
+.window.wizard code {
   font-family: inherit;
   background: var(--edit-white);
   padding: 0 4px;
   border: 1px solid var(--edit-black);
+}
+/* In an h1 the box would be oversized against the 32px glyphs — keep the
+   chip but let it breathe and not overpower the line. */
+.window.wizard h1 code {
+  padding: 0 6px;
+  background: var(--edit-white);
 }
 .step .explainer { max-width: 900px; margin-bottom: 16px; }
 
@@ -421,6 +437,15 @@ body:has(.window.wizard) {
   background: #1111cc;
   color: var(--edit-white);
 }
+/* A disabled primary must actually READ as disabled — otherwise the blue
+   fill looks identical to the active button. Desaturate to a flat grey and
+   drop the drop-shadow so it visibly can't be pressed. */
+.btn.primary:disabled {
+  background: #9a9a9a;
+  color: #e6e6e6;
+  box-shadow: 4px 4px 0 #7a7a7a;
+}
+.btn.primary:disabled .hot { color: #e6e6e6; }
 
 /* small text utility */
 .small { font-size: 12px !important; line-height: 14px !important; }

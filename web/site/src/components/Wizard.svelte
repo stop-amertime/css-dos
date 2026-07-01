@@ -3,10 +3,10 @@
   // Three bands — a pinned header (main step strip + optional substep dots
   // with a separator), a single scrolling body, and a pinned footer (nav).
   // Only the body scrolls; the tabs and Back/Next stay put.
-  let { strip, subhead, children, nav, wide = false } = $props();
+  let { strip, subhead, children, nav } = $props();
 </script>
 
-<div class="window wizard" class:play-wide={wide}>
+<div class="window wizard">
   <div class="wiz-head">
     {@render strip()}
     {#if subhead}
