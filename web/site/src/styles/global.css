@@ -337,17 +337,42 @@ body:has(.window.wizard) {
   align-content: safe center;
   justify-items: center;
 }
+/* The window is a flex column capped to the viewport: pinned header (step
+   strip + substep dots + separator) and pinned footer (Back/Next) don't
+   move; only the middle band (.wiz-scroll) scrolls. It can be SHORTER than
+   the cap when its content is small — height is content-driven up to the
+   max, so a short page still shows blue desktop above and below. */
 .window.wizard {
   width: 820px;
   max-width: calc(100% - 32px);
   margin: 8px auto;    /* min top/bottom gap */
+  display: flex;
+  flex-direction: column;
+  /* Leave room for the fixed menu bar (top) + status line (bottom) + the
+     body's 16px pads + the window's own 8px margins + drop shadow. */
+  max-height: calc(100vh - 96px);
 }
 .window.wizard.play-wide {
   width: 1180px;
 }
+/* Pinned header: the main step strip + (optional) substep dots. The
+   separator under the substeps is the visual floor of this band. */
+.wiz-head {
+  flex: none;
+}
+.wiz-subhead {
+  border-bottom: 1px solid var(--edit-black);
+}
+/* The one scrolling band. min-height:0 lets it actually shrink inside the
+   flex column (without it, flex children refuse to go below content size
+   and the whole window overflows instead of scrolling). */
+.wiz-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
 .window.wizard .window-body {
   padding: 24px 28px 16px;
-  min-height: 480px;
 }
 
 /* ===== Step content (shared prose/typography for all steps) ===== */
@@ -378,6 +403,7 @@ body:has(.window.wizard) {
 
 /* ===== Wizard nav (Back / Next bar) ===== */
 .wiz-nav {
+  flex: none;
   display: flex;
   align-items: center;
   border-top: 1px solid var(--edit-black);

@@ -2,8 +2,11 @@
   import '../styles/_fragments/about.css';
   import { nav } from '../lib/router.svelte.js';
   import StepDots from '../components/StepDots.svelte';
+  import Wizard from '../components/Wizard.svelte';
   import CssDemo from '../components/CssDemo.svelte';
   import MoonViz from '../components/MoonViz.svelte';
+
+  let { strip, wizNav } = $props();
 
   const SUBPAGES = [
     { label: 'Intro' },
@@ -14,9 +17,12 @@
   ];
 </script>
 
-<section class="step learn-step" data-step="1">
-
+{#snippet subhead()}
   <StepDots variant="sub" items={SUBPAGES} current={nav.sub} onjump={(n) => (nav.sub = n)} />
+{/snippet}
+
+<Wizard {strip} {subhead} nav={wizNav}>
+  <section class="step learn-step" data-step="1">
 
   {#if nav.sub === 1}
     <!-- Intro -->
@@ -171,4 +177,5 @@
     </div>
   {/if}
 
-</section>
+  </section>
+</Wizard>

@@ -3,6 +3,7 @@
   import { nav } from '../lib/router.svelte.js';
   import { build } from '../lib/builder.svelte.js';
   import StepDots from '../components/StepDots.svelte';
+  import Wizard from '../components/Wizard.svelte';
   import CartGrid from '../components/CartGrid.svelte';
   import CustomPanel from '../components/CustomPanel.svelte';
   import RadioGroup from '../components/RadioGroup.svelte';
@@ -30,6 +31,8 @@
   ];
   const SUBDOTS = [{ label: 'Pick a program' }, { label: 'Configure & build' }, { label: 'Cabinet ready' }];
 
+  let { strip, wizNav } = $props();
+
   let hint = $derived(
     build.busy ? 'Building…'
     : build.done ? 'Done. Next: choose how to play.'
@@ -44,30 +47,32 @@
   const showDetail = $derived(build.selectedDetail && !build.selectedDetail.custom);
 </script>
 
-<div class="build-intro">
-  <h1>Build the <code>.css</code> file</h1>
-  <p>
-    CSS can&rsquo;t read files, so the entire computer &mdash; and your
-    program &mdash; has to be baked into one stylesheet. This page builds
-    that file for you, because:
-  </p>
-  <ol class="build-why">
-    <li>Downloading 300&nbsp;MB of CSS text for every program would be annoying.</li>
-    <li>It lets you build a cabinet from your <b>own</b> program.
-      <span class="dim small">(Any DOS program should at least run &mdash; but
-      no guarantees on compatibility.)</span></li>
-  </ol>
-</div>
+{#snippet subhead()}
+  <StepDots
+    variant="sub"
+    items={build.done ? SUBDOTS : SUBDOTS.slice(0, 2)}
+    current={nav.buildSub}
+    onjump={(n) => (nav.buildSub = n)}
+  />
+{/snippet}
 
-<StepDots
-  variant="sub"
-  items={build.done ? SUBDOTS : SUBDOTS.slice(0, 2)}
-  current={nav.buildSub}
-  onjump={(n) => (nav.buildSub = n)}
-/>
-
+<Wizard {strip} {subhead} nav={wizNav}>
 {#if nav.buildSub === 1}
   <div class="subpage">
+    <div class="build-intro">
+      <h1>Build the <code>.css</code> file</h1>
+      <p>
+        CSS can&rsquo;t read files, so the entire computer &mdash; and your
+        program &mdash; has to be baked into one stylesheet. This page builds
+        that file for you, because:
+      </p>
+      <ol class="build-why">
+        <li>Downloading 300&nbsp;MB of CSS text for every program would be annoying.</li>
+        <li>It lets you build a cabinet from your <b>own</b> program.
+          <span class="dim small">(Any DOS program should at least run &mdash; but
+          no guarantees on compatibility.)</span></li>
+      </ol>
+    </div>
     <CartGrid />
     {#if showDetail}
       <div class="cart-detail">
@@ -145,3 +150,4 @@
     {#if build.cabinetBlob}<SourceViewer blob={build.cabinetBlob} />{/if}
   </div>
 {/if}
+</Wizard>

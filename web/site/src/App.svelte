@@ -31,7 +31,7 @@
   <span class="menu-title">CSS-DOS SETUP</span>
 </div>
 
-<div class="window wizard" class:play-wide={nav.step === 3}>
+{#snippet strip()}
   <StepDots
     variant="strip"
     items={STRIP}
@@ -39,17 +39,9 @@
     onjump={(n) => nav.jump(n)}
     disabled={(n) => n === 3 && !build.done}
   />
+{/snippet}
 
-  <div class="window-body">
-    {#if nav.step === 1}
-      <About />
-    {:else if nav.step === 2}
-      <Build />
-    {:else}
-      <Play />
-    {/if}
-  </div>
-
+{#snippet wizNav()}
   <div class="wiz-nav">
     <button class="btn" disabled={nav.atStart} onclick={() => nav.prev()}>
       « <span class="hot">B</span>ack
@@ -59,7 +51,15 @@
       <span class="hot">{nextLabel[0]}</span>{nextLabel[1]}
     </button>
   </div>
-</div>
+{/snippet}
+
+{#if nav.step === 1}
+  <About {strip} {wizNav} />
+{:else if nav.step === 2}
+  <Build {strip} {wizNav} />
+{:else}
+  <Play {strip} {wizNav} />
+{/if}
 
 <div class="status-line">
   <span class="skey"><b>←</b>=Back</span>

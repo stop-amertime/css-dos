@@ -1,7 +1,11 @@
 <script>
   import '../styles/_fragments/play.css';
+  import Wizard from '../components/Wizard.svelte';
+
+  let { strip, wizNav } = $props();
 </script>
 
+<Wizard {strip} nav={wizNav} wide>
 <!-- Play-step intro -->
 <div class="play-intro">
   <h1>Running the <code>.css</code> file</h1>
@@ -95,3 +99,4 @@
     </p>
   </a>
 </div>
+</Wizard>
