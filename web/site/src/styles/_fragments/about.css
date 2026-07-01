@@ -1,0 +1,226 @@
+/* about.css — the Learn / About step (STEP 1). Carved from assets/wizard.css.
+   EXCLUDES the CSS code-flicker demo (css-demo.css) and the earth–moon
+   visual (moon-viz.css), which have their own fragments.
+
+   NOTE: the base .hero-row / .hero-logo / .hero-text / .bullets /
+   .hero-machine rules are the old wide-hero primitives from the Welcome
+   step; the current Learn markup uses .intro-hero, but the
+   `.learn-step .hero-row` overrides below still cascade off these base
+   rules, so they are kept here (about-step scoped). */
+
+/* The boxed look is for inline <code> in prose only. Inside the Learn
+   code widgets, <code> sits in a styled <pre> and must be plain.
+   (.css-demo-code lives in css-demo.css; this side is about-owned.) */
+.byte-example code {
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+/* ===== Step 1 — Welcome (base hero primitives) ===== */
+.hero-row {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 24px;
+  align-items: start;
+  margin-bottom: 24px;
+}
+.hero-logo {
+  background: var(--edit-white);
+  border: 1px solid var(--edit-black);
+  box-shadow: 4px 4px 0 var(--edit-black);
+  padding: 12px;
+}
+.hero-logo img {
+  width: 128px;
+  height: 128px;
+  display: block;
+  image-rendering: pixelated;
+}
+.hero-text .lede { font-size: 16px; line-height: 16px; margin-bottom: 16px; }
+.bullets { list-style: none; margin: 16px 0 0; padding: 0; }
+.bullets li { margin-bottom: 4px; }
+.bullets .ok { color: var(--edit-red); margin-right: 8px; }
+.hero-machine {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+  align-items: center;
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+  padding: 12px;
+}
+.hero-machine img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border: 1px solid var(--edit-black);
+}
+.hero-machine .caption {
+  margin: 0;
+  font-size: 16px;
+  line-height: 16px;
+  color: var(--edit-black);
+}
+
+/* ===== Step 1 — Learn (sub-pages + widgets) ===== */
+
+/* Compact hero on Learn sub-page 1 — logo beside the heading, sized for
+   the narrow reading column (independent of the old wide-hero grid). */
+.learn-step .hero-row {
+  grid-template-columns: 96px 1fr;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.learn-step .hero-logo { padding: 8px; }
+.learn-step .hero-logo img { width: 80px; height: 80px; }
+.learn-step .hero-text h1 { margin-bottom: 6px; }
+
+/* Intro sub-page — logo beside the text, centred within the gray
+   window-body. Only this sub-page fills the body height; the others keep
+   their natural top-aligned flow. (window-body min-height 480 − 40 pad.) */
+.subpage-intro {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 420px;
+}
+/* `display: flex` defeats the `hidden` attribute — re-hide explicitly so
+   the intro hero only shows on sub-page 1. */
+.subpage-intro[hidden] { display: none; }
+.intro-hero {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 28px;
+}
+.intro-logo {
+  background: var(--edit-white);
+  border: 1px solid var(--edit-black);
+  box-shadow: 4px 4px 0 var(--edit-black);
+  padding: 12px;
+}
+.intro-logo img {
+  width: 128px;
+  height: 128px;
+  display: block;
+  image-rendering: pixelated;
+}
+.intro-hero h1 {
+  font-size: 40px;
+  line-height: 40px;
+  margin-bottom: 16px;
+}
+.intro-hero .lede {
+  font-size: 16px;
+  line-height: 20px;
+  margin-bottom: 10px;
+}
+.intro-hero .intro-claim {
+  margin: 14px 0 6px;
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: bold;
+}
+.intro-hero .fn-ref {
+  color: var(--edit-red);
+  text-decoration: none;
+  vertical-align: super;
+  font-size: 12px;
+}
+.intro-hero .intro-fn {
+  margin: 0;
+  color: #555;
+  line-height: 14px;
+}
+
+.learn-step .placeholder-note {
+  color: var(--edit-red);
+  font-style: italic;
+}
+.punchline {
+  margin-top: 16px !important;
+  border-left: 4px solid var(--edit-red);
+  padding-left: 12px;
+  line-height: 18px !important;
+}
+
+/* — cross / sim lists — */
+.cross-list, .sim-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+.cross-list li, .sim-list li { margin-bottom: 6px; line-height: 16px; }
+.cross-list .no { color: var(--edit-red); margin-right: 8px; }
+.sim-list .ok { color: #006600; margin-right: 8px; }
+
+.ext-link-box {
+  border: 1px dashed var(--edit-black);
+  background: var(--edit-white);
+  padding: 10px 14px;
+  margin: 16px 0;
+}
+.ext-link-box p { margin: 0; }
+
+/* — Credits sub-page — */
+.credits-head {
+  margin: 18px 0 8px;
+  font-size: 16px;
+  line-height: 16px;
+  color: var(--edit-black);
+  border-bottom: 1px solid var(--edit-black);
+  padding-bottom: 4px;
+}
+.credits-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.credits-list li {
+  position: relative;
+  padding-left: 20px;
+  margin-bottom: 10px;
+  font-size: 16px;
+  line-height: 19px;
+}
+.credits-list li::before {
+  content: '>';
+  position: absolute;
+  left: 0;
+  color: var(--edit-red);
+}
+
+/* — byte-for-byte RAM example — */
+.byte-example {
+  margin: 8px 0;
+  padding: 12px 16px;
+  background: var(--edit-black);
+  color: #55ff55;
+  border: 1px solid var(--edit-black);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 18px;
+  white-space: pre;
+  overflow-x: auto;
+}
+.byte-example .tok-comment { color: #888; }
+.byte-example .tok-prop { color: var(--edit-cyan); }
+.byte-example .tok-num { color: var(--edit-yellow); }
+
+/* — external-link styling used in the about prose — */
+/* NOTE: .ext-link is ALSO used in the Play step (see play.css); this same
+   rule is duplicated there. Kept here because the task assigns .ext-link to
+   about; if these fragments are ever concatenated, dedupe one copy. */
+.ext-link {
+  color: var(--edit-blue);
+  text-decoration: underline;
+}
+.ext-link:hover { color: var(--edit-red); }
+
+/* ===== responsive (about-step heroes) — split out of wizard.css's
+   combined `.hero-row, .hero-machine, .machine-row` rule ===== */
+@media (max-width: 900px) {
+  .hero-row, .hero-machine { grid-template-columns: 1fr; }
+}

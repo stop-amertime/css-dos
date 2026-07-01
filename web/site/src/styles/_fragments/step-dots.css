@@ -1,0 +1,70 @@
+/* step-dots.css — the numbered top breadcrumb strip (.step-strip) AND the
+   Learn sub-page dot indicator (.subdots). Carved from assets/wizard.css. */
+
+/* ===== Step breadcrumb strip ===== */
+.step-strip {
+  display: flex;
+  list-style: none;
+  background: var(--edit-gray);
+  border-bottom: 1px solid var(--edit-black);
+  padding: 0;
+}
+.step-strip li {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 16px;
+  line-height: 16px;
+  color: var(--edit-black);
+  border-right: 1px solid var(--edit-black);
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.step-strip li:last-child { border-right: none; }
+.step-strip li .num { color: var(--edit-red); margin-right: 4px; }
+.step-strip li.current { background: var(--edit-black); color: var(--edit-white); }
+.step-strip li.current .num { color: var(--edit-yellow); }
+.step-strip li.done { background: #666; color: var(--edit-white); }
+.step-strip li.done .num { color: var(--edit-yellow); }
+.step-strip li.disabled { cursor: not-allowed; opacity: 0.6; }
+
+/* ===== Sub-page dot indicator ===== */
+.subdots {
+  display: flex;
+  gap: 8px;
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+  flex-wrap: wrap;
+}
+.subdots li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  line-height: 16px;
+  color: #666;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 10px 4px 8px;
+  border: 1px solid transparent;
+}
+.subdots li .dot {
+  width: 10px; height: 10px;
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+  display: inline-block;
+}
+.subdots li.done .dot { background: #666; }
+.subdots li.current {
+  color: var(--edit-black);
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+}
+.subdots li.current .dot { background: var(--edit-red); }
+.subdots li + li::before {
+  content: '\2192';
+  color: #999;
+  margin-right: 2px;
+}

@@ -1,0 +1,45 @@
+/* UNPLACED.css — selectors from assets/site.css / assets/wizard.css that
+   didn't clearly belong to any single component fragment.
+
+   RESULT: none. Every selector in both source files was placed. This file
+   is intentionally empty of rules; it's kept as the audit record that the
+   carve was exhaustive.
+
+   Placement decisions worth recording (not "unplaced", just judgement
+   calls the port spec didn't pin down exactly):
+
+   - `.step`, `.step h1/h3/p/code`, `.step .explainer`, `.wiz-nav*`,
+     `.btn.primary*`, `.small`, `.wizard-hidden`, `.window.wizard*`, and the
+     whole site.css global layer went into ../global.css (shared chrome /
+     typography used by every step), not into a component fragment.
+
+   - `.ext-link` / `.ext-link:hover` live in about.css. They are ALSO used
+     by the Play step; play.css documents the dependency instead of holding
+     a second live copy.
+
+   - `.hero-row/.hero-logo/.hero-text/.bullets/.hero-machine` (the old wide
+     Welcome hero) are in about.css because `.learn-step .hero-row` cascades
+     off them; the current Learn markup uses `.intro-hero` (also in
+     about.css).
+
+   - wizard.css's combined responsive rules
+     (`.hero-row, .hero-machine, .machine-row` and the single 900px block
+     covering cart-grid / play-grid / pipeline) were split so each
+     component fragment carries only its own breakpoint. See the
+     `@media` block at the end of about.css, build.css, cart-grid.css,
+     play.css, and pipeline.css.
+
+   Spec-named classes that DO NOT (yet) exist in the source CSS, so no rule
+   could be carved for them — flagged here so the port doesn't assume they
+   were dropped:
+     - Play redesign: .play-intro, .cheat-box/.cheat-q/.cheat-a/.cheat-body/
+       .cheat-list, .run-options, .run-opt (+.run-raw/.run-calcite/head/sub/
+       warn/rec). Only .warn-glyph exists (under .warning-box, in play.css).
+     - Build: .build-hint, .boot-mode-row, .build-row. (`#build-hint` is a
+       plain <span class="dim small"> in the markup with no dedicated rule.)
+     - .result-info is a plain container in the markup with no CSS rule of
+       its own (the layout comes from .result-row, in build.css).
+     - .custom-cover / .cart-detail named in the spec map to the actual
+       classes .cart-cover-custom / .cart-body+.cart-name+.cart-desc, which
+       are in cart-grid.css.
+*/

@@ -1,0 +1,184 @@
+/* cart-grid.css — the Build-step cart picker: the decorative PC-box card
+   grid, the per-card cover/placeholder/detail, and the custom-program
+   upload panel. Carved from assets/wizard.css, PLUS the hidden #cart-list
+   radio rules from assets/site.css (the real radios build.js writes to,
+   which the visible grid mirrors). */
+
+/* cart grid — PC-box ratio, big title, small desc */
+.cart-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.cart-card {
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+  box-shadow: 4px 4px 0 var(--edit-black);
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+}
+.cart-card:hover { background: #ddddff; }
+.cart-card.selected {
+  background: var(--edit-black);
+  color: var(--edit-yellow);
+}
+.cart-card.selected:hover { background: var(--edit-black); }
+.cart-card.selected .cart-name,
+.cart-card.selected .cart-desc,
+.cart-card.selected .cart-meta { color: var(--edit-yellow); }
+
+.cart-cover {
+  /* PC-game-box ratio: ~3:4 portrait */
+  aspect-ratio: 3 / 4;
+  background: var(--edit-black);
+  border-bottom: 1px solid var(--edit-black);
+  overflow: hidden;
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+}
+.cart-cover img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
+  display: block;
+}
+.cart-cover-placeholder {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-family: inherit;
+  text-align: center;
+  padding: 12px;
+  gap: 8px;
+}
+.cart-cover-placeholder .ph-name {
+  font-size: 28px;
+  line-height: 28px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.cart-cover-placeholder .ph-sub {
+  font-size: 14px;
+  line-height: 14px;
+  opacity: 0.75;
+}
+/* Custom card — big question-mark cover. */
+.cart-cover-custom .ph-glyph {
+  font-size: 96px;
+  line-height: 1;
+  font-weight: bold;
+}
+.cart-body {
+  padding: 8px 10px;
+  display: flex; flex-direction: column;
+  gap: 4px;
+}
+.cart-name {
+  font-size: 16px;
+  line-height: 18px;
+  color: var(--edit-black);
+}
+.cart-desc {
+  font-size: 12px;
+  line-height: 14px;
+  color: #444;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 42px;
+}
+.cart-meta {
+  font-size: 12px;
+  line-height: 14px;
+  color: var(--edit-red);
+  margin-top: 4px;
+}
+
+/* Custom-program upload panel — surfaced only when the Custom card is
+   selected. A substantial bordered panel, not a one-line link. */
+.custom-panel {
+  margin-top: 16px;
+  border: 2px solid var(--edit-black);
+  background: var(--edit-white);
+  box-shadow: 4px 4px 0 var(--edit-black);
+  padding: 16px 20px 18px;
+}
+.custom-panel-head {
+  font-size: 16px;
+  line-height: 16px;
+  color: var(--edit-black);
+  margin-bottom: 8px;
+}
+.custom-panel-lede {
+  font-size: 14px;
+  line-height: 18px;
+  color: #333;
+  margin: 0 0 14px;
+}
+.custom-drop {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.custom-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  padding: 20px 12px;
+  border: 1px dashed var(--edit-black);
+  background: var(--edit-gray);
+  cursor: pointer;
+  user-select: none;
+}
+.custom-choice:hover { background: #ddddff; }
+.custom-choice-glyph { font-size: 40px; line-height: 1; }
+.custom-choice-title { font-size: 16px; line-height: 16px; color: var(--edit-black); }
+.custom-choice-sub { font-size: 12px; line-height: 12px; color: #555; }
+.custom-selected {
+  margin: 14px 0 0;
+  font-size: 14px;
+  line-height: 16px;
+  color: var(--edit-black);
+}
+.cart-selected-line { margin-top: 12px; }
+
+/* ── Hidden #cart-list radios (from site.css) — the real radio list
+   build.js populates; the visible .cart-grid mirrors it. ── */
+.cart-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0 16px;
+  max-height: calc(16px * 12);
+  overflow-y: auto;
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+  padding: 4px 8px;
+}
+.cart-list .radio {
+  height: 16px;
+  line-height: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cart-list .radio .label-text {
+  color: var(--edit-black);
+}
+.cart-list .radio .label-desc {
+  color: #555;
+  margin-left: 8px;
+}
+
+/* ===== responsive — split out of wizard.css's cart-grid breakpoints ===== */
+@media (max-width: 1100px) {
+  .cart-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 900px) {
+  .cart-grid { grid-template-columns: repeat(2, 1fr); }
+}

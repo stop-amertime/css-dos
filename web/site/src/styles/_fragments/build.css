@@ -1,0 +1,202 @@
+/* build.css — the Build step (STEP 2) container bits. Carved from
+   assets/wizard.css and assets/site.css.
+
+   Progress-bar internals (.build-progress .bar / fill / meta / log and the
+   #stages list) live in build-progress.css. The cart card grid + custom
+   upload panel live in cart-grid.css. The result floppy graphic lives in
+   result-floppy.css. This file keeps the intro, machine/config,
+   build-block chrome, #build-progress-wrap layout wrapper, result-row
+   layout, and the source viewer (+ its Prism token overrides). */
+
+/* ===== Build-step intro ===== */
+.build-intro { margin-bottom: 20px; }
+.build-intro h1 { margin-bottom: 10px; }
+.build-intro p { font-size: 16px; line-height: 19px; margin: 0 0 10px; }
+.build-why {
+  margin: 0;
+  padding-left: 24px;
+}
+.build-why li {
+  font-size: 16px;
+  line-height: 19px;
+  margin-bottom: 8px;
+}
+
+/* ===== build-block — the numbered "01 Pick a program" panels ===== */
+.build-block {
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+  padding: 0;
+  margin-bottom: 16px;
+}
+.build-block > .block-body {
+  padding: 12px 16px;
+}
+.block-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  border-bottom: 1px solid var(--edit-black);
+  padding: 4px 16px;
+  background: var(--edit-gray);
+}
+.block-num {
+  background: var(--edit-black);
+  color: var(--edit-yellow);
+  padding: 0 6px;
+  font-size: 16px;
+  line-height: 16px;
+}
+.block-title { font-size: 16px; line-height: 16px; color: var(--edit-black); }
+
+/* ===== machine row — IBM PC photo + specs + advanced ===== */
+.machine-row {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+.machine-photo {
+  border: 1px solid var(--edit-black);
+  background: var(--edit-black);
+  padding: 6px;
+  text-align: center;
+}
+.machine-photo img {
+  width: 100%; height: auto;
+  display: block;
+  image-rendering: pixelated;
+}
+.machine-photo-caption {
+  color: var(--edit-yellow);
+  font-size: 16px;
+  line-height: 16px;
+  margin-top: 6px;
+}
+.spec-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+}
+.spec-table th, .spec-table td {
+  text-align: left;
+  font-size: 16px;
+  line-height: 16px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--edit-black);
+  vertical-align: top;
+}
+.spec-table th {
+  background: var(--edit-blue);
+  color: var(--edit-white);
+  width: 110px;
+  font-weight: normal;
+}
+.spec-table td { background: var(--edit-white); }
+
+/* advanced details */
+details.advanced {
+  border: 1px solid var(--edit-black);
+  background: var(--edit-gray);
+  margin-top: 8px;
+}
+details.advanced > summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  padding: 6px 10px;
+  background: var(--edit-gray);
+  color: var(--edit-black);
+  font-size: 16px;
+  line-height: 16px;
+}
+details.advanced > summary::-webkit-details-marker { display: none; }
+details.advanced[open] > summary { border-bottom: 1px solid var(--edit-black); }
+details.advanced[open] > summary .adv-glyph::before { content: '[-]'; }
+details.advanced .adv-glyph { color: var(--edit-red); margin-right: 6px; }
+details.advanced .adv-glyph::before { content: '[+]'; }
+details.advanced .advanced-body {
+  padding: 12px;
+  background: var(--edit-gray);
+}
+details.advanced .advanced-body .row:last-child { margin-bottom: 0; }
+
+/* ===== build-progress wrapper (layout only; bar/log internals live in
+   build-progress.css) ===== */
+#build-progress-wrap { margin-top: 12px; }
+
+/* ===== result row + info ===== */
+.result-row {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 24px;
+  align-items: center;
+  border: 1px solid var(--edit-black);
+  background: var(--edit-gray);
+  padding: 16px;
+}
+
+/* ===== Result section links (from site.css) ===== */
+#result .row a.btn { color: var(--edit-black); }
+
+/* ===== Source viewer — terminal black/green, like a `TYPE` redirect ===== */
+.pager-info {
+  color: var(--edit-black);
+  margin-bottom: 4px;
+}
+.pager-controls { margin-bottom: 8px; }
+.page-jump-input { width: 64px; text-align: right; }
+
+.source-pre {
+  height: 400px;
+  overflow: auto;
+  white-space: pre;
+  font-family: 'WebVGA', 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  font-size: 16px;
+  line-height: 16px;
+  background: var(--edit-black);
+  color: #55ff55;
+  padding: 8px;
+  border: 1px solid var(--edit-black);
+  overflow-x: auto;
+}
+
+/* Prism token colours, tuned to the green-terminal background. */
+.source-pre code[class*="language-"] { font: inherit; color: inherit; background: transparent; }
+.source-pre .token.comment     { color: #aaaaaa; }
+.source-pre .token.selector,
+.source-pre .token.atrule      { color: #55ff55; }
+.source-pre .token.property    { color: #aaffaa; }
+.source-pre .token.function    { color: #55ffff; }
+.source-pre .token.string,
+.source-pre .token.url         { color: #ffff55; }
+.source-pre .token.number,
+.source-pre .token.unit,
+.source-pre .token.hexcode     { color: #ffaa55; }
+.source-pre .token.punctuation { color: #55aa55; }
+.source-pre .token.important,
+.source-pre .token.keyword     { color: #ff55ff; font-weight: bold; }
+.source-pre .token.variable    { color: #55aaff; }
+
+/* The paginated source viewer — same green-on-black look as build.html,
+   shown directly in the result panel (no longer behind a dropdown).
+   Smaller text so more of the dense cabinet CSS fits on screen. */
+.window.wizard #source-pre {
+  height: 960px;
+  font-size: 11px;
+  line-height: 13px;
+}
+.source-viewer-block { margin-top: 16px; }
+.source-viewer-head {
+  margin: 0 0 8px;
+  font-size: 16px;
+  line-height: 16px;
+  color: var(--edit-black);
+}
+
+/* ===== responsive (Build-step grids) — split out of wizard.css's
+   combined `.hero-row, .hero-machine, .machine-row` / `.result-row` rule ===== */
+@media (max-width: 900px) {
+  .machine-row { grid-template-columns: 1fr; }
+  .result-row { grid-template-columns: 1fr; text-align: center; }
+}
