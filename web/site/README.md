@@ -1,0 +1,71 @@
+# web/site — the CSS-DOS website
+
+Svelte 5 (runes) single-page app: the landing page + the cart→cabinet
+build wizard + the Play/player launcher. Builds to a **plain static
+`dist/`** that runs on any header-capable static host — no Node server
+at runtime.
+
+## Run it
+
+```sh
+npm run dev        # from the repo root — starts Vite on :5173
+npm run site:build # from the repo root — static build into web/site/dist/
+# or, from web/site/:
+npm run dev | npm run build | npm run preview
+```
+
+Set `CALCITE_REPO` when running from a worktree so the freshly-built
+calcite WASM is picked up (else the vendored `web/vendor/calcite-pkg/`
+copy is served). See the repo `CLAUDE.md`.
+
+## How it hangs together
+
+- **`src/`** — the app. `lib/builder.svelte.js` (`Build` class, `$state`)
+  and `lib/router.svelte.js` (`Nav` class) back the UI reactively;
+  `routes/` are the three wizard steps, `components/` the shared pieces.
+  Hash routing (`#about`/`#build`/`#play`) so refresh/deep-links work.
+- **The build runs in the browser.** `builder.svelte.js` imports the
+  `/browser-builder/main.mjs` graph as native ESM and calls
+  `buildCabinetInBrowser(...)` — the same kiln/builder code the Node
+  path uses, producing a byte-identical cabinet.
+
+## Static hosting — the one thing to understand
+
+The app fetches a set of files at **root-absolute URLs** that Vite does
+NOT bundle: the browser-builder ESM graph (+ its `kiln/`, `builder/`,
+`tools/` reach), `presets/`, `assets/dos/`, `prebake/`, `shim/`,
+`player/`, `calcite/pkg/` (WASM), and `carts/`. These live outside
+`web/site/`, so they can't just sit in `public/`.
+
+`scripts/runtime-assets.mjs` is the **single source of truth**: a
+`RUNTIME_COPIES` table mapping each URL prefix to its on-disk dir.
+`vite.config.js` uses it two ways so **dev and prod fetch identical
+URLs**:
+
+- **dev** — a middleware serves the table off disk (with COOP/COEP).
+- **build** — `closeBundle` copies the table into `dist/`, then emits:
+  - `carts/index.json` — `[{name, files, program}]`, the cart directory
+    listing a static host won't give the browser. Adding a cart needs a
+    rebuild.
+  - `vercel.json` + `_headers` — COOP/COEP so `SharedArrayBuffer` (hence
+    the calcite WASM engine) works. **The host must send these headers**;
+    a plain file host without header support won't run the player.
+
+The browser-builder import is marked Rollup-external (copied, not
+bundled — avoids its CLI shebang / Node-shaped files). The one shebang
+(`tools/mkfat12.mjs`) is stripped on both serve and copy.
+
+## Featured carts
+
+A cart appears on the landing grid by declaring `display.cover` in its
+`program.json` (name/description come from there too). See
+`docs/cart-format.md`.
+
+## Legacy (being retired)
+
+`build.html`, `split.html`, `index.old.html`, `assets/*.js|*.css`, and
+`web/scripts/dev.mjs` are the pre-Svelte site + its dev server. They're
+kept only because `web/tests/kbd-e2e.playwright.mjs` and
+`compile-phase-capture.playwright.mjs` still drive the old DOM
+(`npm run dev:legacy` serves them). Migrating those two harnesses to the
+Svelte `/build` route is the prerequisite for deleting the old site.
