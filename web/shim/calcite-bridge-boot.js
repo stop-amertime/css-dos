@@ -16,10 +16,25 @@
     const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
     await navigator.serviceWorker.ready;
 
+    // Verbose logging (per-frame runtime stats + video-mode traces) is off
+    // by default so the console stays clean during compile + play. Opt in
+    // with ?bridgeDebug in the URL or localStorage 'cssdos-bridge-debug'.
+    let verbose = false;
+    try {
+      verbose = new URLSearchParams(location.search).has('bridgeDebug')
+        || localStorage.getItem('cssdos-bridge-debug') === '1';
+    } catch {}
+
     const bridge = new Worker('/shim/calcite-bridge.js', { type: 'module' });
     bridge.addEventListener('message', (ev) => {
       const d = ev.data;
-      if (d && d.type === 'status') {
+      if (!d) return;
+      // 'status' = lifecycle (boot / compiling / compiled / errors) — always
+      // shown, a handful per session. 'stats' = 1 Hz fps line, 'debug' =
+      // per-frame / mode-change traces — verbose only.
+      if (d.type === 'status') {
+        console.log('[calcite-bridge]', d.message);
+      } else if (verbose && (d.type === 'stats' || d.type === 'debug')) {
         console.log('[calcite-bridge]', d.message);
       }
     });

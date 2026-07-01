@@ -303,6 +303,14 @@ function postStatus(msg) {
   self.postMessage({ type: 'status', message: msg });
 }
 
+// Verbose per-frame / per-mode-change diagnostics. Sent as type:'debug' so
+// the boot shim keeps them out of the console unless verbose logging is on
+// (?bridgeDebug or localStorage cssdos-bridge-debug). Keeps the console
+// clean during compile + play without losing the traces when you want them.
+function postDebug(msg) {
+  self.postMessage({ type: 'debug', message: msg });
+}
+
 // ---------- Tick loop ----------
 
 function tickLoop() {
@@ -474,10 +482,10 @@ let _dbgLast = '';
 let _dbgSame = 0;
 function dbgFrame(line) {
   if (line === _dbgLast) { _dbgSame++; return; }
-  if (_dbgSame > 0) postStatus(`  (repeated ${_dbgSame}x) ${_dbgLast}`);
+  if (_dbgSame > 0) postDebug(`  (repeated ${_dbgSame}x) ${_dbgLast}`);
   _dbgSame = 0;
   _dbgLast = line;
-  postStatus(line);
+  postDebug(line);
 }
 
 // Mode-history log. Whenever the active mode, the last-requested mode
@@ -492,20 +500,20 @@ function traceVideoState(activeMode, reqMode, palReg) {
   const cycles = engine.get_state_var('cycleCount') >>> 0;
   if (activeMode !== _lastActiveMode) {
     const name = modeName(activeMode);
-    postStatus(`[video @cyc ${cycles.toLocaleString()}] active mode → 0x${activeMode.toString(16).padStart(2,'0')} (${name})`);
+    postDebug(`[video @cyc ${cycles.toLocaleString()}] active mode → 0x${activeMode.toString(16).padStart(2,'0')} (${name})`);
     _lastActiveMode = activeMode;
   }
   if (reqMode !== _lastReqMode && reqMode !== 0) {
     const name = modeName(reqMode);
     const remapped = reqMode !== activeMode ? ` — REMAPPED (active=0x${activeMode.toString(16)})` : '';
-    postStatus(`[video @cyc ${cycles.toLocaleString()}] requested → 0x${reqMode.toString(16).padStart(2,'0')} (${name})${remapped}`);
+    postDebug(`[video @cyc ${cycles.toLocaleString()}] requested → 0x${reqMode.toString(16).padStart(2,'0')} (${name})${remapped}`);
     _lastReqMode = reqMode;
   }
   if (palReg !== _lastPalReg) {
     const bg = palReg & 0x0F;
     const intensity = (palReg >> 4) & 1;
     const palSet = (palReg >> 5) & 1;
-    postStatus(`[video @cyc ${cycles.toLocaleString()}] pal-reg 0x04F3 → 0x${palReg.toString(16).padStart(2,'0')} (bg=${bg} intensity=${intensity} palette=${palSet})`);
+    postDebug(`[video @cyc ${cycles.toLocaleString()}] pal-reg 0x04F3 → 0x${palReg.toString(16).padStart(2,'0')} (bg=${bg} intensity=${intensity} palette=${palSet})`);
     _lastPalReg = palReg;
   }
 }
@@ -624,12 +632,17 @@ function startStatsInterval() {
     const delta = frameCount - lastReportFrames;
     lastReportFrames = frameCount;
     const cycles = engine ? (engine.get_state_var('cycleCount') >>> 0) : 0;
-    postStatus(
-      `[${BRIDGE_VERSION}] ${delta} fps | cycles ${cycles.toLocaleString()} ` +
-      `| size ${(lastFrameBytes/1024).toFixed(0)}KB ` +
-      `| batch ${batchMsEma.toFixed(1)}ms (${batchCount} cyc) ` +
-      `| mode=0x${engine ? engine.get_video_mode().toString(16) : '?'}`
-    );
+    // Recurring 1 Hz runtime stats. Sent as type:'stats' (not 'status') so
+    // the boot shim can keep it out of the console by default — it was the
+    // main source of per-frame log spam. Verbose mode surfaces it.
+    self.postMessage({
+      type: 'stats',
+      message:
+        `[${BRIDGE_VERSION}] ${delta} fps | cycles ${cycles.toLocaleString()} ` +
+        `| size ${(lastFrameBytes/1024).toFixed(0)}KB ` +
+        `| batch ${batchMsEma.toFixed(1)}ms (${batchCount} cyc) ` +
+        `| mode=0x${engine ? engine.get_video_mode().toString(16) : '?'}`,
+    });
     if (benchChannel) {
       try {
         const ticks = engine && engine.get_tick ? (engine.get_tick() >>> 0) : 0;
