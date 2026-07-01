@@ -65,8 +65,21 @@ proven by the A/B).
    press-any-key dialogs at boot — see LOGBOOK 2026-06-12).
    Smoke set runs 6 carts while montezuma is deleted on disk.
    Final lineup, smoke-list update + website presentation pass are
-   owner-collab.
-2. **Raw player paintable — LANDED 2026-06-30.** `raw.html` now
+   owner-collab. (Website itself now a Svelte 5 static app — see
+   below.)
+2. **Website Svelte 5 static port — LANDED 2026-07-01 (master
+   `ad3c3e0`).** `web/site/` is now a Svelte 5 (runes) app that
+   `vite build`s to a plain static `dist/` (Vercel/Netlify/CF Pages;
+   host must send COOP/COEP — emitted as `vercel.json`/`_headers`).
+   No runtime dev server: one `RUNTIME_COPIES` table
+   (`web/site/scripts/runtime-assets.mjs`) drives dev-serve + build-copy
+   of the browser-builder ESM graph, kiln/builder/tools, presets,
+   dos/bin, prebake, shim, player, calcite WASM, carts. Root
+   `npm run dev`→Vite; `dev:legacy`→old `web/scripts/dev.mjs`, still
+   needed by the two old-DOM Playwright harnesses. Old site files
+   (`build.html`/`split.html`/`assets/*.js`) NOT yet deleted (would
+   break those harnesses). See LOGBOOK 2026-07-01, `web/site/README.md`.
+3. **Raw player paintable — LANDED 2026-06-30.** `raw.html` now
    mirrors `calcite.html` chrome (derived by `raw-regen.mjs`) with a
    64,000-element CSS pixel grid in place of the `<img>`; new
    `kiln/pixels.mjs` paints each Mode 13h pixel from the framebuffer
@@ -77,15 +90,15 @@ proven by the A/B).
    a concurrent session). Escape hatch if compile time regresses: a
    build flag gating `emitPixelPaintRules()` (~5 lines). See LOGBOOK
    2026-06-30.
-3. **Per-dispatch-key specialisation** — structurally upstream of
+4. **Per-dispatch-key specialisation** — structurally upstream of
    all perf work; probed on the branch 2026-05-12 (not on `main`).
    Plan: `../plans/2026-05-12-per-dispatch-key-specialisation.md`.
-4. **`__I4D` routine substitution** — DEPRIORITISED 2026-06-09: the
+5. **`__I4D` routine substitution** — DEPRIORITISED 2026-06-09: the
    46% figure was guest-cycle-weighted; by ticks (= calcite wall)
    `__I4D` is ~22% and the **EDR-DOS kernel is ~49% of doomLoad**.
    Plan (correction note added):
    `../plans/2026-05-12-routine-semantic-substitution.md`.
-5. **doomLoad kernel side — RESOLVED 2026-06-11.** Characterised to
+6. **doomLoad kernel side — RESOLVED 2026-06-11.** Characterised to
    EDR-DOS routine level (`fatptr` FAT chain walk = 21% of doomLoad
    alone) and fixed via new `disk.sectorsPerCluster` cart option
    (doom8088 → 32, 16K clusters): **doomLoad ticks −68.7%
@@ -230,4 +243,6 @@ shift with anything that moves data.
   NOT exercise the player's real input path (on-screen key → SW →
   bridge → `set_pseudo_class_active`). A dead player keyboard keeps
   every bench green (it did, 5-28→6-12). Real-path coverage:
-  `node web/tests/kbd-e2e.playwright.mjs` (needs dev server).
+  `node web/tests/kbd-e2e.playwright.mjs` (needs the legacy dev
+  server — `npm run dev:legacy` — as it drives the old `build.html`
+  DOM, not the Svelte site).
