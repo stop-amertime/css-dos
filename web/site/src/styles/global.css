@@ -336,6 +336,13 @@ body:has(.window.wizard) {
   grid-template-columns: minmax(0, 1fr);
   align-content: safe center;
   justify-items: center;
+  /* The page itself never scrolls: the dialog caps at the viewport
+     (between the fixed menu/status bars) and .window-body scrolls
+     internally instead. */
+  height: 100dvh;
+  box-sizing: border-box;
+  padding: 17px 0;   /* clear the fixed 16px+1px menu/status bars */
+  overflow: hidden;
 }
 /* The Svelte mount node sits between body and the dialog; without this
    it becomes the grid item, its min-width:auto lets the 820px dialog
@@ -348,13 +355,35 @@ body:has(.window.wizard) {
   width: 820px;
   max-width: calc(100% - 32px);
   margin: 8px auto;    /* min top/bottom gap */
+  /* Fixed height between the bars; the step strip and Back/Next stay
+     pinned while .window-body scrolls. */
+  height: calc(100dvh - 34px - 16px);  /* bars (2×17) + margins (2×8) */
+  display: flex;
+  flex-direction: column;
 }
+.window.wizard > .step-strip,
+.window.wizard > .wiz-nav { flex: none; }
 .window.wizard.play-wide {
   width: 1180px;
 }
 .window.wizard .window-body {
   padding: 24px 28px 16px;
-  min-height: 480px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Keep the sub-page dots visible while the body scrolls beneath them.
+   Full-bleed across the body padding so scrolled content disappears
+   behind a clean grey band. */
+.window.wizard .window-body .subdots {
+  position: sticky;
+  top: -24px;          /* cancel the scroller's padding-top */
+  z-index: 2;
+  background: var(--edit-white);
+  margin: -24px -28px 20px;
+  padding: 12px 28px;
+  border-bottom: 1px solid var(--edit-black);
 }
 
 /* ===== Step content (shared prose/typography for all steps) ===== */
