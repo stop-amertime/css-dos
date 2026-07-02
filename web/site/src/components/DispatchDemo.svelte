@@ -42,7 +42,8 @@
 
   <p class="caption">
     The real tables have an arm for <b>every instruction the 8086
-    knows</b>, for each of 16 registers. Once per tick they all evaluate
-    together &mdash; that <i>is</i> the CPU executing an instruction.
+    knows</b>, for each of its fourteen registers. Once per tick they
+    all evaluate together &mdash; that <i>is</i> the CPU executing an
+    instruction.
   </p>
 </div>
