@@ -27,7 +27,7 @@
 :root {
   /* EGA palette, matching what the cabinets emit. */
   --edit-blue:    #0000aa;   /* desktop background */
-  --edit-gray:    #c8c8c8;   /* dialog fill (lightened from EGA #aaaaaa) */
+  --edit-gray:    #d6d6d6;   /* dialog fill (lightened from EGA #aaaaaa) */
   --edit-black:   #000000;
   --edit-white:   #ffffff;
   --edit-red:     #aa0000;   /* alt accent (Default / Help in EDIT) */
