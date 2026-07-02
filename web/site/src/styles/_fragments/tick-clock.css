@@ -33,6 +33,7 @@
 .tick-code .tok-num     { color: var(--edit-blue); }
 .tick-code .tok-comment { color: #777; }
 .tick-code .tok-sel     { color: #006600; }
+.tick-code .tok-fn      { color: #006600; }
 
 /* — right pane: the four beats — */
 .tick-beats {

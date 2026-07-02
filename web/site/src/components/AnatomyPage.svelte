@@ -57,7 +57,7 @@
   <p>
     You met a working miniature of this on &ldquo;How it
     computes&rdquo;. The real thing just has more arms &mdash; one for
-    every opcode, times fourteen registers. Evaluating them all, once,
+    every opcode, for every register. Evaluating them all, once,
     <i>is</i> executing an instruction.
   </p>
 

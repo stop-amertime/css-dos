@@ -69,3 +69,12 @@
   color: #999;
   margin-right: 2px;
 }
+
+/* Phones: ten labelled dots would stack ~250px tall (and the strip is
+   sticky). Collapse to bare dots; only the current page keeps its label. */
+@media (max-width: 640px) {
+  .subdots { gap: 2px; }
+  .subdots li { padding: 4px 5px; }
+  .subdots li:not(.current) { font-size: 0; gap: 0; }
+  .subdots li + li::before { content: none; }
+}
