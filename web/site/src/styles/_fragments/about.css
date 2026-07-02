@@ -203,7 +203,7 @@
   background: var(--edit-black);
   color: #55ff55;
   border: 1px solid var(--edit-black);
-  font-family: inherit;
+  font-family: 'WebVGA', monospace; letter-spacing: normal;
   font-size: 15px;
   line-height: 18px;
   white-space: pre;

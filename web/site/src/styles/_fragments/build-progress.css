@@ -36,7 +36,7 @@
 
 /* Raw build log — looks like the kernel scrollback in DOS. */
 .log-pre {
-  font-family: inherit;
+  font-family: 'WebVGA', monospace; letter-spacing: normal;
   font-size: 16px;
   line-height: 16px;
   color: var(--edit-black);
@@ -112,7 +112,7 @@
   background: var(--edit-white);
   color: var(--edit-black);
   padding: 4px 8px;
-  font-family: inherit;
+  font-family: 'WebVGA', monospace; letter-spacing: normal;
   font-size: 14px;
   line-height: 14px;
   white-space: pre-wrap;

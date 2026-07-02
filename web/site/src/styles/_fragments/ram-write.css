@@ -13,7 +13,7 @@
 .ram-formula {
   margin: 0;
   padding: 12px 16px;
-  font-family: inherit;
+  font-family: 'WebVGA', monospace; letter-spacing: normal;
   font-size: 15px;
   line-height: 20px;
   color: var(--edit-black);
@@ -78,7 +78,7 @@
 .ram-cell.hit .ram-val { font-weight: bold; }
 
 .ram-write .demo-toggle {
-  font-family: inherit;
+  font-family: 'WebVGA', monospace; letter-spacing: normal;
   font-size: 15px;
   padding: 6px 12px;
   background: var(--edit-white);

@@ -39,7 +39,7 @@
 .sd-gap { width: 14px; }
 
 .sign-demo .demo-toggle {
-  font-family: inherit;
+  font-family: 'WebVGA', monospace; letter-spacing: normal;
   font-size: 15px;
   padding: 3px 9px;
   background: var(--edit-white);

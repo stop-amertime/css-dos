@@ -57,7 +57,12 @@
 html, body { min-height: 100%; }
 
 body {
-  font-family: 'WebVGA', 'Perfect DOS VGA 437', 'Fixedsys', 'Terminal', monospace;
+  /* Site-wide default is the readable remastered face. It ships IBM's
+     9-dot text-mode advance (9px at 16px), so -1px letter-spacing pulls
+     it back onto the 8px grid. Machine-flavoured chrome (bars, buttons,
+     headings, code) is pinned back to the 8x16 bitmap face below. */
+  font-family: 'MorePerfectVGA', 'WebVGA', 'Perfect DOS VGA 437', 'Fixedsys', 'Terminal', monospace;
+  letter-spacing: -1px;
   font-size: 16px;
   line-height: 16px;
   background: var(--edit-blue);
@@ -201,7 +206,7 @@ body {
   padding: 4px 16px;
   min-height: 24px;
   line-height: 16px;
-  font-family: inherit;
+  font-family: 'WebVGA', monospace; letter-spacing: normal;
   font-size: 16px;
   cursor: pointer;
   text-decoration: none;
@@ -247,7 +252,7 @@ input[type="file"] { display: none; }
   background: var(--edit-white);
   color: var(--edit-black);
   border: 1px solid var(--edit-black);
-  font-family: inherit;
+  font-family: 'WebVGA', monospace; letter-spacing: normal;
   font-size: 16px;
   line-height: 16px;
   padding: 0 4px;
@@ -281,7 +286,7 @@ select.field { min-width: 220px; }
 .radio .marker,
 .check .marker {
   display: inline-block;
-  font-family: inherit;
+  font-family: 'WebVGA', monospace; letter-spacing: normal;
   color: var(--edit-black);
   white-space: pre;
 }
@@ -402,7 +407,7 @@ body:has(.window.wizard) {
 /* ===== Step content (shared prose/typography for all steps) ===== */
 .step { color: var(--edit-black); }
 .step h1 {
-  font-family: inherit;
+  font-family: 'WebVGA', monospace; letter-spacing: normal;
   font-size: 32px;
   line-height: 32px;
   font-weight: normal;
@@ -410,19 +415,22 @@ body:has(.window.wizard) {
   letter-spacing: -1px;
 }
 .step h3 {
-  font-family: inherit;
+  font-family: 'WebVGA', monospace; letter-spacing: normal;
   font-size: 16px;
   line-height: 16px;
   font-weight: normal;
   margin: 0 0 4px;
 }
-/* Prose gets the remastered face and taller leading; everything
-   machine-flavoured keeps the tight 8x16 grid. */
-.step p, .step li {
-  font-family: 'MorePerfectVGA', 'WebVGA', monospace;
+/* The machine-flavoured parts keep the tight 8x16 bitmap face: window
+   chrome, navigation, buttons, headings, and everything code-shaped. */
+.menu-bar, .status-line, .title-bar,
+.step-strip, .subdots, .wiz-nav,
+.btn, button, input, select, textarea,
+h1, h2, h3,
+pre, code, kbd {
+  font-family: 'WebVGA', 'Perfect DOS VGA 437', 'Fixedsys', 'Terminal', monospace;
+  letter-spacing: normal;
 }
-/* …but the sub-page dot strip is chrome, not prose. */
-.step .subdots li { font-family: 'WebVGA', monospace; }
 .step p { margin: 0 0 8px; font-size: 16px; line-height: 21px; }
 .step code {
   font-family: 'WebVGA', monospace;

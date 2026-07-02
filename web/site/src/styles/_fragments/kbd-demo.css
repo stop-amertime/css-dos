@@ -26,7 +26,7 @@
 .kbd-code {
   margin: 0;
   padding: 12px 16px;
-  font-family: inherit;
+  font-family: 'WebVGA', monospace; letter-spacing: normal;
   font-size: 15px;
   line-height: 20px;
   color: var(--edit-black);
@@ -55,7 +55,7 @@
 }
 .kbd-keys { display: flex; gap: 8px; }
 .kb-key {
-  font-family: inherit;
+  font-family: 'WebVGA', monospace; letter-spacing: normal;
   font-size: 18px;
   min-width: 44px;
   padding: 10px 12px;

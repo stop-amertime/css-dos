@@ -14,7 +14,7 @@
 .tick-code {
   margin: 0;
   padding: 12px 16px;
-  font-family: inherit;
+  font-family: 'WebVGA', monospace; letter-spacing: normal;
   font-size: 15px;
   line-height: 20px;
   color: var(--edit-black);
