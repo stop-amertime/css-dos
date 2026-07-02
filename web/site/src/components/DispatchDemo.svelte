@@ -41,9 +41,8 @@
   </div>
 
   <p class="caption">
-    This is the processor. For <b>each of the 16 registers</b>, the
-    cabinet has one of these tables with an arm for every instruction
-    the 8086 knows &mdash; a few hundred arms instead of four. Every
-    tick, all 16 evaluate at once, and that is one instruction executed.
+    The real tables have an arm for <b>every instruction the 8086
+    knows</b>, for each of 16 registers. Once per tick they all evaluate
+    together &mdash; that <i>is</i> the CPU executing an instruction.
   </p>
 </div>

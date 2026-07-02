@@ -142,20 +142,19 @@
     <div class="subpage" data-subpage="5">
       <h1>The screen &amp; the keys</h1>
       <p>
-        CSS can&rsquo;t draw pixels. It <i>can</i> colour elements. So the
-        screen is built from <b>one &lt;div&gt; per pixel</b>, each with
-        its own rule: read my byte of video memory, look that number up
-        in the colour palette, set my <code>background-color</code>.
+        CSS can&rsquo;t draw pixels &mdash; but it can colour elements.
+        So the screen is <b>one &lt;div&gt; per pixel</b>, each painted
+        by its own rule:
       </p>
 
       <PixelScreen />
 
       <h3 class="anatomy-head">The keys</h3>
       <p>
-        Input has the same problem: CSS has no keyboard events. But it
-        does have <b><code>:active</code></b> &mdash; &ldquo;is this
-        element currently being pressed?&rdquo; So the player shows
-        on-screen keys, and pressing one flips a CSS variable:
+        Input has no events either. What CSS <i>can</i> ask is
+        <b><code>:active</code></b> &mdash; &ldquo;is this element being
+        pressed?&rdquo; The player&rsquo;s on-screen keys are real
+        buttons, and these are the cabinet&rsquo;s actual rules:
       </p>
 
       <KeyboardDemo />
@@ -165,23 +164,34 @@
     <div class="subpage" data-subpage="6">
       <h1>Memory that computes</h1>
       <p>
-        You&rsquo;ve seen that every byte of RAM is declared in the file,
-        one line each. But programs don&rsquo;t just <i>read</i> memory
-        &mdash; they write to it constantly. And in CSS, nothing can
-        reach over and change a variable. So how does a byte change?
+        Every byte of RAM is declared in the file. But here&rsquo;s the
+        catch: a CSS variable can&rsquo;t be overwritten. It can only be
+        <i>defined</i> &mdash; once &mdash; as a formula.
+      </p>
+      <p>
+        So memory works like a <b>spreadsheet</b>. No instruction ever
+        reaches into a byte and changes it. Instead, every byte
+        <i>pulls</i>: its formula looks at the current instruction and
+        computes what its own next value must be.
       </p>
 
       <RamWrite />
 
       <h3 class="anatomy-head">The CPU is a switch</h3>
       <p>
-        The processor itself is built the same way. Each register
-        &mdash; AX, BX, the instruction pointer &mdash; has one rule
-        asking: <b>given the current instruction, what&rsquo;s my next
-        value?</b> Try it &mdash; this one is real:
+        Registers are cells in the same spreadsheet, with one
+        difference: their formulas switch on the current instruction.
+        This miniature is real &mdash; try it:
       </p>
 
       <DispatchDemo />
+
+      <p>
+        And what re-runs all these formulas? A CSS <b>animation</b>
+        &mdash; the machine&rsquo;s clock. Every cycle it re-evaluates
+        the whole sheet: one tick, one instruction. That&rsquo;s the
+        entire computer.
+      </p>
     </div>
   {:else if nav.sub === 7}
     <!-- Credits -->

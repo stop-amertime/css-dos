@@ -56,9 +56,9 @@
   </SplitPane>
 
   <p class="caption">
-    The first three pixels and their rules. The other 63,997 look
-    exactly the same &mdash; there is no image and no canvas, just
-    <code>&lt;div&gt;</code>s, each repainting itself from its own byte
-    of video memory (<code>--vram-&hellip;</code>) every frame.
+    Each rule reads its pixel&rsquo;s byte of video memory
+    (<code>--vram-&hellip;</code>) and looks the colour up in the
+    palette. No image, no canvas &mdash; when a game draws, it writes
+    bytes, and divs change colour.
   </p>
 </div>
