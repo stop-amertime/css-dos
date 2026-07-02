@@ -22,6 +22,17 @@
   font-display: block;
 }
 
+/* The 9-dot text-mode variant of the same face (one blank column between
+   glyphs — what DOS text mode actually displayed). Used for prose only;
+   headings, chrome, buttons and code stay on the denser 8x16. */
+@font-face {
+  font-family: 'WebVGA9';
+  src: url('/player/fonts/Web437_IBM_VGA_9x16.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
@@ -403,9 +414,14 @@ body:has(.window.wizard) {
   font-weight: normal;
   margin: 0 0 4px;
 }
-.step p { margin: 0 0 8px; font-size: 16px; line-height: 16px; }
+/* Prose gets the roomier 9-dot face and taller leading; everything
+   machine-flavoured keeps the tight 8x16 grid. */
+.step p, .step li {
+  font-family: 'WebVGA9', 'WebVGA', monospace;
+}
+.step p { margin: 0 0 8px; font-size: 16px; line-height: 21px; }
 .step code {
-  font-family: inherit;
+  font-family: 'WebVGA', monospace;
   background: var(--edit-white);
   padding: 0 4px;
   border: 1px solid var(--edit-black);
