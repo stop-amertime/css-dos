@@ -1,486 +1,1306 @@
-# `rep_fast_forward` — generic CSS-shape recogniser
+# `rep_fast_forward` Genericity Implementation Plan
 
-**Status**: planning, multi-session mission.
-**Owner**: rotates. Pick up at the next unchecked checkpoint.
-**Cross-link**: see `docs/logbook/STATUS.md` "Open work" and
-`../calcite/docs/log.md` 2026-05-05 for the audit-list context this
-mission closes.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-## Why this exists
+**Goal:** Delete `crates/calcite-core/src/compile.rs::rep_fast_forward` and its helpers (~600 lines of hardcoded x86 string-op semantics) and replace with a descriptor-driven applier whose recogniser and runtime carry zero upstream knowledge — same observable behaviour, no opcode tables, no x86-shaped literal-name reads, no hardcoded flag bit positions, no encoded segment-shift constant outside the descriptor.
 
-`rep_fast_forward` (calcite-core/src/compile.rs:5734) is the last
-cardinal-rule violation in calcite-core: ~341 lines of post-tick logic
-that hardcodes x86 string-op semantics — opcode tables (0xAA/AB/A4/A5
-write-side, 0xA6/A7/AE/AF read-side), REP/REPE/REPNE prefix decoding,
-DF flag bit position, ZF flag bit position, segment base = `seg<<4`,
-the `IP + 1 + prefixLen` post-fixup, hand-coded SUB-flag computation,
-and CSS-DOS-specific virtual-region carve-outs (0x0500, 0xD0000,
-0xF0000).
+**Architecture:** A pattern recogniser running at `Evaluator::from_parsed` time produces a `Vec<LoopDescriptor>` of every self-loop opcode in the cabinet. Each descriptor captures the loop's structural shape — counter slot, pointers, write entries, the cabinet's own gating predicate. At per-tick post-CSS time, a generic applier reads the descriptor, evaluates the precondition, and either commits the bulk operation (Fill / Copy / ReadOnly variants) or panics loudly with cabinet state when the recogniser produced an Unsupported shape. No env-var toggle; the descriptor path is the only path. The hardcoded body, the dual harness scaffolding, and the panic-or-bail gates all retire.
 
-Calcite's cardinal rule (`../calcite/CLAUDE.md` and the genericity
-probe in CSS-DOS's CLAUDE.md): an engine recogniser must be derivable
-from CSS structural shape alone, by an engineer who has never seen a
-CPU emulator. The current `rep_fast_forward` fails that test
-spectacularly. The four siblings on the 2026-05-05 audit list landed;
-this is the remaining one. It was deferred because removing it
-requires a real CSS-shape recogniser plus a generic runtime applier,
-gated on a real-cart perf budget — not a comment cleanup.
+**Tech Stack:** Rust (calcite-core, calcite-cli, calcite-wasm), CSS-DOS bench/harness (Node.js + Playwright). All work happens in `../calcite/.claude/worktrees/rep-generic/` (already created from `main` at `8de61a8`).
 
-## Hard constraints (read these first)
+---
 
-1. **Cardinal rule.** The replacement recogniser must operate on CSS
-   structural shape only. The genericity probe: a 6502 cabinet, a
-   brainfuck cabinet, and an arbitrary non-emulator cabinet whose CSS
-   happens to share the shape must all trigger the same fast-forward.
-   If any of those three would need a calcite-side change, we've
-   overfit.
+## Required reading before starting
 
-2. **No reading characters out of variable names.** The recogniser may
-   observe whether two slot references are *the same slot* (identity
-   check on the slot index after compile-time resolution) and may
-   observe whether a name *repeats* across multiple dispatch entries
-   (counts of references). It must NOT pattern-match on prefix
-   characters, suffix characters, underscores, or any substring of
-   the name. This forecloses the easy-but-wrong shortcut of
-   "recognise loops by spotting names that start with `_`". Names are
-   opaque tokens.
+Every task assumes the implementer has read:
 
-3. **Perf gate.** Doom8088 web AND native CLI must come in within ±1%
-   of pre-mission `runMsToInGame`. Quote JSON before/after. If only
-   one target regresses that's a real regression in that target — do
-   not dismiss.
+1. `../calcite/CLAUDE.md` — the cardinal rule.
+2. `CLAUDE.md` (CSS-DOS) — the genericity probe and "no slow path" rule for REP.
+3. `docs/logbook/STATUS.md` — current state, the ship-blocker entry, perf baseline.
+4. **The reference implementation that already exists on `origin/worktree-rep-3b` (calcite, commit `645f497`)** — this plan asks the implementer to *re-port* code from there onto current main. The reference paths to read:
+   - `crates/calcite-core/src/pattern/loop_descriptor.rs` (recogniser + types, 1603 lines)
+   - `crates/calcite-core/src/pattern/loop_descriptor/tests.rs` (unit tests)
+   - `crates/calcite-core/src/pattern/rep_applier.rs` (Fill/Copy/ReadOnly appliers, 3099 lines)
+   - `crates/calcite-core/src/pattern/rep_dual_harness.rs` (development scaffolding — not ported in this plan)
+   - `crates/calcite-core/tests/rep_fast_forward.rs` (integration tests)
+   - `docs/rep-3b-scoping.md` (design analysis)
+5. **The hardcoded path being deleted** — `../calcite/crates/calcite-core/src/compile.rs:5767–6678` on `worktree-rep-3b` (`rep_fast_forward`, `rep_fast_forward_cmps_scas`, `rep_fast_forward_panic`, `compute_sub_flags`, `ranges_overlap_virtual`, `bulk_fill`, `bulk_store_byte`). Knowing what behaviour to reproduce is non-negotiable. The same functions exist at similar offsets on current main; line numbers may have shifted by a few hundred from the input-edge perf merge.
 
-4. **Correctness gate.** `node tests/harness/run.mjs smoke` 7/7 PASS
-   at every checkpoint. Doom8088 reaches in-game (`g_gamestate==0`)
-   on both web and CLI at every checkpoint. Prince of Persia title
-   screen unchanged.
+## Hard constraints
 
-5. **Single fast-forward path at the end.** The current
-   `rep_fast_forward` may be left in place as a fallback during
-   checkpoints 1-3 (gated, off by default once the new path proves
-   itself), but checkpoint 5 deletes it. There must not be two
-   competing post-tick string-op paths in production.
+1. **Cardinal rule.** The recogniser inspects only CSS structural shape (slot identity, expression-tree variant, slot-name repetition counts). It does **not** inspect any character of any property name. Renaming every slot in the cabinet must produce identical descriptors modulo the new names. A 6502 / brainfuck / non-emulator cabinet of the same loop shape must produce a structurally equivalent descriptor and fast-forward identically.
 
-6. **Compile-once-per-load.** All recogniser work happens at parse /
-   compile time on `CompiledProgram`. The runtime applier reads
-   pre-computed descriptors. No per-tick recognition.
+2. **No env-var toggle.** No `CALCITE_REP_GENERIC`, no `CALCITE_REP_LEGACY`, no `CALCITE_REP_DUAL` survive past Phase 4. The descriptor path is the path.
 
-## What we know about the CSS shape
+3. **Loud failure on unrecognised shape.** When a REP-shape opcode dispatches but no descriptor exists, or the descriptor's `bulk_class` is `PerIter` (no fast-forward applier), or the applier returns `Unsupported`, the dispatcher **panics** with the same diagnostic shape as today's `rep_fast_forward_panic` (opcode, CX, flags, CS, IP). Per-iter CSS fallback is not acceptable: long REPs at 10-1000x slowdown make every cart that hits one unusable — the user's run hangs on a frozen screen with no error. A panic ends it with information.
 
-Every REP-style instruction kiln emits has a recognisable structural
-signature in the dispatch table for one opcode value V:
+4. **Precondition is a different outcome from Unsupported.** When the cabinet's own outer guard predicate evaluates false (e.g., IRQ vectored this tick, or the CSS already exited the REP via ZF on CMPS/SCAS), the applier returns `PreconditionNotMet` and the dispatcher silently bails. This is *not* a recogniser gap — the CSS already produced correct post-state and calcite has nothing to do. Two distinct outcomes, two distinct dispatcher responses.
 
-- **Counter slot S_c**: a dispatch entry for slot S_c whose body is
-  shape `if(<gate>: self; else: max(0, calc(self - 1)))`. The slot
-  read on both branches is the same slot S_c (identity check, not
-  name match).
-- **IP slot S_ip**: a dispatch entry for the program counter slot
-  whose body is shape `if(<predicate>: calc(self - someLiteralOrSlot); else: calc(self + literal))`.
-  The "stay-here" branch reduces the IP delta to zero (modulo the
-  outer wrapper that adds `prefixLen`); the "advance" branch is the
-  normal +instrLen step. The predicate is the same intermediate slot
-  that gates the counter and the writes.
-- **Pointer slot(s) S_p**: zero or more dispatch entries of shape
-  `lowerBytes(calc(self ± k - bit(flagsSlot, bitN) * 2k), 16)` —
-  modular pointer with direction flag. Same-slot identity again.
-- **Memory write entries**: `addMemWrite(V, addrExpr, valExpr)` where
-  `addrExpr` is gated by the same predicate (the kiln helper
-  `repGuardAddr` returns `-1` when the guard fails — and writing to
-  address `-1` is already a no-op in calcite, so we don't need to
-  treat the guard specially; we just need to recognise the address
-  expression's structural form).
+5. **Perf gate.** Doom8088 web and CLI `runMsToInGame` within ±1% of pre-mission baseline (web 3-run median, CLI 3-run median). Run `doom-loading` profile on both targets. Quote JSON before/after. If only one target regresses, that's a real regression in that target — diagnose, don't dismiss.
 
-The "killer signature" is the IP-stay-here branch. Any opcode whose
-IP-update has a "stay where I am" branch gated on a predicate is
-structurally a loop. Everything else (counter, pointers, writes) is a
-predictable consequence.
+6. **Correctness gate.** `node tests/harness/run.mjs smoke` (7 carts) PASS at every commit on the branch. Doom8088 reaches in-game (`g_gamestate==0`) on both web and CLI. Prince of Persia title screen unchanged.
 
-**Repetition is the engine of recognition.** The same predicate slot
-appears in: the counter entry's gate, the IP entry's stay-branch
-gate, the memwrite address gates, and possibly the pointer entry
-gates. That repetition — same slot index appearing in N gate
-positions — is what calcite identifies. It does not need to know the
-slot's name, only its index.
+7. **Compile-once-per-load.** All recogniser work happens at `Evaluator::from_parsed` time. The per-tick applier reads pre-computed descriptors — never re-recognises.
 
-## Genericity probe — synthetic test cabinets
+## Final file structure
 
-Two synthetic-CSS cabinets must produce equivalent loop descriptors.
-Both ship as fixtures used by the recogniser unit tests:
+After completion, the calcite tree changes as follows:
 
-- **Cabinet A — x86-shaped** (mimics what kiln emits today). Slot
-  names match current x86 ABI (`--CX`, `--DI`, `--ES`, etc.).
-- **Cabinet B — brainfuck-shaped**. Same dispatch shape: counter
-  decrement, IP-stay-here, modular pointer step, gated memwrite. But
-  the slot names are arbitrary opaque tokens — `--moodMeter`,
-  `--tapeCursor`, `--cellPage`. No x86 ABI. No naming convention
-  shared with cabinet A.
+- **Created** in `crates/calcite-core/src/`:
+  - `pattern/loop_descriptor.rs` — descriptor types + recogniser (one large file; matches reference shape).
+  - `pattern/loop_descriptor/tests.rs` — recogniser unit tests on synthetic cabinets A (x86-shaped) and B (brainfuck-shaped) + negative tests + renaming probe + new tests for `precondition` / `per_iter_cycles` / `ip_extra_advance_slot` / `comparison` fields.
+  - `pattern/rep_applier.rs` — `apply_fill` / `apply_copy` / `apply_read_only` driven by `LoopDescriptor`. Returns one of three outcomes (`Applied { iterations }` / `PreconditionNotMet` / `Unsupported(reason)`).
+  - `tests/rep_fast_forward.rs` — integration tests asserting parity with the (about-to-be-deleted) hardcoded path on small synthetic cabinets. Survives the deletion as parity tests for the new path.
 
-If both cabinets compile to descriptors with the same structural
-fields populated (counter index points at the right slot, pointer
-index points at the right slot, predicate index agrees, write
-descriptor's address and value formulas extract correctly), the
-recogniser is genuinely structural. If cabinet B fails or produces a
-different descriptor shape, the recogniser is overfit and the
-checkpoint hasn't landed.
+- **Modified**:
+  - `crates/calcite-core/src/eval.rs` — `Evaluator::loop_descriptors` field, recogniser invocation in `from_parsed`.
+  - `crates/calcite-core/src/state.rs` — `VirtualRegion { start, end, source }` type + `State::virtual_regions: Vec<VirtualRegion>` field, populated by the windowed-byte-array recogniser.
+  - `crates/calcite-core/src/compile.rs` — `CompiledProgram::loop_descriptors` field; **rewrite** of `rep_fast_forward` body to dispatch into the applier; **deletion** of `rep_fast_forward_cmps_scas`, `compute_sub_flags` (lifted into `pattern/rep_applier.rs` if still needed), `bulk_fill` / `bulk_store_byte` / `ranges_overlap_virtual` lifted to `pub(crate)` for the applier. `rep_fast_forward_panic` retained — it is the canonical panic shape.
+  - `crates/calcite-core/src/pattern.rs` — `pub mod loop_descriptor;` + `pub(crate) mod rep_applier;`.
 
-## What "incidentally" kiln can do
+- **Not created** (a notable inversion from the reference branch): no `pattern/rep_dual_harness.rs`. The dual harness was scaffolding for the multi-step landing on `worktree-rep-3b`; this plan lands the work in a different order and the harness is unnecessary. The integration tests in `tests/rep_fast_forward.rs` cover what the harness was for.
 
-Kiln does not emit any new metadata or signal slot. The CSS it emits
-today is already structurally clean — `repIP()`, `repCX()`,
-`repGuardReg()`, `repGuardAddr()` produce shape-uniform output
-because they share helpers. The mission does NOT add any side-channel
-or annotation. Kiln stays out of it.
+---
 
-The one small kiln courtesy that's permissible (and doesn't cross
-the line): if during checkpoint 1 we discover that kiln's repIP /
-repCX shapes have minor inconsistencies that complicate the
-recogniser unnecessarily, we may regularise them — but only if the
-regularisation is also structurally cleaner from a pure-CSS
-standpoint, justifiable without reference to calcite. Any such kiln
-change must keep Chrome semantics identical (cardinal rule on the
-CSS-DOS side).
+## Phase 1: Port descriptor types + recogniser
 
-## Loop descriptor — the compile-time output
+Goal: `pattern/loop_descriptor.rs` exists on `feat/rep-generic`, the recogniser runs at `Evaluator::from_parsed` time, all unit tests pass, real Doom8088 cabinet produces ~10 descriptors. No runtime path change yet — descriptors are emitted but not consumed.
 
-The recogniser produces, per opcode value V where the shape matches:
+The reference branch has 13 commits to land this; we land it in one because the design is settled and the tests are the gate.
+
+### Task 1.1: Add `LoopDescriptor` + friends, recogniser, `loop_descriptors` field
+
+**Files:**
+- Create: `crates/calcite-core/src/pattern/loop_descriptor.rs`
+- Create: `crates/calcite-core/src/pattern/loop_descriptor/tests.rs`
+- Modify: `crates/calcite-core/src/pattern.rs` (add `pub mod loop_descriptor;`)
+- Modify: `crates/calcite-core/src/eval.rs`: add `pub loop_descriptors: Vec<crate::pattern::loop_descriptor::LoopDescriptor>` field on `Evaluator`; in `from_parsed` after the cabinet is parsed, call `recognise_loops(&parsed.assignments)`; populate the field.
+- Modify: `crates/calcite-core/src/state.rs`: add `VirtualRegion` type + `virtual_regions: Vec<VirtualRegion>` field on `State`, initialize empty in `State::new`.
+- Modify: `crates/calcite-core/src/eval.rs::install_windowed_byte_array`: push a `VirtualRegion { start: cw.window_base, end: cw.window_end, source: "windowed_byte_array" }` after installing the window.
+
+- [ ] **Step 1: Copy `pattern/loop_descriptor.rs` from `origin/worktree-rep-3b` (commit `645f497`)**
+
+The reference file is at `../calcite/.claude/worktrees/rep-3b/crates/calcite-core/src/pattern/loop_descriptor.rs`. Copy verbatim — the recogniser logic is settled. The file defines:
 
 ```rust
-struct LoopDescriptor {
-    opcode: i32,                 // for dispatch lookup at runtime, not for semantics
-    counter_slot: SlotIdx,       // monotone-decreasing slot
-    predicate_slot: SlotIdx,     // intermediate that gates everything
-    ip_slot: SlotIdx,
-    ip_advance: i32,             // +N when predicate flips (the "exit" step)
-    pointer_steps: Vec<PointerStep>,    // zero or more
-    write_descriptors: Vec<WriteDescriptor>,  // zero or more
-    exit_kind: ExitKind,         // Counter, Counter+FlagCondition, etc.
+pub struct LoopDescriptor {
+    pub key_property: String,
+    pub key_value: i64,
+    pub ip_property: String,
+    pub ip_self_property: String,
+    pub ip_advance_literal: i32,
+    pub predicate_properties: Vec<String>,
+    pub predicate: StyleTest,
+    pub counter: Option<CounterEntry>,
+    pub pointers: Vec<PointerEntry>,
+    pub writes: Vec<WriteEntry>,
+    pub flag_conditioned: bool,
+    pub bulk_class: BulkClass,
+    // Phase-3 wart fields, added incrementally in their own tasks:
+    //   pub precondition: Option<StyleTest>,
+    //   pub per_iter_cycles: Option<i32>,
+    //   pub ip_extra_advance_slot: Option<String>,
+    //   pub comparison: Option<ComparisonShape>,
 }
-
-struct PointerStep {
-    slot: SlotIdx,
-    base_step: i32,              // ±1, ±2 etc; sign drawn from flag bit
-    direction_flag_slot: SlotIdx,
-    direction_flag_bit: u8,
+pub enum BulkClass { ReadOnly, Fill, Copy, PerIter }
+pub struct CounterEntry { pub property: String, pub self_property: String, pub step: i32 }
+pub struct PointerEntry {
+    pub property: String, pub self_property: String,
+    pub base_step: i32, pub flag_property: String, pub flag_bit: u32,
 }
-
-struct WriteDescriptor {
-    addr_expr: ExprId,           // pre-compiled slot expression
-    val_expr: ExprId,            // pre-compiled slot expression
-    width_bytes: u8,             // detected from "addr+0 and addr+1" pair grouping
+pub struct WriteEntry {
+    pub addr_property: String, pub val_property: String,
+    pub addr_expr: Expr, pub val_expr: Expr,
+    pub addr_decomposition: Option<(String, String)>,
+    pub val_indirect_read: Option<IndirectRead>,
 }
+pub struct IndirectRead {
+    pub seg_property: Option<String>,
+    pub pointer_property: String,
+    pub intermediate_property: String,
+}
+pub fn recognise_loops(assignments: &[Assignment]) -> Vec<LoopDescriptor> { /* ... */ }
+```
 
-enum ExitKind {
-    CounterZero,                 // STOS/MOVS-shape
-    CounterZeroOrFlag {          // CMPS/SCAS-shape
-        flag_slot: SlotIdx,
-        flag_bit: u8,
-        flag_target: u8,         // 0 or 1
-    },
+The four "Phase-3 wart fields" listed in the comment above are **not** added in Phase 1 — each is added in its own Phase 3 task.
+
+Copy command (from the calcite worktree root):
+```
+cp ../rep-3b/crates/calcite-core/src/pattern/loop_descriptor.rs \
+   crates/calcite-core/src/pattern/loop_descriptor.rs
+```
+
+- [ ] **Step 2: Copy the unit-test file**
+
+```
+mkdir -p crates/calcite-core/src/pattern/loop_descriptor
+cp ../rep-3b/crates/calcite-core/src/pattern/loop_descriptor/tests.rs \
+   crates/calcite-core/src/pattern/loop_descriptor/tests.rs
+```
+
+- [ ] **Step 3: Register the module in `pattern.rs`**
+
+Modify `crates/calcite-core/src/pattern.rs`: add line `pub mod loop_descriptor;` near the other `pub mod` declarations.
+
+- [ ] **Step 4: Add `VirtualRegion` + `State::virtual_regions`**
+
+Modify `crates/calcite-core/src/state.rs`. Add struct above `impl State`:
+
+```rust
+/// A linear-address range backed by something other than the flat
+/// `state.memory` byte array. Bulk paths consult this list before
+/// committing wide writes, so they can bail when the destination would
+/// overlap (e.g., a windowed-byte-array region whose CSS dispatch
+/// can't be substituted with a flat memset).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VirtualRegion {
+    /// First linear address inside the region (inclusive).
+    pub start: i32,
+    /// One past the last linear address inside the region.
+    pub end: i32,
+    /// Recogniser-supplied label, free-form, used for diagnostics only.
+    pub source: &'static str,
 }
 ```
 
-The `ExitKind::CounterZeroOrFlag` discrimination is itself a
-structural detection: an opcode whose IP-stay-branch predicate is the
-*conjunction* of a counter check and a flag-bit check has the
-extended exit kind. The CSS shape today (`repCondIP` in kiln) is a
-chain of style() conjunctions — recognisable as "predicate is
-counter-positive AND flag-bit-equals-target".
+Add field to the `State` struct:
 
-## Generic runtime applier
+```rust
+pub virtual_regions: Vec<VirtualRegion>,
+```
 
-Reads `LoopDescriptor` instead of dispatching on opcode bytes.
-Loop:
+Initialize empty in `State::new`:
 
-1. Read counter slot value n.
-2. If exit kind is `CounterZeroOrFlag` and the flag check already
-   passes, stop here (single CSS iter already happened, exit
-   condition satisfied).
-3. For each iter k in 0..n:
-   - Evaluate `addr_expr` and `val_expr` against the simulated
-     post-iter slot view.
-   - Issue write through the appropriate sink (see "memory routing"
-     below).
-   - Step pointer slots.
-   - For `CounterZeroOrFlag`: also evaluate flag_expr; break if it
-     flips.
-4. Commit final slot values: counter→0 (or partial), pointers
-   advanced, IP set to `ip + ip_advance`, cycle count incremented by
-   k × per-iter-cycle (the per-iter cycle cost is itself a slot the
-   cabinet writes; recogniser captures it).
+```rust
+virtual_regions: Vec::new(),
+```
 
-Specialisations (still pure-shape, no x86 knowledge):
+- [ ] **Step 5: Populate `virtual_regions` from the windowed-byte-array recogniser**
 
-- **Single-write loop with constant value**: detect when val_expr
-  evaluates to a slot read that doesn't depend on iteration index →
-  collapse to `bulk_fill`.
-- **Single-write loop with read-from-mirror-pointer**: detect when
-  val_expr is `read_mem(other_pointer_slot + iter*step)` and the
-  write addr is `dst_pointer_slot + iter*step` → collapse to
-  `bulk_copy`.
-- **Otherwise**: walk per-iter. Slower but always correct.
+In `crates/calcite-core/src/eval.rs::install_windowed_byte_array`, after the `state.windowed_byte_array = Some(...)` assignment and before the `log::info!`, push the region:
 
-The detection of "val_expr doesn't depend on iter index" is itself a
-shape-level question (does the expression reference any pointer
-slot?), not an opcode-level one.
+```rust
+state.virtual_regions.push(crate::state::VirtualRegion {
+    start: cw.window_base,
+    end: cw.window_end,
+    source: "windowed_byte_array",
+});
+```
 
-## Memory routing — virtual regions
+- [ ] **Step 6: Add `Evaluator::loop_descriptors` field and recogniser invocation**
 
-The current `ranges_overlap_virtual` carve-out (0x500, 0xD0000,
-0xF0000) is CSS-DOS-specific and must move. The generalisation:
+Modify `crates/calcite-core/src/eval.rs`. Add to the `Evaluator` struct:
 
-- The CSS dispatch recogniser already knows which memory regions are
-  backed by something other than `state.memory` byte storage —
-  because some other recogniser registered a windowed-byte-array
-  descriptor, a keyboard-bridge descriptor, a state.extended
-  descriptor.
-- Add `state.virtual_regions: Vec<{start, len, sink}>` populated by
-  whichever recogniser owns the region.
-- Bulk fill / bulk copy consult this list. Overlap with a virtual
-  region → either route the bulk write through `write_mem` for the
-  overlapping bytes, or split the operation around the virtual range
-  and use bulk for the non-virtual parts.
+```rust
+pub loop_descriptors: Vec<crate::pattern::loop_descriptor::LoopDescriptor>,
+```
 
-This is good independent of the mission — it removes a CSS-DOS-shaped
-constant from calcite-core unconditionally.
+In `Evaluator::from_parsed`, after the cabinet has been parsed (and `parsed.assignments` is available) but before construction returns, add:
 
-## Checkpoints
+```rust
+let loop_descriptors = crate::pattern::loop_descriptor::recognise_loops(&parsed.assignments);
+log::info!(
+    "[loop-descriptor] recognised {} self-loop opcodes",
+    loop_descriptors.len(),
+);
+```
 
-Each checkpoint is independently shippable: smoke 7/7 + doom8088
-in-game on both targets, no perf regression beyond the ±1% gate.
+Initialize the field in the `Evaluator { ... }` construction expression at the bottom of `from_parsed`. Also initialize in any other constructor (test stubs) by setting `loop_descriptors: Vec::new()`.
 
-### Checkpoint 1 — recogniser, descriptors, unit tests — DONE 2026-05-06
+- [ ] **Step 7: Add `CompiledProgram::loop_descriptors` mirror**
 
-Pure compile-time. No runtime path change. The new recogniser runs,
-emits `Vec<LoopDescriptor>` on `Evaluator`, and unit tests verify it.
+Modify `crates/calcite-core/src/compile.rs`. Add to `CompiledProgram` struct:
 
-- [x] Add `LoopDescriptor` and friends to `Evaluator`. (Stored on
-      `Evaluator::loop_descriptors`. `CompiledProgram` was the
-      original target in this plan; on review the Evaluator was the
-      cleaner home — the descriptor is consumed alongside other
-      eval-time structures, and `CompiledProgram` is bytecode-only.)
-- [x] Implement the recogniser pass over the dispatch table. Operates
-      on slot/property identity and expression structural shape only.
-      No name-character inspection.
-- [x] Synthetic-CSS unit tests:
-  - [x] Cabinet A (x86-shaped) — 2 descriptors (STOSB+MOVSB
-        equivalents). The "8 descriptors" target in the original plan
-        anticipated all eight x86 string-op variants; phase 1 lands
-        with the simpler STOS/MOVS/LODS shape (no flag-conditioned
-        exit). CMPS/SCAS recognition needs the flag-aware predicate
-        matcher and lands with phase 2's runtime applier where it's
-        first-class.
-  - [x] Cabinet B (brainfuck-shaped) produces equivalent descriptors
-        with zero calcite-side changes. Locked in by
-        `a_and_b_descriptors_are_structurally_equivalent` test.
-  - [x] Negative test (`no_loop_when_no_ip_stay_shape`): no IP-stay
-        body → zero descriptors.
-  - [x] Negative test (`no_loop_when_only_ip_stay_no_counter_or_pointer_or_write`):
-        IP-stay alone, no counter/pointer/write → refused. Unbounded
-        loops don't fast-forward.
-  - [x] Wrapper-stripping tests (`outer_wrappers_are_stripped`,
-        `ip_wrapper_with_non_self_overrides_still_recognises`,
-        `dispatch_family_picks_largest_member_set`): outer kiln
-        wrappers (Calc-add for prefixLen, StyleCondition for TF/IRQ,
-        mixed-key StyleCondition for memwrite slots) are peeled
-        structurally.
-  - [x] Renaming probe (`renaming_slots_preserves_structure`):
-        substituting every slot/property/function name to arbitrary
-        new strings produces equivalent structural facts.
-- [x] On the real doom8088 cabinet, the recogniser emits 6
-      descriptors (key=0xA4/A5/AA/AB/AC/AD) under
-      `CALCITE_LOOP_DIAG=1`. Pointer counts and step magnitudes
-      cross-check against x86 string-op semantics.
+```rust
+/// Mirror of `Evaluator::loop_descriptors`. Populated at compile time
+/// by the same recogniser; carried on the program so the per-tick path
+/// can consult it without re-recognising.
+pub loop_descriptors: Vec<crate::pattern::loop_descriptor::LoopDescriptor>,
+```
 
-Old `rep_fast_forward` still active. Smoke 7/7 + doom8088 in-game
-unchanged. Engine workspace + wasm builds clean.
+Initialize empty in any `CompiledProgram { ... }` construction (search for `fn compile` and any `CompiledProgram {` literal). In `Evaluator::from_parsed`, after computing `loop_descriptors`, mirror it onto the compiled program:
 
-**Pickup notes for whoever takes checkpoint 2.** The descriptor
-type lives in `crates/calcite-core/src/pattern/loop_descriptor.rs`
-(`LoopDescriptor`, `CounterEntry`, `PointerEntry`, `WriteEntry`).
-The runtime applier should:
+```rust
+compiled.loop_descriptors = loop_descriptors.clone();
+```
 
-- Run alongside (not replace) the existing
-  `compile.rs::rep_fast_forward`, gated by `CALCITE_REP_GENERIC=1`
-  env var.
-- Consume `evaluator.loop_descriptors` and execute the same
-  fast-forward semantics for the four currently-recognised
-  variants (STOSB/STOSW/MOVSB/MOVSW) without opcode-specific code.
-- For CMPS/SCAS: extend `match_ip_stay_or_advance` to accept
-  conjunction predicates `<rep-continue> AND <flag-bit-condition>`,
-  then add the flag-conditioned exit walk to the applier. The
-  current `flag_conditioned: bool` field on `LoopDescriptor` is
-  ready to flip true when this lands.
-- The write descriptor's address/value pairing in phase 1 is a
-  heuristic (sort by name, take first). Phase 2 should pair by
-  the cabinet's assignment ordering (kiln pairs `--memAddrN` with
-  `--memValN` by index).
+- [ ] **Step 8: Run recogniser unit tests**
 
-### Checkpoint 2 — descriptor validator, behind a flag — DONE 2026-05-07
+```
+cargo test -p calcite-core --lib loop_descriptor 2>&1 | tail -20
+```
 
-Per the in-session re-scope, checkpoint 2 landed as a diagnostic-bedded
-*validator* rather than a runtime-replacing applier. The full per-iter
-applier (path A in the original plan) was deferred to checkpoint 3 once
-the bulk_fill/bulk_copy specialisations land — building both at once
-in one session was judged too risky for a perf-gated mission.
+Expected: all 15 tests in `pattern::loop_descriptor::tests` pass. These include:
+- `a_and_b_descriptors_are_structurally_equivalent` — the x86 / brainfuck genericity probe.
+- `no_loop_when_no_ip_stay_shape`, `no_loop_when_only_ip_stay_no_counter_or_pointer_or_write` — negative tests.
+- `renaming_slots_preserves_structure` — the name-blindness probe.
+- `outer_wrappers_are_stripped`, `ip_wrapper_with_non_self_overrides_still_recognises`, `dispatch_family_picks_largest_member_set` — wrapper stripping.
+- `memwrite_pairing_uses_assignment_order_proximity`.
+- BulkClass classification + CMPS/SCAS recognition tests from phase 3a.
+- Indirect-read recognition tests from phase 3b step 2.
 
-What landed:
+If any test fails, the port is incomplete or main has drifted in a way that changes the recogniser's input. Diff the test file against the reference and investigate. **Do not weaken a test to make it pass.**
 
-- [x] `CALCITE_REP_GENERIC=1` env-var gate (default off).
-- [x] Loop descriptors mirrored onto `CompiledProgram` so the per-tick
-      `rep_fast_forward` hook can consult them.
-- [x] `validate_descriptor_for_opcode`: read-only validator that fires
-      once per opcode and asserts a descriptor exists with consistent
-      structural fields (counter present, expected pointer count,
-      `ip_advance_literal == 1`, IP property resolves).
-- [x] `state.virtual_regions: Vec<VirtualRegion>` populated at compile
-      time by the windowed-byte-array recogniser (registers its own
-      window). `ranges_overlap_virtual` now consults this list plus
-      the structural `>=0xF0000` extended-map range. The stale 0x500
-      keyboard-bridge carve-out (obsolete since the input-edge
-      recogniser landed) is gone.
-- [x] Memwrite addr/val pairing now uses assignment-order proximity
-      instead of the name-sort heuristic. Test
-      `memwrite_pairing_uses_assignment_order_proximity` locks it in.
-- [x] Smoke 7/7 with flag both off and on.
-- [x] doom8088 reaches in-game on calcite-cli with flag on (tick
-      34.65M, parity with pre-mission baseline).
+- [ ] **Step 9: Run full lib test suite**
 
-What the validator told us on the live doom8088 cabinet:
+```
+cargo test -p calcite-core --lib 2>&1 | tail -20
+```
 
-- OK on opcodes 0xAA/0xAB/0xA4/0xA5 — STOS/MOVS descriptors agree
-  with the runtime path's expectations (counter present, 1 pointer
-  for STOS / 2 for MOVS, IP resolves).
-- MISS on 0xA6/0xA7/0xAE/0xAF — CMPS/SCAS, exactly as documented in
-  phase 1 (no flag-aware predicate matcher yet). Fixed in phase 3.
+Expected: all tests pass except the 4 pre-existing `no-opcode` panics from the hardcoded `rep_fast_forward` (`compile::tests::compile_full_program`, `compile::tests::compile_value_forwarding`, `compile::tests::compile_dispatch_table`, `eval::tests::tick_applies_assignments`). These will be fixed in Phase 3 Task 3.5 when the hardcoded path is rewritten.
 
-Default still OFF — this is a diagnostic-bedded landing.
+- [ ] **Step 10: Verify against the real Doom8088 cabinet**
 
-### Checkpoint 3 — descriptor-driven applier + specialisation passes
+Build the cabinet and check the recogniser produces ~10 descriptors:
 
-Combines the original checkpoints 2-applier and 3-specialisations into
-one phase, since the perf gate forces them to land together (a per-iter
-applier without bulk specialisations will regress doom8088 well outside
-±1%).
+```
+cd ../../../CSS-DOS/.claude/worktrees/rep-generic
+node builder/build.mjs carts/doom -o /tmp/doom.css
+cd ../../calcite/.claude/worktrees/rep-generic
+RUST_LOG=info cargo run --release -p calcite-cli -- -i /tmp/doom.css --max-ticks 1000 2>&1 | grep loop-descriptor | head -5
+```
 
-Per the same in-session re-scope rationale that split phase 2 into a
-diagnostic-bedded validator, **phase 3 lands in two halves**:
+Expected output includes `[loop-descriptor] recognised 10 self-loop opcodes` (the 4 STOS/MOVS + 4 CMPS/SCAS + 2 LODS variants on a current doom8088 cabinet). If the count is off, investigate.
 
-- **3a — recogniser + classification (diagnostic-bedded).** Extends the
-  recogniser to all 8 string opcodes, adds bulk-classification metadata
-  to the descriptor at build time, and extends the validator to compare
-  classification against runtime behaviour. No runtime path change. No
-  perf risk.
-- **3b — applier flip.** Implements the descriptor-driven applier and
-  flips the data flow so the descriptor decides. Perf-gated to ±1%.
-  This is the part that's risky in one session.
+- [ ] **Step 11: Commit**
 
-#### Phase 3a (this checkpoint) — DONE 2026-05-07
+```
+git add crates/calcite-core/src/pattern/loop_descriptor.rs \
+        crates/calcite-core/src/pattern/loop_descriptor/tests.rs \
+        crates/calcite-core/src/pattern.rs \
+        crates/calcite-core/src/state.rs \
+        crates/calcite-core/src/eval.rs \
+        crates/calcite-core/src/compile.rs
+git commit -m "$(cat <<'EOF'
+rep-generic phase 1: descriptor recogniser + virtual regions
 
-- [x] Extend the recogniser to handle CMPS/SCAS shape (flag-aware
-      predicate). The CSS shape: a `StyleCondition` with multiple
-      branches all going to the same "stay" body, fallback going to
-      "advance". Old shape (single-branch) still recognised as a
-      degenerate case. `flag_conditioned` flips true when the
-      synthesised predicate spans multiple distinct properties.
-- [x] Add CMPS/SCAS-shape unit tests in cabinet A and brainfuck-cabinet B.
-- [x] At descriptor build time, classify each loop:
-      - `BulkClass::Fill` — writes.len() ≥ 1 AND no value expression
-        references a pointer's self-mirror slot (constant-value writes).
-      - `BulkClass::Copy` — writes.len() ≥ 1 AND at least one value
-        expression references a pointer's self-mirror slot (memory copy).
-      - `BulkClass::ReadOnly` — writes.len() == 0 (CMPS/SCAS/LODS).
-      - `BulkClass::PerIter` — otherwise.
-- [x] Validator extended to surface classification for each opcode.
-- [x] Real-cabinet check: doom8088 produces 10 descriptors (was 6),
-      including 0xA6/A7/AE/AF, with `flag_conditioned=true`.
-- [x] Smoke 7/7 unchanged.
-- [x] All 13 unit tests pass.
+Port loop_descriptor + recogniser from origin/worktree-rep-3b
+(645f497) to current main. Adds Evaluator::loop_descriptors,
+CompiledProgram::loop_descriptors, State::virtual_regions. The
+windowed-byte-array recogniser registers its window so the bulk
+applier (Phase 2) can detect overlaps generically.
 
-#### Phase 3b (future) — applier flip
+No runtime path change. Descriptors emitted but not yet consumed.
+The hardcoded rep_fast_forward is still the active fast-forward
+path. 15 recogniser unit tests pass. doom8088 cabinet emits 10
+descriptors.
 
-- [ ] Implement the descriptor-driven applier behind the same
-      `CALCITE_REP_GENERIC=1` flag, but now *replacing* the hardcoded
-      path when on (validator becomes redundant — collapse into the
-      applier itself).
-- [ ] Bulk paths consult `state.virtual_regions` instead of the
-      hardcoded 0xD0000/0xF0000 carve-out. (0xF0000+ stays a State
-      invariant since it's the extended-map boundary.)
-- [ ] Diff calcite-cli memory snapshots between the two paths every
-      100K ticks during doom8088 boot. Zero divergence.
-- [ ] Behaviour-parity sweeps still pass.
-- [ ] Perf parity: with `CALCITE_REP_GENERIC=1`, doom8088 web and
-      CLI within ±1% of `CALCITE_REP_GENERIC=0`.
+Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
+EOF
+)"
+```
 
-### Checkpoint 4 — flip the default
+---
 
-- [ ] `CALCITE_REP_GENERIC=1` becomes the default. Old path still
-      compilable with `CALCITE_REP_GENERIC=0` for the immediate A/B
-      that decides whether to roll back.
-- [ ] Smoke 7/7.
-- [ ] doom8088 boots to in-game (gamestate=GS_LEVEL) on both web and
-      CLI.
-- [ ] zork boots to the `>` prompt on both web and CLI.
-- [ ] doom-loading bench `runMsToInGame` within ±1% of pre-mission.
+## Phase 2: Port the appliers (Fill / Copy / ReadOnly) — not yet wired
 
-If all four pass in one sitting, the new path is the path. Git
-history holds the old code; there's no value in keeping the
-fallback live as a soak. Move straight to checkpoint 5.
+Goal: `pattern/rep_applier.rs` exists, contains `apply_fill` / `apply_copy` / `apply_read_only` (and their `_with_commit` variants), is **not yet called from the dispatch path**. The hardcoded `rep_fast_forward` continues to be the active fast-forward; the applier is dead code waiting for Phase 3 Task 3.5's dispatch rewrite.
 
-### Checkpoint 5 — delete the old path
+The reference at `origin/worktree-rep-3b/crates/calcite-core/src/pattern/rep_applier.rs` is 3099 lines including tests. Port verbatim — the per-iter / bulk-fill / bulk-copy / cmps-scas logic is settled.
 
-- [ ] Remove `rep_fast_forward` (the opcode-keyed body and helpers
-      `rep_fast_forward_cmps_scas`, `compute_sub_flags`,
-      `rep_fast_forward_panic`, `ranges_overlap_virtual`).
-- [ ] Remove `CALCITE_REP_GENERIC` flag (descriptor path is
-      unconditional).
-- [ ] Update STATUS.md "Open work" — remove the rep_fast_forward
-      bullet.
-- [ ] Update calcite log.md — note the cardinal-rule audit list is
-      now empty.
-- [ ] Verify the genericity probe one more time on a mock 6502
-      cabinet (used during checkpoint 1).
+### Task 2.1: Port `rep_applier.rs` and lift the four primitive helpers
 
-## Success criteria
+**Files:**
+- Create: `crates/calcite-core/src/pattern/rep_applier.rs`
+- Modify: `crates/calcite-core/src/pattern.rs` (`pub(crate) mod rep_applier;`)
+- Modify: `crates/calcite-core/src/compile.rs`: lift `fn bulk_fill`, `fn bulk_store_byte`, `fn ranges_overlap_virtual`, `fn compute_sub_flags` from private to `pub(crate)`. (These functions exist today on the rep-3b reference at lines 6330 / 6681 / 6698 / 6730; on `feat/rep-generic` they exist inside `rep_fast_forward`'s body. The lift is mechanical.)
 
-1. `rep_fast_forward` no longer exists. The post-tick string-op fast
-   path is descriptor-driven.
-2. The recogniser, when shown a brainfuck-shaped cabinet, fires with
-   no calcite-side change.
-3. The recogniser does not look at any character of any variable
-   name. Only slot identity and expression shape.
-4. Doom8088 web and CLI: `runMsToInGame` within ±1% of pre-mission.
-5. Smoke 7/7 PASS at every commit on the mission branch.
+- [ ] **Step 1: Lift `bulk_fill` / `bulk_store_byte` / `ranges_overlap_virtual` / `compute_sub_flags` to crate-visible**
+
+Read `crates/calcite-core/src/compile.rs` to find the current definitions on `feat/rep-generic`. The functions are:
+- `compute_sub_flags(dst: i32, src: i32, is_word: bool, prev_flags: i32) -> i32` — implements x86 SUB-flag computation used by CMPS/SCAS.
+- `ranges_overlap_virtual(state: &State, start: i64, len: i64) -> bool` — checks `state.virtual_regions` for overlap with `[start, start+len)`. Today it has hardcoded `0xF0000` / `0xD0000` carve-outs *in addition to* the virtual_regions list; the lifted version reads only from `state.virtual_regions` plus the structural `>= 0xF0000` extended-map boundary.
+- `bulk_store_byte(state: &mut State, addr: i64, val: u8)` — writes one byte through packed-cell / windowed-array / extended-map routing.
+- `bulk_fill(state: &mut State, dst: i64, count: usize, val: u8)` — bulk memset variant of the above.
+
+Move these from any nested-fn position inside `rep_fast_forward` to top-level `pub(crate) fn` declarations in `compile.rs`. They will outlive `rep_fast_forward`'s rewrite (Task 3.5) and survive Phase 4.
+
+For `ranges_overlap_virtual`, **remove the hardcoded 0xD0000 carve-out** — the windowed-byte-array recogniser now registers itself in Phase 1 Step 5. Keep the structural `>= 0xF0000` extended-map check (it's a State invariant, not cabinet-specific).
+
+- [ ] **Step 2: Copy `rep_applier.rs` from `origin/worktree-rep-3b` verbatim**
+
+```
+cp ../rep-3b/crates/calcite-core/src/pattern/rep_applier.rs \
+   crates/calcite-core/src/pattern/rep_applier.rs
+```
+
+The file exports:
+
+```rust
+pub(crate) enum ApplyOutcome { Applied { iterations: i32 }, Unsupported(&'static str) }
+pub(crate) enum CommitMode { MemoryOnly, Full }
+pub(crate) fn apply_fill(descriptor, program, state, slots) -> ApplyOutcome
+pub(crate) fn apply_fill_with_commit(descriptor, program, state, slots, commit) -> ApplyOutcome
+pub(crate) fn apply_copy(descriptor, program, state, slots) -> ApplyOutcome
+pub(crate) fn apply_copy_with_commit(descriptor, program, state, slots, commit) -> ApplyOutcome
+pub(crate) fn apply_read_only(descriptor, program, state, slots) -> ApplyOutcome
+pub(crate) fn apply_read_only_with_commit(descriptor, program, state, slots, commit) -> ApplyOutcome
+```
+
+**Critical: this is the form before Phase 3 wart fixes.** It contains WART-commented literal-name reads (`--prefixLen`, `--ES`, `--DS`, `--SI`, `--DI`, `--AL`, `--AX`, `--repType`) and a hardcoded `per_iter_cycles` table. Those get fixed in Phase 3. Leave them in for now — Phase 2 is "land the body, get tests passing, don't change semantics."
+
+- [ ] **Step 3: Register the module**
+
+Modify `crates/calcite-core/src/pattern.rs`: add `pub(crate) mod rep_applier;`.
+
+- [ ] **Step 4: Add `ApplyOutcome::PreconditionNotMet` variant**
+
+Per the "Precondition is a different outcome from Unsupported" constraint, the outcome enum needs three states. Modify the enum:
+
+```rust
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ApplyOutcome {
+    /// Applier ran successfully, mutated state, charged cycles.
+    Applied { iterations: i32 },
+    /// The cabinet's own outer guard predicate evaluates false on this
+    /// tick — the CSS already produced the correct post-state and
+    /// calcite has nothing to do. Dispatcher silently bails.
+    PreconditionNotMet,
+    /// The recogniser produced a descriptor but the applier doesn't
+    /// handle this shape (e.g., BulkClass::PerIter, or a Copy shape
+    /// without indirect-read decomposition). The dispatcher PANICS
+    /// with cabinet state; per-iter CSS fallback is not acceptable for
+    /// REP loops because the 10-1000x slowdown makes carts unusable.
+    Unsupported(&'static str),
+}
+```
+
+For Phase 2 no applier produces `PreconditionNotMet` — every existing `Unsupported` stays `Unsupported`. Phase 3 Task 3.4 (precondition wart) wires it up.
+
+- [ ] **Step 5: Wire up applier tests**
+
+The reference file's tests are inline `#[cfg(test)] mod tests`. They should compile and pass as-is. Run:
+
+```
+cargo test -p calcite-core --lib rep_applier 2>&1 | tail -20
+```
+
+Expected: 47 tests pass (15 Fill + 14 Copy + 18 ReadOnly). If a test fails because of the `PreconditionNotMet` enum variant addition, update the test's match arm to be exhaustive.
+
+- [ ] **Step 6: Run full lib test suite**
+
+```
+cargo test -p calcite-core --lib 2>&1 | tail -20
+```
+
+Expected: all pass except the 4 pre-existing no-opcode failures.
+
+- [ ] **Step 7: Commit**
+
+```
+git add crates/calcite-core/src/pattern/rep_applier.rs \
+        crates/calcite-core/src/pattern.rs \
+        crates/calcite-core/src/compile.rs
+git commit -m "$(cat <<'EOF'
+rep-generic phase 2: port descriptor-driven appliers (not yet wired)
+
+Port pattern/rep_applier.rs from origin/worktree-rep-3b (645f497):
+apply_fill (STOS), apply_copy (MOVS via indirect-read tracing), and
+apply_read_only (LODS/CMPS/SCAS). All three appliers mutate state
+through bulk_fill / bulk_store_byte / state.read_mem — generic memory
+routing that respects packed cells, windowed byte arrays, and the
+extended map without applier-side knowledge.
+
+Lift bulk_fill / bulk_store_byte / ranges_overlap_virtual /
+compute_sub_flags from rep_fast_forward's private scope to
+pub(crate). These outlive rep_fast_forward's rewrite (Phase 3) and
+deletion (Phase 4).
+
+ApplyOutcome adds PreconditionNotMet variant; Phase 3 Task 3.4's
+precondition wart will produce it. For now all bail paths return
+Unsupported.
+
+The hardcoded rep_fast_forward path is still the active one; the
+new appliers are dead code until Phase 3 Task 3.5's dispatch
+rewrite. 47 applier tests pass.
+
+Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
+## Phase 3: Fix the cardinal-rule warts in the descriptor + applier
+
+Each task adds a descriptor field, extends the recogniser to populate it, and updates the applier to read by slot index instead of by literal name. Each lands as its own commit so a bisect can isolate it.
+
+Wart 4 from the audit ("wasm32 path is a no-op because env-var-gated") doesn't appear here as a separate task — it's resolved by Phase 3 Task 3.5 (the dispatch rewrite) using no env var at all.
+
+### Task 3.1: Wart 1 — `per_iter_cycles` field on descriptor
+
+**The wart.** `rep_applier::per_iter_cycles(descriptor) -> i32` returns hardcoded `10` / `17` / `22` / `15` for `Fill` / `Copy` / `ReadOnly+2-pointers` / `ReadOnly+1-pointer`. These are x86 cycle counts for STOS/MOVS/CMPS/SCAS. A 6502 cabinet would have different counts.
+
+**The fix.** The cabinet's CSS dispatches `--cycleCount` writes per opcode, with a literal `+ K` per-iteration delta. The recogniser extracts `K` for the rep opcode and stores it on the descriptor. The applier reads it.
+
+**Files:**
+- Modify: `crates/calcite-core/src/pattern/loop_descriptor.rs` (add `per_iter_cycles: Option<i32>` to `LoopDescriptor`; extend recogniser to populate)
+- Modify: `crates/calcite-core/src/pattern/rep_applier.rs` (drop the hardcoded `per_iter_cycles` function, read from descriptor)
+- Modify: `crates/calcite-core/src/pattern/loop_descriptor/tests.rs` (add `per_iter_cycles_extracted_from_cyclecount_dispatch` synthetic test)
+
+- [ ] **Step 1: Write a failing test for the recogniser extraction**
+
+Add to `tests.rs`:
+
+```rust
+#[test]
+fn per_iter_cycles_extracted_from_cyclecount_dispatch() {
+    // A synthetic cabinet whose --cycleCount dispatch contains:
+    //   if(opcode=0x42: calc(self + 13); else: calc(self + 4))
+    // The recogniser should attach per_iter_cycles=Some(13) to the
+    // descriptor for key_value=0x42.
+    let assignments = synthetic_cabinet_with_cyclecount_dispatch();
+    let descs = recognise_loops(&assignments);
+    let d = descs.iter().find(|d| d.key_value == 0x42).expect("descriptor for 0x42");
+    assert_eq!(d.per_iter_cycles, Some(13));
+}
+```
+
+The helper `synthetic_cabinet_with_cyclecount_dispatch` constructs a minimal cabinet with two dispatch families: the rep loop family (so the descriptor exists for 0x42) and a separate dispatch family whose body for key `0x42` is `calc(var(--cycleCount) + 13)`. Model it on the existing brainfuck-cabinet helpers in the same file.
+
+- [ ] **Step 2: Run test, expect compile failure on `d.per_iter_cycles`**
+
+```
+cargo test -p calcite-core --lib per_iter_cycles_extracted 2>&1 | tail -10
+```
+
+Expected: compile error — field doesn't exist yet.
+
+- [ ] **Step 3: Add the field to `LoopDescriptor`**
+
+In `loop_descriptor.rs`, add to the struct:
+
+```rust
+/// Per-iteration cycle cost, when the cabinet's --cycleCount-shaped
+/// dispatch body for this opcode has shape `calc(self + K)` for some
+/// literal K. `None` when the recogniser can't decompose; the applier
+/// returns Unsupported and the dispatcher panics (since cycle accuracy
+/// is observable through cycleCount-gated branches in the cabinet).
+pub per_iter_cycles: Option<i32>,
+```
+
+Initialize as `None` everywhere `LoopDescriptor { ... }` is constructed in tests (every synthetic-cabinet builder needs the new field).
+
+- [ ] **Step 4: Extend the recogniser to populate `per_iter_cycles`**
+
+In `loop_descriptor.rs`, after the main per-opcode descriptor is built and before `out.push(desc)`, look up the cycle counter dispatch.
+
+Add a helper `extract_per_iter_cycles(assignments: &[Assignment], key_property: &str, key_value: i64) -> Option<i32>` that:
+1. Scans `assignments` for ones whose body is a `StyleCondition` keyed on `key_property` (the same key as the loop family) where the branch for `key_value` has shape `Expr::Calc(CalcOp::Add(Expr::Var(self_property), Expr::Literal(k)))` and `self_property == asn.property` (the body reads its own slot — a self-add shape).
+2. Among matching assignments, return the K from the most prolifically self-adding one (the cabinet's cycle counter is by far the most-dispatched-on slot with this shape — count the assignment's branch count and pick the max). Cardinal-rule note: this picks the **cycle counter family** structurally — "the slot whose dispatch is a per-opcode self + literal pattern with the most opcodes participating." A brainfuck cabinet whose tick counter has the same shape would be identified identically. Renaming `--cycleCount` to `--zorch` does not affect the match.
+3. Return `Some(K)` if a match exists, `None` otherwise.
+
+Document this rationale in code comments — future readers need to know "we picked this candidate because it has the most participants in the dispatch family," not "we matched the slot name."
+
+- [ ] **Step 5: Run the failing test, expect PASS**
+
+```
+cargo test -p calcite-core --lib per_iter_cycles_extracted 2>&1 | tail -10
+```
+
+- [ ] **Step 6: Update the applier to read from the descriptor**
+
+In `rep_applier.rs`, delete the hardcoded `fn per_iter_cycles(descriptor) -> i32` helper. Replace every call site with:
+
+```rust
+let per_iter = match descriptor.per_iter_cycles {
+    Some(k) => k,
+    None => return ApplyOutcome::Unsupported("per_iter_cycles not extracted"),
+};
+```
+
+This sits inside `apply_*_with_commit` after the precondition (post-Task 3.4) and the basic counter check have passed. Returning `Unsupported` here will cause the dispatcher to panic — which is correct, because a real cabinet with this loop shape SHOULD have a recognisable cycle dispatch.
+
+- [ ] **Step 7: Run full lib test suite**
+
+```
+cargo test -p calcite-core --lib 2>&1 | tail -10
+```
+
+All applier tests + recogniser tests should pass. The test fixtures construct `LoopDescriptor` by hand — update each constructor to set `per_iter_cycles: Some(10)` (or whatever the test expects) so the applier's new `None → Unsupported` branch doesn't fire spuriously.
+
+- [ ] **Step 8: Verify against real doom8088 cabinet**
+
+Add a one-line print in the recogniser's diagnostic block (gated by `log::info!`) showing `per_iter_cycles` for each descriptor. Then:
+
+```
+cd ../../../CSS-DOS/.claude/worktrees/rep-generic
+node builder/build.mjs carts/doom -o /tmp/doom.css
+cd ../../calcite/.claude/worktrees/rep-generic
+RUST_LOG=info cargo run --release -p calcite-cli -- -i /tmp/doom.css --max-ticks 100 2>&1 | grep per_iter_cycles
+```
+
+Expected: STOS=Some(10), MOVS=Some(17), CMPS=Some(22), SCAS=Some(15) — same numbers as the hardcoded path used.
+
+- [ ] **Step 9: Commit**
+
+```
+git add crates/calcite-core/src/pattern/loop_descriptor.rs \
+        crates/calcite-core/src/pattern/loop_descriptor/tests.rs \
+        crates/calcite-core/src/pattern/rep_applier.rs
+git commit -m "$(cat <<'EOF'
+rep-generic wart 1: per_iter_cycles structural
+
+LoopDescriptor gains per_iter_cycles: Option<i32>, populated at
+recogniser time by extracting the literal K from the most-
+populated `self + K` dispatch family for this opcode. Applier
+drops its hardcoded 10/17/22/15 table.
+
+Cardinal-rule probe: the recogniser identifies the cycle slot
+structurally ("the most-populated self-add dispatch family"). A
+6502 / brainfuck cabinet with the same shape would attach its
+own cycle counts; one without a cycle counter would land None
+and the applier would panic loudly on entry.
+
+Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
+EOF
+)"
+```
+
+### Task 3.2: Wart 2 — `ip_extra_advance_slot` field on descriptor (replaces `--prefixLen` literal read)
+
+**The wart.** `rep_applier::read_prefix_len` reads `--prefixLen` by literal name. The slot exists because the cabinet's IP-advance formula is `IP = IP + 1 + var(--prefixLen)` — the literal `1` is the opcode length, the `+ prefixLen` is the optional REP prefix's contribution.
+
+**The fix.** The recogniser captures the name of the extra slot added to the IP advance, and the applier resolves it by slot name through the existing `read_prop` helper.
+
+**Files:** same three files as Task 3.1.
+
+- [ ] **Step 1: Write a failing test**
+
+Add to `tests.rs`:
+
+```rust
+#[test]
+fn ip_extra_advance_slot_extracted_from_ip_body() {
+    // The cabinet's IP-advance branch shape:
+    //   else: calc(var(--IP_prev) + 1 + var(--extraStep))
+    // where --extraStep is the opaquely-named extra-advance slot.
+    let assignments = synthetic_cabinet_with_extra_ip_advance("--extraStep");
+    let descs = recognise_loops(&assignments);
+    assert_eq!(descs[0].ip_extra_advance_slot.as_deref(), Some("--extraStep"));
+}
+
+#[test]
+fn ip_extra_advance_slot_renaming_is_blind() {
+    let assignments = synthetic_cabinet_with_extra_ip_advance("--zorch");
+    let descs = recognise_loops(&assignments);
+    assert_eq!(descs[0].ip_extra_advance_slot.as_deref(), Some("--zorch"));
+}
+
+#[test]
+fn ip_extra_advance_slot_none_when_no_extra() {
+    // Plain `self + 1` shape — no extra var addend.
+    let assignments = synthetic_cabinet_plain_ip_advance();
+    let descs = recognise_loops(&assignments);
+    assert!(descs[0].ip_extra_advance_slot.is_none());
+}
+```
+
+- [ ] **Step 2: Add field + recogniser extension**
+
+In `loop_descriptor.rs`:
+
+```rust
+/// Name of the slot whose value is added to the IP per-iteration step.
+/// Populated by structural matching on the IP body's advance branch
+/// when it has shape `calc(self + literal + var(extra))` (or any
+/// reassociation thereof). `None` when the IP body is just
+/// `self + literal` with no extra var addend.
+pub ip_extra_advance_slot: Option<String>,
+```
+
+Extend the IP-body recogniser to look for an extra-var-addend shape in the advance branch. Pattern match on the recursive form: an `Expr::Calc(CalcOp::Add(...))` tree where one leaf is the IP self property, one is a literal (the opcode length), and one is a `Var(extra)` reference. When found, set `ip_extra_advance_slot = Some(extra.clone())`.
+
+- [ ] **Step 3: Update the applier**
+
+In `rep_applier::commit_ip_and_cycles`, replace:
+
+```rust
+let prefix_len = read_prefix_len(program, state, slots);  // OLD
+```
+
+with:
+
+```rust
+let prefix_len = match descriptor.ip_extra_advance_slot.as_deref() {
+    Some(slot) => read_prop(program, state, slots, slot).unwrap_or(0),
+    None => 0,
+};
+```
+
+Delete the `read_prefix_len` helper.
+
+- [ ] **Step 4: Verify against doom**
+
+Doom's `--prefixLen` is captured. Confirm the post-tick IP matches the hardcoded path by running smoke + doom-loading to title:
+
+```
+cd ../../../CSS-DOS/.claude/worktrees/rep-generic
+node tests/harness/run.mjs smoke
+```
+
+Expected: 7/7 PASS.
+
+- [ ] **Step 5: Commit**
+
+```
+rep-generic wart 2: ip_extra_advance_slot structural
+
+LoopDescriptor gains ip_extra_advance_slot: Option<String>. The
+recogniser walks the IP body's advance branch; when it has shape
+`calc(self + literal + var(extra))`, captures `extra`'s name.
+Applier resolves to slot via read_prop instead of literal-name
+reading `--prefixLen`.
+
+A 6502 cabinet without an opcode-prefix mechanism produces None
+here; the applier adds 0 to the IP step, which is correct.
+```
+
+### Task 3.3: Wart 3 — `comparison: Option<ComparisonShape>` (replaces CMPS/SCAS literal-name reads)
+
+**The wart.** `apply_read_only`'s CMPS/SCAS branch reads `--ES`, `--DS`, `--SI`, `--DI`, `--AL`, `--AX`, `--repType` by literal name. The shape of the comparison (two stepping pointers, or one pointer + accumulator) and the slots involved should be structurally captured.
+
+**Files:** loop_descriptor.rs, rep_applier.rs, tests.rs.
+
+- [ ] **Step 1: Add `ComparisonShape` + `ComparisonSource` types**
+
+In `loop_descriptor.rs`:
+
+```rust
+/// How a flag-conditioned ReadOnly loop performs its per-iter
+/// comparison. Captured structurally from the cabinet's predicate
+/// shape at recogniser time.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ComparisonShape {
+    /// "Destination" side — the byte read from this pointer is one
+    /// operand of the comparison.
+    pub dst_seg_property: String,
+    pub dst_ptr_property: String,
+    /// "Source" side — either another stepping pointer (CMPS shape)
+    /// or an accumulator slot (SCAS shape).
+    pub source: ComparisonSource,
+    /// Slot whose value selects REPE vs REPNE semantics. Today this
+    /// is --repType in the x86 cabinet; on a brainfuck cabinet it
+    /// could be absent (None → unconditional REPE-shape exit).
+    pub rep_type_property: Option<String>,
+    /// Width in bytes per comparison step (1 for byte, 2 for word).
+    /// Structurally derived from `dst_ptr.base_step`.
+    pub width: u8,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ComparisonSource {
+    /// Two stepping pointers (CMPS).
+    Pointer { seg_property: String, ptr_property: String },
+    /// Accumulator slot read once per iter (SCAS). `byte_property`
+    /// is read for byte-shape loops, `word_property` for word-shape.
+    Accumulator { byte_property: String, word_property: String },
+}
+```
+
+Add to `LoopDescriptor`:
+
+```rust
+/// Comparison shape for flag-conditioned ReadOnly loops (CMPS/SCAS).
+/// `Some` when the predicate has the disjunction shape captured by
+/// the recogniser and the read-side dispatches decompose cleanly;
+/// `None` otherwise (which makes the applier return Unsupported and
+/// the dispatcher panic).
+pub comparison: Option<ComparisonShape>,
+```
+
+- [ ] **Step 2: Tests covering CMPS, SCAS, renaming probe**
+
+Add to `tests.rs`:
+
+```rust
+#[test]
+fn comparison_extracted_for_cmps() {
+    let descs = recognise_loops(&cmps_byte_cabinet());
+    let cmp = descs[0].comparison.as_ref().expect("comparison shape captured");
+    assert!(matches!(cmp.source, ComparisonSource::Pointer { .. }));
+    assert_eq!(cmp.width, 1);
+}
+
+#[test]
+fn comparison_extracted_for_scas() {
+    let descs = recognise_loops(&scas_byte_cabinet());
+    let cmp = descs[0].comparison.as_ref().expect("comparison shape captured");
+    assert!(matches!(cmp.source, ComparisonSource::Accumulator { .. }));
+}
+
+#[test]
+fn comparison_renaming_blind() {
+    let descs_a = recognise_loops(&cmps_byte_cabinet());
+    let descs_b = recognise_loops(&cmps_byte_cabinet_renamed_slots());
+    // Comparison shape's structural fields differ only in name strings.
+    assert_eq!(descs_a[0].comparison.is_some(), descs_b[0].comparison.is_some());
+    let (a, b) = (descs_a[0].comparison.as_ref().unwrap(), descs_b[0].comparison.as_ref().unwrap());
+    assert_eq!(a.width, b.width);
+    matches!((&a.source, &b.source),
+        (ComparisonSource::Pointer { .. }, ComparisonSource::Pointer { .. }));
+}
+```
+
+- [ ] **Step 3: Extend the recogniser**
+
+The recogniser already captures `flag_conditioned`. Extend it to also build `comparison` when `flag_conditioned == true`:
+
+1. **Identify the destination read.** The predicate has the shape `<counter-positive> AND <flag-bit-N-target>`. The flag-bit-target's underlying flags slot has a `compute_sub_flags` shape feeding it. Walk back from the flags slot: the assignment writing it should have shape `subFlags(dst, src, ...)` (or in CSS shape, a structurally equivalent dispatch). The `dst` argument's source — a `read_mem(seg*16 + ptr)` expression — gives `dst_seg_property` and `dst_ptr_property`. For SCAS the dispatch is similar but with a register read on one side and a memory read on the other.
+
+2. **Identify the source side.** If `pointers.len() == 2`, the source is the second pointer; the analogous `read_mem` shape gives its seg/ptr properties → `ComparisonSource::Pointer`. If `pointers.len() == 1`, the non-memory operand of `subFlags` is a slot dispatch with byte vs word selection based on the loop's pointer step — capture both as `ComparisonSource::Accumulator { byte_property, word_property }`.
+
+3. **Identify the REPE/REPNE selector.** The flag-bit-N target in the predicate has a discriminator value (0 or 1) that depends on a slot. The slot whose value flips the target between 0 and 1 is `rep_type_property`. If the predicate has the same target value for all branches, no rep_type slot exists → `None`.
+
+This is the deepest recogniser extension. **If the extraction is genuinely intractable to derive purely structurally for a particular shape, surface that — we re-scope by splitting "extract dst" / "extract source" / "extract rep_type" into separate tasks.** Do not silently weaken to "scan property names for `--ES`-shaped strings." Whole-name slot-identity comparison is allowed (that's what `read_prop` does); character inspection of names is not.
+
+- [ ] **Step 4: Rewrite `apply_read_only`'s CMPS/SCAS branch**
+
+Read every byte and discriminator via slot index resolved from `descriptor.comparison`. The literal-name reads (`--ES`, `--DS`, `--SI`, `--DI`, `--AL`, `--AX`, `--repType`) all go.
+
+For `rep_type` semantics: if `comparison.rep_type_property` is `Some(slot)`, read the current value; otherwise default to "REPE-like" (continue while equal). The descriptor's `flag_conditioned == true` already gates entering this branch; the discriminator value selects the early-exit polarity.
+
+- [ ] **Step 5: Verify**
+
+Smoke + doom run to confirm no behavioural regression. CMPS/SCAS rarely fire in the doom common path; rely on the smoke suite for coverage.
+
+- [ ] **Step 6: Commit**
+
+```
+rep-generic wart 3: comparison shape structural
+
+CMPS/SCAS comparison metadata moved off literal-name reads onto
+ComparisonShape on LoopDescriptor. The recogniser extracts dst /
+source / rep_type slots structurally from the predicate's
+disjunction shape and the flags-slot dispatch's subFlags-shape
+arguments. apply_read_only drops --ES/--DS/--SI/--DI/--AL/--AX/
+--repType literal-name reads.
+```
+
+### Task 3.4: Wart 6 — `precondition` field on descriptor
+
+**The wart.** `try_apply_generic` reads `--hasREP`, `--repType`, `--CX`, `--flags`, `--hasSegOverride`, `--_irqActive`, `--_tf` by literal name to gate panic-or-bail. The CMPS/SCAS post-tick ZF short-circuit uses opcode tables and a hardcoded bit position (`(flags >> 6) & 1`).
+
+**The fix.** The cabinet's CSS dispatch for the REP opcode wraps the loop body in a precondition predicate. The recogniser captures the predicate as a `StyleTest`; the applier evaluates it pre-run. When false → `PreconditionNotMet`. One mechanism replaces all 7 literal-name reads, all 4 opcode-table entries, and the bit-position read.
+
+**Files:** loop_descriptor.rs, rep_applier.rs, tests.rs.
+
+- [ ] **Step 1: Test for precondition capture**
+
+Add to `tests.rs`:
+
+```rust
+#[test]
+fn precondition_captures_outer_guard() {
+    // Cabinet whose rep dispatch is wrapped:
+    //   if(style(--hasREP: 1) AND style(--repType: 1)
+    //      AND style(--_irqActive: 0) AND style(--_tf: 0)
+    //      AND style(--hasSegOverride: 0):
+    //      <rep body>;
+    //    else: <single-iter passthrough>)
+    let assignments = cabinet_with_outer_guard();
+    let descs = recognise_loops(&assignments);
+    let pre = descs[0].precondition.as_ref().expect("precondition captured");
+
+    // Evaluating against a "all guards favourable" state returns true.
+    let (program, state, slots) = setup_state_with(&[
+        ("--hasREP", 1), ("--repType", 1),
+        ("--_irqActive", 0), ("--_tf", 0), ("--hasSegOverride", 0),
+    ]);
+    assert!(crate::eval::evaluate_style_test(pre, &program, &state, &slots));
+
+    // Setting --_irqActive to 1 makes it false.
+    let (_, state_irq, slots_irq) = setup_state_with(&[
+        ("--hasREP", 1), ("--repType", 1),
+        ("--_irqActive", 1), ("--_tf", 0), ("--hasSegOverride", 0),
+    ]);
+    assert!(!crate::eval::evaluate_style_test(pre, &program, &state_irq, &slots_irq));
+}
+
+#[test]
+fn precondition_none_when_no_outer_wrapper() {
+    // Brainfuck-shaped cabinet — bare rep body, no wrapper.
+    let descs = recognise_loops(&brainfuck_rep_cabinet());
+    assert!(descs[0].precondition.is_none());
+}
+```
+
+- [ ] **Step 2: Add `precondition: Option<StyleTest>` to descriptor**
+
+```rust
+/// The cabinet's own outer guard predicate for whether the rep body
+/// should run this tick. Captured structurally from the StyleCondition
+/// wrapping the rep dispatch body. When the predicate evaluates false
+/// against the post-tick slot state, the applier returns
+/// PreconditionNotMet and the dispatcher silently bails (the CSS
+/// already produced the correct single-iter result).
+///
+/// `None` when the cabinet has no outer wrapper — the loop body
+/// runs unconditionally whenever the opcode dispatches. (Brainfuck /
+/// 6502 cabinets without segment overrides, single-step plumbing, or
+/// REP prefixes would land here.)
+pub precondition: Option<StyleTest>,
+```
+
+- [ ] **Step 3: Extend the recogniser**
+
+When walking the dispatch body for the rep opcode, the outer wrapper is a `StyleCondition` whose `branches[0].condition` is the "all guards green" predicate (or a conjunction thereof). Capture the conjunction expressing "this branch fires" and store as `precondition`.
+
+The CMPS/SCAS post-tick ZF short-circuit folds into this naturally: those descriptors' preconditions include a `flag-bit-N target-equals-X` test for the appropriate sign. If the existing `find_inner_dispatch` already strips this wrapper, then capturing the predicate is just remembering what's being stripped.
+
+- [ ] **Step 4: Evaluate precondition at applier entry**
+
+Modify `apply_fill_with_commit`, `apply_copy_with_commit`, `apply_read_only_with_commit`. As the first action after entry:
+
+```rust
+if let Some(pre) = descriptor.precondition.as_ref() {
+    if !crate::eval::evaluate_style_test(pre, program, state, slots) {
+        return ApplyOutcome::PreconditionNotMet;
+    }
+}
+```
+
+`evaluate_style_test` is a helper that walks a `StyleTest` against the program's property_slots and state's variables. It already exists in calcite-core (used by every per-tick condition); expose `pub(crate)` if not already exposed.
+
+- [ ] **Step 5: Verify across the smoke set**
+
+The precondition gating is the most semantically subtle change in the plan. Run:
+
+```
+cd ../../../CSS-DOS/.claude/worktrees/rep-generic
+node tests/harness/run.mjs smoke
+```
+
+Expected: 7/7 PASS. Any cart that hits a CMPS/SCAS short-circuit (zork? prince of persia?) reaches its known checkpoint.
+
+Also run a calcite-cli boot of doom to in-game and confirm `g_gamestate==0` reached.
+
+- [ ] **Step 6: Commit**
+
+```
+rep-generic wart 6: precondition on descriptor
+
+Capture the cabinet's own outer guard predicate as
+LoopDescriptor.precondition: Option<StyleTest>. Applier evaluates
+pre-run; if false, returns PreconditionNotMet and the dispatcher
+silently bails — the CSS already produced correct state. Replaces
+hardcoded reads of --hasREP / --repType / --hasSegOverride /
+--_irqActive / --_tf and the CMPS/SCAS post-tick ZF short-circuit
+(opcode-table-gated + (flags>>6)&1).
+
+One mechanism replaces five literal-name reads + an opcode table
++ a hardcoded bit position. Brainfuck cabinet without those
+guards: precondition is None, applier runs unconditionally.
+```
+
+### Task 3.5: Wart 5 — descriptor-lookup dispatch rewrite
+
+**The wart.** `rep_fast_forward`'s body opens with:
+
+```rust
+let is_stos_movs = matches!(opcode, 0xAA | 0xAB | 0xA4 | 0xA5);
+let is_cmps_scas = matches!(opcode, 0xA6 | 0xA7 | 0xAE | 0xAF);
+```
+
+The dispatcher knows specific x86 opcode bytes.
+
+**The fix.** Look up by descriptor first, branch on `descriptor.bulk_class` and `descriptor.flag_conditioned`. No opcode-byte tables anywhere.
+
+**Files:** compile.rs (large rewrite of `rep_fast_forward`).
+
+- [ ] **Step 1: Rewrite `rep_fast_forward` body**
+
+Replace the entire body from "snapshot every field" through the end of the function with:
+
+```rust
+fn rep_fast_forward(program: &CompiledProgram, state: &mut State, slots: &[i32]) {
+    fn read_prop(program: &CompiledProgram, state: &State, slots: &[i32], name: &str) -> Option<i32> {
+        if let Some(&s) = program.property_slots.get(name) {
+            return Some(slots[s as usize]);
+        }
+        let bare = name.strip_prefix("--").unwrap_or(name);
+        state.get_var(bare)
+    }
+
+    // What opcode just dispatched? Identity-compare against descriptors.
+    let opcode = match read_prop(program, state, slots, "--opcode") {
+        Some(v) => v,
+        None => return,  // Cabinet has no opcode latch; no fast-forward applies.
+    };
+
+    // Find the descriptor for this opcode. No `matches!(opcode, 0xAA|...)`
+    // — the descriptor list IS the source of truth for "what shapes can be
+    // fast-forwarded."
+    let Some(descriptor) = program.loop_descriptors.iter().find(|d| d.key_value == opcode as i64) else {
+        // No descriptor: not a recognised loop shape. CSS handled the
+        // single iter, nothing to fast-forward.
+        return;
+    };
+
+    use crate::pattern::loop_descriptor::BulkClass;
+    use crate::pattern::rep_applier::{
+        apply_copy_with_commit, apply_fill_with_commit, apply_read_only_with_commit,
+        ApplyOutcome, CommitMode,
+    };
+
+    let outcome = match descriptor.bulk_class {
+        BulkClass::Fill =>
+            apply_fill_with_commit(descriptor, program, state, slots, CommitMode::Full),
+        BulkClass::Copy =>
+            apply_copy_with_commit(descriptor, program, state, slots, CommitMode::Full),
+        BulkClass::ReadOnly =>
+            apply_read_only_with_commit(descriptor, program, state, slots, CommitMode::Full),
+        BulkClass::PerIter => {
+            // Recogniser produced a descriptor but bulk_class is PerIter
+            // — no fast-forward applier handles this shape. Panic loudly;
+            // 10-1000x slowdown on per-iter CSS is the user-facing
+            // failure mode this design exists to prevent.
+            rep_fast_forward_panic(
+                "bulk-class-per-iter",
+                opcode,
+                read_prop(program, state, slots, "--repType").unwrap_or(0),
+                read_prop(program, state, slots, "--CX").unwrap_or(0),
+                read_prop(program, state, slots, "--flags").unwrap_or(0),
+                read_prop(program, state, slots, "--CS").unwrap_or(0),
+                state.get_var("IP").unwrap_or(0),
+                "descriptor.bulk_class is PerIter — recogniser needs extension to cover this shape",
+            );
+        }
+    };
+
+    match outcome {
+        ApplyOutcome::Applied { .. } => {},
+        ApplyOutcome::PreconditionNotMet => {
+            // The cabinet's own guard said "don't run the rep body
+            // this tick" — CSS produced correct single-iter state,
+            // nothing for calcite to do.
+        }
+        ApplyOutcome::Unsupported(reason) => {
+            // Recogniser gap: descriptor exists but applier refused.
+            // Panic with state — see "bulk-class-per-iter" comment above
+            // for why fallback is not acceptable.
+            rep_fast_forward_panic(
+                "applier-unsupported",
+                opcode,
+                read_prop(program, state, slots, "--repType").unwrap_or(0),
+                read_prop(program, state, slots, "--CX").unwrap_or(0),
+                read_prop(program, state, slots, "--flags").unwrap_or(0),
+                read_prop(program, state, slots, "--CS").unwrap_or(0),
+                state.get_var("IP").unwrap_or(0),
+                reason,
+            );
+        }
+    }
+}
+```
+
+Note: `rep_fast_forward_panic` still receives `--repType`/`--CX`/`--flags`/`--CS` by literal name **inside the panic diagnostic only**. That's documented as upstream-knowledge by design — the panic message is reporting cabinet state for a developer to debug, not a structural decision. The applier never reads these directly anymore.
+
+- [ ] **Step 2: Delete `rep_fast_forward_cmps_scas` and `try_apply_generic`**
+
+Once the new body is in place:
+- `rep_fast_forward_cmps_scas` is unreachable. Delete it.
+- `try_apply_generic` (if ported) is also unreachable. Delete it.
+- Any env-var-gated dispatch (`rep_generic_enabled`, `CALCITE_REP_GENERIC` reads) — delete.
+
+Search:
+```
+rg "rep_fast_forward_cmps_scas|try_apply_generic|rep_generic_enabled|CALCITE_REP_GENERIC|CALCITE_REP_LEGACY|CALCITE_REP_DUAL" crates/
+```
+
+Expected: only stale-doc hits remain; live code references are gone.
+
+- [ ] **Step 3: Run smoke + tests**
+
+```
+cargo test -p calcite-core --lib 2>&1 | tail -10
+cd ../../../CSS-DOS/.claude/worktrees/rep-generic
+node tests/harness/run.mjs smoke
+```
+
+All must pass. The 4 previously-failing no-opcode tests now PASS (the new dispatcher silently bails when there's no opcode latch).
+
+- [ ] **Step 4: Commit**
+
+```
+rep-generic wart 5: dispatcher looks up descriptor, no opcode tables
+
+Replace rep_fast_forward's `let is_stos_movs = matches!(opcode,
+0xAA|0xAB|0xA4|0xA5)` and `is_cmps_scas = matches!(opcode,
+0xA6|0xA7|0xAE|0xAF)` with descriptor lookup against
+program.loop_descriptors. Dispatch on descriptor.bulk_class. The
+0xAA/0xAB/0xA4/0xA5/0xA6/0xA7/0xAE/0xAF opcode-byte literals are
+gone from live code (matches in panic strings and test fixtures
+remain — those are upstream-knowledge by design).
+
+flag_conditioned (already on descriptor) replaces is_cmps_scas
+everywhere downstream. The CMPS/SCAS post-tick ZF short-circuit
+folded into wart 6's precondition.
+
+Delete rep_fast_forward_cmps_scas — unreachable.
+
+The 4 pre-existing no-opcode test failures now PASS — the new
+dispatcher silently bails when there's no opcode latch.
+```
+
+---
+
+## Phase 4: Final clean-up and perf gate
+
+Goal: prove the descriptor path matches pre-mission baseline on both targets. Smoke 7/7. Doom in-game both targets. Zero hardcoded x86 literals in live code outside the panic diagnostic and test fixtures.
+
+### Task 4.1: Verify, bench, document
+
+**Files:** none modified in this task (other than possible perf fixes if the gate fails).
+
+- [ ] **Step 1: Search for any surviving env-var reads**
+
+```
+rg "CALCITE_REP_GENERIC|CALCITE_REP_LEGACY|CALCITE_REP_DUAL" crates/
+```
+
+Expected: zero live hits (comments-only OK, but should also be removed for hygiene).
+
+- [ ] **Step 2: Search for the opcode-byte literals**
+
+```
+rg "0xAA|0xAB|0xA4|0xA5|0xA6|0xA7|0xAE|0xAF" crates/calcite-core/src/ --type rust
+```
+
+Expected: live-code matches only in test fixtures (synthetic cabinet builders) and the `rep_fast_forward_panic`'s diagnostic string template. Anything else needs to come out.
+
+- [ ] **Step 3: Search for the literal-name reads**
+
+```
+rg "\"\-\-hasREP|\"\-\-repType|\"\-\-hasSegOverride|\"\-\-_irqActive|\"\-\-_tf|\"\-\-prefixLen|\"\-\-ES\"|\"\-\-DS\"|\"\-\-SI\"|\"\-\-DI\"|\"\-\-AL\"|\"\-\-AX\"" crates/calcite-core/src/
+```
+
+Expected: hits only in (a) the recogniser's precondition / comparison capture code, where it's writing the captured shape — but ideally these capture the slot names from the cabinet's own dispatch, not by hardcoding; (b) `rep_fast_forward_panic`'s diagnostic body. No applier or dispatcher hits.
+
+- [ ] **Step 4: Run full workspace tests**
+
+```
+cargo test --workspace 2>&1 | tail -10
+```
+
+All pass. The 4 previously-failing tests now pass per Task 3.5 Step 3.
+
+- [ ] **Step 5: Smoke test on CSS-DOS side**
+
+```
+cd ../../../CSS-DOS/.claude/worktrees/rep-generic
+node tests/harness/run.mjs smoke 2>&1 | tail -10
+```
+
+Expected: 7/7 PASS.
+
+- [ ] **Step 6: Establish or refresh perf baseline on `main`**
+
+Check `docs/logbook/STATUS.md` — the perf baseline section. If the numbers are within a week or two of today and were taken on the same hardware, use them. Otherwise re-bench `main`:
+
+```
+cd ../../calcite/.claude/worktrees/rep-generic
+git stash               # temporarily save our work
+git checkout main
+cd ../../../CSS-DOS/.claude/worktrees/rep-generic
+node tests/bench/driver/run.mjs doom-loading                # 3 runs web
+node tests/bench/driver/run.mjs doom-loading --target=cli   # 3 runs CLI
+# Quote 3-run medians. Pin the JSON files for diff.
+cd ../../calcite/.claude/worktrees/rep-generic
+git checkout feat/rep-generic
+git stash pop
+```
+
+- [ ] **Step 7: Bench `feat/rep-generic`**
+
+```
+cd ../../../CSS-DOS/.claude/worktrees/rep-generic
+node tests/bench/driver/run.mjs doom-loading                # 3 runs web
+node tests/bench/driver/run.mjs doom-loading --target=cli   # 3 runs CLI
+```
+
+Compare medians to baseline. Both targets within ±1%.
+
+- [ ] **Step 8: If perf gate fails, diagnose**
+
+The applier walks per-iter for the comparison shape — slower than the hardcoded path's tighter inner loop? The precondition evaluator does a `StyleTest` walk per opcode entry? Profile. Specific likely culprits:
+- `evaluate_style_test` allocating per call → inline the eval shape onto the descriptor at compile time.
+- `program.loop_descriptors.iter().find(...)` being linear → swap for a `HashMap<i32, usize>` of opcode → descriptor index.
+- The applier's per-iter `read_prop` doing a `HashMap.get` lookup per iteration → resolve to slot index once at applier entry.
+
+**Do not lower the perf gate.** Diagnose and fix. If a fix is non-trivial, surface it as a follow-up task in the plan rather than ship a regression.
+
+- [ ] **Step 9: Doom in-game both targets**
+
+Already covered by the perf bench (doom-loading reaching in-game is what the bench measures). Verify ok:true on both targets.
+
+- [ ] **Step 10: Commit (if perf fix needed)**
+
+If steps 7-8 needed code changes to hit the perf gate, commit them with a clear "perf:" prefix. Otherwise no commit in this phase — verification only.
+
+```
+rep-generic phase 4 (optional): perf fix
+
+[Describe what the bottleneck was and the fix.]
+
+Web doom-loading: BEFORE -> AFTER (3-run median).
+CLI doom-loading: BEFORE -> AFTER (3-run median).
+Both within ±1% of pre-mission main baseline.
+```
+
+---
+
+## Phase 5: Documentation
+
+### Task 5.1: Update STATUS, plan, and logs
+
+**Files:**
+- Modify: `docs/logbook/STATUS.md` (CSS-DOS) — remove the `rep_fast_forward` ship-blocker entry; release bar now clear of this item.
+- Modify: `docs/plans/2026-05-06-rep-fast-forward-genericity.md` (this file) — mark all phases complete.
+- Create: `docs/logbook/entries/2026-XX-XX-rep-fast-forward-genericity-landed.md` (CSS-DOS).
+- Modify: `../calcite/docs/log.md` (calcite) — entry summarising the landing.
+
+- [ ] **Step 1: Update CSS-DOS STATUS**
+
+In `docs/logbook/STATUS.md`:
+- Remove the "The ship-blocker (verified 2026-05-18)" section entirely. Release bar item 1 ("Calcite must be generic") is now clear of this specific blocker (any remaining genericity items move to their own STATUS bullets if applicable).
+- Remove the active-work item 1 (rep_fast_forward generic applier).
+- Update "Last verified" date.
+
+- [ ] **Step 2: Create CSS-DOS logbook entry**
+
+Create `docs/logbook/entries/2026-XX-XX-rep-fast-forward-genericity-landed.md`:
+
+```markdown
+# 2026-XX-XX — rep_fast_forward genericity landed (LANDED)
+
+calcite `feat/rep-generic` (merged into main as commit XXXXX) lands
+the descriptor-driven REP fast-forward applier, replacing ~600 lines
+of hardcoded x86 string-op semantics in compile.rs. Recogniser
+captures structural shape; runtime applier dispatches on BulkClass
+with zero opcode-byte tables outside the panic diagnostic and zero
+literal-name reads outside the recogniser's precondition-capture and
+the panic body.
+
+Cardinal-rule probe: brainfuck-shaped synthetic cabinet test in
+`pattern/loop_descriptor/tests.rs::a_and_b_descriptors_are_structurally_equivalent`
+produces structurally equivalent descriptors and the new applier
+would fast-forward it identically.
+
+Perf gate: doom-loading within ±1% of pre-mission baseline on
+web AND CLI. Smoke 7/7. Doom8088 in-game both targets. Prince of
+Persia title unchanged.
+
+Cross-link: ../calcite/docs/log.md 2026-XX-XX entry. Plan
+(now COMPLETE): `docs/plans/2026-05-06-rep-fast-forward-genericity.md`.
+
+Files: see plan's "Final file structure" section.
+```
+
+Add a row to `docs/logbook/LOGBOOK.md` index pointing at this entry.
+
+- [ ] **Step 3: Calcite log entry**
+
+Append to `../calcite/docs/log.md`:
+
+```markdown
+## 2026-XX-XX — rep_fast_forward retired
+
+The hardcoded x86 string-op fast-forward path in compile.rs (~600
+lines including rep_fast_forward / rep_fast_forward_cmps_scas /
+compute_sub_flags) is gone. Replaced by a descriptor-driven applier
+(pattern/rep_applier.rs) fed by a structural recogniser
+(pattern/loop_descriptor.rs) that runs at Evaluator::from_parsed
+time.
+
+LoopDescriptor fields cover everything the hardcoded path used to
+read by name: counter / pointers / writes / addr_decomposition /
+val_indirect_read (MOVS-shape source tracking) / per_iter_cycles /
+ip_extra_advance_slot / comparison (CMPS/SCAS shape) / precondition
+(cabinet's own outer guard). The applier reads every byte and slot
+through these fields — never by character of any name. Genericity
+probe holds: x86, brainfuck, and non-emulator cabinets with the
+same loop shape produce structurally equivalent descriptors.
+
+Dispatcher: looks up descriptor by opcode-as-key (identity compare,
+not opcode-byte table), branches on BulkClass. PerIter and
+Unsupported outcomes panic loudly with cabinet state — per-iter CSS
+fallback is unacceptable because 10-1000x slowdown leaves users
+stranded on a frozen screen.
+
+Perf JSON before/after [paste]. Smoke 7/7 PASS. Doom8088 in-game
+on web AND CLI. Cardinal-rule audit list (2026-05-05): now empty for
+the REP path.
+
+Files added: pattern/loop_descriptor.rs, pattern/loop_descriptor/tests.rs,
+pattern/rep_applier.rs, tests/rep_fast_forward.rs. Files removed:
+rep_fast_forward_cmps_scas function (in compile.rs).
+```
+
+- [ ] **Step 4: Mark plan complete**
+
+In this file (`docs/plans/2026-05-06-rep-fast-forward-genericity.md`), prepend a status line at the top:
+
+```markdown
+**Status: COMPLETE (landed 2026-XX-XX on calcite feat/rep-generic merged into main as XXXXX / CSS-DOS master).**
+```
+
+- [ ] **Step 5: Commit CSS-DOS docs**
+
+```
+cd ../../../CSS-DOS/.claude/worktrees/rep-generic
+git add docs/logbook/STATUS.md docs/logbook/LOGBOOK.md \
+        docs/logbook/entries/2026-XX-XX-rep-fast-forward-genericity-landed.md \
+        docs/plans/2026-05-06-rep-fast-forward-genericity.md
+git commit -m "log: rep_fast_forward retired (calcite feat/rep-generic landed)"
+```
+
+- [ ] **Step 6: Commit calcite log**
+
+```
+cd ../../calcite/.claude/worktrees/rep-generic
+git add docs/log.md
+git commit -m "log: rep_fast_forward retired — descriptor-driven applier is the path"
+```
+
+- [ ] **Step 7: Push both, open PRs**
+
+```
+git -C ../../../CSS-DOS/.claude/worktrees/rep-generic push -u origin worktree-rep-generic
+git -C ../../calcite/.claude/worktrees/rep-generic push -u origin feat/rep-generic
+gh pr create -R [css-dos repo] ...
+gh pr create -R [calcite repo] ...
+```
+
+Merge once review passes (per the user's preference — direct merge or PR review).
+
+---
+
+## Success criteria recap
+
+1. `rep_fast_forward` body (the opcode-keyed match) no longer exists; the function is now a small dispatcher that does descriptor lookup + applier dispatch + panic on unrecognised.
+2. `rep_fast_forward_cmps_scas` no longer exists.
+3. `rep_fast_forward_panic` retained (canonical panic shape for diagnostics).
+4. No `CALCITE_REP_GENERIC` / `_LEGACY` / `_DUAL` env vars anywhere.
+5. No `0xAA|0xAB|0xA4|0xA5|0xA6|0xA7|0xAE|0xAF` opcode-byte literals in live code (matches in panic strings and test fixtures are OK).
+6. No `--hasREP|--repType|--hasSegOverride|--_irqActive|--_tf|--prefixLen|--ES|--DS|--SI|--DI|--AL|--AX` literal-name reads in the applier or dispatcher (recogniser's precondition / comparison capture: OK; panic diagnostic: OK).
+7. Genericity probe: the brainfuck-shaped synthetic cabinet test in `pattern/loop_descriptor/tests.rs` passes.
+8. doom-loading web AND CLI within ±1% of pre-mission baseline. JSON quoted in the Phase 4 commit message (or Phase 5 logbook entry).
+9. `node tests/harness/run.mjs smoke` 7/7 PASS.
+10. Doom8088 reaches in-game on web and CLI. Prince of Persia title screen unchanged.
+
+## Failure modes and how to detect them
+
+- **Recogniser misclassifies a non-loop opcode as a loop.** Synthetic-cabinet unit tests cover negative cases. Real cabinets: smoke would fail.
+- **Applier panics on a real cabinet path.** Loud and immediate by design. The diagnostic identifies the shape; either the recogniser needs extension (preferred) or the cabinet has a shape this plan didn't anticipate.
+- **Perf regression > 1%.** Profile. Common culprits listed in Task 4.1 Step 8.
+- **Precondition over-zealous (bails when it should run).** Smoke catches gross cases. For subtle ones, run doom-loading and watch for `runMsToInGame` ballooning (the precondition is bailing on every iter, falling back to per-iter CSS).
+- **MOVS overlap semantics regression.** The reference branch's `apply_copy` walks per-byte read-then-write to preserve overlap; the unit tests cover this. Don't optimise without re-running those tests.
+- **Cycle count drift.** doomLoad's progression is gated on `cycleCount`-based wait loops. A wrong `per_iter_cycles` will produce visible time-domain drift in the game's title screens / loading screens. Run doom-loading to in-game and confirm the same wall time / cycle count as pre-mission.
 
 ## Out of scope
 
-- Rewriting the affine non-REP self-loop recogniser
-  (`docs/plans/2026-05-01-affine-loop-fastforward.md`). That's a
-  separate workstream. There's natural overlap (both are
-  loop-shape recognisers); the descriptor type may end up shared.
-  Don't pre-merge — land this mission first, then refactor if it's
-  obvious.
-- LODSB/LODSW (0xAC/0xAD). They have repIP/repCX but no memwrite
-  and no DI step — they read into AL/AX. The shape recogniser will
-  either pick them up naturally (read-side loops with no write) or
-  not; either is acceptable as long as correctness holds.
-- Removing CSS-DOS-shaped constants from places that aren't the
-  string-op path. That's a separate sweep if it ever happens.
-
-## Risks and how to detect them
-
-- **Recogniser misidentifies a non-loop opcode as a loop** → unit
-  tests on synthetic cabinets covering negative cases. Real-cart
-  smoke catches everything else.
-- **Specialisation classifier wrong** → checkpoint 2's behavioural
-  parity sweep against the old path catches divergence at the
-  memory-snapshot level. Don't ship checkpoint 3 (specialisation)
-  until the naive applier is byte-for-byte clean.
-- **Perf regression from per-iter applier** → checkpoint 3 is the
-  perf gate; if specialisations don't recover the ±1%, the mission
-  pauses and we either find a better classification or accept that
-  the old hand-tuned path stays. We do NOT ship a regression to land
-  the cleanup.
-- **Virtual-region migration breaks something not REP-related** →
-  unlikely (today's check is a constant range list), but the
-  smoke suite covers BIOS-ROM and rom-disk reads. Run smoke after
-  checkpoint 2's virtual-region move.
+- Affine non-REP self-loop recogniser (`docs/plans/2026-05-01-affine-loop-fastforward.md`). Separate workstream.
+- LODSB/LODSW. May or may not produce a usable descriptor; either is acceptable as long as correctness holds (LODS rarely fires).
+- Removing CSS-DOS-shaped constants from places that aren't the REP path. Separate sweep if it happens.
+- Dispatch-key specialisation (`docs/plans/2026-05-12-per-dispatch-key-specialisation.md`). Separate workstream.
