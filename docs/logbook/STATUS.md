@@ -106,15 +106,21 @@ proven by the A/B).
    Follow-ups: apply to zork-big / prince-of-persia; remaining
    per-read syscall overhead (fdrw div64s, deblock copies).
 
-## Git state (verified 2026-06-10)
+## Git state (verified 2026-07-02)
 
-- **CSS-DOS** `master`: the 2026-06-12 licensing re-cut sits
-  **uncommitted in the worktree** (94 cart-file deletions: digger,
-  lemmings, montezuma, rogue, rogue36, five doom8088 variants,
-  vsync-poll moved to test-carts; untracked replacements `pop1_4`,
-  `rogue1_0`; modified `web/prebake/*.meta.json` + `manifest.json`).
-  Owner paused cart deletions mid-audit (2026-06-12) — do NOT commit
-  or extend the re-cut without owner direction.
+- **CSS-DOS** `master` == `origin/master` == the 2026-07-02
+  **unification merge** `3a912e1`: the two live site branches
+  (`worktree-web-svelte-scoping` styling/UX pass + Wizard shell;
+  `worktree-cabinet-anatomy-doc` About teaching rebuild + fonts) are
+  both landed. The main checkout is back **on `master`** (was parked
+  on the stale ancestor branch `web/build-boxart-cards`) and its
+  working tree is clean — the 2026-06-12 licensing re-cut is no
+  longer pending there. CSS-DOS worktree branches `3slot`,
+  `packed-memory`, `rep-generic`, `calcite-v2-rewrite` and the
+  boxart branch have **zero commits off master** (worktrees prunable,
+  owner-supervised). Deliberately NOT merged:
+  `worktree-calcite-v2` — 3 stale logbook commits about the reverted
+  S1.2/S1.3 calcite stream; merging would resurrect dead claims.
 - **calcite** `main` == `origin/main` == **`c728187`** (2026-06-12
   compile-wall work: 6 commits `6228955`…`4b107d1` + logs — see
   LOGBOOK compile-wall row; on top of `788389d` —
