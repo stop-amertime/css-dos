@@ -402,9 +402,16 @@
       <h3 class="credits-head">Assets</h3>
       <ul class="credits-list">
         <li>
-          Font: &ldquo;Web437 IBM VGA&rdquo; by VileR, from the
+          Font (headings, code, chrome): &ldquo;Web437 IBM VGA&rdquo; by
+          VileR, from the
           <a href="https://int10h.org/oldschool-pc-fonts/" class="ext-link" target="_blank" rel="noopener">Oldschool PC Font Pack</a>
           (int10h.org) &mdash; CC&nbsp;BY-SA&nbsp;4.0.
+        </li>
+        <li>
+          Font (body text): &ldquo;<a href="https://laemeur.sdf.org/fonts/" class="ext-link" target="_blank" rel="noopener">More Perfect DOS VGA</a>&rdquo;
+          by L&AElig;MEUR, remastering Zeh Fernando&rsquo;s
+          &ldquo;Perfect DOS VGA 437&rdquo;; IBM designed the glyphs.
+          Free for all use.
         </li>
       </ul>
     </div>

@@ -22,12 +22,14 @@
   font-display: block;
 }
 
-/* IBM MDA (9x14) — the monochrome-adapter face IBM designed for
-   text-heavy work; the most readable font of the era. Used for prose
-   only; headings, chrome, buttons and code stay on the 8x16 VGA. */
+/* "More Perfect DOS VGA" — LÆMEUR's readability remaster of Zeh
+   Fernando's Perfect DOS VGA 437 (free for all use; IBM designed the
+   glyphs). The same VGA look with cleaner metrics for screen reading.
+   Used for prose only; headings, chrome, buttons and code stay on the
+   8x16 VGA bitmap face. */
 @font-face {
-  font-family: 'WebMDA';
-  src: url('/player/fonts/Web437_IBM_MDA.woff') format('woff');
+  font-family: 'MorePerfectVGA';
+  src: url('/player/fonts/MorePerfectDOSVGA.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: block;
@@ -414,10 +416,10 @@ body:has(.window.wizard) {
   font-weight: normal;
   margin: 0 0 4px;
 }
-/* Prose gets the MDA face and taller leading; everything
+/* Prose gets the remastered face and taller leading; everything
    machine-flavoured keeps the tight 8x16 grid. */
 .step p, .step li {
-  font-family: 'WebMDA', 'WebVGA', monospace;
+  font-family: 'MorePerfectVGA', 'WebVGA', monospace;
 }
 /* …but the sub-page dot strip is chrome, not prose. */
 .step .subdots li { font-family: 'WebVGA', monospace; }
