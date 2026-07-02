@@ -1,0 +1,21 @@
+/* split-pane.css — reusable two-pane widget layout (SplitPane.svelte).
+   Code left, visual right; stacks to one column when the PANE itself is
+   narrow (container query, so it works no matter what box it's put in). */
+
+.split-pane-host { container-type: inline-size; }
+
+.split-pane {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+}
+.split-pane-left { border-right: 1px solid var(--edit-black); align-self: stretch; }
+.split-pane-left, .split-pane-right { min-width: 0; }
+
+@container (max-width: 560px) {
+  .split-pane { grid-template-columns: minmax(0, 1fr); }
+  .split-pane-left {
+    border-right: none;
+    border-bottom: 1px solid var(--edit-black);
+  }
+}

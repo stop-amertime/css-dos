@@ -1,0 +1,62 @@
+/* anatomy.css — shared styles for the deep-dive Learn sub-pages
+   ("Inside the file", "One tick", "Tricks"): size-annotated lists and
+   the numbered tick-walk list. Code blocks reuse .byte-example and
+   section heads reuse .anatomy-head (both in about.css). */
+
+.anatomy-list {
+  list-style: none;
+  margin: 8px 0 12px;
+  padding: 0;
+}
+.anatomy-list li {
+  position: relative;
+  padding-left: 20px;
+  margin-bottom: 9px;
+  font-size: 16px;
+  line-height: 19px;
+}
+.anatomy-list li::before {
+  content: '>';
+  position: absolute;
+  left: 0;
+  color: var(--edit-red);
+}
+.anatomy-list .sz {
+  color: var(--edit-red);
+  white-space: nowrap;
+}
+
+/* Numbered walk (fetch/decode/execute) */
+.tick-walk {
+  list-style: none;
+  counter-reset: tickstep;
+  margin: 8px 0 12px;
+  padding: 0;
+}
+.tick-walk li {
+  position: relative;
+  counter-increment: tickstep;
+  padding-left: 26px;
+  margin-bottom: 9px;
+  font-size: 16px;
+  line-height: 19px;
+}
+.tick-walk .byte-strip {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  margin: 8px 0 2px;
+}
+.tick-walk li::before {
+  content: counter(tickstep);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 17px;
+  text-align: center;
+  background: var(--edit-black);
+  color: var(--edit-yellow);
+  font-size: 13px;
+  line-height: 17px;
+}

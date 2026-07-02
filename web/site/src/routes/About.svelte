@@ -5,6 +5,12 @@
   import Wizard from '../components/Wizard.svelte';
   import CssDemo from '../components/CssDemo.svelte';
   import MoonViz from '../components/MoonViz.svelte';
+  import PixelScreen from '../components/PixelScreen.svelte';
+  import KeyboardDemo from '../components/KeyboardDemo.svelte';
+  import RamWrite from '../components/RamWrite.svelte';
+  import AnatomyPage from '../components/AnatomyPage.svelte';
+  import TickPage from '../components/TickPage.svelte';
+  import TricksPage from '../components/TricksPage.svelte';
 
   let { strip, wizNav } = $props();
 
@@ -12,7 +18,12 @@
     { label: 'Intro' },
     { label: "What's CSS?" },
     { label: "Why it's strange" },
+    { label: 'How it computes' },
+    { label: 'Screen & keys' },
     { label: 'The file' },
+    { label: 'Inside the file' },
+    { label: 'One tick' },
+    { label: 'Tricks' },
     { label: 'Credits' },
   ];
 </script>
@@ -68,9 +79,15 @@
 
       <CssDemo />
 
+      <p>
+        Click through to the last two tabs. Variables, arithmetic,
+        conditionals &mdash; that isn&rsquo;t styling any more. Those are
+        the working parts of a programming language.
+      </p>
       <p class="punchline">
-        This language is technically <b>Turing-complete</b> &mdash;
-        which means, <i>in theory</i>, it can run any computation at all.
+        In fact, CSS is technically <b>Turing-complete</b> &mdash;
+        <i>in theory</i>, it can run any computation at all. The rest of
+        this section is about what it takes to do that in practice.
       </p>
     </div>
   {:else if nav.sub === 3}
@@ -78,21 +95,21 @@
     <div class="subpage" data-subpage="3">
       <h1>Why is this so strange?</h1>
       <p>
-        We are very much <b>abusing</b> CSS here. It was never meant
-        to do any of this. CSS has no support for:
+        Because <i>can compute</i> is a very long way from <i>is a
+        computer</i>. CSS was never meant for this, and it is missing
+        everything a computer is made of:
       </p>
       <ul class="cross-list">
         <li><span class="no">[ ]</span> Keyboard input</li>
         <li><span class="no">[ ]</span> Graphics output</li>
-        <li><span class="no">[ ]</span> Reading or writing memory</li>
+        <li><span class="no">[ ]</span> Memory you can write to</li>
         <li><span class="no">[ ]</span> Files of any kind</li>
-        <li><span class="no">[ ]</span> Loops, or running the same rule twice</li>
+        <li><span class="no">[ ]</span> Loops, or running anything twice</li>
       </ul>
 
       <p class="punchline">
-        But we <i>can</i> emulate every single instruction a CPU
-        executes &mdash; and once you can do that, you can emulate the
-        whole machine around it.
+        Each of those has to be rebuilt from what CSS <i>does</i> have.
+        The next pages take them one at a time.
       </p>
 
       <div class="ext-link-box">
@@ -105,8 +122,9 @@
       </div>
 
       <p style="margin-top:12px">
-        CSS-DOS is an extension of that work. On top of the CPU, it
-        simulates:
+        CSS-DOS is an extension of that work: not just a CPU, but the
+        whole PC around it, faithfully enough that unmodified 1980s
+        software can&rsquo;t tell the difference. It simulates:
       </p>
       <ul class="sim-list">
         <li><span class="ok">[X]</span> A custom <b>BIOS</b>, booting real <b>DOS</b></li>
@@ -117,34 +135,255 @@
       </ul>
     </div>
   {:else if nav.sub === 4}
-    <!-- The file -->
+    <!-- How it computes: clock → memory → CPU -->
     <div class="subpage" data-subpage="4">
-      <h1>The file</h1>
+      <h1>How it computes</h1>
       <p>
-        The RAM is defined <b>literally, byte for byte</b>. Every cell
-        of memory is one custom property:
+        A program is a list of steps that run one after another. A
+        stylesheet just sits there: it describes how things should look,
+        all at once, and nothing in it &ldquo;runs&rdquo;. So before
+        anything else, the machine needs <b>time</b>.
+      </p>
+      <p>
+        Exactly one thing in CSS changes on its own: an
+        <b>animation</b>. So the machine&rsquo;s clock is one tiny
+        animation, stepping a counter forever:
+      </p>
+      <pre class="byte-example"><code><span class="tok-prop">.clock</span> {'{'} animation: tick <span class="tok-num">400ms</span> steps(<span class="tok-num">4</span>) infinite; {'}'}
+<span class="tok-comment">/* --clock: 0, 1, 2, 3,  0, 1, 2, 3,  &hellip; */</span></code></pre>
+      <p>
+        Each lap of that counter is one <b>tick</b>, and per tick the
+        machine executes exactly one CPU instruction. Everything on this
+        page happens once per tick.
+      </p>
+
+      <h3 class="anatomy-head">Memory</h3>
+      <p>
+        The file declares every byte of RAM, with its starting value:
       </p>
       <pre class="byte-example"><code><span class="tok-comment">/* 640 KB of RAM, one line each */</span>
 <span class="tok-prop">--mem-00000</span>: <span class="tok-num">0</span>;
 <span class="tok-prop">--mem-00001</span>: <span class="tok-num">85</span>;
 <span class="tok-prop">--mem-00002</span>: <span class="tok-num">238</span>;
 <span class="tok-comment">/* &hellip; ~650,000 more &hellip; */</span></code></pre>
-
-      <p style="margin-top:12px">
-        CSS cannot read files. So we have to <b>bake everything</b>
-        &mdash; the entire computer, the BIOS, and your program&rsquo;s
-        files themselves &mdash; into a <b>single file</b>.
+      <p>
+        But here&rsquo;s the catch: a CSS variable can&rsquo;t be
+        overwritten. It can only be <i>defined</i> &mdash; once &mdash;
+        as a formula.
       </p>
       <p>
-        The Doom cabinet ends up at <b>332&nbsp;MB</b> of pure text.
-        The entire original game of Zork is about <b>85&nbsp;KB</b> &mdash.
+        So memory works like a <b>spreadsheet</b>. No instruction ever
+        reaches into a byte and changes it. Instead, every byte
+        <i>pulls</i>: its formula looks at the current instruction and
+        computes what its own next value must be.
+      </p>
+
+      <RamWrite />
+
+      <h3 class="anatomy-head">Every instruction, rewritten</h3>
+      <p>
+        Registers &mdash; AX, BX and friends, the CPU&rsquo;s scratch
+        values &mdash; are cells in the same spreadsheet, and their
+        formulas are where the instruction set lives. A real 8086 has
+        its instructions burned into silicon: add two numbers,
+        subtract, copy, compare, plus dozens of more arcane ones. Each
+        one is a little circuit. We have no circuits, so every
+        instruction is redefined as arithmetic. This is the actual
+        &ldquo;add a number to AX&rdquo; arm, verbatim from the file:
+      </p>
+      <pre class="byte-example"><code>style(<span class="tok-prop">--opcode</span>: <span class="tok-num">5</span>): --lowerBytes(calc(var(<span class="tok-prop">--__1AX</span>) + var(<span class="tok-prop">--imm16</span>)), 16);  <span class="tok-comment">/* ADD AX, imm16 */</span></code></pre>
+      <p>
+        Read it as: <i>if the opcode is 5, AX&rsquo;s next value is
+        last tick&rsquo;s AX (<code>--__1AX</code>) plus the number
+        that followed the opcode in memory (<code>--imm16</code>),
+        trimmed back to 16 bits.</i>
+      </p>
+      <p>
+        But the adding is the easy half. In silicon, ADD also
+        <b>reports on itself for free</b>, as side effects of the
+        circuit: did it overflow? hit zero? go negative? Programs test
+        these &ldquo;flags&rdquo; constantly &mdash; and we get no side
+        effects, so every flag is its own formula. Here is the
+        machine&rsquo;s real 16-bit ADD flag function, piece by piece.
+        First add, keeping only the low 16 bits, because registers
+        wrap:
+      </p>
+      <pre class="byte-example"><code><span class="tok-prop">--raw</span>: calc(var(--dst) + var(--src));
+<span class="tok-prop">--res</span>: --lowerBytes(var(--raw), <span class="tok-num">16</span>);</code></pre>
+      <p>
+        Did the true result overflow past 65,535? That&rsquo;s the
+        <b>carry flag</b>: divide by 65,536 and round down, and you
+        have a 1 or a 0.
+      </p>
+      <pre class="byte-example"><code><span class="tok-prop">--cf</span>: min(<span class="tok-num">1</span>, round(down, var(--raw) / <span class="tok-num">65536</span>));</code></pre>
+      <p>
+        Is the result exactly zero? Is its top bit set &mdash; a
+        16-bit number&rsquo;s way of saying &ldquo;negative&rdquo;?
+        The <b>zero</b> and <b>sign</b> flags, each parked at its own
+        bit position of the flags register (64 and 128):
+      </p>
+      <pre class="byte-example"><code><span class="tok-prop">--zfsf</span>: calc(if(style(--res: <span class="tok-num">0</span>): <span class="tok-num">64</span>; else: <span class="tok-num">0</span>) + --bit(var(--res), <span class="tok-num">15</span>) * <span class="tok-num">128</span>);</code></pre>
+      <p>
+        Does the result have an even number of 1-bits? The
+        <b>parity flag</b>. Nobody counts bits live &mdash; the answer
+        comes from a 256-entry table baked into the file:
+      </p>
+      <pre class="byte-example"><code><span class="tok-prop">--pf</span>: --parity(var(--res));</code></pre>
+      <p>
+        Finally, pack everything into one number &mdash; the flags
+        register. Two more flags hide in this line: <b>overflow</b>
+        (did the sign flip in a way signed maths forbids?) and, in the
+        middle, &ldquo;did the bottom four bits carry?&rdquo; &mdash;
+        kept only to serve the decimal instructions below:
+      </p>
+      <pre class="byte-example"><code>result: calc(var(--cf) + var(--pf)
+   + calc(round(down, max(<span class="tok-num">0</span>, sign(mod(var(--dst), <span class="tok-num">16</span>)
+       + mod(var(--src), <span class="tok-num">16</span>) - <span class="tok-num">15.5</span>)) + <span class="tok-num">0.5</span>) * <span class="tok-num">16</span>)
+   + var(--zfsf) + var(--of) + <span class="tok-num">2</span>);</code></pre>
+      <p>
+        So one silicon instruction became six formulas &mdash; and ADD
+        is among the <i>easiest</i>. The arcane ones don&rsquo;t get
+        skipped either, because DOS-era programs really use them. This
+        is DAA, &ldquo;decimal adjust AL&rdquo; &mdash; a calculator-era
+        relic that patches up additions done on numbers stored as
+        decimal digits &mdash; complete:
+      </p>
+      <pre class="byte-example"><code>style(<span class="tok-prop">--opcode</span>: <span class="tok-num">39</span>): calc(round(down, var(--__1AX) / <span class="tok-num">256</span>) * <span class="tok-num">256</span>
+  + mod(calc(var(--AL)
+  + calc(min(<span class="tok-num">1</span>, calc(round(down, mod(var(--AL), <span class="tok-num">16</span>) / <span class="tok-num">10</span>)
+  + mod(round(down, var(--__1flags) / <span class="tok-num">16</span>), <span class="tok-num">2</span>))) * <span class="tok-num">6</span>)
+  + calc(min(<span class="tok-num">1</span>, calc(round(down, var(--AL) / <span class="tok-num">154</span>)
+  + mod(var(--__1flags), <span class="tok-num">2</span>))) * <span class="tok-num">96</span>)), <span class="tok-num">256</span>))</code></pre>
+      <p>
+        Nobody said it was pretty. It goes on like this for
+        <b>232 distinct opcodes &mdash; 1,094 arms</b> across the
+        register tables.
+      </p>
+
+      <h3 class="anatomy-head">Not just the CPU</h3>
+      <p>
+        A PC was never one chip, and programs talk to the rest of the
+        machine directly: they program a <b>timer chip</b> to
+        interrupt them 18.2 times a second, tell the <b>interrupt
+        controller</b> which events to let through, stream colours
+        into the <b>VGA palette chip</b>. So the dispatch section
+        holds 29 of these switch-rules &mdash; and only 14 of them are
+        the 8086&rsquo;s registers. The rest are the neighbouring
+        chips:
+      </p>
+      <pre class="byte-example"><code><span class="tok-prop">--AX --CX --DX --BX --SP --BP --SI --DI</span>   <span class="tok-comment">/* the registers &hellip; */</span>
+<span class="tok-prop">--CS --DS --ES --SS --IP --flags</span>          <span class="tok-comment">/* &hellip; all fourteen */</span>
+<span class="tok-prop">--picMask --picPending --picInService</span>     <span class="tok-comment">/* interrupt controller */</span>
+<span class="tok-prop">--pitMode --pitReload --pitCounter</span> &hellip;      <span class="tok-comment">/* timer chip */</span>
+<span class="tok-prop">--prevKeyboard --kbdScancodeLatch</span>         <span class="tok-comment">/* keyboard */</span>
+<span class="tok-prop">--dacWriteIndex --dacSubIndex</span> &hellip;           <span class="tok-comment">/* VGA palette chip */</span></code></pre>
+      <p>
+        A support chip, in this machine, is just a few more cells in
+        the spreadsheet, with formulas describing what the silicon
+        would have done.
+      </p>
+
+      <p class="punchline">
+        That&rsquo;s the entire machine: the animation advances, every
+        formula on the sheet re-evaluates, and exactly one
+        instruction&rsquo;s worth of change appears. There is no engine
+        underneath doing the work &mdash; the re-evaluation <i>is</i>
+        the work.
+      </p>
+    </div>
+  {:else if nav.sub === 5}
+    <!-- Screen & keys -->
+    <div class="subpage" data-subpage="5">
+      <h1>The screen &amp; the keys</h1>
+      <p>
+        CSS can&rsquo;t draw pixels &mdash; but it can colour elements.
+        So the screen is <b>one &lt;div&gt; per pixel</b>, each painted
+        by its own rule:
+      </p>
+
+      <PixelScreen />
+
+      <h3 class="anatomy-head">The palette</h3>
+      <p>
+        One thing the widget glosses over: the palette isn&rsquo;t a
+        fixed table of 256 colours. The running program loads its own,
+        and the machine accepts it exactly the way real VGA hardware
+        did: to set one colour, the program writes three bytes &mdash;
+        red, green, blue &mdash; to a single port, while a tiny counter
+        steps 0, 1, 2 and rolls over to the next colour slot. When a
+        game fades to black, it is re-streaming this table a little
+        darker, over and over.
+      </p>
+
+      <h3 class="anatomy-head">The keys</h3>
+      <p>
+        Input has no events either. What CSS <i>can</i> ask is
+        <b><code>:active</code></b> &mdash; &ldquo;is this element being
+        pressed?&rdquo; The player&rsquo;s on-screen keys are real
+        buttons, and these are the cabinet&rsquo;s actual rules:
+      </p>
+
+      <KeyboardDemo />
+
+      <p>
+        Notice what this rules out: CSS cannot see your physical
+        keyboard &mdash; no selector reacts to a real keypress. Every
+        program is piloted by pressing the on-screen keys. And some
+        gaps stay gaps: CSS has no way to make sound, so the PC speaker
+        stays silent.
+      </p>
+    </div>
+  {:else if nav.sub === 6}
+    <!-- The file: everything baked in -->
+    <div class="subpage" data-subpage="6">
+      <h1>One file, everything included</h1>
+      <p>
+        CSS can&rsquo;t open anything at runtime &mdash; no files, no
+        requests, no loading. Whatever the machine will ever need has to
+        be in the stylesheet before it starts:
+      </p>
+      <ul class="sim-list">
+        <li><span class="ok">[X]</span> The starting contents of all 640&nbsp;KB of RAM
+          (you saw those declarations two pages ago)</li>
+        <li><span class="ok">[X]</span> The <b>BIOS</b> &mdash; the firmware a PC runs
+          before the operating system</li>
+        <li><span class="ok">[X]</span> The entire <b>floppy disk</b>, byte by byte:
+          DOS itself, plus the program&rsquo;s files</li>
+      </ul>
+      <p style="margin-top:12px">
+        The disk becomes one giant read-only lookup:
+      </p>
+      <pre class="byte-example"><code>@function <span class="tok-prop">--readDiskByte</span>(<span class="tok-prop">--idx</span>) {'{'}
+  result: if(
+    style(<span class="tok-prop">--idx</span>: <span class="tok-num">0</span>): <span class="tok-num">235</span>;
+    style(<span class="tok-prop">--idx</span>: <span class="tok-num">1</span>): <span class="tok-num">60</span>;
+    <span class="tok-comment">/* &hellip; one arm per byte of the floppy &hellip; */</span></code></pre>
+      <p>
+        It adds up. The Sokoban cabinet is <b>~309&nbsp;MB</b> of plain
+        text; Doom&rsquo;s is <b>~332&nbsp;MB</b>. For scale, the
+        entire original Zork was about 85&nbsp;KB.
       </p>
 
       <MoonViz />
+
+      <p class="punchline">
+        The honest footnote: this is real, valid CSS, and a browser can
+        evaluate it &mdash; but a 300&nbsp;MB stylesheet with a million
+        interlinked variables grinds Chrome to a halt. So the project
+        also built <b>Calcite</b>, a compiler that reads the same CSS
+        and runs it fast. The stylesheet stays the source of truth;
+        Calcite is just a faster way to evaluate it.
+      </p>
     </div>
-  {:else if nav.sub === 5}
+  {:else if nav.sub === 7}
+    <AnatomyPage />
+  {:else if nav.sub === 8}
+    <TickPage />
+  {:else if nav.sub === 9}
+    <TricksPage />
+  {:else if nav.sub === 10}
     <!-- Credits -->
-    <div class="subpage" data-subpage="5">
+    <div class="subpage" data-subpage="10">
       <h1>Credits &amp; thanks</h1>
       <p>
         CSS-DOS stands on the shoulders of people who proved, piece by
@@ -185,9 +424,16 @@
       <h3 class="credits-head">Assets</h3>
       <ul class="credits-list">
         <li>
-          Font: &ldquo;Web437 IBM VGA&rdquo; by VileR, from the
+          Font (headings, code, chrome): &ldquo;Web437 IBM VGA&rdquo; by
+          VileR, from the
           <a href="https://int10h.org/oldschool-pc-fonts/" class="ext-link" target="_blank" rel="noopener">Oldschool PC Font Pack</a>
           (int10h.org) &mdash; CC&nbsp;BY-SA&nbsp;4.0.
+        </li>
+        <li>
+          Font (body text): &ldquo;<a href="https://laemeur.sdf.org/fonts/" class="ext-link" target="_blank" rel="noopener">More Perfect DOS VGA</a>&rdquo;
+          by L&AElig;MEUR, remastering Zeh Fernando&rsquo;s
+          &ldquo;Perfect DOS VGA 437&rdquo;; IBM designed the glyphs.
+          Free for all use.
         </li>
       </ul>
     </div>

@@ -218,7 +218,8 @@
 .ext-link { color: var(--edit-blue); text-decoration: underline; }
 .ext-link:hover { color: #1111cc; }
 
-/* — Credits sub-page — */
+/* — Credits sub-page (shared by the anatomy sub-pages' section heads) — */
+.anatomy-head,
 .credits-head {
   margin: 32px 0 10px;
   font-size: 16px;
@@ -256,7 +257,7 @@
   background: var(--edit-black);
   color: #55ff55;
   border: 1px solid var(--edit-black);
-  font-family: inherit;
+  font-family: 'WebVGA', monospace; letter-spacing: normal;
   font-size: 15px;
   line-height: 18px;
   white-space: pre;

@@ -22,12 +22,25 @@
   font-display: block;
 }
 
+/* "More Perfect DOS VGA" — LÆMEUR's readability remaster of Zeh
+   Fernando's Perfect DOS VGA 437 (free for all use; IBM designed the
+   glyphs). The same VGA look with cleaner metrics for screen reading.
+   Used for prose only; headings, chrome, buttons and code stay on the
+   8x16 VGA bitmap face. */
+@font-face {
+  font-family: 'MorePerfectVGA';
+  src: url('/player/fonts/MorePerfectDOSVGA.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
   /* EGA palette, matching what the cabinets emit. */
   --edit-blue:    #0000aa;   /* desktop background */
-  --edit-gray:    #c8c8c8;   /* dialog fill (lightened from EGA #aaaaaa) */
+  --edit-gray:    #d6d6d6;   /* dialog fill (lightened from EGA #aaaaaa) */
   --edit-black:   #000000;
   --edit-white:   #ffffff;
   --edit-red:     #aa0000;   /* alt accent (Default / Help in EDIT) */
@@ -44,7 +57,12 @@
 html, body { min-height: 100%; }
 
 body {
-  font-family: 'WebVGA', 'Perfect DOS VGA 437', 'Fixedsys', 'Terminal', monospace;
+  /* Site-wide default is the readable remastered face. It ships IBM's
+     9-dot text-mode advance (9px at 16px), so -1px letter-spacing pulls
+     it back onto the 8px grid. Machine-flavoured chrome (bars, buttons,
+     headings, code) is pinned back to the 8x16 bitmap face below. */
+  font-family: 'MorePerfectVGA', 'WebVGA', 'Perfect DOS VGA 437', 'Fixedsys', 'Terminal', monospace;
+  letter-spacing: -1px;
   font-size: 16px;
   line-height: 16px;
   background: var(--edit-blue);
@@ -188,7 +206,7 @@ body {
   padding: 4px 16px;
   min-height: 24px;
   line-height: 16px;
-  font-family: inherit;
+  font-family: 'WebVGA', monospace; letter-spacing: normal;
   font-size: 16px;
   cursor: pointer;
   text-decoration: none;
@@ -234,7 +252,7 @@ input[type="file"] { display: none; }
   background: var(--edit-white);
   color: var(--edit-black);
   border: 1px solid var(--edit-black);
-  font-family: inherit;
+  font-family: 'WebVGA', monospace; letter-spacing: normal;
   font-size: 16px;
   line-height: 16px;
   padding: 0 4px;
@@ -268,7 +286,7 @@ select.field { min-width: 220px; }
 .radio .marker,
 .check .marker {
   display: inline-block;
-  font-family: inherit;
+  font-family: 'WebVGA', monospace; letter-spacing: normal;
   color: var(--edit-black);
   white-space: pre;
 }
@@ -337,7 +355,21 @@ body:has(.window.wizard) {
   grid-template-columns: minmax(0, 1fr);
   align-content: safe center;
   justify-items: center;
+  /* The page itself never scrolls: the dialog caps at the viewport
+     (between the fixed menu/status bars) and .window-body scrolls
+     internally instead. */
+  height: 100dvh;
+  box-sizing: border-box;
+  padding: 17px 0;   /* clear the fixed 16px+1px menu/status bars */
+  overflow: hidden;
 }
+/* The Svelte mount node sits between body and the dialog; without this
+   it becomes the grid item, its min-width:auto lets the 820px dialog
+   prop it open, and the dialog's max-width resolves against IT instead
+   of the viewport-sized track — horizontal overflow on phones (the same
+   bug fixed pre-port). display:contents takes #app out of layout so the
+   dialog is the grid item again. */
+#app { display: contents; }
 /* The window is a flex column capped to the viewport: pinned header (step
    strip + substep dots + separator) and pinned footer (Back/Next) don't
    move; only the middle band (.wiz-scroll) scrolls. It can be SHORTER than
@@ -384,7 +416,7 @@ body:has(.window.wizard) {
    Scoped to the wizard body so it covers every step, not just .step
    (Build/Play prose sits outside a .step wrapper). */
 .window.wizard h1 {
-  font-family: inherit;
+  font-family: 'WebVGA', monospace;
   font-size: 32px;
   line-height: 32px;
   font-weight: normal;
@@ -392,19 +424,30 @@ body:has(.window.wizard) {
   letter-spacing: -1px;
 }
 .step h3 {
-  font-family: inherit;
+  font-family: 'WebVGA', monospace; letter-spacing: normal;
   font-size: 16px;
   line-height: 16px;
   font-weight: normal;
   margin: 0 0 4px;
 }
-.step p { margin: 0 0 8px; font-size: 16px; line-height: 16px; }
+/* The machine-flavoured parts keep the tight 8x16 bitmap face: window
+   chrome, navigation, buttons, headings, and everything code-shaped. */
+.menu-bar, .status-line, .title-bar,
+.step-strip, .subdots, .wiz-nav,
+.btn, button, input, select, textarea,
+h1, h2, h3,
+pre, code, kbd {
+  font-family: 'WebVGA', 'Perfect DOS VGA 437', 'Fixedsys', 'Terminal', monospace;
+  letter-spacing: normal;
+}
+.step p { margin: 0 0 8px; font-size: 16px; line-height: 21px; }
 /* Inline <code> reads as a little sunken monospace chip everywhere in the
    wizard (headings included) — the boxed treatment is what signals "this
    is a filename / literal", the font is already monospace. Scoped to
    .window.wizard so Build/Play prose (outside a .step) gets it too. */
 .window.wizard code {
-  font-family: inherit;
+  font-family: 'WebVGA', monospace;
+  letter-spacing: normal;
   background: var(--edit-white);
   padding: 0 4px;
   border: 1px solid var(--edit-black);

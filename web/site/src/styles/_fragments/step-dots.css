@@ -96,5 +96,10 @@
   /* Phone: drop the number chips, keep the labels (they wrap fine). */
   .step-strip li { font-size: 13px; padding: 4px 3px; }
   .step-strip li .num { display: none; }
-  .subdots li { padding: 3px 5px; }
+  /* Ten labelled sub-page dots would stack ~250px tall. Collapse to bare
+     dots; only the current page keeps its label. */
+  .subdots { gap: 2px; }
+  .subdots li { padding: 4px 5px; }
+  .subdots li:not(.current) { font-size: 0; gap: 0; }
+  .subdots li + li::before { content: none; }
 }

@@ -1,11 +1,11 @@
 // Wizard navigation as reactive state. Three steps (About/Build/Play);
-// About has 5 sub-pages, Build has 3. The URL hash is the route so a
+// About has 10 sub-pages, Build has 3. The URL hash is the route so a
 // refresh keeps the step. Play is gated behind a finished build.
 import { build } from './builder.svelte.js';
 
 export const STEPS = ['about', 'build', 'play'];
 const ABOUT = 1, BUILD = 2, PLAY = 3;
-export const ABOUT_SUBPAGES = 5;
+export const ABOUT_SUBPAGES = 10;
 const BUILD_PICK = 1, BUILD_CONFIG = 2, BUILD_RESULT = 3;
 
 const hashToStep = { '#about': ABOUT, '#build': BUILD, '#games': BUILD, '#play': PLAY };
@@ -14,7 +14,7 @@ let guard = false; // suppress the hashchange our own writeHash triggers
 
 class Nav {
   step = $state(ABOUT);
-  sub = $state(1);       // About sub-page 1..5
+  sub = $state(1);       // About sub-page 1..10
   buildSub = $state(1);  // Build sub-page 1..3
 
   // Play unlocks once a cabinet exists.
