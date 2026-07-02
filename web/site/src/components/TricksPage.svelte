@@ -103,6 +103,12 @@
     and &mdash; if CX is still above zero &mdash; set the next
     instruction address to point back at <b>itself</b>. Next tick, the
     CPU fetches the very same instruction and copies the next byte.
+  </p>
+  <pre class="byte-example"><code>0x1000    MOV  CX, 8
+<span class="tok-num">0x1003</span> &#9484;&#8594; <span class="tok-prop">REP MOVSB</span>       <span class="tok-comment">/* copy 1 byte; CX = CX &minus; 1 */</span>
+       &#9492;&#9472; next IP = <span class="tok-num">0x1003</span> while CX &gt; 0
+0x1005    CMP  AX, BX     <span class="tok-comment">/* reached only when CX = 0 */</span></code></pre>
+  <p>
     From the outside it looks like one instruction copying a block;
     underneath, the clock re-runs it CX times.
   </p>
