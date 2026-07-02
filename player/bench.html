@@ -176,7 +176,13 @@
     async function spawnBridgeOnce() {
       if (bridgeWorker) return bridgeWorker;
       const reg = await waitForSW();
-      const bridge = new Worker('/player/calcite-bridge.js', { type: 'module' });
+      // Forward the parent's `backend` query param so the bridge can
+      // pick the calcite backend (v1 bytecode vs v2-wasm) per bench run.
+      const parentParams = new URLSearchParams(location.search);
+      const workerQuery = parentParams.has('backend')
+        ? `?backend=${encodeURIComponent(parentParams.get('backend'))}`
+        : '';
+      const bridge = new Worker('/player/calcite-bridge.js' + workerQuery, { type: 'module' });
       bridge.addEventListener('message', (ev) => {
         const d = ev.data;
         if (d && d.type === 'status') log('[bridge] ' + d.message);

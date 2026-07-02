@@ -29,8 +29,11 @@ const args = Object.fromEntries(
 );
 const RUNS = parseInt(args.runs ?? '1', 10);
 const CART = args.cart || 'zork';
+const BACKEND = args.backend || ''; // empty = bridge default (currently dag-v2-wasm)
 const HEADED = !!args.headed;
-const URL = `http://localhost:5173/player/bench.html?cart=${encodeURIComponent(CART)}&n=${RUNS}`;
+const urlParams = new URLSearchParams({ cart: CART, n: String(RUNS) });
+if (BACKEND) urlParams.set('backend', BACKEND);
+const URL = `http://localhost:5173/player/bench.html?${urlParams.toString()}`;
 const TIMEOUT_MS = parseInt(args.timeout ?? '600000', 10); // 10 min ceiling
 
 // Resolve playwright from the npx mcp install — the only one present in

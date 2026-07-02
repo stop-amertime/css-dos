@@ -104,6 +104,17 @@ async function compileCabinetBytes(arrayBuffer) {
   postStatus('compiling cabinet (' + (bytes.length / 1024 / 1024).toFixed(1) + ' MB)...');
   const t0 = performance.now();
   engine = CalciteEngine.new_from_bytes(bytes);
+  // Backend selection: ?backend=<name> on the parent URL is forwarded
+  // by the bench page as a query param on this worker's URL. Older
+  // calcite-wasm builds don't expose set_backend; guard for that.
+  // Default = the perf-target backend (v2-wasm). Pass ?backend=bytecode
+  // to A/B against v1.
+  if (typeof engine.set_backend === 'function') {
+    const params = new URLSearchParams(self.location.search || '');
+    const backend = params.get('backend') || 'dag-v2-wasm';
+    engine.set_backend(backend);
+    postStatus(`backend=${backend}`);
+  }
   const compileMs = performance.now() - t0;
   // Diagnostic readouts the harness can verify post-compile. Older calcite-wasm
   // builds don't expose these getters; guard with `?.()` so the bridge stays
