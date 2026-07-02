@@ -1,100 +1,64 @@
 <script>
-  // PixelScreen — a 16×16 grid of real, individually-coloured <div>s.
-  // Miniature of the cabinet's Mode 13h painter (kiln/pixels.mjs), which
-  // does the same thing 64,000 times, with each colour computed from
-  // guest video memory. Here the "video memory" is a Svelte array and
-  // you get to scribble in it.
+  // PixelScreen — how the display works: one CSS rule per pixel. Split
+  // pane: left, the first three rules (trailing off to "…63,997 more");
+  // right, the 320×200 screen with those pixels drawn in the corner and
+  // dimension arrows. Colour chips link each rule to its pixel.
   import '../styles/_fragments/pixel-screen.css';
+  import SplitPane from './SplitPane.svelte';
 
-  const W = 16, H = 16;
-
-  // CGA/VGA-ish palette. Index 0 = black background.
-  const PALETTE = [
-    { hex: '#000000', name: 'black' },
-    { hex: '#55ff55', name: 'green' },
-    { hex: '#55ffff', name: 'cyan' },
-    { hex: '#ff55ff', name: 'magenta' },
-    { hex: '#ffff55', name: 'yellow' },
-    { hex: '#ffffff', name: 'white' },
+  const PX = [
+    { colour: '#55ff55' }, // pixel 0 — green
+    { colour: '#55ffff' }, // pixel 1 — cyan
+    { colour: '#ff55ff' }, // pixel 2 — magenta
   ];
-
-  // Classic 11×8 invader, centred on the 16×16 screen.
-  const SPRITE = [
-    '..X.....X..',
-    '...X...X...',
-    '..XXXXXXX..',
-    '.XX.XXX.XX.',
-    'XXXXXXXXXXX',
-    'X.XXXXXXX.X',
-    'X.X.....X.X',
-    '...XX.XX...',
-  ];
-  function initialCells() {
-    const cells = new Array(W * H).fill(0);
-    const top = 4, left = 2;
-    SPRITE.forEach((row, y) => {
-      [...row].forEach((ch, x) => {
-        if (ch === 'X') cells[(top + y) * W + (left + x)] = 1;
-      });
-    });
-    return cells;
-  }
-
-  let cells = $state(initialCells());
-  let brush = $state(2);        // current paint colour (cyan)
-  let showDivs = $state(false); // outline every div
-  let painting = false;         // mouse-drag paint
-
-  function paint(i) { cells[i] = brush; }
 </script>
 
 <div class="pixel-screen">
-  <div
-    class="pixel-grid"
-    class:show-divs={showDivs}
-    role="img"
-    aria-label="A 16 by 16 grid of divs painted into a space-invader sprite. Click to repaint pixels."
-    onpointerdown={() => (painting = true)}
-    onpointerup={() => (painting = false)}
-    onpointerleave={() => (painting = false)}
-  >
-    {#each cells as ci, i}
-      <!-- svelte-ignore a11y_no_static_element_interactions a11y_click_events_have_key_events -->
-      <div
-        class="px"
-        style="background-color: {PALETTE[ci].hex}"
-        onclick={() => paint(i)}
-        onpointerenter={() => { if (painting) paint(i); }}
-      ></div>
-    {/each}
-  </div>
-
-  <div class="pixel-controls">
-    <div class="pixel-palette" role="group" aria-label="Paint colour">
-      {#each PALETTE as c, i}
-        <button
-          class="swatch"
-          class:current={brush === i}
-          style="background-color: {c.hex}"
-          title={c.name}
-          aria-label={'paint ' + c.name}
-          onclick={() => (brush = i)}
-        ></button>
-      {/each}
-    </div>
-    <button class="demo-toggle" onclick={() => (showDivs = !showDivs)}>
-      {showDivs ? 'hide' : 'show'} the divs
-    </button>
-    <button class="demo-toggle" onclick={() => (cells = initialCells())}>
-      reset
-    </button>
-  </div>
+  <SplitPane>
+    {#snippet left()}
+      <pre class="pixel-code"><code>{#each PX as p, i}<span class="px-chip" style="background:{p.colour}"></span><span class="tok-sel">#pixel-{i}</span> {'{'}
+  background: <span class="tok-fn">--palette</span>(<span class="tok-fn">var</span>(<span class="tok-prop">--vram-{i}</span>));
+{'}'}
+{/each}<span class="tok-comment">/* … 63,997 more, one per pixel … */</span></code></pre>
+    {/snippet}
+    {#snippet right()}
+      <svg class="pixel-diagram" viewBox="0 0 360 250" role="img"
+           aria-label="A 320 by 200 pixel screen; the first three pixels in the top-left corner match the three CSS rules; 64,000 divs in total.">
+        <!-- the screen -->
+        <rect x="20" y="16" width="288" height="180" fill="#000" stroke="var(--edit-black)" stroke-width="2"/>
+        <!-- first pixels, top-left, exaggerated -->
+        {#each PX as p, i}
+          <rect x={23 + i * 17} y="19" width="16" height="16" fill={p.colour}/>
+        {/each}
+        <rect x={23 + 3 * 17} y="19" width="16" height="16" fill="#333"/>
+        <text x={23 + 4 * 17 + 4} y="32" font-size="13" fill="#888" font-family="inherit">&#8230;</text>
+        <!-- second row, fading out -->
+        <rect x="23" y="36" width="16" height="16" fill="#222"/>
+        <rect x="40" y="36" width="16" height="16" fill="#181818"/>
+        <rect x="57" y="36" width="16" height="16" fill="#101010"/>
+        <text x="80" y="62" font-size="14" fill="#555" font-family="inherit">&#8945;</text>
+        <!-- the payoff, on the screen itself -->
+        <text x="164" y="112" text-anchor="middle" font-size="17" fill="#55ff55" font-family="inherit">= 64,000</text>
+        <text x="164" y="132" text-anchor="middle" font-size="17" fill="#55ff55" font-family="inherit">&lt;div&gt;s</text>
+        <!-- horizontal dimension: 320 across -->
+        <line x1="20" y1="212" x2="308" y2="212" stroke="var(--edit-black)" stroke-width="1"/>
+        <path d="M20 212 l7 -4 v8 z" fill="var(--edit-black)"/>
+        <path d="M308 212 l-7 -4 v8 z" fill="var(--edit-black)"/>
+        <text x="164" y="230" text-anchor="middle" font-size="13" fill="var(--edit-black)" font-family="inherit">320 pixels</text>
+        <!-- vertical dimension: 200 down -->
+        <line x1="322" y1="16" x2="322" y2="196" stroke="var(--edit-black)" stroke-width="1"/>
+        <path d="M322 16 l-4 7 h8 z" fill="var(--edit-black)"/>
+        <path d="M322 196 l-4 -7 h8 z" fill="var(--edit-black)"/>
+        <text x="334" y="106" font-size="13" fill="var(--edit-black)" font-family="inherit"
+              transform="rotate(90 334 106)" text-anchor="middle">200 rows</text>
+      </svg>
+    {/snippet}
+  </SplitPane>
 
   <p class="caption">
-    Every pixel here is a separate <code>&lt;div&gt;</code> with its own
-    <code>background-color</code> &mdash; click around and paint some.
-    The real screen works the same way, just bigger:
-    <b>320&nbsp;&times;&nbsp;200 = 64,000 divs</b>, each one coloured by
-    its own CSS rule reading its own byte of video memory.
+    The first three pixels and their rules. The other 63,997 look
+    exactly the same &mdash; there is no image and no canvas, just
+    <code>&lt;div&gt;</code>s, each repainting itself from its own byte
+    of video memory (<code>--vram-&hellip;</code>) every frame.
   </p>
 </div>

@@ -337,6 +337,13 @@ body:has(.window.wizard) {
   align-content: safe center;
   justify-items: center;
 }
+/* The Svelte mount node sits between body and the dialog; without this
+   it becomes the grid item, its min-width:auto lets the 820px dialog
+   prop it open, and the dialog's max-width resolves against IT instead
+   of the viewport-sized track — horizontal overflow on phones (the same
+   bug fixed pre-port). display:contents takes #app out of layout so the
+   dialog is the grid item again. */
+#app { display: contents; }
 .window.wizard {
   width: 820px;
   max-width: calc(100% - 32px);
