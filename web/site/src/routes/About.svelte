@@ -4,12 +4,18 @@
   import StepDots from '../components/StepDots.svelte';
   import CssDemo from '../components/CssDemo.svelte';
   import MoonViz from '../components/MoonViz.svelte';
+  import PixelScreen from '../components/PixelScreen.svelte';
+  import KeyboardDemo from '../components/KeyboardDemo.svelte';
+  import RamWrite from '../components/RamWrite.svelte';
+  import DispatchDemo from '../components/DispatchDemo.svelte';
 
   const SUBPAGES = [
     { label: 'Intro' },
     { label: "What's CSS?" },
     { label: "Why it's strange" },
     { label: 'The file' },
+    { label: 'Screen & keys' },
+    { label: 'Memory & CPU' },
     { label: 'Credits' },
   ];
 </script>
@@ -132,8 +138,54 @@
       <MoonViz />
     </div>
   {:else if nav.sub === 5}
-    <!-- Credits -->
+    <!-- Screen & keys -->
     <div class="subpage" data-subpage="5">
+      <h1>The screen &amp; the keys</h1>
+      <p>
+        CSS can&rsquo;t draw pixels. It <i>can</i> colour elements. So the
+        screen is built from <b>one &lt;div&gt; per pixel</b>, each with
+        its own rule: read my byte of video memory, look that number up
+        in the colour palette, set my <code>background-color</code>.
+      </p>
+
+      <PixelScreen />
+
+      <h3 class="anatomy-head">The keys</h3>
+      <p>
+        Input has the same problem: CSS has no keyboard events. But it
+        does have <b><code>:active</code></b> &mdash; &ldquo;is this
+        element currently being pressed?&rdquo; So the player shows
+        on-screen keys, and pressing one flips a CSS variable:
+      </p>
+
+      <KeyboardDemo />
+    </div>
+  {:else if nav.sub === 6}
+    <!-- Memory & CPU -->
+    <div class="subpage" data-subpage="6">
+      <h1>Memory that computes</h1>
+      <p>
+        You&rsquo;ve seen that every byte of RAM is declared in the file,
+        one line each. But programs don&rsquo;t just <i>read</i> memory
+        &mdash; they write to it constantly. And in CSS, nothing can
+        reach over and change a variable. So how does a byte change?
+      </p>
+
+      <RamWrite />
+
+      <h3 class="anatomy-head">The CPU is a switch</h3>
+      <p>
+        The processor itself is built the same way. Each register
+        &mdash; AX, BX, the instruction pointer &mdash; has one rule
+        asking: <b>given the current instruction, what&rsquo;s my next
+        value?</b> Try it &mdash; this one is real:
+      </p>
+
+      <DispatchDemo />
+    </div>
+  {:else if nav.sub === 7}
+    <!-- Credits -->
+    <div class="subpage" data-subpage="7">
       <h1>Credits &amp; thanks</h1>
       <p>
         CSS-DOS stands on the shoulders of people who proved, piece by

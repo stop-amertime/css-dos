@@ -1,0 +1,76 @@
+/* ram-write.css — the live memory-write widget on the "Memory & CPU"
+   Learn sub-page. Eight byte cells + a MOV button; the written cell
+   flashes. */
+
+.ram-write {
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+  box-shadow: 4px 4px 0 var(--edit-black);
+  padding: 12px 16px;
+  margin: 16px 0;
+}
+
+.ram-cells {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+.ram-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 52px;
+  border: 1px solid var(--edit-black);
+  background: var(--edit-gray);
+}
+.ram-cell .ram-val {
+  font-size: 20px;
+  line-height: 28px;
+  color: var(--edit-black);
+}
+.ram-cell .ram-addr {
+  font-size: 11px;
+  line-height: 16px;
+  width: 100%;
+  text-align: center;
+  background: var(--edit-black);
+  color: var(--edit-gray);
+}
+
+/* Flash the freshly-written cell. */
+.ram-cell.hit { animation: ram-hit 0.7s steps(2, jump-none); }
+@keyframes ram-hit {
+  0%, 100% { background: var(--edit-gray); }
+  50% { background: var(--edit-yellow); }
+}
+.ram-cell.hit .ram-val { font-weight: bold; }
+
+.ram-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+.ram-write .demo-toggle {
+  font-family: inherit;
+  font-size: 15px;
+  padding: 6px 12px;
+  background: var(--edit-white);
+  color: var(--edit-black);
+  border: 1px solid var(--edit-black);
+  box-shadow: 2px 2px 0 var(--edit-black);
+  cursor: pointer;
+}
+.ram-write .demo-toggle:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.ram-write .caption {
+  margin: 10px 0 0;
+  font-size: 16px;
+  line-height: 18px;
+  color: var(--edit-black);
+}
