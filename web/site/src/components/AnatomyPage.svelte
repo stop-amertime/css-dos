@@ -51,7 +51,7 @@
   style(<span class="tok-prop">--opcode</span>: <span class="tok-num">45</span>):  &hellip;;  <span class="tok-comment">/* SUB AX, &hellip; */</span>
   style(<span class="tok-prop">--opcode</span>: <span class="tok-num">184</span>): &hellip;;  <span class="tok-comment">/* MOV AX, &hellip; */</span>
   <span class="tok-comment">/* &hellip; one arm per opcode that can touch AX &hellip; */</span>
-  else: <span class="tok-prop">var</span>(<span class="tok-prop">--AX-prev</span>)   <span class="tok-comment">/* unchanged */</span>
+  else: <span class="tok-prop">var</span>(<span class="tok-prop">--AX-old</span>)   <span class="tok-comment">/* unchanged */</span>
 );</code></pre>
 
   <p>

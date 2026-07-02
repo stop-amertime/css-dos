@@ -3,6 +3,7 @@
   // CSS lacks and the workaround the cabinet uses. Sourced from
   // CABINET-ANATOMY.md ("Recurring tricks" + per-section notes).
   import '../styles/_fragments/anatomy.css';
+  import SignDemo from './SignDemo.svelte';
 </script>
 
 <div class="subpage" data-subpage="9">
@@ -28,8 +29,11 @@
     below B; <code>max</code> clamps the other cases to 0. The
     <code>&minus;&nbsp;0.5</code> keeps the expression away from the
     ambiguous exact-tie case. This one line computes the carry flag
-    and the screen&rsquo;s 70-times-a-second retrace signal.
+    and the screen&rsquo;s 70-times-a-second retrace signal. Here it
+    is running:
   </p>
+
+  <SignDemo />
 
   <h3 class="anatomy-head">No if/else inside arithmetic</h3>
   <p>
@@ -40,9 +44,9 @@
   <pre class="byte-example"><code>flag * A + (<span class="tok-num">1</span> - flag) * B    <span class="tok-comment">/* A if flag is 1, else B */</span></code></pre>
   <p>
     The same trick <i>skips</i> a memory write: when a write
-    shouldn&rsquo;t happen, its target address is multiplied out to
-    &minus;1 &mdash; an address no memory cell matches, so the write
-    lands nowhere.
+    shouldn&rsquo;t happen, this arithmetic turns its target address
+    into &minus;1 &mdash; an address no memory cell matches, so the
+    write lands nowhere.
   </p>
 
   <h3 class="anatomy-head">No bitwise operations</h3>

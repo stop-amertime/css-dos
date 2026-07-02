@@ -70,7 +70,7 @@
       <CssDemo />
 
       <p>
-        Look at those last two tabs again. Variables, arithmetic,
+        Click through to the last two tabs. Variables, arithmetic,
         conditionals &mdash; that isn&rsquo;t styling any more. Those are
         the working parts of a programming language.
       </p>
