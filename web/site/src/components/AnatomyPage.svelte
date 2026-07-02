@@ -46,19 +46,21 @@
     </li>
   </ul>
 
-  <pre class="byte-example"><code><span class="tok-prop">--AX</span>: if(
-  style(<span class="tok-prop">--opcode</span>: <span class="tok-num">5</span>):   &hellip;;  <span class="tok-comment">/* ADD AX, &hellip; */</span>
-  style(<span class="tok-prop">--opcode</span>: <span class="tok-num">45</span>):  &hellip;;  <span class="tok-comment">/* SUB AX, &hellip; */</span>
-  style(<span class="tok-prop">--opcode</span>: <span class="tok-num">184</span>): &hellip;;  <span class="tok-comment">/* MOV AX, &hellip; */</span>
-  <span class="tok-comment">/* &hellip; one arm per opcode that can touch AX &hellip; */</span>
-  else: <span class="tok-prop">var</span>(<span class="tok-prop">--AX-old</span>)   <span class="tok-comment">/* unchanged */</span>
-);</code></pre>
+  <pre class="byte-example"><code><span class="tok-prop">--AX</span>: if(style(<span class="tok-prop">--_tf</span>: <span class="tok-num">1</span>): var(--__1AX);
+          style(<span class="tok-prop">--_irqActive</span>: <span class="tok-num">1</span>): var(--__1AX);  <span class="tok-comment">/* interrupt pending? */</span>
+  else: if(
+    style(<span class="tok-prop">--opcode</span>: <span class="tok-num">0</span>): &hellip;;   <span class="tok-comment">/* ADD r/m8, reg8 */</span>
+    style(<span class="tok-prop">--opcode</span>: <span class="tok-num">1</span>): &hellip;;   <span class="tok-comment">/* ADD r/m16, reg16 */</span>
+    <span class="tok-comment">/* &hellip; every opcode that can touch AX &hellip; */</span>
+    else: var(<span class="tok-prop">--__1AX</span>)));    <span class="tok-comment">/* unchanged */</span></code></pre>
 
   <p>
-    You met a working miniature of this on &ldquo;How it
-    computes&rdquo;. The real thing just has more arms &mdash; one for
-    every opcode, for every register. Evaluating them all, once,
-    <i>is</i> executing an instruction.
+    You read real arms of this table on &ldquo;How it computes&rdquo;;
+    it goes on for 232 opcodes, one table per register. Note the two
+    arms standing in <i>front</i> of the opcode switch: when an
+    interrupt is pending, they override everything &mdash; that&rsquo;s
+    the next page. Evaluating all of these tables, once, <i>is</i>
+    executing an instruction.
   </p>
 
   <h3 class="anatomy-head">The ocean</h3>

@@ -7,7 +7,6 @@
   import PixelScreen from '../components/PixelScreen.svelte';
   import KeyboardDemo from '../components/KeyboardDemo.svelte';
   import RamWrite from '../components/RamWrite.svelte';
-  import DispatchDemo from '../components/DispatchDemo.svelte';
   import AnatomyPage from '../components/AnatomyPage.svelte';
   import TickPage from '../components/TickPage.svelte';
   import TricksPage from '../components/TricksPage.svelte';
@@ -170,14 +169,108 @@
 
       <RamWrite />
 
-      <h3 class="anatomy-head">The CPU is a switch</h3>
+      <h3 class="anatomy-head">Every instruction, rewritten</h3>
       <p>
-        Registers are cells in the same spreadsheet, with one
-        difference: their formulas switch on the current instruction.
-        This miniature is real &mdash; try it:
+        Registers &mdash; AX, BX and friends, the CPU&rsquo;s scratch
+        values &mdash; are cells in the same spreadsheet, and their
+        formulas are where the instruction set lives. A real 8086 has
+        its instructions burned into silicon: add two numbers,
+        subtract, copy, compare, plus dozens of more arcane ones. Each
+        one is a little circuit. We have no circuits, so every
+        instruction is redefined as arithmetic. This is the actual
+        &ldquo;add a number to AX&rdquo; arm, verbatim from the file:
+      </p>
+      <pre class="byte-example"><code>style(<span class="tok-prop">--opcode</span>: <span class="tok-num">5</span>): --lowerBytes(calc(var(<span class="tok-prop">--__1AX</span>) + var(<span class="tok-prop">--imm16</span>)), 16);  <span class="tok-comment">/* ADD AX, imm16 */</span></code></pre>
+      <p>
+        Read it as: <i>if the opcode is 5, AX&rsquo;s next value is
+        last tick&rsquo;s AX (<code>--__1AX</code>) plus the number
+        that followed the opcode in memory (<code>--imm16</code>),
+        trimmed back to 16 bits.</i>
+      </p>
+      <p>
+        But the adding is the easy half. In silicon, ADD also
+        <b>reports on itself for free</b>, as side effects of the
+        circuit: did it overflow? hit zero? go negative? Programs test
+        these &ldquo;flags&rdquo; constantly &mdash; and we get no side
+        effects, so every flag is its own formula. Here is the
+        machine&rsquo;s real 16-bit ADD flag function, piece by piece.
+        First add, keeping only the low 16 bits, because registers
+        wrap:
+      </p>
+      <pre class="byte-example"><code><span class="tok-prop">--raw</span>: calc(var(--dst) + var(--src));
+<span class="tok-prop">--res</span>: --lowerBytes(var(--raw), <span class="tok-num">16</span>);</code></pre>
+      <p>
+        Did the true result overflow past 65,535? That&rsquo;s the
+        <b>carry flag</b>: divide by 65,536 and round down, and you
+        have a 1 or a 0.
+      </p>
+      <pre class="byte-example"><code><span class="tok-prop">--cf</span>: min(<span class="tok-num">1</span>, round(down, var(--raw) / <span class="tok-num">65536</span>));</code></pre>
+      <p>
+        Is the result exactly zero? Is its top bit set &mdash; a
+        16-bit number&rsquo;s way of saying &ldquo;negative&rdquo;?
+        The <b>zero</b> and <b>sign</b> flags, each parked at its own
+        bit position of the flags register (64 and 128):
+      </p>
+      <pre class="byte-example"><code><span class="tok-prop">--zfsf</span>: calc(if(style(--res: <span class="tok-num">0</span>): <span class="tok-num">64</span>; else: <span class="tok-num">0</span>) + --bit(var(--res), <span class="tok-num">15</span>) * <span class="tok-num">128</span>);</code></pre>
+      <p>
+        Does the result have an even number of 1-bits? The
+        <b>parity flag</b>. Nobody counts bits live &mdash; the answer
+        comes from a 256-entry table baked into the file:
+      </p>
+      <pre class="byte-example"><code><span class="tok-prop">--pf</span>: --parity(var(--res));</code></pre>
+      <p>
+        Finally, pack everything into one number &mdash; the flags
+        register. Two more flags hide in this line: <b>overflow</b>
+        (did the sign flip in a way signed maths forbids?) and, in the
+        middle, &ldquo;did the bottom four bits carry?&rdquo; &mdash;
+        kept only to serve the decimal instructions below:
+      </p>
+      <pre class="byte-example"><code>result: calc(var(--cf) + var(--pf)
+   + calc(round(down, max(<span class="tok-num">0</span>, sign(mod(var(--dst), <span class="tok-num">16</span>)
+       + mod(var(--src), <span class="tok-num">16</span>) - <span class="tok-num">15.5</span>)) + <span class="tok-num">0.5</span>) * <span class="tok-num">16</span>)
+   + var(--zfsf) + var(--of) + <span class="tok-num">2</span>);</code></pre>
+      <p>
+        So one silicon instruction became six formulas &mdash; and ADD
+        is among the <i>easiest</i>. The arcane ones don&rsquo;t get
+        skipped either, because DOS-era programs really use them. This
+        is DAA, &ldquo;decimal adjust AL&rdquo; &mdash; a calculator-era
+        relic that patches up additions done on numbers stored as
+        decimal digits &mdash; complete:
+      </p>
+      <pre class="byte-example"><code>style(<span class="tok-prop">--opcode</span>: <span class="tok-num">39</span>): calc(round(down, var(--__1AX) / <span class="tok-num">256</span>) * <span class="tok-num">256</span>
+  + mod(calc(var(--AL)
+  + calc(min(<span class="tok-num">1</span>, calc(round(down, mod(var(--AL), <span class="tok-num">16</span>) / <span class="tok-num">10</span>)
+  + mod(round(down, var(--__1flags) / <span class="tok-num">16</span>), <span class="tok-num">2</span>))) * <span class="tok-num">6</span>)
+  + calc(min(<span class="tok-num">1</span>, calc(round(down, var(--AL) / <span class="tok-num">154</span>)
+  + mod(var(--__1flags), <span class="tok-num">2</span>))) * <span class="tok-num">96</span>)), <span class="tok-num">256</span>))</code></pre>
+      <p>
+        Nobody said it was pretty. It goes on like this for
+        <b>232 distinct opcodes &mdash; 1,094 arms</b> across the
+        register tables.
       </p>
 
-      <DispatchDemo />
+      <h3 class="anatomy-head">Not just the CPU</h3>
+      <p>
+        A PC was never one chip, and programs talk to the rest of the
+        machine directly: they program a <b>timer chip</b> to
+        interrupt them 18.2 times a second, tell the <b>interrupt
+        controller</b> which events to let through, stream colours
+        into the <b>VGA palette chip</b>. So the dispatch section
+        holds 29 of these switch-rules &mdash; and only 14 of them are
+        the 8086&rsquo;s registers. The rest are the neighbouring
+        chips:
+      </p>
+      <pre class="byte-example"><code><span class="tok-prop">--AX --CX --DX --BX --SP --BP --SI --DI</span>   <span class="tok-comment">/* the registers &hellip; */</span>
+<span class="tok-prop">--CS --DS --ES --SS --IP --flags</span>          <span class="tok-comment">/* &hellip; all fourteen */</span>
+<span class="tok-prop">--picMask --picPending --picInService</span>     <span class="tok-comment">/* interrupt controller */</span>
+<span class="tok-prop">--pitMode --pitReload --pitCounter</span> &hellip;      <span class="tok-comment">/* timer chip */</span>
+<span class="tok-prop">--prevKeyboard --kbdScancodeLatch</span>         <span class="tok-comment">/* keyboard */</span>
+<span class="tok-prop">--dacWriteIndex --dacSubIndex</span> &hellip;           <span class="tok-comment">/* VGA palette chip */</span></code></pre>
+      <p>
+        A support chip, in this machine, is just a few more cells in
+        the spreadsheet, with formulas describing what the silicon
+        would have done.
+      </p>
 
       <p class="punchline">
         That&rsquo;s the entire machine: the animation advances, every
