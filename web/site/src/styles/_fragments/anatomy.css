@@ -41,6 +41,13 @@
   font-size: 16px;
   line-height: 19px;
 }
+.tick-walk .byte-strip {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  margin: 8px 0 2px;
+}
 .tick-walk li::before {
   content: counter(tickstep);
   position: absolute;

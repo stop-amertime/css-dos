@@ -199,6 +199,18 @@
 
       <PixelScreen />
 
+      <h3 class="anatomy-head">The palette</h3>
+      <p>
+        One thing the widget glosses over: the palette isn&rsquo;t a
+        fixed table of 256 colours. The running program loads its own,
+        and the machine accepts it exactly the way real VGA hardware
+        did: to set one colour, the program writes three bytes &mdash;
+        red, green, blue &mdash; to a single port, while a tiny counter
+        steps 0, 1, 2 and rolls over to the next colour slot. When a
+        game fades to black, it is re-streaming this table a little
+        darker, over and over.
+      </p>
+
       <h3 class="anatomy-head">The keys</h3>
       <p>
         Input has no events either. What CSS <i>can</i> ask is

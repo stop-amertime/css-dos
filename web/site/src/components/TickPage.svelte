@@ -40,6 +40,25 @@
       <b>Decode.</b> Work out what those bytes mean: split out the
       opcode, which registers it names, and what memory address it
       refers to.
+      <svg class="byte-strip" viewBox="0 0 340 58" role="img"
+           aria-label="An 8086 instruction: optional prefix, opcode, ModR/M, optional displacement and immediate bytes.">
+        <rect x="2" y="4" width="52" height="30" fill="var(--edit-white)"
+              stroke="var(--edit-black)" stroke-dasharray="3 3"/>
+        <rect x="56" y="4" width="56" height="30" fill="var(--edit-yellow)"
+              stroke="var(--edit-black)"/>
+        <rect x="114" y="4" width="58" height="30" fill="var(--edit-white)"
+              stroke="var(--edit-black)"/>
+        <rect x="174" y="4" width="76" height="30" fill="var(--edit-white)"
+              stroke="var(--edit-black)" stroke-dasharray="3 3"/>
+        <rect x="252" y="4" width="76" height="30" fill="var(--edit-white)"
+              stroke="var(--edit-black)" stroke-dasharray="3 3"/>
+        <text x="28" y="23" text-anchor="middle" font-size="11" font-family="inherit" fill="#555">prefix?</text>
+        <text x="84" y="23" text-anchor="middle" font-size="11" font-family="inherit" font-weight="bold" fill="var(--edit-black)">opcode</text>
+        <text x="143" y="23" text-anchor="middle" font-size="11" font-family="inherit" fill="var(--edit-black)">ModR/M</text>
+        <text x="212" y="23" text-anchor="middle" font-size="11" font-family="inherit" fill="#555">address?</text>
+        <text x="290" y="23" text-anchor="middle" font-size="11" font-family="inherit" fill="#555">value?</text>
+        <text x="2" y="52" font-size="11" font-family="inherit" fill="#555">one instruction &mdash; dashed parts optional</text>
+      </svg>
     </li>
     <li>
       <b>Execute.</b> All fourteen register formulas pick an arm for
