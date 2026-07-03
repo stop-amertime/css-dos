@@ -230,3 +230,15 @@ after the hub?). [Q for owner.]
   no reader-facing "arm" (rows/entries), no staged punchlines.
   Owner verdict pending; remaining stories untouched until then.
   Open: the 650,000-vs-368,256 write-formula count (owner to rule).
+- 2026-07-03 visuals: SignDemo removed from the live site (owner:
+  demonstrated nothing; component kept only for the attic Tricks
+  page). Added: the missing-operations tick/cross table (utilities),
+  the AND-as-multiplication worked example (utilities, 172 AND 102 =
+  36), and the CpuCoverage grid (CPU): 14 register rows × 256 opcode
+  columns, data measured from sokoban.css into `cpu-coverage.js` —
+  **850 rows / 232 distinct opcodes**. The old "1,094 arms" figure
+  did not survive re-measurement (it counted material beyond the 14
+  tables — the flags table ends at --halt, byte 285,403); live
+  copy now says 850. Proposed but not built (owner passed for now):
+  disk-window sector switcher, clock handover lap, applySlot straddle
+  diagram, readMem census bar.

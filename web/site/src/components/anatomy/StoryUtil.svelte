@@ -6,6 +6,10 @@
   // (~60 KB, offsets 28,218–90,652) measured from the same file.
   // (SignDemo removed 2026-07-03 — owner: demonstrated nothing.)
   import Foldable from '../Foldable.svelte';
+
+  // The AND worked example: 172 AND 102 = 36.
+  const A_BITS = [1, 0, 1, 0, 1, 1, 0, 0]; // 172
+  const B_BITS = [0, 1, 1, 0, 0, 1, 1, 0]; // 102
 </script>
 
 <p>
@@ -56,7 +60,30 @@
 <h3 class="anatomy-head">Bit operations from arithmetic</h3>
 <p>
   On single bits, AND is multiplication: 1&times;1 is 1, everything
-  else is 0. So <code>--and</code> splits both numbers into their
+  else is 0. Line two numbers up in binary and multiply each column:
+</p>
+
+<div class="and-work">
+  <div class="aw-row">
+    <span class="aw-lbl"></span>
+    {#each A_BITS as b, i}<span class="aw-bit" class:hot={A_BITS[i] && B_BITS[i]}>{b}</span>{/each}
+    <span class="aw-eq">= 172</span>
+  </div>
+  <div class="aw-row">
+    <span class="aw-lbl">AND</span>
+    {#each B_BITS as b, i}<span class="aw-bit" class:hot={A_BITS[i] && B_BITS[i]}>{b}</span>{/each}
+    <span class="aw-eq">= 102</span>
+  </div>
+  <div class="aw-row aw-result">
+    <span class="aw-lbl">=</span>
+    {#each A_BITS as b, i}<span class="aw-bit" class:hot={A_BITS[i] && B_BITS[i]}>{A_BITS[i] * B_BITS[i]}</span>{/each}
+    <span class="aw-eq">= 36</span>
+  </div>
+  <p class="aw-caption">Each column is one multiplication; only 1&nbsp;&times;&nbsp;1 survives.</p>
+</div>
+
+<p>
+  So <code>--and</code> splits both numbers into their
   sixteen bits with divide-and-remainder, multiplies each pair, and
   reassembles the result:
 </p>
@@ -180,4 +207,40 @@
   .ops-row code { background: none; border: none; padding: 0; }
   .ops-row .tick { color: #00aa00; }
   .ops-row .cross { color: #aa0000; font-weight: bold; }
+
+  .and-work {
+    margin: 12px 0;
+    border: 1px solid var(--edit-black);
+    background: var(--edit-white);
+    box-shadow: 4px 4px 0 var(--edit-black);
+    padding: 12px 16px 4px;
+    width: fit-content;
+    font-family: 'WebVGA', monospace;
+    letter-spacing: normal;
+  }
+  .aw-row { display: flex; align-items: baseline; }
+  .aw-lbl {
+    width: 52px;
+    text-align: right;
+    padding-right: 12px;
+    color: #555;
+    font-size: 14px;
+  }
+  .aw-bit {
+    width: 24px;
+    text-align: center;
+    font-size: 17px;
+    line-height: 26px;
+    color: #555;
+  }
+  .aw-bit.hot { color: #00aa00; font-weight: bold; }
+  .aw-eq { padding-left: 14px; color: var(--edit-black); font-size: 14px; }
+  .aw-result .aw-bit { border-top: 1px solid var(--edit-black); }
+  .aw-result .aw-bit:not(.hot) { color: #aaa; }
+  .aw-caption {
+    margin: 8px 0 6px;
+    font-size: 13px;
+    line-height: 17px;
+    color: #555;
+  }
 </style>

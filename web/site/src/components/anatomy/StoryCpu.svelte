@@ -5,6 +5,7 @@
   // folds. Utility functions split out to StoryUtil. Extracts
   // verbatim from sokoban.css (names tidied per the NOTE callout).
   import Foldable from '../Foldable.svelte';
+  import CpuCoverage from './CpuCoverage.svelte';
 </script>
 
 <p>
@@ -67,6 +68,13 @@
   the byte of memory IP points at, fetched through the giant function
   in the read-formulas story.
 </p>
+<p>
+  All fourteen tables, drawn as one grid &mdash; a mark where a table
+  has a row for an opcode:
+</p>
+
+<CpuCoverage />
+
 <p>
   These tables are the same CSS in every cabinet: Doom&rsquo;s CPU and
   Zork&rsquo;s are byte-identical, and everything that differs between
@@ -172,7 +180,7 @@ mod(calc(var(<span class="tok-prop">--snapshot-DX</span>) * <span class="tok-num
     instructions runs on that idiom.
   </p>
   <p>
-    It goes on like this for <b>232 distinct opcodes &mdash; 1,094
+    It goes on like this for <b>232 distinct opcodes &mdash; 850
     rows</b> across the register tables.
   </p>
 </Foldable>
