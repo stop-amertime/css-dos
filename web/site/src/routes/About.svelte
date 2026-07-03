@@ -34,6 +34,8 @@
     screen: SectionScreen, decl: SectionMemDecl, memw: SectionMemWrite,
     memr: SectionMemRead, disk: SectionDisk, clock: SectionClock,
   };
+  const curGroup = $derived(GROUPS.find((x) => x.id === nav.section));
+  const CurSection = $derived(SECTIONS[nav.section]);
 
   const SUBPAGES = [
     { label: 'Intro' },
@@ -273,9 +275,7 @@
 
       <CabinetBar selected={nav.section} onselect={(g) => nav.sectionJump(g)} />
 
-      {@const g = GROUPS.find((x) => x.id === nav.section)}
-      {@const Section = SECTIONS[nav.section]}
-      <div class="anatomy-pane" style="--pane-c:{g.c}">
+      <div class="anatomy-pane" style="--pane-c:{curGroup.c}">
         <div class="sec-rail prev">
           <button class="sec-arrow" onclick={() => nav.sectionStep(-1)}
                   aria-label="Previous section" title="Previous section">&#9668;</button>
@@ -285,14 +285,14 @@
                   aria-label="Next section" title="Next section">&#9658;</button>
         </div>
         <h2 class="pane-head">
-          <span class="chip" style="background:{g.c}"></span>
-          <span>{g.label}</span>
-          <span class="sz">{g.size}</span>
+          <span class="chip" style="background:{curGroup.c}"></span>
+          <span>{curGroup.label}</span>
+          <span class="sz">{curGroup.size}</span>
           <span class="sec-count">{nav.sectionIdx() + 1} / {GROUPS.length}</span>
         </h2>
         {#key nav.section}
           <div class="sec-body" in:fly={{ x: 44 * nav.sectionDir, duration: 180 }}>
-            <Section />
+            <CurSection />
           </div>
         {/key}
       </div>
