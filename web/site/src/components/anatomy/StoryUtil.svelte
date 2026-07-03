@@ -4,18 +4,39 @@
   // the prebaked lookup tables. Split out of the CPU story 2026-07-03.
   // Extracts verbatim from sokoban.css; the count (66) and size
   // (~60 KB, offsets 28,218–90,652) measured from the same file.
+  // (SignDemo removed 2026-07-03 — owner: demonstrated nothing.)
   import Foldable from '../Foldable.svelte';
-  import SignDemo from '../SignDemo.svelte';
 </script>
 
 <p>
   After the header comment, the first thing in the file is a toolbox:
   <b>66 small functions</b> that everything else is built from. They
-  exist because CSS arithmetic can add, subtract, multiply, divide,
-  round, and take a remainder &mdash; and that is the entire list.
-  There is no AND, no OR, no bit-shift, and no way to ask whether A is
-  less than B. An 8086 uses all of those constantly, so the missing
-  operations have to be built out of the arithmetic that does exist.
+  exist because of a supply problem:
+</p>
+
+<div class="ops-supply">
+  <div class="ops-col">
+    <div class="ops-head">CSS arithmetic has</div>
+    <div class="ops-row"><code>x + y</code><span class="tick">&#10003;</span></div>
+    <div class="ops-row"><code>x &minus; y</code><span class="tick">&#10003;</span></div>
+    <div class="ops-row"><code>x &times; y</code><span class="tick">&#10003;</span></div>
+    <div class="ops-row"><code>x &divide; y</code><span class="tick">&#10003;</span></div>
+    <div class="ops-row"><code>mod(x, y)</code><span class="tick">&#10003;</span></div>
+    <div class="ops-row"><code>round(x)</code><span class="tick">&#10003;</span></div>
+  </div>
+  <div class="ops-col">
+    <div class="ops-head">an 8086 needs</div>
+    <div class="ops-row"><code>x AND y</code><span class="cross">&#10007;</span></div>
+    <div class="ops-row"><code>x OR y</code><span class="cross">&#10007;</span></div>
+    <div class="ops-row"><code>x XOR y</code><span class="cross">&#10007;</span></div>
+    <div class="ops-row"><code>x &lt;&lt; n</code><span class="cross">&#10007;</span></div>
+    <div class="ops-row"><code>x &lt; y</code><span class="cross">&#10007;</span></div>
+  </div>
+</div>
+
+<p>
+  Everything in the right-hand column has to be built out of the
+  left-hand column.
 </p>
 
 <Foldable class="fold-bg">
@@ -67,10 +88,8 @@
   <code>&minus;&nbsp;0.5</code> keeps the expression away from exact
   ties. The answer is a clean 0 or 1 that can be fed straight into
   more arithmetic. This is the line that computes the carry flag, and
-  the screen&rsquo;s 70-per-second retrace signal:
+  the screen&rsquo;s 70-per-second retrace signal.
 </p>
-
-<SignDemo />
 
 <p>
   A 0-or-1 answer also stands in for &ldquo;if&rdquo; inside a
@@ -129,3 +148,36 @@
   (<code>--addFlags16</code>, <code>--shrFlags8</code>, &hellip;),
   which the CPU story comes back to.
 </p>
+
+<style>
+  .ops-supply {
+    display: flex;
+    gap: 0;
+    margin: 12px 0;
+    border: 1px solid var(--edit-black);
+    background: var(--edit-white);
+    box-shadow: 4px 4px 0 var(--edit-black);
+    width: fit-content;
+  }
+  .ops-col { min-width: 190px; }
+  .ops-col + .ops-col { border-left: 1px solid var(--edit-black); }
+  .ops-head {
+    font-family: 'WebVGA', monospace;
+    letter-spacing: normal;
+    font-size: 13px;
+    line-height: 13px;
+    padding: 6px 12px;
+    background: var(--edit-black);
+    color: var(--edit-yellow);
+  }
+  .ops-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    padding: 5px 12px;
+  }
+  .ops-row code { background: none; border: none; padding: 0; }
+  .ops-row .tick { color: #00aa00; }
+  .ops-row .cross { color: #aa0000; font-weight: bold; }
+</style>
