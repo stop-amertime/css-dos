@@ -1,17 +1,28 @@
 <script>
   // The memory-read exhibit, side by side: what any programming
   // language does in one line, next to a ~2000px tower of the
-  // cabinet's real --readMem (verbatim text; the real thing has
-  // ~1,000,000 checks). No scroll box — the height is the point.
+  // cabinet's real --readMem. All arms and counts verbatim/measured
+  // from sokoban.css: 736,510 RAM arms + 6,924 ROM arms + 512 disk
+  // window arms + 2 keyboard arms = 743,948, in this file order.
+  // No scroll box — the height is the point.
   import SplitPane from './SplitPane.svelte';
 
-  const CELLS = 54; // ~110 lines ≈ 2000px tall
+  const RAM_CELLS = 40; // 80 RAM lines; ~100 lines total ≈ 1800px
   let slab = '@function --readMem(--at <integer>) returns <integer> {\n  result: if(\n';
-  for (let i = 0; i < CELLS; i++) {
+  for (let i = 0; i < RAM_CELLS; i++) {
     slab += `    style(--at: ${2 * i}): mod(var(--__1mc${i}), 256);\n`;
     slab += `    style(--at: ${2 * i + 1}): round(down, var(--__1mc${i}) / 256);\n`;
   }
-  slab += '    …';
+  slab += '\n         … 736,430 more arms like these — every byte of RAM …\n\n';
+  slab += '    style(--at: 983040): 235;\n';
+  slab += '    style(--at: 983041): 16;\n';
+  slab += '    style(--at: 983042): 144;\n';
+  slab += '    style(--at: 983043): 144;\n';
+  slab += '\n         … 6,920 more baked-in BIOS ROM bytes …\n\n';
+  slab += '    style(--at: 851968): --readDiskByte(calc((mod(var(--__1mc632), 256) + round(down, var(--__1mc632) / 256) * 256) * 512 + 0));\n';
+  slab += '    style(--at: 851969): --readDiskByte(calc((mod(var(--__1mc632), 256) + round(down, var(--__1mc632) / 256) * 256) * 512 + 1));\n';
+  slab += '\n         … 510 more — the 512-byte disk window …\n\n';
+  slab += '  else: 0);\n}';
 </script>
 
 <div class="fetch-ladder">
@@ -32,8 +43,8 @@
     {/snippet}
   </SplitPane>
   <p class="fl-fact">
-    It continues like that for every address. Just this function &mdash;
-    the part of the file that reads one byte &mdash; is
+    One function, <b>743,948 arms</b> &mdash; one per address. Just this
+    function, the part of the file that reads one byte, is
     <b>44 million characters</b>: nine complete works of Shakespeare.
   </p>
 </div>
