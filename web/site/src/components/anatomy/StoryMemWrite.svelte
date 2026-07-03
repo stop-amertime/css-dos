@@ -57,6 +57,40 @@
   out once per byte.
 </p>
 
+<h3 class="anatomy-head">How a write actually lands</h3>
+<p>
+  Cells hold two bytes each, so &ldquo;write this byte here&rdquo;
+  means <i>splicing</i> a value into half of a cell without disturbing
+  the other half. One function does it, and every cell&rsquo;s formula
+  calls it once per write slot &mdash; verbatim:
+</p>
+<pre class="byte-example"><code>@function <span class="tok-prop">--applySlot</span>(<span class="tok-prop">--cell</span>, <span class="tok-prop">--live</span>, <span class="tok-prop">--loOff</span>, <span class="tok-prop">--hiOff</span>, <span class="tok-prop">--val</span>, <span class="tok-prop">--width</span>) returns &lt;integer&gt; {'{'}
+  result: if(
+    style(<span class="tok-prop">--live</span>: <span class="tok-num">0</span>): var(--cell);                <span class="tok-comment">/* slot idle — pass through */</span>
+    style(<span class="tok-prop">--width</span>: <span class="tok-num">2</span>) and style(<span class="tok-prop">--loOff</span>: <span class="tok-num">0</span>) and style(<span class="tok-prop">--hiOff</span>: <span class="tok-num">1</span>):
+      --lowerBytes(var(--val), <span class="tok-num">16</span>);              <span class="tok-comment">/* whole word, aligned */</span>
+    style(<span class="tok-prop">--width</span>: <span class="tok-num">2</span>) and style(<span class="tok-prop">--loOff</span>: <span class="tok-num">1</span>):
+      calc(--lowerBytes(var(--val), <span class="tok-num">8</span>) * <span class="tok-num">256</span> + mod(var(--cell), <span class="tok-num">256</span>));   <span class="tok-comment">/* word straddles me: low half */</span>
+    style(<span class="tok-prop">--width</span>: <span class="tok-num">2</span>) and style(<span class="tok-prop">--hiOff</span>: <span class="tok-num">0</span>):
+      calc(round(down, var(--cell) / <span class="tok-num">256</span>) * <span class="tok-num">256</span> + --rightShift(var(--val), <span class="tok-num">8</span>));   <span class="tok-comment">/* word straddles me: high half */</span>
+    style(<span class="tok-prop">--loOff</span>: <span class="tok-num">0</span>): calc(round(down, var(--cell) / <span class="tok-num">256</span>) * <span class="tok-num">256</span> + var(--val));   <span class="tok-comment">/* one byte, low */</span>
+    style(<span class="tok-prop">--loOff</span>: <span class="tok-num">1</span>): calc(var(--val) * <span class="tok-num">256</span> + mod(var(--cell), <span class="tok-num">256</span>));            <span class="tok-comment">/* one byte, high */</span>
+  else: var(--cell));
+{'}'}</code></pre>
+<p>
+  The middle two cases are the awkward one: a 16-bit write to an odd
+  address lands half in one cell and half in the next, so <i>both</i>
+  cells fire, each splicing in its own half. And in every cell&rsquo;s
+  formula the three slot calls are nested with slot 0 outermost, so if
+  two slots ever hit the same cell, slot 0 wins.
+</p>
+<p>
+  Why stop at two bytes per cell, when four would halve everything
+  again? Arithmetic: four packed bytes can reach past four billion,
+  beyond what the 32-bit signed integers all this maths must survive
+  in can hold. Two bytes tops out at 65,535 and is always safe.
+</p>
+
 <Foldable>
   {#snippet summary()}Why exactly three write slots{/snippet}
   <p>

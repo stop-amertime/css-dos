@@ -83,6 +83,35 @@
   get the same treatment in a much smaller block inside the CPU.
 </p>
 
+<h3 class="anatomy-head">The other clock &mdash; the one DOS sees</h3>
+<p>
+  The animation is the machine&rsquo;s heartbeat, but DOS has never
+  heard of it. What DOS expects is the PC&rsquo;s <b>timer chip</b>,
+  interrupting it 18.2 times a second &mdash; that&rsquo;s how it
+  keeps the time of day, and how games pace themselves. CSS can&rsquo;t
+  read a wall clock, so the timer is derived from a number the CPU
+  already tracks: a running tally of the cycles each instruction
+  <i>would have cost</i> on the real 4.77&nbsp;MHz chip.
+</p>
+<p>
+  The gearing is real 1981 engineering: the PC&rsquo;s timer chip ran
+  at exactly one quarter of the CPU&rsquo;s clock, so the
+  machine&rsquo;s timer ticks are simply
+  <code>cycleCount&nbsp;/&nbsp;4</code>. The chip is simulated down to
+  its quirks &mdash; in its default square-wave mode the counter
+  genuinely counts down by <i>two</i> per tick, and its 16-bit reload
+  value has to arrive as two separate byte writes before the count
+  starts, just like the real part. Every time the counter crosses
+  zero, the timer interrupt fires and DOS&rsquo;s clock advances.
+</p>
+<p>
+  So the machine keeps two times: the CSS animation decides how fast
+  the world computes, and the cycle counter decides what the software
+  <i>believes</i> the time is. Evaluate the file faster and everything
+  speeds up together, still in step &mdash; DOS&rsquo;s sense of time
+  is tied to work done, not to your wall clock.
+</p>
+
 <Foldable>
   {#snippet summary()}How one animation conducts two more{/snippet}
   <p>

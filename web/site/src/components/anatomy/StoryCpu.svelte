@@ -55,8 +55,13 @@
   Fourteen of these tables &mdash; one per register. Evaluating all of
   them, once, is the machine executing one instruction. (The arm
   standing in front of the switch is how a keypress or a timer tick
-  cuts in <i>between</i> instructions: when an interrupt is pending,
-  every register takes its interrupt value instead of the decoded one.)
+  cuts in <i>between</i> instructions &mdash; more on that below.)
+</p>
+<p>
+  Worth knowing: these tables are <b>the same CSS in every cabinet</b>.
+  Doom&rsquo;s CPU and Zork&rsquo;s CPU are byte-identical &mdash; ADD
+  means ADD everywhere. Everything that differs between cabinets is
+  memory and disk; the processor is a fixed quarter-megabyte slab.
 </p>
 
 <h3 class="anatomy-head">The missing maths</h3>
@@ -247,9 +252,51 @@ mod(calc(var(<span class="tok-prop">--snapshot-DX</span>) * <span class="tok-num
   + calc(min(<span class="tok-num">1</span>, calc(round(down, var(--AL) / <span class="tok-num">154</span>)
   + mod(var(<span class="tok-prop">--snapshot-flags</span>), <span class="tok-num">2</span>))) * <span class="tok-num">96</span>)), <span class="tok-num">256</span>))</code></pre>
   <p>
+    A hidden gem in there: DAA needs to ask &ldquo;is this 4-bit chunk
+    bigger than 9?&rdquo; &mdash; and with no <code>&lt;</code>
+    available, it asks by <i>dividing</i>:
+    <code>round(down, nibble / 10)</code> is 1 exactly for 10&ndash;15
+    and 0 otherwise. The whole family of decimal instructions runs on
+    that idiom.
+  </p>
+  <p>
     Nobody said it was pretty. It goes on like this for <b>232 distinct
     opcodes &mdash; 1,094 arms</b> across the register tables.
   </p>
+</Foldable>
+
+<Foldable>
+  {#snippet summary()}How an interrupt arrives{/snippet}
+  <p>
+    A keypress or a timer tick has to be able to interrupt the running
+    program between instructions. On real hardware that&rsquo;s wiring;
+    here it&rsquo;s the override arm you saw at the front of every
+    register table. When an interrupt is pending, the machine
+    <b>refuses to run the instruction it just fetched</b>. No register
+    takes its decoded value that tick. Instead: IP and CS load the
+    interrupt handler&rsquo;s address out of a table in memory, SP
+    drops by six (the three pushed words &mdash; the write
+    story&rsquo;s worst case), and the flags register switches
+    interrupts off so the handler can&rsquo;t itself be interrupted.
+    The cycle counter even charges 61 cycles &mdash; what the real
+    8086 billed for a hardware interrupt.
+  </p>
+  <p>
+    Behind that sits a simulated interrupt controller &mdash; three
+    variables tracking which interrupts are masked, pending, and
+    currently being serviced, with the timer outranking the keyboard.
+    When a handler finishes, it announces &ldquo;end of
+    interrupt&rdquo;, and the controller clears the in-service bit with
+    a classic bit hack: <code>x AND (x &minus; 1)</code> deletes the
+    lowest set bit of a number, no loop required.
+  </p>
+  <p>
+    One more timing subtlety, kept faithfully: the 8086&rsquo;s
+    single-step trap fires <i>after</i> the traced instruction, not
+    before. The machine reproduces that with a one-tick delay line
+    &mdash; verbatim:
+  </p>
+  <pre class="byte-example"><code><span class="tok-prop">--_tf</span>: var(<span class="tok-prop">--__1_tfPending</span>);   <span class="tok-comment">/* this tick's trap = LAST tick's request */</span></code></pre>
 </Foldable>
 
 <Foldable>
@@ -291,3 +338,23 @@ mod(calc(var(<span class="tok-prop">--snapshot-DX</span>) * <span class="tok-num
 <span class="tok-prop">--prevKeyboard --kbdScancodeLatch</span>         <span class="tok-comment">/* keyboard */</span>
 <span class="tok-prop">--dacWriteIndex --dacSubIndex</span> &hellip;           <span class="tok-comment">/* VGA palette chip */</span></code></pre>
 </Foldable>
+
+<h3 class="anatomy-head">Power-on</h3>
+<p>
+  So who goes <i>first</i>? Nothing starts the machine. The clock
+  animation begins ticking the moment the stylesheet loads, and on
+  tick one the fetch simply reads from wherever CS:IP already points
+  &mdash; and the declarations put them there:
+</p>
+<pre class="byte-example"><code>@property <span class="tok-prop">--CS</span> {'{'} &hellip; initial-value: <span class="tok-num">61440</span>; {'}'}   <span class="tok-comment">/* 0xF000 — the BIOS ROM */</span>
+@property <span class="tok-prop">--IP</span> {'{'} &hellip; initial-value: <span class="tok-num">0</span>; {'}'}</code></pre>
+<p>
+  That&rsquo;s linear address 983,040 &mdash; the very first ROM arm
+  in the read-formulas story, the byte 235. And 235 is a <b>jump
+  instruction</b>: the machine&rsquo;s first act is to jump into the
+  BIOS proper, which sets up a stack, fills in the interrupt table,
+  paints its splash screen, and jumps again &mdash; into DOS. A cold
+  boot, exactly the way a real PC did it: power arrives, the
+  processor wakes up pointing at firmware, and everything else
+  follows.
+</p>
