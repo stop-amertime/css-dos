@@ -14,6 +14,7 @@
   import CabinetBar from '../components/anatomy/CabinetBar.svelte';
   import { GROUPS } from '../components/anatomy/groups.js';
   import StoryHeader from '../components/anatomy/StoryHeader.svelte';
+  import StoryUtil from '../components/anatomy/StoryUtil.svelte';
   import StoryCpu from '../components/anatomy/StoryCpu.svelte';
   import StoryKeys from '../components/anatomy/StoryKeys.svelte';
   import StoryScreen from '../components/anatomy/StoryScreen.svelte';
@@ -28,7 +29,7 @@
   // The cabinet map: the open story lives on the router (nav.story)
   // so it's addressable — #about/file/clock deep-links to a story.
   const STORIES = {
-    hdr: StoryHeader, cpu: StoryCpu, keys: StoryKeys,
+    hdr: StoryHeader, util: StoryUtil, cpu: StoryCpu, keys: StoryKeys,
     screen: StoryScreen, decl: StoryMemDecl, memw: StoryMemWrite,
     memr: StoryMemRead, disk: StoryDisk, clock: StoryClock,
   };

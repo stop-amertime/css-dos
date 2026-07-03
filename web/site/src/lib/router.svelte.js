@@ -16,7 +16,7 @@ const BUILD_PICK = 1, BUILD_CONFIG = 2;
 const ABOUT_SUBS = ['intro', 'how', 'why', 'faqs', 'file'];
 const BUILD_SUBS = ['pick', 'configure', 'result'];
 // Story ids on the About/file map — mirrors anatomy/groups.js.
-const FILE_STORIES = ['hdr', 'cpu', 'keys', 'screen', 'decl', 'memr', 'disk', 'clock', 'memw'];
+const FILE_STORIES = ['hdr', 'util', 'cpu', 'keys', 'screen', 'decl', 'memr', 'disk', 'clock', 'memw'];
 
 const stepNames = {
   about: ABOUT, how: ABOUT, howitworks: ABOUT,

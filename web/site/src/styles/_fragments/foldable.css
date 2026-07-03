@@ -33,6 +33,13 @@
 .foldable .fold-summary { flex: 1 1 auto; min-width: 0; }
 
 .foldable[open] > summary { border-bottom: 1px solid var(--edit-black); }
+
+/* Background-primer variant (`class="fold-bg"`): holds prerequisite
+   knowledge some readers won't need — warm tint + [?] glyph so it reads
+   as "open if new to this", distinct from the deep-dive folds. */
+.foldable.fold-bg > summary { background: #e6dcc3; }
+.foldable.fold-bg > summary:hover { background: #f0e8d3; }
+.foldable.fold-bg:not([open]) .fold-glyph::before { content: '[?]'; }
 .foldable .fold-body {
   padding: 12px 16px;
   background: var(--edit-white);

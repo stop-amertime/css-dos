@@ -81,6 +81,16 @@ reject them:
 - Transitions must carry facts, not stakes. No self-callbacks that require
   remembering earlier *phrasing* rather than earlier facts.
 
+### Layering (owner rule, 2026-07-03)
+
+The main flow of a story assumes the reader roughly knows what a
+computer is. Prerequisite knowledge some readers won't have (what a
+CPU does, what bits are) goes in a **background dropdown** — the
+`fold-bg` Foldable variant, summary starting "Background:" — written
+at proper teaching length, at the point of need. Deep dives stay in
+plain dropdowns. Never explain a prerequisite badly in the main flow
+to serve both audiences at once; it serves neither.
+
 ### Minimising vs demonstrating
 
 Don't tell the reader something is simple — "just", "simply", "merely"
@@ -164,18 +174,22 @@ The reader meets the absurd size EARLY and the anatomy is the navigation:
   the group's story in a **pane below**. No page order; curiosity drives.
 - Titles are rigorous, not floral: *topic — concrete detail · size*.
 
-The eight groups (sizes measured from the real Sokoban cabinet):
+The ten groups (sizes measured from the real Sokoban cabinet; the
+util/CPU boundary measured at byte offsets 28,218 / 90,652 /
+~345,543 of sokoban.css):
 
 | Group (one story each) | File sections | Size |
 |---|---|---:|
-| The header comment — the file's birth certificate | 1 | 25 KB |
-| The CPU | utilities, decode, fetch, register tables, write slots | ~320 KB |
-| The keyboard & debug display | 7 | 4 KB |
-| The screen | pixel painter | 6.5 MB |
-| Memory: storing and changing it | declarations + write rules | 203 MB |
-| Memory: reading it | read function | 44 MB |
-| The disk | disk read function | 13 MB |
-| The clock | double-buffer reads, store, execute, keyframes | 43 MB |
+| Header comment | 1 | 25 KB |
+| Utility functions | the 66 opening @functions + lookup tables | 60 KB |
+| CPU | decode, fetch, register tables, write slots | 255 KB |
+| Keyboard & debug display | 7 | 4 KB |
+| Screen | pixel painter | 6.5 MB |
+| Memory — variable declarations | @property blocks | 32 MB |
+| Memory — read formulas | read function | 44 MB |
+| Disk | disk read function | 13 MB |
+| Clock | double-buffer reads, store, execute, keyframes | 43 MB |
+| Memory — write formulas | write rules | 171 MB |
 
 Calcite has no bytes in the file → it stays at the door (the JavaScript
 FAQ), not a fake section.
@@ -207,4 +221,12 @@ after the hub?). [Q for owner.]
   `web/site/src/attic/HowItWorks.svelte` (unmounted; imports resolve).
   TickFlow and TricksPage/Credits content still only live there — where
   Tricks & Credits go is still the open [Q].
-- Next: owner pass over the eight stories, one at a time.
+- Next: owner pass over the stories, one at a time.
+- 2026-07-03 copy audit: pane-hint placeholder removed. Utilities
+  split out of the CPU story (10 groups now; sizes re-measured).
+  CPU story rewritten as the sample of the layering rule (background
+  fold for the CPU primer; flags/DIV/interrupts/REP/chips as deep
+  folds; power-on closes the main flow) and of the register rules —
+  no reader-facing "arm" (rows/entries), no staged punchlines.
+  Owner verdict pending; remaining stories untouched until then.
+  Open: the 650,000-vs-368,256 write-formula count (owner to rule).
