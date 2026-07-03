@@ -267,6 +267,42 @@
 .byte-example .tok-prop { color: var(--edit-cyan); }
 .byte-example .tok-num { color: var(--edit-yellow); }
 
+/* ===== About rebuild (ABOUT-SCRIPT.md port) ===== */
+.epigraph {
+  margin: 4px 0 18px;
+  padding-left: 14px;
+  border-left: 3px solid var(--edit-black);
+}
+.epigraph p { margin: 0 0 2px; font-style: italic; }
+.epigraph cite { font-style: normal; font-size: 13px; color: #555; }
+
+.skip-note { margin: 0 0 14px; }
+.skip-note button {
+  font: inherit;
+  color: var(--edit-blue);
+  background: none;
+  border: none;
+  padding: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.skip-note button:hover { color: #1111cc; }
+
+.in-theory {
+  font-weight: bold;
+  font-size: 24px;
+  letter-spacing: 1px;
+  line-height: 1;
+}
+
+.widget-placeholder {
+  margin: 12px 0;
+  padding: 14px 16px;
+  border: 2px dashed #999;
+  color: #555;
+  font-size: 13px;
+}
+
 /* ===== responsive (about-step heroes) — split out of wizard.css's
    combined `.hero-row, .hero-machine, .machine-row` rule ===== */
 @media (max-width: 900px) {

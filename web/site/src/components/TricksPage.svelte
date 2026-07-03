@@ -128,18 +128,6 @@
     take its code; otherwise keep mine.</i>
   </p>
 
-  <h3 class="anatomy-head">No clock on the wall</h3>
-  <p>
-    DOS programs expect two heartbeats the real PC had: a timer chip
-    interrupting 18.2 times a second (how DOS keeps the time of day,
-    and how games pace themselves), and the screen&rsquo;s 70-per-second
-    refresh signal. CSS can&rsquo;t read a real clock. Both are instead
-    derived from a number the CPU already tracks: how many cycles each
-    instruction <i>would have cost</i> on a real 4.77&nbsp;MHz 8086.
-    Time, in this machine, is measured in work done &mdash; not in
-    seconds.
-  </p>
-
   <h3 class="anatomy-head">The browser&rsquo;s own limits</h3>
   <p>
     Chrome caps a CSS function at about 7 local variables and
