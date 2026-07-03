@@ -1,8 +1,11 @@
 <script>
-  // The CPU — dispatch tables, one instruction end to end, then the
-  // advanced material behind folds. Copy recycled from the retired
-  // How-it-works pages 3–4; facts from CABINET-ANATOMY.md §2–§6.
+  // The CPU — dispatch tables, the utility functions ("the missing
+  // maths"), one instruction end to end, then the advanced material
+  // behind folds. Copy recycled from the retired How-it-works pages
+  // 3–4 and the Tricks page; facts from CABINET-ANATOMY.md §2–§6;
+  // utility extracts verbatim from sokoban.css (69 @functions).
   import Foldable from '../Foldable.svelte';
+  import SignDemo from '../SignDemo.svelte';
 </script>
 
 <p>
@@ -54,6 +57,100 @@
   standing in front of the switch is how a keypress or a timer tick
   cuts in <i>between</i> instructions: when an interrupt is pending,
   every register takes its interrupt value instead of the decoded one.)
+</p>
+
+<h3 class="anatomy-head">The missing maths</h3>
+<p>
+  Before any of those tables can work, there&rsquo;s a supply problem.
+  CSS arithmetic can add, subtract, multiply, divide and round &mdash;
+  and that is the entire list. No AND, no OR, no bit-shifts, not even
+  a way to ask &ldquo;is A less than B?&rdquo;. A CPU lives on exactly
+  those. So the file opens with <b>69 helper functions</b> that build
+  the missing operations out of the arithmetic CSS does have.
+</p>
+<p>
+  The best one is AND. On single bits, <b>AND is just
+  multiplication</b> &mdash; 1&times;1 is 1, everything else is 0. So
+  the real function shreds both numbers into their sixteen bits with
+  divide-and-remainder, multiplies each pair, and reassembles:
+</p>
+<pre class="byte-example"><code>@function <span class="tok-prop">--and</span>(<span class="tok-prop">--a</span> &lt;integer&gt;, <span class="tok-prop">--b</span> &lt;integer&gt;) returns &lt;integer&gt; {'{'}
+  <span class="tok-prop">--a1</span>: mod(var(--a), <span class="tok-num">2</span>);
+  <span class="tok-prop">--a2</span>: mod(round(down, var(--a) / <span class="tok-num">2</span>), <span class="tok-num">2</span>);
+  <span class="tok-prop">--a3</span>: mod(round(down, var(--a) / <span class="tok-num">4</span>), <span class="tok-num">2</span>);
+  <span class="tok-comment">/* … sixteen bits of --a, sixteen bits of --b … */</span>
+  result: calc(
+    var(--a1) * var(--b1) +
+    calc(var(--a2) * var(--b2)) * <span class="tok-num">2</span> +
+    calc(var(--a3) * var(--b3)) * <span class="tok-num">4</span> +
+    <span class="tok-comment">/* … */</span></code></pre>
+<p>
+  OR and XOR fall out of the same idea &mdash; per bit,
+  OR&nbsp;=&nbsp;<code>min(1, a + b)</code>,
+  XOR&nbsp;=&nbsp;<code>a + b &minus; 2ab</code>,
+  NOT&nbsp;=&nbsp;<code>1 &minus; a</code>. These run millions of
+  times.
+</p>
+<p>
+  Comparisons come from <code>sign()</code>, which returns &minus;1, 0
+  or +1. &ldquo;Is A less than B?&rdquo; becomes:
+</p>
+<pre class="byte-example"><code>max(<span class="tok-num">0</span>, sign(B - A - <span class="tok-num">0.5</span>))    <span class="tok-comment">/* 1 if A &lt; B, else 0 */</span></code></pre>
+<p>
+  <code>sign(B&nbsp;&minus;&nbsp;A)</code> is +1 exactly when A is below
+  B; <code>max</code> clamps the other cases to 0; the
+  <code>&minus;&nbsp;0.5</code> keeps the expression away from the
+  ambiguous exact-tie case. This one line computes the carry flag and
+  the screen&rsquo;s 70-times-a-second retrace signal. Here it is
+  running:
+</p>
+
+<SignDemo />
+
+<p>
+  And since every answer is now a 0 or a 1, &ldquo;if&rdquo; inside
+  arithmetic is multiplication too:
+  <code>flag&nbsp;*&nbsp;A + (1&nbsp;&minus;&nbsp;flag)&nbsp;*&nbsp;B</code>
+  picks A or B. The same trick <i>cancels</i> a memory write: when a
+  write shouldn&rsquo;t happen, the arithmetic turns its target address
+  into &minus;1 &mdash; an address no memory cell matches, so the write
+  lands nowhere.
+</p>
+
+<h3 class="anatomy-head">The prebaked tables</h3>
+<p>
+  Some things are still too awkward to compute live, so the answer is
+  worked out at build time and shipped as a read-only lookup.
+  <code>calc()</code> can&rsquo;t raise 2 to a variable power &mdash;
+  needed whenever a program shifts by an amount held in a register
+  &mdash; so the file just <i>contains</i> the answers:
+</p>
+<pre class="byte-example"><code>@function <span class="tok-prop">--pow2</span>(<span class="tok-prop">--n</span> &lt;integer&gt;) returns &lt;integer&gt; {'{'}
+  result: if(
+    style(<span class="tok-prop">--n</span>: <span class="tok-num">0</span>): <span class="tok-num">1</span>;
+    style(<span class="tok-prop">--n</span>: <span class="tok-num">1</span>): <span class="tok-num">2</span>;
+    style(<span class="tok-prop">--n</span>: <span class="tok-num">2</span>): <span class="tok-num">4</span>;
+    style(<span class="tok-prop">--n</span>: <span class="tok-num">3</span>): <span class="tok-num">8</span>;
+    <span class="tok-comment">/* … up to 2³¹ … */</span></code></pre>
+<p>
+  The 8086&rsquo;s <b>parity flag</b> wants the number of 1-bits in a
+  result &mdash; nobody counts bits in CSS, so the file carries the
+  verdict for all 256 byte values:
+</p>
+<pre class="byte-example"><code>@function <span class="tok-prop">--parity</span>(<span class="tok-prop">--val</span> &lt;integer&gt;) returns &lt;integer&gt; {'{'}
+  <span class="tok-prop">--low8</span>: --lowerBytes(var(--val), <span class="tok-num">8</span>);
+  result: if(
+    style(<span class="tok-prop">--low8</span>: <span class="tok-num">0</span>): <span class="tok-num">4</span>;
+    style(<span class="tok-prop">--low8</span>: <span class="tok-num">1</span>): <span class="tok-num">0</span>;
+    style(<span class="tok-prop">--low8</span>: <span class="tok-num">2</span>): <span class="tok-num">0</span>;
+    style(<span class="tok-prop">--low8</span>: <span class="tok-num">3</span>): <span class="tok-num">4</span>;
+    <span class="tok-comment">/* … all 256 byte values … */</span></code></pre>
+<p>
+  Look closely at the answers: not 0 and 1, but 0 and 4. The parity
+  flag lives at bit position 2 of the flags register &mdash; worth 4
+  &mdash; so the table returns the flag <i>pre-parked at its bit
+  position</i>, saving a shift the flags formula would otherwise pay
+  for on every arithmetic instruction.
 </p>
 
 <h3 class="anatomy-head">One instruction, all the way through</h3>
