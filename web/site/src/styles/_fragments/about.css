@@ -184,10 +184,6 @@
 .intro-hero .intro-gh a { color: var(--edit-blue); text-decoration: none; }
 .intro-hero .intro-gh a:hover { text-decoration: underline; }
 
-.learn-step .placeholder-note {
-  color: var(--edit-red);
-  font-style: italic;
-}
 .punchline {
   margin-top: 16px !important;
   border-left: 4px solid var(--edit-red);

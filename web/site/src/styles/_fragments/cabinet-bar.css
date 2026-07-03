@@ -76,7 +76,6 @@
   border: 1px solid var(--edit-black);
 }
 .anatomy-pane .pane-head .sz { color: var(--edit-red); font-size: 17px; }
-.pane-hint { color: #555; margin-top: 18px; }
 
 @media (max-width: 700px) {
   .cab-legend { grid-template-columns: 1fr; }

@@ -287,11 +287,6 @@
           </h2>
           <Story />
         </div>
-      {:else}
-        <p class="pane-hint">
-          &hellip;the stories open here. No order to them &mdash; follow
-          your curiosity.
-        </p>
       {/if}
     </div>
   {/if}
