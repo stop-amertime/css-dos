@@ -190,15 +190,21 @@ fiction) — currently missing from the site entirely.
 Open: where Tricks and Credits live in the new shape (extra rows? pages
 after the hub?). [Q for owner.]
 
-## Status (2026-07-03)
+## Status (2026-07-03, evening)
 
-- Built: 3-step wizard (About/Build/Play); About pages 1–4, including
-  the FAQ page — owner thesis pasted verbatim, 7 Foldable questions
-  with **agent-drafted answers awaiting owner review**. Page 5 is the
-  group table + an under-construction note.
+- Built: 3-step wizard (About/Build/Play); all five About pages. Page 2
+  is "How is this possible?" (owner Lyra copy; one-tool thesis + MoonViz
+  at the bottom — thesis copy improvement proposed in-chat, not yet
+  applied). Page 4 FAQs (7 foldables, agent-drafted answers). Page 5 is
+  the **hub, first pass**: `components/anatomy/` — CabinetBar (clickable
+  to-scale bar, EGA group colours, group hover/select incl. non-adjacent
+  segments, CPU zoom callout, legend) + 8 Story components in a pane
+  below (progressive disclosure: simple copy first, widgets, Foldables
+  for the advanced layer). Disk story includes the sector-window trick
+  (first time on the site). All copy is first-pass, owner review
+  pending, recycled from the attic pages + CABINET-ANATOMY.md.
 - Stashed: the old 8-page How-it-works route →
-  `web/site/src/attic/HowItWorks.svelte` (unmounted; imports still
-  resolve). Its widgets stay in `components/` for the pane stories.
-- Not built: the hub (bar + contents + pane), the disk-window story.
-- Next agreed step: build the hub **shell** on About page 5, then work
-  the eight stories one at a time, together.
+  `web/site/src/attic/HowItWorks.svelte` (unmounted; imports resolve).
+  TickFlow and TricksPage/Credits content still only live there — where
+  Tricks & Credits go is still the open [Q].
+- Next: owner pass over the eight stories, one at a time.

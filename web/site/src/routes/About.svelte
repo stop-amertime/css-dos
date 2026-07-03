@@ -4,14 +4,33 @@
   // of the file itself (becomes the clickable map). Copy per
   // ABOUT-SCRIPT.md.
   import '../styles/_fragments/about.css';
+  import '../styles/_fragments/anatomy.css';
   import { nav } from '../lib/router.svelte.js';
   import StepDots from '../components/StepDots.svelte';
   import Wizard from '../components/Wizard.svelte';
   import Foldable from '../components/Foldable.svelte';
   import CssDemo from '../components/CssDemo.svelte';
   import MoonViz from '../components/MoonViz.svelte';
+  import CabinetBar from '../components/anatomy/CabinetBar.svelte';
+  import { GROUPS } from '../components/anatomy/groups.js';
+  import StoryHeader from '../components/anatomy/StoryHeader.svelte';
+  import StoryCpu from '../components/anatomy/StoryCpu.svelte';
+  import StoryKeys from '../components/anatomy/StoryKeys.svelte';
+  import StoryScreen from '../components/anatomy/StoryScreen.svelte';
+  import StoryMemWrite from '../components/anatomy/StoryMemWrite.svelte';
+  import StoryMemRead from '../components/anatomy/StoryMemRead.svelte';
+  import StoryDisk from '../components/anatomy/StoryDisk.svelte';
+  import StoryClock from '../components/anatomy/StoryClock.svelte';
 
   let { strip, wizNav } = $props();
+
+  // The cabinet map: which group's story is open in the pane.
+  let anat = $state(null);
+  const STORIES = {
+    hdr: StoryHeader, cpu: StoryCpu, keys: StoryKeys,
+    screen: StoryScreen, memw: StoryMemWrite, memr: StoryMemRead,
+    disk: StoryDisk, clock: StoryClock,
+  };
 
   const SUBPAGES = [
     { label: 'Intro' },
@@ -245,32 +264,34 @@
       </div>
     </div>
   {:else if nav.sub === 5}
-    <!-- What's in the file — becomes the clickable map -->
+    <!-- What's in the file — the clickable map -->
     <div class="subpage" data-subpage="5">
       <h1>What&rsquo;s in the file</h1>
       <p>
-        The whole machine is one 309&nbsp;MB stylesheet. This is what
-        those megabytes are, measured from a real cabinet:
+        The whole machine is one 309&nbsp;MB stylesheet &mdash; measured
+        here from a real build (Sokoban). Drawn to scale, in file order.
+        Click any part for its story:
       </p>
-      <table class="data-table">
-        <thead>
-          <tr><th>Part</th><th>Size</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>The header comment</td><td class="num">25 KB</td></tr>
-          <tr><td>The CPU</td><td class="num">320 KB</td></tr>
-          <tr><td>The keyboard &amp; debug display</td><td class="num">4 KB</td></tr>
-          <tr><td>The screen</td><td class="num">6.5 MB</td></tr>
-          <tr><td>Memory: storing and changing it</td><td class="num">203 MB</td></tr>
-          <tr><td>Memory: reading it</td><td class="num">44 MB</td></tr>
-          <tr><td>The disk</td><td class="num">13 MB</td></tr>
-          <tr><td>The clock</td><td class="num">43 MB</td></tr>
-        </tbody>
-      </table>
-      <p class="placeholder-note">
-        [under construction: this page becomes the clickable map &mdash;
-        the file drawn to scale, each part opening its own story]
-      </p>
+
+      <CabinetBar selected={anat} onselect={(g) => (anat = g)} />
+
+      {#if anat}
+        {@const g = GROUPS.find((x) => x.id === anat)}
+        {@const Story = STORIES[anat]}
+        <div class="anatomy-pane" style="--pane-c:{g.c}">
+          <h2 class="pane-head">
+            <span class="chip" style="background:{g.c}"></span>
+            <span>{g.label}</span>
+            <span class="sz">{g.size}</span>
+          </h2>
+          <Story />
+        </div>
+      {:else}
+        <p class="pane-hint">
+          &hellip;the stories open here. No order to them &mdash; follow
+          your curiosity.
+        </p>
+      {/if}
     </div>
   {/if}
 
