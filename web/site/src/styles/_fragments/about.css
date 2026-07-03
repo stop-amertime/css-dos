@@ -218,19 +218,23 @@
 .ext-link { color: var(--edit-blue); text-decoration: underline; }
 .ext-link:hover { color: #1111cc; }
 
-/* — Credits sub-page (shared by the anatomy sub-pages' section heads) — */
-.anatomy-head,
-.credits-head {
-  margin: 32px 0 10px;
-  font-size: 16px;
-  line-height: 16px;
+/* — Section heads (shared by the About sub-pages and Credits) —
+   .step-scoped so they outrank global.css's `.step h3 { margin: 0 0 4px }`,
+   which was silently zeroing the top margin and making the heads blend
+   into the prose. */
+.step .anatomy-head,
+.step .credits-head {
+  margin: 40px 0 12px;
+  font-size: 20px;
+  line-height: 20px;
+  letter-spacing: normal;
   color: var(--edit-black);
   border-bottom: 1px solid var(--edit-black);
-  padding-bottom: 4px;
+  padding-bottom: 6px;
 }
 /* First heading follows the intro paragraph — a touch less top gap than the
    inter-section headings, but still roomy. */
-.credits-head:first-of-type { margin-top: 22px; }
+.step .credits-head:first-of-type { margin-top: 22px; }
 .credits-list {
   list-style: none;
   margin: 0;
@@ -250,22 +254,23 @@
   color: var(--edit-red);
 }
 
-/* — byte-for-byte RAM example — */
+/* — code exhibits — white pane, black border, same palette as the
+   widget code panes (kbd-code / tick-code / pixel-code) — */
 .byte-example {
   margin: 8px 0;
   padding: 12px 16px;
-  background: var(--edit-black);
-  color: #55ff55;
+  background: var(--edit-white);
+  color: var(--edit-black);
   border: 1px solid var(--edit-black);
   font-family: 'WebVGA', monospace; letter-spacing: normal;
   font-size: 15px;
-  line-height: 18px;
+  line-height: 20px;
   white-space: pre;
   overflow-x: auto;
 }
-.byte-example .tok-comment { color: #888; }
-.byte-example .tok-prop { color: var(--edit-cyan); }
-.byte-example .tok-num { color: var(--edit-yellow); }
+.byte-example .tok-comment { color: #777; }
+.byte-example .tok-prop { color: var(--edit-red); }
+.byte-example .tok-num { color: #006600; }
 
 /* ===== About rebuild (ABOUT-SCRIPT.md port) ===== */
 .epigraph {
