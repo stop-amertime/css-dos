@@ -109,19 +109,21 @@ exhibit is the model: one line of `opcode = memory[IP];` next to a
 
 # The design (agreed 2026-07-03)
 
-Site shape: **4 wizard steps — About / How it works / Build / Play.**
-(Built and live.)
+Site shape: **3 wizard steps — About / Build / Play.** The separate
+"How it works" step is gone; its material lives inside About. The old
+8-page How-it-works route is stashed in `web/site/src/attic/` (not
+mounted) so its copy and widgets can be recycled.
 
-## Step 1: About (built; owner copy)
+## Step 1: About — FIVE pages
 
-1. Intro — the claim, Doom*, 300 MB of plain text.
-2. Why? — Mallory / bongos.
-3. What's in the box — ✓-list, Lyra lineage, then the fork: "show me how
-   it works" vs "skip to Build".
+1. Intro — the claim, Doom*, 300 MB of plain text. (Built; owner copy.)
+2. What's in the box — ✓-list, Lyra lineage. Circuit-breaker fork
+   removed; the page just flows on. (Built; owner copy.)
+3. Why? — Mallory / bongos. (Built; owner copy.)
+4. FAQs — the entrance page (below).
+5. What's in the file — the cabinet dissected (the hub, below).
 
-## Step 2: How it works — TWO pages replace the current eight
-
-### Page 1 — the entrance
+### Page 4 — FAQs (the entrance)
 
 The one idea the reader needs before the map, in the owner's words
 (finished copy, paste verbatim):
@@ -147,7 +149,7 @@ short honest answers, deep versions live behind the map:
   about a year and a half, so a compiler called Calcite evaluates the
   same file faster)*
 
-### Page 2 — the cabinet, dissected (the hub; replaces the slideshow)
+### Page 5 — the cabinet, dissected (the hub; replaces the slideshow)
 
 The reader meets the absurd size EARLY and the anatomy is the navigation:
 
@@ -184,13 +186,15 @@ fiction) — currently missing from the site entirely.
 Open: where Tricks and Credits live in the new shape (extra rows? pages
 after the hub?). [Q for owner.]
 
-## Status
+## Status (2026-07-03)
 
-- Built: 4-step wizard, About step, current 8-page How-it-works (now
-  **placeholder content** — its pages get recycled into the pane
-  stories), the memory-read tower exhibit, de-tabbed CssDemo, relabelled
-  TickClock. Dev server with hot reload on :4183 (worktree).
-- Not built: the entrance page, the hub (bar + contents + pane), the
-  disk-window story.
-- Next agreed step: build the hub **shell** with existing content slotted
-  in as placeholders, then work the stories one at a time, together.
+- Built: 3-step wizard (About/Build/Play); About pages 1–4, including
+  the FAQ page — owner thesis pasted verbatim, 7 Foldable questions
+  with **agent-drafted answers awaiting owner review**. Page 5 is the
+  group table + an under-construction note.
+- Stashed: the old 8-page How-it-works route →
+  `web/site/src/attic/HowItWorks.svelte` (unmounted; imports still
+  resolve). Its widgets stay in `components/` for the pane stories.
+- Not built: the hub (bar + contents + pane), the disk-window story.
+- Next agreed step: build the hub **shell** on About page 5, then work
+  the eight stories one at a time, together.

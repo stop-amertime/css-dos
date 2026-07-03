@@ -300,17 +300,9 @@
   line-height: 1;
 }
 
-/* The About→Build / About→How fork */
-.path-choice {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: 16px 0 8px;
-}
-.path-choice .path-btn {
-  font-size: 16px;
-  padding: 12px 18px;
-}
+/* The FAQ page — a stack of Foldables under the opening copy */
+.faq-list { margin-top: 20px; max-width: 660px; }
+.faq-list .foldable { margin: 10px 0; }
 
 /* DOS-setup style callout: a bordered note with a small label chip.
    <div class="callout"><span class="callout-label">NOTE</span> ... */

@@ -1,17 +1,15 @@
-// Wizard navigation as reactive state. Four steps (About / How it
-// works / Build / Play); About and How-it-works have their own
-// sub-pages, Build has 3. The URL hash is the route so a refresh keeps
-// the step. Play is gated behind a finished build.
+// Wizard navigation as reactive state. Three steps (About / Build /
+// Play); About has 5 sub-pages, Build has 3. The URL hash is the route
+// so a refresh keeps the step. Play is gated behind a finished build.
 import { build } from './builder.svelte.js';
 
-export const STEPS = ['about', 'how', 'build', 'play'];
-const ABOUT = 1, HOW = 2, BUILD = 3, PLAY = 4;
-export const ABOUT_SUBPAGES = 3;
-export const HOW_SUBPAGES = 8;
+export const STEPS = ['about', 'build', 'play'];
+const ABOUT = 1, BUILD = 2, PLAY = 3;
+export const ABOUT_SUBPAGES = 5;
 const BUILD_PICK = 1, BUILD_CONFIG = 2, BUILD_RESULT = 3;
 
 const hashToStep = {
-  '#about': ABOUT, '#how': HOW, '#howitworks': HOW,
+  '#about': ABOUT, '#how': ABOUT, '#howitworks': ABOUT,
   '#build': BUILD, '#games': BUILD, '#play': PLAY,
 };
 
@@ -20,7 +18,6 @@ let guard = false; // suppress the hashchange our own writeHash triggers
 class Nav {
   step = $state(ABOUT);
   sub = $state(1);       // About sub-page 1..ABOUT_SUBPAGES
-  howSub = $state(1);    // How-it-works sub-page 1..HOW_SUBPAGES
   buildSub = $state(1);  // Build sub-page 1..3
 
   // Play unlocks once a cabinet exists.
@@ -45,24 +42,18 @@ class Nav {
     scrollTop();
   }
 
-  // Free to jump backward; forward to How/Build always, Play only when built.
+  // Free to jump backward; forward to Build always, Play only when built.
   jump(step) {
     if (step === this.step) return;
-    if (step < this.step || step === HOW || step === BUILD || (step === PLAY && this.canPlay)) this.go(step);
+    if (step < this.step || step === BUILD || (step === PLAY && this.canPlay)) this.go(step);
   }
 
-  // Forward one logical page. Within About/How/Build, walk sub-pages
-  // first; only cross to the next step from the last (unlocked) sub-page.
+  // Forward one logical page. Within About/Build, walk sub-pages first;
+  // only cross to the next step from the last (unlocked) sub-page.
   next() {
     if (this.step === PLAY) { this.restart(); return; }
     if (this.step === ABOUT) {
       if (this.sub < ABOUT_SUBPAGES) { this.sub += 1; scrollTop(); return; }
-      this.howSub = 1;
-      this.go(HOW);
-      return;
-    }
-    if (this.step === HOW) {
-      if (this.howSub < HOW_SUBPAGES) { this.howSub += 1; scrollTop(); return; }
       this.go(BUILD);
       return;
     }
@@ -76,16 +67,10 @@ class Nav {
   // Backward one logical page, mirroring next().
   prev() {
     if (this.step === ABOUT) { if (this.sub > 1) { this.sub -= 1; scrollTop(); } return; }
-    if (this.step === HOW) {
-      if (this.howSub > 1) { this.howSub -= 1; scrollTop(); return; }
-      this.sub = ABOUT_SUBPAGES;
-      this.go(ABOUT);
-      return;
-    }
     if (this.step === BUILD) {
       if (this.buildSub > BUILD_PICK) { this.buildSub -= 1; scrollTop(); return; }
-      this.howSub = HOW_SUBPAGES;
-      this.go(HOW);
+      this.sub = ABOUT_SUBPAGES;
+      this.go(ABOUT);
       return;
     }
     this.go(BUILD);
@@ -93,7 +78,6 @@ class Nav {
 
   restart() {
     this.sub = 1;
-    this.howSub = 1;
     this.buildSub = 1;
     this.go(ABOUT);
   }
