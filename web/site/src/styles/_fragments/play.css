@@ -5,6 +5,9 @@
    layout is gone from the source and is NOT carried here.) */
 
 /* ===== Step 3 — Play ===== */
+/* Top-left escape hatch back to the Build step's cart picker. */
+.play-back { margin-bottom: 16px; }
+
 /* Intro prose (h1 + explanation), matching the build-step intro. */
 .play-intro { margin-bottom: 24px; }
 .play-intro h1 { margin: 0 0 12px; }

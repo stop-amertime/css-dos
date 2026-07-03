@@ -2,11 +2,22 @@
   import '../styles/_fragments/play.css';
   import Wizard from '../components/Wizard.svelte';
   import Foldable from '../components/Foldable.svelte';
+  import { nav } from '../lib/router.svelte.js';
 
   let { strip, wizNav } = $props();
+
+  // Back to the Build step's cart picker.
+  function pickDifferent() {
+    nav.buildSub = 1;
+    nav.go(2);
+  }
 </script>
 
 <Wizard {strip} nav={wizNav}>
+<button class="btn play-back" onclick={pickDifferent}>
+  &larr; Select a different program
+</button>
+
 <!-- Play-step intro -->
 <div class="play-intro">
   <h1>Running the <code>.css</code> file</h1>

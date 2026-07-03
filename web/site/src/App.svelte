@@ -17,11 +17,9 @@
 
   function onkeydown(e) {
     if (e.target?.matches?.('input, textarea, select, [contenteditable]')) return;
-    if (e.key === 'ArrowRight' && !nav.nextDisabled) { e.preventDefault(); nav.next(); }
+    if (e.key === 'ArrowRight' && !nav.nextDisabled && !nav.isLast) { e.preventDefault(); nav.next(); }
     if ((e.key === 'ArrowLeft' || e.key === 'Escape') && !nav.atStart) { e.preventDefault(); nav.prev(); }
   }
-
-  let nextLabel = $derived(nav.isLast ? ['R', 'estart'] : ['N', 'ext »']);
 </script>
 
 <svelte:window {onkeydown} />
@@ -51,9 +49,11 @@
       « <span class="hot">B</span>ack
     </button>
     <span class="wiz-nav-spacer"></span>
-    <button class="btn primary" disabled={nav.nextDisabled} onclick={() => nav.next()}>
-      <span class="hot">{nextLabel[0]}</span>{nextLabel[1]}
-    </button>
+    {#if !nav.isLast}
+      <button class="btn primary" disabled={nav.nextDisabled} onclick={() => nav.next()}>
+        <span class="hot">N</span>ext »
+      </button>
+    {/if}
   </div>
 {/snippet}
 

@@ -25,8 +25,8 @@
 
   let { strip, wizNav } = $props();
 
-  // The cabinet map: which group's story is open in the pane.
-  let anat = $state(null);
+  // The cabinet map: the open story lives on the router (nav.story)
+  // so it's addressable — #about/file/clock deep-links to a story.
   const STORIES = {
     hdr: StoryHeader, cpu: StoryCpu, keys: StoryKeys,
     screen: StoryScreen, decl: StoryMemDecl, memw: StoryMemWrite,
@@ -274,11 +274,11 @@
         Click any part for its story:
       </p>
 
-      <CabinetBar selected={anat} onselect={(g) => (anat = g)} />
+      <CabinetBar selected={nav.story} onselect={(g) => (nav.story = g)} />
 
-      {#if anat}
-        {@const g = GROUPS.find((x) => x.id === anat)}
-        {@const Story = STORIES[anat]}
+      {#if nav.story}
+        {@const g = GROUPS.find((x) => x.id === nav.story)}
+        {@const Story = STORIES[nav.story]}
         <div class="anatomy-pane" style="--pane-c:{g.c}">
           <h2 class="pane-head">
             <span class="chip" style="background:{g.c}"></span>
