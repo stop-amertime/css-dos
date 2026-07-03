@@ -117,16 +117,18 @@ mounted) so its copy and widgets can be recycled.
 ## Step 1: About — FIVE pages
 
 1. Intro — the claim, Doom*, 300 MB of plain text. (Built; owner copy.)
-2. What's in the box — ✓-list, Lyra lineage. Circuit-breaker fork
-   removed; the page just flows on. (Built; owner copy.)
+2. How is this possible? — ✓-list, Lyra lineage (owner copy 2026-07-03),
+   then the one-tool thesis (below) and the MoonViz walk (re-measured:
+   309,116,250 chars → ~60% of the way to the Moon, not the old 2/3).
+   (Built.)
 3. Why? — Mallory / bongos. (Built; owner copy.)
-4. FAQs — the entrance page (below).
+4. FAQs — the expandable questions (below).
 5. What's in the file — the cabinet dissected (the hub, below).
 
-### Page 4 — FAQs (the entrance)
+### Page 2 bottom — the one-tool thesis
 
 The one idea the reader needs before the map, in the owner's words
-(finished copy, paste verbatim):
+(lightly edited for the page with owner permission; original verbatim):
 
 > It's ALL made of CSS variables which are formulas, basically.
 > Everything is a CSS variable which calculates its thing. The amount of
@@ -135,8 +137,10 @@ The one idea the reader needs before the map, in the owner's words
 > its fixed. Some problems that could be fixed with a very slightly
 > different tool are smacked a million times instead.
 
-Below it, expandable questions (Foldable component) for the curious —
-short honest answers, deep versions live behind the map:
+### Page 4 — FAQs
+
+Expandable questions (Foldable component) for the curious — short
+honest answers, deep versions live behind the map:
 
 - What even is CSS? *(the four CssDemo panels fold out here)*
 - Wait — CSS can do maths?

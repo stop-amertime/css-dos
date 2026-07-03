@@ -1,7 +1,7 @@
 <script>
-  // About — five short pages: the claim, what's in the box, the why,
-  // the FAQs (the one-idea entrance + expandable questions), and the
-  // contents of the file itself (becomes the clickable map). Copy per
+  // About — five short pages: the claim, how it's possible (the
+  // machine + the one-tool idea), the why, the FAQs, and the contents
+  // of the file itself (becomes the clickable map). Copy per
   // ABOUT-SCRIPT.md.
   import '../styles/_fragments/about.css';
   import { nav } from '../lib/router.svelte.js';
@@ -9,12 +9,13 @@
   import Wizard from '../components/Wizard.svelte';
   import Foldable from '../components/Foldable.svelte';
   import CssDemo from '../components/CssDemo.svelte';
+  import MoonViz from '../components/MoonViz.svelte';
 
   let { strip, wizNav } = $props();
 
   const SUBPAGES = [
     { label: 'Intro' },
-    { label: "What's in the box" },
+    { label: 'How is this possible?' },
     { label: 'Why?' },
     { label: 'FAQs' },
     { label: "What's in the file" },
@@ -74,9 +75,9 @@
       </div>
     </div>
   {:else if nav.sub === 2}
-    <!-- What's in the box -->
+    <!-- How is this possible? -->
     <div class="subpage" data-subpage="2">
-      <h1>What&rsquo;s in the box</h1>
+      <h1>How is this possible?</h1>
       <p>
         One stylesheet, no JavaScript, simulating the whole machine:
       </p>
@@ -84,7 +85,7 @@
         <li><span class="ok">[X]</span> An Intel <b>8086</b> CPU</li>
         <li><span class="ok">[X]</span> 640&nbsp;KB of RAM</li>
         <li><span class="ok">[X]</span> A custom <b>BIOS</b>, booting real <b>DOS</b></li>
-        <li><span class="ok">[X]</span> A FAT12 <b>floppy disk</b>, with your files on it</li>
+        <li><span class="ok">[X]</span> A FAT12 <b>floppy disk</b>, with arbitrary files on it</li>
         <li><span class="ok">[X]</span> Text mode and VGA graphics (Mode&nbsp;13h)</li>
         <li><span class="ok">[X]</span> A keyboard, a timer chip, and hardware interrupts</li>
       </ul>
@@ -95,13 +96,33 @@
 
       <div class="ext-link-box">
         <p>
-          Lyra Rebane first built a working
+          Lyra Rebane first built an
           <a href="https://lyra.horse/x86css/" class="ext-link"
-             target="_blank" rel="noopener">x86 CPU in pure CSS</a> &mdash;
-          proof the trick works at all. CSS-DOS grew out of that: not a
-          CPU demo, but the whole PC around one.
+             target="_blank" rel="noopener">x86 CPU in CSS</a> with a
+          limited instruction set &mdash; this extends that work to a
+          full machine running an unmodified OS and real programs.
         </p>
       </div>
+
+      <p style="margin-top:20px">
+        Everything in the machine is made of CSS variables &mdash; which
+        are, basically, formulas. Every register, every byte of RAM,
+        every pixel on the screen is a variable that calculates its own
+        value. The amount of complexity that one sentence hides is
+        difficult to comprehend.
+      </p>
+      <p>
+        We have exactly one tool, and we are smacking every problem with
+        it until it&rsquo;s fixed. Some problems that a very slightly
+        different tool would fix in one hit get smacked a million times
+        instead.
+      </p>
+      <p>
+        All those smacks have to be written down. That&rsquo;s how the
+        file ends up at 300&nbsp;MB &mdash; three hundred million
+        characters of plain text:
+      </p>
+      <MoonViz />
     </div>
   {:else if nav.sub === 3}
     <!-- Why? -->
@@ -129,21 +150,9 @@
       </p>
     </div>
   {:else if nav.sub === 4}
-    <!-- FAQs — the one idea, then the questions -->
+    <!-- FAQs -->
     <div class="subpage" data-subpage="4">
       <h1>FAQs</h1>
-      <p>
-        It&rsquo;s ALL made of CSS variables, which are formulas,
-        basically. Everything is a CSS variable which calculates its
-        thing. The amount of complexity that that one sentence hides is
-        difficult to comprehend.
-      </p>
-      <p>
-        We have exactly one tool, and we are smacking every problem with
-        it until it&rsquo;s fixed. Some problems that could be fixed with
-        a very slightly different tool are smacked a million times
-        instead.
-      </p>
 
       <div class="faq-list">
         <Foldable>
