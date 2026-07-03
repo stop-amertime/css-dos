@@ -76,22 +76,14 @@
   font-size: 15px;
 }
 
-/* Prev/next arrows: full-height rails on each side so the buttons can
-   be sticky — they ride along as the page scrolls, half outside the
-   pane's edge to attract attention. */
-.sec-rail {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 44px;
-  pointer-events: none;
-}
-.sec-rail.prev { left: -30px; }
-.sec-rail.next { right: -30px; }
+/* Prev/next arrows: fixed to the viewport, floating over the wizard
+   window's left/right edges (the window is 820px, centred) — always
+   visible, never part of any scroll container, so they can't create
+   scrollbars or push content. */
 .sec-arrow {
-  position: sticky;
-  top: 45vh;
-  pointer-events: auto;
+  position: fixed;
+  top: calc(50vh - 24px);
+  z-index: 20;
   width: 44px;
   height: 48px;
   font: inherit;
@@ -102,10 +94,14 @@
   box-shadow: 3px 3px 0 var(--edit-black);
   cursor: pointer;
 }
+.sec-prev { left: calc(max(50% - 410px, 16px) - 22px); }
+.sec-next { right: calc(max(50% - 410px, 16px) - 22px); }
 .sec-arrow:hover { background: var(--edit-yellow); }
 .sec-arrow:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--edit-black); }
 
-@media (max-width: 760px) {
-  .sec-rail.prev { left: -8px; }
-  .sec-rail.next { right: -8px; }
+@media (max-width: 900px) {
+  /* Fluid window: pin the arrows to the screen edges, a bit smaller. */
+  .sec-arrow { width: 32px; height: 40px; font-size: 16px; }
+  .sec-prev { left: 0; }
+  .sec-next { right: 0; }
 }

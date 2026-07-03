@@ -275,15 +275,11 @@
 
       <CabinetBar selected={nav.section} onselect={(g) => nav.sectionJump(g)} />
 
+      <button class="sec-arrow sec-prev" onclick={() => nav.sectionStep(-1)}
+              aria-label="Previous section" title="Previous section">&#9668;</button>
+      <button class="sec-arrow sec-next" onclick={() => nav.sectionStep(1)}
+              aria-label="Next section" title="Next section">&#9658;</button>
       <div class="anatomy-pane" style="--pane-c:{curGroup.c}">
-        <div class="sec-rail prev">
-          <button class="sec-arrow" onclick={() => nav.sectionStep(-1)}
-                  aria-label="Previous section" title="Previous section">&#9668;</button>
-        </div>
-        <div class="sec-rail next">
-          <button class="sec-arrow" onclick={() => nav.sectionStep(1)}
-                  aria-label="Next section" title="Next section">&#9658;</button>
-        </div>
         <h2 class="pane-head">
           <span class="chip" style="background:{curGroup.c}"></span>
           <span>{curGroup.label}</span>
