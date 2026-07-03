@@ -11,6 +11,7 @@
   import RamWrite from '../components/RamWrite.svelte';
   import TickClock from '../components/TickClock.svelte';
   import TickFlow from '../components/TickFlow.svelte';
+  import FetchLadder from '../components/FetchLadder.svelte';
   import PixelScreen from '../components/PixelScreen.svelte';
   import KeyboardDemo from '../components/KeyboardDemo.svelte';
   import FileMap from '../components/FileMap.svelte';
@@ -224,15 +225,12 @@
         </p>
       </div>
       <p>
-        And the reading &mdash; the thing silicon does without being
-        asked &mdash; is the first fight. CSS can&rsquo;t build a
-        variable <i>name</i> out of a value: there is no way to write
-        &ldquo;--memory-&#123;whatever IP is&#125;&rdquo;. So the file
-        asks every possibility in turn: if IP is 0, the opcode is byte
-        0&rsquo;s value; if IP is 1, byte 1&rsquo;s; on and on, for every
-        address a program could run from. A giant if-statement whose only
-        job is to read one number.
+        Fetching that byte is the first problem. Every memory cell is
+        its own variable; IP is just a number; and CSS gives no way to
+        get from the number to the variable.
       </p>
+
+      <FetchLadder />
       <p>Put together, one tick of the machine looks like this:</p>
 
       <TickFlow />
@@ -274,11 +272,11 @@
     else: var(<span class="tok-prop">--snapshot-AX</span>)));   <span class="tok-comment">/* untouched: keep the old value */</span></code></pre>
       <p>
         Fourteen of these tables &mdash; one per register, including the
-        IP table from the last page. Evaluating all of them, once, is the
-        machine executing one instruction. (The arm standing in front of
-        the switch is how a keypress or a timer tick cuts in <i>between</i>
-        instructions: when an interrupt is pending, every register takes
-        its interrupt value instead of the decoded one.)
+        IP table from the last page. Evaluating all of them, once, is
+        the machine executing one instruction. (The arm standing in
+        front of the switch is how a keypress or a timer tick cuts in
+        <i>between</i> instructions: when an interrupt is pending, every
+        register takes its interrupt value instead of the decoded one.)
       </p>
 
       <h3 class="anatomy-head">One instruction, all the way through</h3>
@@ -559,9 +557,9 @@ mod(calc(var(<span class="tok-prop">--snapshot-DX</span>) * <span class="tok-num
       <MoonViz />
 
       <p class="punchline">
-        And here is the bill. Every line of the file is CSS a browser
-        can evaluate &mdash; that&rsquo;s the project&rsquo;s one
-        non-negotiable rule &mdash; but in practice a 300&nbsp;MB
+        Every line of the file is CSS a browser can evaluate &mdash;
+        that&rsquo;s the project&rsquo;s one non-negotiable rule &mdash;
+        but in practice a 300&nbsp;MB
         stylesheet with a million interlinked variables crashes Chrome.
         Even where it survives, the pure-CSS clock runs at 2.5
         instructions per second, and booting DOS takes around a hundred
