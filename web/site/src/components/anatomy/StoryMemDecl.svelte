@@ -41,6 +41,36 @@
   times.
 </p>
 
+<h3 class="anatomy-head">One cell, four variables</h3>
+<p>
+  There&rsquo;s a wrinkle: <code>--mc5000</code> isn&rsquo;t the only
+  variable for that cell. The clock section explains why every tick has
+  to read a frozen snapshot of memory while the new values are being
+  computed &mdash; and that trick needs each cell to exist as <b>four</b>
+  variables: the freshly computed value, the snapshot the formulas
+  read, and two hand-over copies that pass results to the next tick.
+</p>
+<p>
+  Yet only the first one is ever declared. The other three have no
+  <code>@property</code> block anywhere in the file &mdash; an
+  unregistered CSS variable simply springs into existence the first
+  time something assigns it. What they <i>do</i> need is the power-on
+  value, for the very first tick, before anything has been handed over.
+  It rides along as a fallback, right inside their plumbing lines
+  (variable names tidied for reading &mdash; the real ones are
+  <code>--__1mc5000</code> and friends):
+</p>
+<pre class="byte-example"><code><span class="tok-prop">--snapshot-mc5000</span>: var(<span class="tok-prop">--staged-mc5000</span>, <span class="tok-num">32861</span>);
+<span class="tok-prop">--staged-mc5000</span>: var(<span class="tok-prop">--held-mc5000</span>, <span class="tok-num">32861</span>);</code></pre>
+<p>
+  If the staged copy doesn&rsquo;t exist yet &mdash; tick one, nothing
+  stored &mdash; the snapshot falls back to 32861, the declared
+  power-on value. Which means every byte of the machine&rsquo;s
+  starting memory is actually written into the file <b>three
+  times</b>: once as an <code>initial-value</code>, and twice more as
+  fallbacks.
+</p>
+
 <div class="callout">
   <span class="callout-label">THE ONE OPTIMISATION</span>
   <p>
