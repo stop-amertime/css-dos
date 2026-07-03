@@ -3,6 +3,7 @@
   // machine + the one-tool idea), the why, the FAQs, and the contents
   // of the file itself (becomes the clickable map). Copy per
   // ABOUT-SCRIPT.md.
+  import { fly } from 'svelte/transition';
   import '../styles/_fragments/about.css';
   import '../styles/_fragments/anatomy.css';
   import { nav } from '../lib/router.svelte.js';
@@ -13,25 +14,25 @@
   import MoonViz from '../components/MoonViz.svelte';
   import CabinetBar from '../components/anatomy/CabinetBar.svelte';
   import { GROUPS } from '../components/anatomy/groups.js';
-  import StoryHeader from '../components/anatomy/StoryHeader.svelte';
-  import StoryUtil from '../components/anatomy/StoryUtil.svelte';
-  import StoryCpu from '../components/anatomy/StoryCpu.svelte';
-  import StoryKeys from '../components/anatomy/StoryKeys.svelte';
-  import StoryScreen from '../components/anatomy/StoryScreen.svelte';
-  import StoryMemDecl from '../components/anatomy/StoryMemDecl.svelte';
-  import StoryMemWrite from '../components/anatomy/StoryMemWrite.svelte';
-  import StoryMemRead from '../components/anatomy/StoryMemRead.svelte';
-  import StoryDisk from '../components/anatomy/StoryDisk.svelte';
-  import StoryClock from '../components/anatomy/StoryClock.svelte';
+  import SectionHeader from '../components/anatomy/SectionHeader.svelte';
+  import SectionUtil from '../components/anatomy/SectionUtil.svelte';
+  import SectionCpu from '../components/anatomy/SectionCpu.svelte';
+  import SectionKeys from '../components/anatomy/SectionKeys.svelte';
+  import SectionScreen from '../components/anatomy/SectionScreen.svelte';
+  import SectionMemDecl from '../components/anatomy/SectionMemDecl.svelte';
+  import SectionMemWrite from '../components/anatomy/SectionMemWrite.svelte';
+  import SectionMemRead from '../components/anatomy/SectionMemRead.svelte';
+  import SectionDisk from '../components/anatomy/SectionDisk.svelte';
+  import SectionClock from '../components/anatomy/SectionClock.svelte';
 
   let { strip, wizNav } = $props();
 
-  // The cabinet map: the open story lives on the router (nav.story)
-  // so it's addressable — #about/file/clock deep-links to a story.
-  const STORIES = {
-    hdr: StoryHeader, util: StoryUtil, cpu: StoryCpu, keys: StoryKeys,
-    screen: StoryScreen, decl: StoryMemDecl, memw: StoryMemWrite,
-    memr: StoryMemRead, disk: StoryDisk, clock: StoryClock,
+  // The cabinet carousel: the current section lives on the router
+  // (nav.section) so it's addressable — #about/file/clock deep-links.
+  const SECTIONS = {
+    hdr: SectionHeader, util: SectionUtil, cpu: SectionCpu, keys: SectionKeys,
+    screen: SectionScreen, decl: SectionMemDecl, memw: SectionMemWrite,
+    memr: SectionMemRead, disk: SectionDisk, clock: SectionClock,
   };
 
   const SUBPAGES = [
@@ -266,29 +267,35 @@
       </div>
     </div>
   {:else if nav.sub === 5}
-    <!-- What's in the file — the clickable map -->
+    <!-- What's in the file — the bar as map, the sections as a carousel -->
     <div class="subpage" data-subpage="5">
       <h1>What&rsquo;s in the file</h1>
-      <p>
-        The whole machine is one 309&nbsp;MB stylesheet &mdash; measured
-        here from a real build (Sokoban). Drawn to scale, in file order.
-        Click any part for its story:
-      </p>
 
-      <CabinetBar selected={nav.story} onselect={(g) => (nav.story = g)} />
+      <CabinetBar selected={nav.section} onselect={(g) => nav.sectionJump(g)} />
 
-      {#if nav.story}
-        {@const g = GROUPS.find((x) => x.id === nav.story)}
-        {@const Story = STORIES[nav.story]}
-        <div class="anatomy-pane" style="--pane-c:{g.c}">
-          <h2 class="pane-head">
-            <span class="chip" style="background:{g.c}"></span>
-            <span>{g.label}</span>
-            <span class="sz">{g.size}</span>
-          </h2>
-          <Story />
+      {@const g = GROUPS.find((x) => x.id === nav.section)}
+      {@const Section = SECTIONS[nav.section]}
+      <div class="anatomy-pane" style="--pane-c:{g.c}">
+        <div class="sec-rail prev">
+          <button class="sec-arrow" onclick={() => nav.sectionStep(-1)}
+                  aria-label="Previous section" title="Previous section">&#9668;</button>
         </div>
-      {/if}
+        <div class="sec-rail next">
+          <button class="sec-arrow" onclick={() => nav.sectionStep(1)}
+                  aria-label="Next section" title="Next section">&#9658;</button>
+        </div>
+        <h2 class="pane-head">
+          <span class="chip" style="background:{g.c}"></span>
+          <span>{g.label}</span>
+          <span class="sz">{g.size}</span>
+          <span class="sec-count">{nav.sectionIdx() + 1} / {GROUPS.length}</span>
+        </h2>
+        {#key nav.section}
+          <div class="sec-body" in:fly={{ x: 44 * nav.sectionDir, duration: 180 }}>
+            <Section />
+          </div>
+        {/key}
+      </div>
     </div>
   {/if}
 

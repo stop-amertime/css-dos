@@ -17,8 +17,19 @@
 
   function onkeydown(e) {
     if (e.target?.matches?.('input, textarea, select, [contenteditable]')) return;
-    if (e.key === 'ArrowRight' && !nav.nextDisabled && !nav.isLast) { e.preventDefault(); nav.next(); }
-    if ((e.key === 'ArrowLeft' || e.key === 'Escape') && !nav.atStart) { e.preventDefault(); nav.prev(); }
+    // On the file carousel, left/right step sections instead of pages.
+    const inFileMap = nav.step === 1 && nav.sub === 5;
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (inFileMap) nav.sectionStep(1);
+      else if (!nav.nextDisabled && !nav.isLast) nav.next();
+    }
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      if (inFileMap) nav.sectionStep(-1);
+      else if (!nav.atStart) nav.prev();
+    }
+    if (e.key === 'Escape' && !nav.atStart) { e.preventDefault(); nav.prev(); }
   }
 </script>
 

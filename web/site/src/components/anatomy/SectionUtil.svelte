@@ -1,7 +1,7 @@
 <script>
   // Utility functions — the 66 @functions the file opens with: bit
   // operations, byte plumbing, decode helpers, flag calculators, and
-  // the prebaked lookup tables. Split out of the CPU story 2026-07-03.
+  // the prebaked lookup tables. Split out of the CPU section 2026-07-03.
   // Extracts verbatim from sokoban.css; the count (66) and size
   // (~60 KB, offsets 28,218–90,652) measured from the same file.
   // (SignDemo removed 2026-07-03 — owner: demonstrated nothing.)
@@ -168,12 +168,12 @@
   The rest of the 66 sort into three rough families: byte plumbing,
   which splits and splices the two-bytes-per-cell memory
   (<code>--extractByte</code>, <code>--spliceByte</code>,
-  <code>--applySlot</code> &mdash; the write-formulas story shows the
+  <code>--applySlot</code> &mdash; the write-formulas section shows the
   last one at work); instruction decoding, which picks apart x86
   operand bytes (<code>--getReg16</code>, <code>--modrmLen</code>);
   and thirty-six flag calculators
   (<code>--addFlags16</code>, <code>--shrFlags8</code>, &hellip;),
-  which the CPU story comes back to.
+  which the CPU section comes back to.
 </p>
 
 <style>

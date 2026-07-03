@@ -2,7 +2,7 @@
   // The CPU — the fourteen register tables. Layering rule (owner,
   // 2026-07-03): the main flow assumes the reader roughly knows what
   // a CPU is; primers live in fold-bg dropdowns, deep dives in plain
-  // folds. Utility functions split out to StoryUtil. Extracts
+  // folds. Utility functions split out to SectionUtil. Extracts
   // verbatim from sokoban.css (names tidied per the NOTE callout).
   import Foldable from '../Foldable.svelte';
   import CpuCoverage from './CpuCoverage.svelte';
@@ -66,7 +66,7 @@
   cabinet contains the line
   <code>--opcode:&nbsp;var(--q0)</code>, where <code>--q0</code> is
   the byte of memory IP points at, fetched through the giant function
-  in the read-formulas story.
+  in the read-formulas section.
 </p>
 <p>
   All fourteen tables, drawn as one grid &mdash; a mark where a table
@@ -136,7 +136,7 @@
     set?&rdquo; (a 16-bit number&rsquo;s way of being negative) &mdash;
     the <b>zero</b> and <b>sign</b> flags, each parked at its own bit
     position. <code>--pf</code>, the <b>parity flag</b>, comes from the
-    256-entry lookup table in the utility-functions story. The long
+    256-entry lookup table in the utility-functions section. The long
     line in the middle is the <b>half-carry</b> flag &mdash; &ldquo;did
     the bottom four bits overflow?&rdquo; &mdash; built out of
     <code>sign()</code> because CSS has no <code>&lt;</code>. And the
@@ -268,7 +268,7 @@ mod(calc(var(<span class="tok-prop">--snapshot-DX</span>) * <span class="tok-num
 @property <span class="tok-prop">--IP</span> {'{'} &hellip; initial-value: <span class="tok-num">0</span>; {'}'}</code></pre>
 <p>
   That is linear address 983,040 &mdash; the first ROM entry in the
-  read-formulas story &mdash; and the byte there is 235, a jump
+  read-formulas section &mdash; and the byte there is 235, a jump
   instruction. The machine&rsquo;s first act is to jump into the BIOS
   proper, which sets up a stack, fills in the interrupt table, paints
   its splash screen, and jumps again, into DOS. Power arrives, the

@@ -1,6 +1,6 @@
 /* cabinet-bar.css — the clickable to-scale bar of the cabinet file
-   (CabinetBar.svelte) + its legend, and the story pane it opens
-   (About sub-page 5). */
+   (CabinetBar.svelte) and the section carousel below it (About
+   sub-page 5): header strip, protruding prev/next arrows, tooltip. */
 
 .cab-bar {
   border: 1px solid var(--edit-black);
@@ -15,37 +15,30 @@
 .cab-bar .seg.dim, .cab-bar .cpu-callout.dim { opacity: 0.3; }
 .cab-bar rect.seg.sel { stroke: var(--edit-black); stroke-width: 2.5; }
 
-.cab-legend {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2px 16px;
-  margin-top: 10px;
-}
-.cab-leg-row {
+/* Cursor tooltip: title + size of the hovered group. */
+.cab-tip {
+  position: fixed;
+  z-index: 30;
+  pointer-events: none;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
-  font: inherit;
-  font-size: 15px;
-  line-height: 20px;
-  text-align: left;
+  padding: 5px 10px;
+  background: var(--edit-white);
+  border: 1px solid var(--edit-black);
+  box-shadow: 3px 3px 0 var(--edit-black);
+  font-size: 14px;
+  line-height: 16px;
   color: var(--edit-black);
-  background: none;
-  border: none;
-  padding: 2px 6px;
-  cursor: pointer;
+  white-space: nowrap;
 }
-.cab-leg-row:hover { background: var(--edit-white); outline: 1px dotted var(--edit-black); }
-.cab-leg-row.sel { background: var(--edit-black); color: var(--edit-white); }
-.cab-leg-row .chip {
+.cab-tip .chip {
   flex: none;
   width: 12px;
   height: 12px;
   border: 1px solid var(--edit-black);
-  align-self: center;
 }
-.cab-leg-row .sz { margin-left: auto; color: var(--edit-red); white-space: nowrap; }
-.cab-leg-row.sel .sz { color: var(--edit-yellow); }
+.cab-tip .sz { color: var(--edit-red); }
 
 .cab-bar .caption {
   margin: 10px 0 0;
@@ -54,8 +47,9 @@
   color: #555;
 }
 
-/* — the story pane below the bar — */
+/* — the section carousel below the bar — */
 .anatomy-pane {
+  position: relative; /* anchors the arrow rails */
   margin-top: 24px;
   border-top: 4px solid var(--pane-c, var(--edit-black));
   padding-top: 12px;
@@ -76,7 +70,42 @@
   border: 1px solid var(--edit-black);
 }
 .anatomy-pane .pane-head .sz { color: var(--edit-red); font-size: 17px; }
+.anatomy-pane .pane-head .sec-count {
+  margin-left: auto;
+  color: #555;
+  font-size: 15px;
+}
 
-@media (max-width: 700px) {
-  .cab-legend { grid-template-columns: 1fr; }
+/* Prev/next arrows: full-height rails on each side so the buttons can
+   be sticky — they ride along as the page scrolls, half outside the
+   pane's edge to attract attention. */
+.sec-rail {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 44px;
+  pointer-events: none;
+}
+.sec-rail.prev { left: -30px; }
+.sec-rail.next { right: -30px; }
+.sec-arrow {
+  position: sticky;
+  top: 45vh;
+  pointer-events: auto;
+  width: 44px;
+  height: 48px;
+  font: inherit;
+  font-size: 20px;
+  color: var(--edit-black);
+  background: var(--edit-white);
+  border: 1px solid var(--edit-black);
+  box-shadow: 3px 3px 0 var(--edit-black);
+  cursor: pointer;
+}
+.sec-arrow:hover { background: var(--edit-yellow); }
+.sec-arrow:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--edit-black); }
+
+@media (max-width: 760px) {
+  .sec-rail.prev { left: -8px; }
+  .sec-rail.next { right: -8px; }
 }

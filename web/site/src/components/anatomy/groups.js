@@ -1,5 +1,5 @@
-// groups.js — the ten stories of the cabinet map, plus the drawn
-// bar segments. Legend order = file order (of first appearance).
+// groups.js — the ten sections of the cabinet carousel, plus the
+// drawn bar segments. Order = file order (of first appearance).
 // Sizes measured from a real Sokoban build (util/cpu boundary at
 // byte offsets 28,218 / 90,652 / ~345,543 of sokoban.css);
 // colours from the EGA palette (utilities get light red: same

@@ -1,6 +1,6 @@
 // Wizard navigation as reactive state. Three steps (About / Build /
 // Play); About has 5 sub-pages, Build has 3. The URL hash addresses
-// the exact page — `#step/subpage[/story]`, names not numbers, so
+// the exact page — `#step/subpage[/section]`, names not numbers, so
 // deep links survive reordering and a refresh keeps your spot.
 // Legacy one-word hashes (#about, #build, #play, #how) still land on
 // the right step. Play is gated behind a finished build; a locked
@@ -15,8 +15,8 @@ const BUILD_PICK = 1, BUILD_CONFIG = 2;
 // Named sub-pages (index = sub - 1).
 const ABOUT_SUBS = ['intro', 'how', 'why', 'faqs', 'file'];
 const BUILD_SUBS = ['pick', 'configure', 'result'];
-// Story ids on the About/file map — mirrors anatomy/groups.js.
-const FILE_STORIES = ['hdr', 'util', 'cpu', 'keys', 'screen', 'decl', 'memr', 'disk', 'clock', 'memw'];
+// Section ids on the About/file carousel — mirrors anatomy/groups.js.
+const FILE_SECTIONS = ['hdr', 'util', 'cpu', 'keys', 'screen', 'decl', 'memr', 'disk', 'clock', 'memw'];
 
 const stepNames = {
   about: ABOUT, how: ABOUT, howitworks: ABOUT,
@@ -29,7 +29,25 @@ class Nav {
   step = $state(ABOUT);
   sub = $state(1);       // About sub-page 1..ABOUT_SUBPAGES
   buildSub = $state(1);  // Build sub-page 1..3
-  story = $state(null);  // open story on the About/file map (group id or null)
+  section = $state('hdr');   // current section on the About/file carousel
+  sectionDir = $state(1);    // slide direction of the last section change
+
+  sectionIdx() { return FILE_SECTIONS.indexOf(this.section); }
+
+  // Step the carousel (wraps at the ends).
+  sectionStep(d) {
+    const n = FILE_SECTIONS.length;
+    this.sectionDir = d;
+    this.section = FILE_SECTIONS[(this.sectionIdx() + d + n) % n];
+    scrollTop();
+  }
+
+  // Jump straight to a section (bar click).
+  sectionJump(id) {
+    if (id === this.section || !FILE_SECTIONS.includes(id)) return;
+    this.sectionDir = FILE_SECTIONS.indexOf(id) > this.sectionIdx() ? 1 : -1;
+    this.section = id;
+  }
 
   // Play unlocks once a cabinet exists.
   get canPlay() { return build.done; }
@@ -89,7 +107,7 @@ class Nav {
   restart() {
     this.sub = 1;
     this.buildSub = 1;
-    this.story = null;
+    this.section = 'hdr';
     this.go(ABOUT);
   }
 
@@ -97,7 +115,7 @@ class Nav {
   hashFor() {
     if (this.step === ABOUT) {
       let h = `about/${ABOUT_SUBS[this.sub - 1]}`;
-      if (this.sub === 5 && this.story) h += `/${this.story}`;
+      if (this.sub === 5) h += `/${this.section}`;
       return h;
     }
     if (this.step === BUILD) return `build/${BUILD_SUBS[this.buildSub - 1]}`;
@@ -121,7 +139,7 @@ class Nav {
       const subName = s1 ?? (s0 === 'about' ? 'intro' : 'how');
       const i = ABOUT_SUBS.indexOf(subName);
       this.sub = i >= 0 ? i + 1 : 1;
-      this.story = this.sub === 5 && FILE_STORIES.includes(s2) ? s2 : null;
+      if (this.sub === 5 && FILE_SECTIONS.includes(s2)) this.section = s2;
     } else if (target === BUILD) {
       const i = BUILD_SUBS.indexOf(s1);
       let want = i >= 0 ? i + 1 : 1;
