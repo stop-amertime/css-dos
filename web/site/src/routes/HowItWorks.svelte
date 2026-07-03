@@ -266,14 +266,19 @@
         that can touch it.
       </p>
       <pre class="byte-example"><code><span class="tok-prop">--AX</span>: if(
-  style(<span class="tok-prop">--opcode</span>: <span class="tok-num">0</span>): &hellip;;    <span class="tok-comment">/* ADD, one flavour */</span>
-  style(<span class="tok-prop">--opcode</span>: <span class="tok-num">1</span>): &hellip;;    <span class="tok-comment">/* ADD, another */</span>
-  &hellip;                     <span class="tok-comment">/* every opcode that can touch AX */</span>
-  else: var(<span class="tok-prop">--snapshot-AX</span>));   <span class="tok-comment">/* untouched: keep the old value */</span></code></pre>
+  style(<span class="tok-prop">--_irqActive</span>: <span class="tok-num">1</span>): var(<span class="tok-prop">--snapshot-AX</span>);  <span class="tok-comment">/* interrupt pending — hardware outranks the program this tick */</span>
+  else: if(
+    style(<span class="tok-prop">--opcode</span>: <span class="tok-num">0</span>): &hellip;;    <span class="tok-comment">/* ADD, one flavour */</span>
+    style(<span class="tok-prop">--opcode</span>: <span class="tok-num">1</span>): &hellip;;    <span class="tok-comment">/* ADD, another */</span>
+    &hellip;                     <span class="tok-comment">/* every opcode that can touch AX */</span>
+    else: var(<span class="tok-prop">--snapshot-AX</span>)));   <span class="tok-comment">/* untouched: keep the old value */</span></code></pre>
       <p>
         Fourteen of these tables &mdash; one per register, including the
         IP table from the last page. Evaluating all of them, once, is the
-        machine executing one instruction.
+        machine executing one instruction. (The arm standing in front of
+        the switch is how a keypress or a timer tick cuts in <i>between</i>
+        instructions: when an interrupt is pending, every register takes
+        its interrupt value instead of the decoded one.)
       </p>
 
       <h3 class="anatomy-head">One instruction, all the way through</h3>
@@ -472,11 +477,12 @@ mod(calc(var(<span class="tok-prop">--snapshot-DX</span>) * <span class="tok-num
       <FileMap />
 
       <p>
-        The CPU &mdash; everything on the last two pages &mdash; is about
-        <b>300&nbsp;KB. One tenth of one percent of the file.</b> The
-        rest is memory, written out longhand, because CSS gives no way to
-        say &ldquo;and the same for the other 650,000 cells&rdquo;. Every
-        cell of RAM appears in the file four separate times:
+        The CPU &mdash; the fetch, the fourteen register tables, the flag
+        functions, all of it &mdash; is about <b>300&nbsp;KB. One tenth
+        of one percent of the file.</b> The rest is memory, written out
+        longhand, because CSS gives no way to say &ldquo;and the same for
+        the other 650,000 cells&rdquo;. Every cell of RAM appears in the
+        file four separate times:
       </p>
       <table class="data-table">
         <thead>
@@ -530,9 +536,11 @@ mod(calc(var(<span class="tok-prop">--snapshot-DX</span>) * <span class="tok-num
     <span class="tok-comment">/* &hellip; one arm per byte of the floppy &hellip; */</span></code></pre>
       <p>
         That&rsquo;s 13&nbsp;MB for Sokoban&rsquo;s disk, and it&rsquo;s
-        the main thing that grows with the game: Doom&rsquo;s cabinet is
-        ~330&nbsp;MB because Doom ships a 1.3&nbsp;MB floppy. For scale:
-        the original Zork was 85&nbsp;KB of program. As a cabinet, it is
+        the one section that grows with the game &mdash; Doom&rsquo;s
+        1.3&nbsp;MB floppy takes its cabinet to ~330&nbsp;MB. It
+        doesn&rsquo;t shrink much either: the machine itself costs
+        ~296&nbsp;MB before any game arrives, so Zork &mdash;
+        85&nbsp;KB of words on a screen &mdash; still comes out around
         300&nbsp;MB.
       </p>
 

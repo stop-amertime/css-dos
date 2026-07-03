@@ -1,4 +1,11 @@
-# About-page script (working copy)
+# About-page script (brief + register reference)
+
+> **Status (2026-07-03):** the script has been ported into the site —
+> `web/site/src/routes/About.svelte` + `HowItWorks.svelte` are now the
+> working copy, edited directly. This document remains the canonical
+> **brief**: the mission, the register, the anti-patterns and the code
+> conventions below still govern all About-section writing. The page
+> drafts further down are the pre-port versions, kept for reference.
 
 The shared working script for the About-section rewrite. The site's About
 pages get rebuilt from this document; prose here is final copy, not notes
