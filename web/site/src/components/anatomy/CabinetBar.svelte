@@ -29,11 +29,6 @@
     {/each}
     <rect x="10" y="8" width="680" height="44" fill="none"
           stroke="var(--edit-black)" stroke-width="1.5" pointer-events="none"/>
-    <!-- labels inside the two biggest segments -->
-    <text x="442" y="34" text-anchor="middle" font-size="13" fill="#fff"
-          font-family="inherit" pointer-events="none">write rules &mdash; 171 MB</text>
-    <text x="149" y="34" text-anchor="middle" font-size="12" fill="#fff"
-          font-family="inherit" pointer-events="none">read &mdash; 44 MB</text>
     <!-- zoom callout for the CPU hairline -->
     <g class="seg cpu-callout" class:dim={active && active !== 'cpu'}
        role="button" tabindex="-1"

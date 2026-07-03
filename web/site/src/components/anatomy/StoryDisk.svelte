@@ -12,11 +12,17 @@
   entire floppy disk, baked in byte by byte &mdash; one
   <code>if()</code> arm each:
 </p>
-<pre class="byte-example"><code>@function <span class="tok-prop">--readDiskByte</span>(<span class="tok-prop">--idx</span>) {'{'}
+<pre class="byte-example"><code>@function <span class="tok-prop">--readDiskByte</span>(<span class="tok-prop">--idx</span> &lt;integer&gt;) returns &lt;integer&gt; {'{'}
   result: if(
     style(<span class="tok-prop">--idx</span>: <span class="tok-num">0</span>): <span class="tok-num">235</span>;
     style(<span class="tok-prop">--idx</span>: <span class="tok-num">1</span>): <span class="tok-num">60</span>;
+    style(<span class="tok-prop">--idx</span>: <span class="tok-num">2</span>): <span class="tok-num">144</span>;
     <span class="tok-comment">/* &hellip; one arm per byte of the floppy &hellip; */</span></code></pre>
+<p>
+  (Verbatim, and already meaningful: 235,&nbsp;60,&nbsp;144 is the
+  x86 jump instruction that every FAT boot sector opens with. Byte
+  zero of the disk is the first thing the machine boots.)
+</p>
 
 <h3 class="anatomy-head">The window</h3>
 <p>

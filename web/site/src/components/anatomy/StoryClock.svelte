@@ -10,19 +10,24 @@
 <p>
   Exactly one thing in CSS changes on its own: an <b>animation</b>. At
   the very bottom of the file, after 300&nbsp;MB of formulas, sits the
-  thing that runs them &mdash; an animation ticking a counter
-  0,&nbsp;1,&nbsp;2,&nbsp;3, forever:
+  thing that runs them &mdash; verbatim:
 </p>
-<pre class="byte-example"><code>@keyframes <span class="tok-prop">anim-play</span> {'{'}
-  <span class="tok-num">0%</span>   {'{'} <span class="tok-prop">--clock</span>: <span class="tok-num">0</span> {'}'}
-  <span class="tok-num">25%</span>  {'{'} <span class="tok-prop">--clock</span>: <span class="tok-num">1</span> {'}'}
-  <span class="tok-num">50%</span>  {'{'} <span class="tok-prop">--clock</span>: <span class="tok-num">2</span> {'}'}
-  <span class="tok-num">75%</span>  {'{'} <span class="tok-prop">--clock</span>: <span class="tok-num">3</span> {'}'}
+<pre class="byte-example"><code><span class="tok-prop">.clock</span> {'{'}
+  animation: <span class="tok-prop">anim-play</span> <span class="tok-num">400ms</span> steps(<span class="tok-num">4</span>, jump-end) infinite;
+  <span class="tok-prop">--clock</span>: <span class="tok-num">0</span>;
+{'}'}
+
+@keyframes <span class="tok-prop">anim-play</span> {'{'}
+  <span class="tok-num">0%</span> {'{'} <span class="tok-prop">--clock</span>: <span class="tok-num">0</span> {'}'}
+  <span class="tok-num">25%</span> {'{'} <span class="tok-prop">--clock</span>: <span class="tok-num">1</span> {'}'}
+  <span class="tok-num">50%</span> {'{'} <span class="tok-prop">--clock</span>: <span class="tok-num">2</span> {'}'}
+  <span class="tok-num">75%</span> {'{'} <span class="tok-prop">--clock</span>: <span class="tok-num">3</span> {'}'}
 {'}'}</code></pre>
 <p>
-  Each lap of the counter, every formula in the file re-evaluates once,
-  and the machine advances by one CPU instruction. These thirty lines
-  are the smallest section of the cabinet and its only moving part.
+  A counter ticking 0,&nbsp;1,&nbsp;2,&nbsp;3, forever. Each lap, every
+  formula in the file re-evaluates once and the machine advances by one
+  CPU instruction. These few lines are the smallest section of the
+  cabinet and its only moving part.
 </p>
 
 <h3 class="anatomy-head">Why four beats and not one?</h3>
@@ -36,6 +41,21 @@
 </p>
 
 <TickClock />
+
+<Foldable>
+  {#snippet summary()}How one animation conducts two more{/snippet}
+  <p>
+    The store and copy steps are themselves <code>@keyframes</code>
+    &mdash; and an animation can&rsquo;t call another animation. So the
+    cabinet attaches both to the CPU permanently, <b>paused</b>, and
+    the clock unpauses each one for a single beat &mdash; verbatim:
+  </p>
+  <pre class="byte-example"><code><span class="tok-prop">.cpu</span> {'{'}
+  animation: <span class="tok-prop">store</span> <span class="tok-num">1ms</span> infinite, <span class="tok-prop">execute</span> <span class="tok-num">1ms</span> infinite;
+  animation-play-state: paused, paused;
+  @container style(<span class="tok-prop">--clock</span>: <span class="tok-num">1</span>) {'{'} animation-play-state: running, paused {'}'}
+  @container style(<span class="tok-prop">--clock</span>: <span class="tok-num">3</span>) {'{'} animation-play-state: paused, running {'}'}</code></pre>
+</Foldable>
 
 <Foldable>
   {#snippet summary()}Where the 43 MB goes{/snippet}

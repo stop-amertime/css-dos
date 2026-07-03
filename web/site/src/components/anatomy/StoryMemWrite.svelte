@@ -1,26 +1,23 @@
 <script>
-  // Memory: storing and changing it — the declarations (32 MB) and
-  // the write rules (171 MB, the biggest thing in the file). Copy
-  // recycled from the retired "Stumbling block" page; facts from
-  // CABINET-ANATOMY.md §6, §9, §13.
+  // Memory — write formulas: the 171 MB write rules, the biggest
+  // thing in the file. Copy recycled from the retired "Stumbling
+  // block" page; facts from CABINET-ANATOMY.md §6, §13.
   import Foldable from '../Foldable.svelte';
   import RamWrite from '../RamWrite.svelte';
 </script>
 
 <p>
-  Two sections of the file, adding up to <b>two-thirds of the whole
-  thing</b>: 32&nbsp;MB declaring that every memory cell exists, and
-  171&nbsp;MB &mdash; the single biggest section &mdash; describing how
-  every cell changes.
+  The single biggest section of the file, and the reason for most of
+  its size. It exists because of the difference between CSS and every
+  other language.
 </p>
 <p>
-  Why so much? Basically all programming languages are a list of
-  instructions, like a <i>recipe</i>. For example <code>x = y</code>.
-  The instructions are actioned in order. A stylesheet is very
-  different. It has no order: every rule in it is in force the whole
-  time &mdash; more like a blueprint or a diagram. You cannot tell CSS
-  to <i>do</i> things. You can only declare, once, what a thing
-  <i>is</i>:
+  Basically all programming languages are a list of instructions, like
+  a <i>recipe</i>. For example <code>x = y</code>. The instructions are
+  actioned in order. A stylesheet is very different. It has no order:
+  every rule in it is in force the whole time &mdash; more like a
+  blueprint or a diagram. You cannot tell CSS to <i>do</i> things. You
+  can only declare, once, what a thing <i>is</i>:
 </p>
 <pre class="byte-example"><code><span class="tok-prop">--x</span>: blue;</code></pre>
 <p>
@@ -61,25 +58,6 @@
 </p>
 
 <Foldable>
-  {#snippet summary()}Declaring 650,000 variables (32 MB){/snippet}
-  <p>
-    Before CSS lets you use a custom property as a typed integer, you
-    must <b>declare</b> it. The file does that for every memory cell:
-  </p>
-  <pre class="byte-example"><code>@property <span class="tok-prop">--mc5000</span> {'{'}
-  syntax: '&lt;integer&gt;';
-  inherits: true;
-  initial-value: <span class="tok-num">32861</span>;
-{'}'}</code></pre>
-  <p>
-    The <code>initial-value</code> is the cell&rsquo;s power-on
-    contents &mdash; the BIOS, the boot sector, whatever was baked in.
-    Hundreds of thousands of these blocks, ~120 bytes apiece, is where
-    the 32&nbsp;MB comes from.
-  </p>
-</Foldable>
-
-<Foldable>
   {#snippet summary()}Why exactly three write slots{/snippet}
   <p>
     The worst case is a hardware interrupt or an <code>INT</code>
@@ -96,12 +74,3 @@
     &mdash; without checking a million addresses one by one.
   </p>
 </Foldable>
-
-<div class="callout">
-  <span class="callout-label">THE ONE OPTIMISATION</span>
-  <p>
-    Memory is <b>packed two bytes per variable</b>, so every sweep over
-    memory mentions half as many cells as there are bytes. Without it,
-    all these numbers double.
-  </p>
-</div>

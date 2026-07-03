@@ -17,6 +17,7 @@
   import StoryCpu from '../components/anatomy/StoryCpu.svelte';
   import StoryKeys from '../components/anatomy/StoryKeys.svelte';
   import StoryScreen from '../components/anatomy/StoryScreen.svelte';
+  import StoryMemDecl from '../components/anatomy/StoryMemDecl.svelte';
   import StoryMemWrite from '../components/anatomy/StoryMemWrite.svelte';
   import StoryMemRead from '../components/anatomy/StoryMemRead.svelte';
   import StoryDisk from '../components/anatomy/StoryDisk.svelte';
@@ -28,8 +29,8 @@
   let anat = $state(null);
   const STORIES = {
     hdr: StoryHeader, cpu: StoryCpu, keys: StoryKeys,
-    screen: StoryScreen, memw: StoryMemWrite, memr: StoryMemRead,
-    disk: StoryDisk, clock: StoryClock,
+    screen: StoryScreen, decl: StoryMemDecl, memw: StoryMemWrite,
+    memr: StoryMemRead, disk: StoryDisk, clock: StoryClock,
   };
 
   const SUBPAGES = [
