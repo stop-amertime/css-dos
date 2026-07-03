@@ -22,6 +22,24 @@
   switch-on, spelled out one cell at a time. 32&nbsp;MB before anything
   has happened.
 </p>
+<p>
+  Do we really have to write <code>inherits: true</code> 368,256 times?
+  Yes. The spec makes <code>inherits</code> a required descriptor of
+  <code>@property</code> &mdash; leave it out and the whole rule is
+  invalid and silently ignored. It can&rsquo;t be <code>false</code>
+  either: the memory variables live on the CPU element but get read by
+  its descendants &mdash; every pixel of the screen, for instance,
+  reaches its byte of video memory through inheritance. Set it to
+  <code>false</code> and the pixels would see each cell&rsquo;s
+  power-on value instead of the live one, and the screen would freeze
+  on the boot picture forever.
+</p>
+<p>
+  So that one line, seventeen-ish bytes at a time, adds up to about
+  6&nbsp;MB of the file &mdash; roughly the size of the entire pixel
+  painter, spent saying &ldquo;yes, inherit&rdquo; a third of a million
+  times.
+</p>
 
 <div class="callout">
   <span class="callout-label">THE ONE OPTIMISATION</span>
