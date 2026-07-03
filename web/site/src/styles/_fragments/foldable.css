@@ -11,7 +11,9 @@
   cursor: pointer;
   user-select: none;
   padding: 10px 14px;
-  background: var(--edit-gray);
+  /* A soft blue-grey so the fold reads as its own control instead of
+     blending into the dialog-gray page (glyph is blue — same family). */
+  background: #ccd3e8;
   color: var(--edit-black);
   font-size: 16px;
   line-height: 16px;
@@ -21,6 +23,7 @@
   flex-wrap: wrap;
 }
 .foldable > summary::-webkit-details-marker { display: none; }
+.foldable > summary:hover { background: #dbe1f2; }
 
 /* The toggle glyph — blue, so it reads as the interactive affordance. */
 .foldable .fold-glyph { color: var(--edit-blue); flex: none; }
