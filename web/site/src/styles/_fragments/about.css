@@ -218,19 +218,23 @@
 .ext-link { color: var(--edit-blue); text-decoration: underline; }
 .ext-link:hover { color: #1111cc; }
 
-/* — Credits sub-page (shared by the anatomy sub-pages' section heads) — */
-.anatomy-head,
-.credits-head {
-  margin: 32px 0 10px;
-  font-size: 16px;
-  line-height: 16px;
+/* — Section heads (shared by the About sub-pages and Credits) —
+   .step-scoped so they outrank global.css's `.step h3 { margin: 0 0 4px }`,
+   which was silently zeroing the top margin and making the heads blend
+   into the prose. */
+.step .anatomy-head,
+.step .credits-head {
+  margin: 40px 0 12px;
+  font-size: 20px;
+  line-height: 20px;
+  letter-spacing: normal;
   color: var(--edit-black);
   border-bottom: 1px solid var(--edit-black);
-  padding-bottom: 4px;
+  padding-bottom: 6px;
 }
 /* First heading follows the intro paragraph — a touch less top gap than the
    inter-section headings, but still roomy. */
-.credits-head:first-of-type { margin-top: 22px; }
+.step .credits-head:first-of-type { margin-top: 22px; }
 .credits-list {
   list-style: none;
   margin: 0;
@@ -250,22 +254,100 @@
   color: var(--edit-red);
 }
 
-/* — byte-for-byte RAM example — */
+/* — code exhibits — white pane, black border, same palette as the
+   widget code panes (kbd-code / tick-code / pixel-code) — */
 .byte-example {
   margin: 8px 0;
   padding: 12px 16px;
-  background: var(--edit-black);
-  color: #55ff55;
+  background: var(--edit-white);
+  color: var(--edit-black);
   border: 1px solid var(--edit-black);
   font-family: 'WebVGA', monospace; letter-spacing: normal;
   font-size: 15px;
-  line-height: 18px;
+  line-height: 20px;
   white-space: pre;
   overflow-x: auto;
 }
-.byte-example .tok-comment { color: #888; }
-.byte-example .tok-prop { color: var(--edit-cyan); }
-.byte-example .tok-num { color: var(--edit-yellow); }
+.byte-example .tok-comment { color: #777; }
+.byte-example .tok-prop { color: var(--edit-red); }
+.byte-example .tok-num { color: #006600; }
+
+/* ===== About rebuild (ABOUT-SCRIPT.md port) ===== */
+.epigraph {
+  margin: 4px 0 18px;
+  padding-left: 14px;
+  border-left: 3px solid var(--edit-black);
+}
+.epigraph p { margin: 0 0 2px; font-style: italic; }
+.epigraph cite { font-style: normal; font-size: 13px; color: #555; }
+
+.skip-note { margin: 0 0 14px; }
+.skip-note button {
+  font: inherit;
+  color: var(--edit-blue);
+  background: none;
+  border: none;
+  padding: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.skip-note button:hover { color: #1111cc; }
+
+.in-theory {
+  font-weight: bold;
+  font-size: 24px;
+  letter-spacing: 1px;
+  line-height: 1;
+}
+
+/* The FAQ page — a stack of Foldables under the opening copy */
+.faq-list { margin-top: 20px; max-width: 660px; }
+.faq-list .foldable { margin: 10px 0; }
+
+/* DOS-setup style callout: a bordered note with a small label chip.
+   <div class="callout"><span class="callout-label">NOTE</span> ... */
+.callout {
+  margin: 14px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+  box-shadow: 4px 4px 0 var(--edit-black);
+  position: relative;
+  max-width: 660px;
+}
+.callout .callout-label {
+  position: absolute;
+  top: -9px;
+  left: 10px;
+  padding: 1px 8px;
+  font-family: 'WebVGA', monospace; letter-spacing: normal;
+  font-size: 13px;
+  line-height: 15px;
+  background: var(--edit-black);
+  color: var(--edit-yellow);
+}
+.callout p { margin: 0 0 6px; }
+.callout p:last-child { margin-bottom: 0; }
+
+/* Small data tables (sizes, comparisons) */
+.data-table {
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 15px;
+  line-height: 19px;
+}
+.data-table th, .data-table td {
+  border: 1px solid var(--edit-black);
+  padding: 5px 12px;
+  text-align: left;
+}
+.data-table th {
+  font-family: 'WebVGA', monospace; letter-spacing: normal;
+  font-weight: normal;
+  background: var(--edit-black);
+  color: var(--edit-white);
+}
+.data-table td.num { text-align: right; }
 
 /* ===== responsive (about-step heroes) — split out of wizard.css's
    combined `.hero-row, .hero-machine, .machine-row` rule ===== */

@@ -1,0 +1,83 @@
+/* cabinet-bar.css — the clickable to-scale bar of the cabinet file
+   (CabinetBar.svelte) + its legend, and the story pane it opens
+   (About sub-page 5). */
+
+.cab-bar {
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+  box-shadow: 4px 4px 0 var(--edit-black);
+  padding: 12px 16px;
+  margin: 16px 0;
+}
+.cab-bar svg { width: 100%; height: auto; display: block; }
+
+.cab-bar .seg { cursor: pointer; outline: none; }
+.cab-bar .seg.dim, .cab-bar .cpu-callout.dim { opacity: 0.3; }
+.cab-bar rect.seg.sel { stroke: var(--edit-black); stroke-width: 2.5; }
+
+.cab-legend {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 16px;
+  margin-top: 10px;
+}
+.cab-leg-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font: inherit;
+  font-size: 15px;
+  line-height: 20px;
+  text-align: left;
+  color: var(--edit-black);
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+.cab-leg-row:hover { background: var(--edit-white); outline: 1px dotted var(--edit-black); }
+.cab-leg-row.sel { background: var(--edit-black); color: var(--edit-white); }
+.cab-leg-row .chip {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--edit-black);
+  align-self: center;
+}
+.cab-leg-row .sz { margin-left: auto; color: var(--edit-red); white-space: nowrap; }
+.cab-leg-row.sel .sz { color: var(--edit-yellow); }
+
+.cab-bar .caption {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 16px;
+  color: #555;
+}
+
+/* — the story pane below the bar — */
+.anatomy-pane {
+  margin-top: 24px;
+  border-top: 4px solid var(--pane-c, var(--edit-black));
+  padding-top: 12px;
+}
+.anatomy-pane .pane-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+  font-size: 22px;
+  line-height: 24px;
+  letter-spacing: normal;
+}
+.anatomy-pane .pane-head .chip {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--edit-black);
+}
+.anatomy-pane .pane-head .sz { color: var(--edit-red); font-size: 17px; }
+.pane-hint { color: #555; margin-top: 18px; }
+
+@media (max-width: 700px) {
+  .cab-legend { grid-template-columns: 1fr; }
+}

@@ -7,10 +7,10 @@
   import SplitPane from './SplitPane.svelte';
 
   const BEATS = [
-    { name: 'read',    what: 'every formula sees last tick’s finished state' },
-    { name: 'compute', what: 'fetch, decode, execute — new values appear' },
-    { name: 'stage',   what: 'results parked in a staging copy' },
-    { name: 'commit',  what: 'staging becomes the next tick’s snapshot' },
+    { name: 'rest',     what: 'nothing moves' },
+    { name: 'copy in',  what: 'the buffer becomes the snapshot every formula reads' },
+    { name: 'compute',  what: 'every formula re-derives from the fresh snapshot' },
+    { name: 'copy out', what: 'the results are parked in the buffer for next tick' },
   ];
 </script>
 

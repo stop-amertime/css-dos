@@ -6,7 +6,11 @@
   import Build from './routes/Build.svelte';
   import Play from './routes/Play.svelte';
 
-  const STRIP = [{ label: 'About' }, { label: 'Build' }, { label: 'Play' }];
+  const STRIP = [
+    { label: 'About' },
+    { label: 'Build' },
+    { label: 'Play' },
+  ];
   const TITLES = ['About', 'Build cabinet', 'Play'];
 
   $effect(() => { document.title = `CSS-DOS — ${TITLES[nav.step - 1]}`; });

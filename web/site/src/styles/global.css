@@ -57,12 +57,10 @@
 html, body { min-height: 100%; }
 
 body {
-  /* Site-wide default is the readable remastered face. It ships IBM's
-     9-dot text-mode advance (9px at 16px), so -1px letter-spacing pulls
-     it back onto the 8px grid. Machine-flavoured chrome (bars, buttons,
-     headings, code) is pinned back to the 8x16 bitmap face below. */
-  font-family: 'MorePerfectVGA', 'WebVGA', 'Perfect DOS VGA 437', 'Fixedsys', 'Terminal', monospace;
-  letter-spacing: -1px;
+  /* Site-wide default is the 8x16 bitmap face (Web437 IBM VGA) — the
+     9-dot remaster ('MorePerfectVGA') read too wide for long prose.
+     It stays as a fallback. */
+  font-family: 'WebVGA', 'MorePerfectVGA', 'Perfect DOS VGA 437', 'Fixedsys', 'Terminal', monospace;
   font-size: 16px;
   line-height: 16px;
   background: var(--edit-blue);
@@ -440,12 +438,17 @@ pre, code, kbd {
   font-family: 'WebVGA', 'Perfect DOS VGA 437', 'Fixedsys', 'Terminal', monospace;
   letter-spacing: normal;
 }
-.step p { margin: 0 0 8px; font-size: 16px; line-height: 21px; }
+.step p { margin: 0 0 12px; font-size: 16px; line-height: 22px; }
+/* Readable prose measure — paragraphs and lists cap at ~80ch; code
+   panes, widgets and diagrams keep the full window width. */
+.subpage p, .subpage ul, .subpage ol, .subpage blockquote { max-width: 660px; }
 /* Inline <code> reads as a little sunken monospace chip everywhere in the
    wizard (headings included) — the boxed treatment is what signals "this
    is a filename / literal", the font is already monospace. Scoped to
-   .window.wizard so Build/Play prose (outside a .step) gets it too. */
-.window.wizard code {
+   .window.wizard so Build/Play prose (outside a .step) gets it too.
+   :not(pre) keeps the chip out of code blocks — inside a styled <pre>
+   the boxed look is noise, and this outguns the per-pane resets anyway. */
+.window.wizard :not(pre) > code {
   font-family: 'WebVGA', monospace;
   letter-spacing: normal;
   background: var(--edit-white);
