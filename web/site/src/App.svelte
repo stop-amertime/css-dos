@@ -3,11 +3,17 @@
   import { build } from './lib/builder.svelte.js';
   import StepDots from './components/StepDots.svelte';
   import About from './routes/About.svelte';
+  import HowItWorks from './routes/HowItWorks.svelte';
   import Build from './routes/Build.svelte';
   import Play from './routes/Play.svelte';
 
-  const STRIP = [{ label: 'About' }, { label: 'Build' }, { label: 'Play' }];
-  const TITLES = ['About', 'Build cabinet', 'Play'];
+  const STRIP = [
+    { label: 'About' },
+    { label: 'How it works' },
+    { label: 'Build' },
+    { label: 'Play' },
+  ];
+  const TITLES = ['About', 'How it works', 'Build cabinet', 'Play'];
 
   $effect(() => { document.title = `CSS-DOS — ${TITLES[nav.step - 1]}`; });
 
@@ -37,7 +43,7 @@
     items={STRIP}
     current={nav.step}
     onjump={(n) => nav.jump(n)}
-    disabled={(n) => n === 3 && !build.done}
+    disabled={(n) => n === 4 && !build.done}
   />
 {/snippet}
 
@@ -56,6 +62,8 @@
 {#if nav.step === 1}
   <About {strip} {wizNav} />
 {:else if nav.step === 2}
+  <HowItWorks {strip} {wizNav} />
+{:else if nav.step === 3}
   <Build {strip} {wizNav} />
 {:else}
   <Play {strip} {wizNav} />

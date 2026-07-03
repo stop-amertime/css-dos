@@ -300,13 +300,62 @@
   line-height: 1;
 }
 
-.widget-placeholder {
-  margin: 12px 0;
-  padding: 14px 16px;
-  border: 2px dashed #999;
-  color: #555;
-  font-size: 13px;
+/* The About→Build / About→How fork */
+.path-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 16px 0 8px;
 }
+.path-choice .path-btn {
+  font-size: 16px;
+  padding: 12px 18px;
+}
+
+/* DOS-setup style callout: a bordered note with a small label chip.
+   <div class="callout"><span class="callout-label">NOTE</span> ... */
+.callout {
+  margin: 14px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+  box-shadow: 4px 4px 0 var(--edit-black);
+  position: relative;
+  max-width: 660px;
+}
+.callout .callout-label {
+  position: absolute;
+  top: -9px;
+  left: 10px;
+  padding: 1px 8px;
+  font-family: 'WebVGA', monospace; letter-spacing: normal;
+  font-size: 13px;
+  line-height: 15px;
+  background: var(--edit-black);
+  color: var(--edit-yellow);
+}
+.callout p { margin: 0 0 6px; }
+.callout p:last-child { margin-bottom: 0; }
+
+/* Small data tables (sizes, comparisons) */
+.data-table {
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 15px;
+  line-height: 19px;
+}
+.data-table th, .data-table td {
+  border: 1px solid var(--edit-black);
+  padding: 5px 12px;
+  text-align: left;
+}
+.data-table th {
+  font-family: 'WebVGA', monospace; letter-spacing: normal;
+  font-weight: normal;
+  background: var(--edit-black);
+  color: var(--edit-white);
+}
+.data-table td.num { text-align: right; }
 
 /* ===== responsive (about-step heroes) — split out of wizard.css's
    combined `.hero-row, .hero-machine, .machine-row` rule ===== */

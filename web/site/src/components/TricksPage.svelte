@@ -1,18 +1,16 @@
 <script>
-  // TricksPage — Learn sub-page "Tricks". Each block is one capability
-  // CSS lacks and the workaround the cabinet uses. Sourced from
-  // CABINET-ANATOMY.md ("Recurring tricks" + per-section notes).
+  // TricksPage — "How it works" sub-page: the recurring workarounds,
+  // for the curious. Facts from CABINET-ANATOMY.md ("Recurring tricks").
   import '../styles/_fragments/anatomy.css';
   import SignDemo from './SignDemo.svelte';
 </script>
 
-<div class="subpage" data-subpage="9">
+<div class="subpage" data-subpage="7">
   <h1>Tricks</h1>
   <p>
-    Building a CPU in a styling language means constantly hitting
-    things CSS doesn&rsquo;t have. Every workaround in the file follows
-    the same pattern: <b>CSS lacks something, so it&rsquo;s rebuilt
-    from what&rsquo;s left.</b> These are the ones worth knowing.
+    Everything so far needed a workaround; these are the ones too good
+    to leave out. Nothing later depends on them &mdash; this page is for
+    the curious.
   </p>
 
   <h3 class="anatomy-head">No comparisons</h3>
@@ -26,7 +24,7 @@
   <pre class="byte-example"><code>max(<span class="tok-num">0</span>, sign(B - A - <span class="tok-num">0.5</span>))    <span class="tok-comment">/* 1 if A &lt; B, else 0 */</span></code></pre>
   <p>
     <code>sign(B&nbsp;&minus;&nbsp;A)</code> is +1 exactly when A is
-    below B; <code>max</code> clamps the other cases to 0. The
+    below B; <code>max</code> clamps the other cases to 0; the
     <code>&minus;&nbsp;0.5</code> keeps the expression away from the
     ambiguous exact-tie case. This one line computes the carry flag
     and the screen&rsquo;s 70-times-a-second retrace signal. Here it
@@ -52,7 +50,7 @@
   <h3 class="anatomy-head">No bitwise operations</h3>
   <p>
     A CPU lives on AND, OR, XOR. CSS arithmetic has none of them. But
-    on single bits, <b>AND is just multiplication</b>: 1&times;1 is 1,
+    on single bits, <b>AND is multiplication</b>: 1&times;1 is 1,
     everything else is 0. So the AND function splits both numbers into
     their 16 bits (divide and take remainders), multiplies each pair,
     and reassembles the result:
@@ -81,19 +79,6 @@
     floppy disk is the same idea at scale: one arm per byte.
   </p>
 
-  <h3 class="anatomy-head">No negative numbers</h3>
-  <p>
-    CSS numbers aren&rsquo;t 16-bit and have no sign bit, but 8086
-    registers must wrap: 65535&nbsp;+&nbsp;1 is 0, and values from
-    32768 up mean negative. So the file folds by hand, everywhere:
-  </p>
-  <pre class="byte-example"><code>x - (x &ge; <span class="tok-num">32768</span> ? <span class="tok-num">65536</span> : <span class="tok-num">0</span>)    <span class="tok-comment">/* as signed 16-bit */</span></code></pre>
-  <p>
-    That&rsquo;s why <code>256</code> and <code>65536</code> appear all
-    over the file &mdash; results being folded back into range exactly
-    the way real registers overflow.
-  </p>
-
   <h3 class="anatomy-head">No loops</h3>
   <p>
     A tick is defined as one instruction; there is no way to loop
@@ -113,21 +98,6 @@
     underneath, the clock re-runs it CX times.
   </p>
 
-  <h3 class="anatomy-head">No events, no history</h3>
-  <p>
-    <code>:active</code> is true while a key is held and gone the
-    instant it isn&rsquo;t &mdash; CSS keeps no record that anything
-    happened. Real keyboards send a <i>release code</i> when a key
-    comes up, and games depend on it (it&rsquo;s how Doom knows you
-    stopped moving). Here, &ldquo;the key came up&rdquo; is only
-    visible for a single tick, and the program usually doesn&rsquo;t
-    check the keyboard until a few ticks later. So the machine keeps a
-    <b>latch</b>: one remembered value holding the most recent key
-    code, press or release, until the next one replaces it. A latch is
-    just another spreadsheet cell &mdash; <i>new key event this tick?
-    take its code; otherwise keep mine.</i>
-  </p>
-
   <h3 class="anatomy-head">The browser&rsquo;s own limits</h3>
   <p>
     Chrome caps a CSS function at about 7 local variables and
@@ -135,7 +105,7 @@
     arguments. A lot of the file&rsquo;s arithmetic is hand-flattened
     to fit &mdash; <code>mod(x, 256)</code> spelled out inline instead
     of calling a tidy helper. The code is shaped by a real
-    browser&rsquo;s enforcement, which is the point: if Chrome
-    can&rsquo;t evaluate it, it isn&rsquo;t CSS.
+    browser&rsquo;s enforcement: if Chrome can&rsquo;t evaluate it, it
+    isn&rsquo;t CSS.
   </p>
 </div>
