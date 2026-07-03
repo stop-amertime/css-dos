@@ -7,11 +7,10 @@
 </script>
 
 <p>
-  The smallest section in the file, and it does two jobs: keys go in,
-  and a debugger&rsquo;s view of the machine comes out.
+  The smallest section in the file. Alongside the keyboard rules it
+  carries a small debug read-out &mdash; the registers drawn on screen
+  with CSS counters &mdash; but the interesting part is the keys.
 </p>
-
-<h3 class="anatomy-head">The keys</h3>
 <p>
   CSS has no input events. The one thing it can ask is
   <b><code>:active</code></b> &mdash; &ldquo;is this element being
@@ -34,18 +33,6 @@
     key event, press or release, until the next one replaces it.
   </p>
 </Foldable>
-
-<h3 class="anatomy-head">The debug display</h3>
-<p>
-  A wrong bit anywhere in the machine corrupts it silently, and none of
-  a programmer&rsquo;s normal tools exist inside a stylesheet &mdash;
-  no breakpoints, no logging, no stepping. The machine&rsquo;s one
-  debugging aid: the CPU prints its own registers to the screen using
-  CSS <b>counters</b>, because <code>counter()</code> is the only way
-  CSS can turn a number into visible text. Fourteen numbers on screen,
-  updating as it runs. That read-out is what this project was built
-  with.
-</p>
 
 <div class="callout">
   <span class="callout-label">HONEST LIMITS</span>
