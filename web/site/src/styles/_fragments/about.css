@@ -284,6 +284,16 @@
 .byte-example .token.atrule .token.number { color: #006600; }
 .byte-example .token.string { color: #aa5500; }
 
+/* The Calcite page's three keeps-it-honest points (moved here from
+   play.css when the intro moved off the Play step). */
+.cheat-list {
+  margin: 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 /* ===== About rebuild (ABOUT-SCRIPT.md port) ===== */
 .epigraph {
   margin: 4px 0 18px;

@@ -293,9 +293,30 @@
        doesn't navigate. 0px/hidden keeps it invisible. */
 
     .kbd-sink { width: 0; height: 0; border: 0; position: absolute; visibility: hidden; }
+
+    /* Embedded mode — /player/calcite.html#embed (the site's Play-page
+       iframe). The fragment targets a display:none anchor (an invisible
+       target is skipped by scroll-into-view, so loading the iframe can't
+       scroll the parent page) and :has(:target) hides the decorative
+       desktop chrome — the frame is just the screen + keyboard. The
+       popped-out player keeps the full blue desktop. Pure CSS — this
+       file stays script-free. */
+    .embed-anchor { display: none; }
+    body:has(#embed:target) {
+      background: var(--edit-gray);
+      padding: 8px 0;
+      min-height: 0;
+    }
+    body:has(#embed:target) .menu-bar,
+    body:has(#embed:target) .status-line { display: none; }
+    body:has(#embed:target) .window {
+      box-shadow: none;
+      border: none;
+    }
   </style>
 </head>
 <body>
+  <a id="embed" class="embed-anchor" aria-hidden="true"></a>
   <!-- Sticky top menu bar — decorative retro IDE chrome. -->
   <div class="menu-bar">
     <span class="menu-item"><span class="hot">F</span>ile</span>

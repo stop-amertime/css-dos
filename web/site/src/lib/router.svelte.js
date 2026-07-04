@@ -9,11 +9,11 @@ import { build } from './builder.svelte.js';
 
 export const STEPS = ['about', 'build', 'play'];
 const ABOUT = 1, BUILD = 2, PLAY = 3;
-export const ABOUT_SUBPAGES = 6;
+export const ABOUT_SUBPAGES = 7;
 const BUILD_PICK = 1, BUILD_CONFIG = 2;
 
 // Named sub-pages (index = sub - 1).
-const ABOUT_SUBS = ['intro', 'how', 'file', 'faqs', 'why', 'credits'];
+const ABOUT_SUBS = ['intro', 'how', 'file', 'calcite', 'faqs', 'why', 'credits'];
 const BUILD_SUBS = ['pick', 'configure', 'result'];
 // The How-it-works carousel: the map/overview page, then the file's
 // sections in file order (mirrors anatomy/groups.js).

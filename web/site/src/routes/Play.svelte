@@ -1,25 +1,22 @@
 <script>
   import '../styles/_fragments/play.css';
   import Wizard from '../components/Wizard.svelte';
-  import Foldable from '../components/Foldable.svelte';
   import EnvNotice from '../components/EnvNotice.svelte';
   import { nav } from '../lib/router.svelte.js';
   import { health } from '../lib/health.svelte.js';
 
   let { strip, wizNav } = $props();
 
-  // Inline player: iframe the calcite runner into this page instead of a
-  // new tab. The bridge worker (WASM engine) lives in THIS tab; mobile
-  // Chrome freezes background tabs, so the old two-tab flow starved the
+  // Calcite is the default and the player starts embedded straight
+  // away — /player/calcite.html#embed hides the player's decorative
+  // desktop chrome (pure-CSS :target), so the iframe is just the
+  // screen + keyboard. Pop-out opens the full blue-desktop player.
+  // The bridge worker (WASM engine) lives in THIS tab; mobile Chrome
+  // freezes background tabs, so the old two-tab flow starved the
   // frame stream the moment the player tab took focus.
-  let inlinePlaying = $state(false);
-  let playerEl = $state(null);
-
-  $effect(() => {
-    if (inlinePlaying && playerEl) {
-      playerEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  });
+  let stopped = $state(false);
+  let rawModal = $state(false);
+  const playing = $derived(health.canRun && !stopped);
 
   // Back to the Build step's cart picker.
   function pickDifferent() {
@@ -28,119 +25,66 @@
   }
 </script>
 
+<svelte:window onkeydown={(e) => e.key === 'Escape' && (rawModal = false)} />
+
 <Wizard {strip} nav={wizNav}>
 <button class="btn play-back" onclick={pickDifferent}>
   &larr; Select a different program
 </button>
 
-<!-- Play-step intro -->
-<div class="play-intro">
-  <h1>Running the <code>.css</code> file</h1>
-  <p>
-    You can <i>try</i> to load a 300&nbsp;MB stylesheet into your
-    browser, but it will crash. Browsers simply weren&rsquo;t built
-    for that.
-  </p>
-  <p>
-    So I built a separate tool &mdash; <b>Calcite</b> &mdash; a JIT
-    compiler for computational CSS. It&rsquo;s much like Chrome&rsquo;s
-    own V8 engine, which compiles your JavaScript down to machine code
-    before running it rather than plodding through the source line by
-    line. Calcite does the same trick for CSS: it&rsquo;s written in
-    Rust, ships as WebAssembly, and runs entirely inside the browser
-    tab.
-  </p>
-  <p>
-    On load it walks the whole stylesheet once, recognises the
-    repetitive shapes a CPU emulator forces CSS into, and compiles
-    them into fast native routines. Then it evaluates one frame,
-    paints, and loops &mdash; orders of magnitude faster than a browser
-    doing the same work by hand.
-  </p>
-
-  <!-- "Is this cheating?" — most of the argument folded away. -->
-  <Foldable class="cheat-box">
-    {#snippet summary()}
-      <span class="cheat-q">Is this cheating?</span>
-      <span class="cheat-a">No, and I've taken the question seriously.</span>
-    {/snippet}
-      <p>
-        The whole point of the project is that the program is written
-        in <i>real</i>, spec-compliant CSS. Calcite is allowed to make
-        that CSS fast, but it is not allowed to change what the CSS
-        <i>means</i>. Three things keep it honest:
-      </p>
-      <ol class="cheat-list">
-        <li>
-          <b>Compiling before running is normal.</b> Chrome does
-          exactly this to your JavaScript via V8; the code you wrote is
-          still JavaScript. Almost no language runs from raw source &mdash;
-          even CPython compiles your <code>.py</code> files to bytecode
-          and runs <i>that</i>. Calcite is the same idea pointed at CSS.
-        </li>
-        <li>
-          <b>The CSS would run identically without Calcite.</b> Feed
-          the exact same cabinet to Chrome&rsquo;s own style engine and
-          you get the same pixels &mdash; just unbearably slowly. Calcite
-          changes the speed, never the result.
-        </li>
-        <li>
-          <b>Calcite knows nothing about DOS, x86, or Doom.</b> This is
-          the cardinal rule of the project: Calcite only ever reasons
-          about the <i>shape</i> of CSS. It has no idea it&rsquo;s running
-          an emulator. Point it at any other computational stylesheet
-          &mdash; a different CPU, a cellular automaton, a spreadsheet
-          encoded in selectors &mdash; and it would speed those up too.
-          Nothing about this machine is baked in.
-        </li>
-      </ol>
-      <p class="dim small">
-        If Calcite ever produced a different result than a real browser
-        would, that would be a bug in Calcite &mdash; not a feature.
-      </p>
-  </Foldable>
-</div>
-
 <EnvNotice />
 
-<!-- Two run options — small, side by side. -->
-<div class="run-options">
-  <a class="run-opt run-raw" id="play-raw-card" href="/player/raw.html" target="_blank" rel="noopener">
-    <div class="run-opt-head">Run raw CSS in Chrome</div>
-    <p class="run-opt-sub">Expect one or two frames per <i>month</i>.</p>
-    <div class="run-opt-warn">
-      <span class="warn-glyph">&#9888;</span>
-      <span>This <u>will</u> crash the browser. Use with caution and
-      save your work. Not recommended.</span>
-    </div>
-  </a>
-
-  <button class="run-opt run-calcite" id="play-calcite-card" class:disabled={!health.canRun}
-          disabled={!health.canRun} onclick={() => inlinePlaying = true}>
-    <div class="run-opt-head">
-      Run using Calcite
-      <span class="run-opt-rec">recommended</span>
-    </div>
-    <p class="run-opt-sub">
-      The loaded page is still entirely HTML and CSS &mdash; Calcite
-      just evaluates it sanely. Runs right here &mdash; the engine
-      lives in this tab.
-    </p>
-  </button>
-</div>
-
-{#if inlinePlaying}
-<div class="inline-player" bind:this={playerEl}>
+{#if playing}
+<div class="inline-player">
   <div class="inline-player-bar">
     <span class="inline-player-title">CSS-DOS</span>
     <span class="inline-player-status" class:error={health.engineError}>
       {health.engineError || health.engineStatus}
     </span>
-    <a class="inline-player-pop" href="/player/calcite.html" target="_blank" rel="noopener"
-       onclick={() => inlinePlaying = false}>Pop out &#8599;</a>
-    <button class="btn inline-player-stop" onclick={() => inlinePlaying = false}>Stop</button>
+    <a class="inline-player-pop" href="/player/calcite.html" target="_blank" rel="noopener">Pop out &#8599;</a>
+    <button class="btn inline-player-stop" onclick={() => stopped = true}>Stop</button>
   </div>
-  <iframe class="inline-player-frame" src="/player/calcite.html" title="CSS-DOS player"></iframe>
+  <iframe class="inline-player-frame" src="/player/calcite.html#embed" title="CSS-DOS player"></iframe>
+</div>
+{:else if health.canRun}
+<button class="btn play-restart" onclick={() => stopped = false}>&#9654; Start the player</button>
+{/if}
+
+<p class="play-note">
+  This is running through <b>Calcite</b>, a JIT compiler for CSS &mdash;
+  <a href="#about/calcite">how it works, and why it isn&rsquo;t
+  cheating</a>. Or
+  <button class="link-btn" onclick={() => rawModal = true}>try the raw
+  CSS version</button>.
+</p>
+
+{#if rawModal}
+<div class="raw-overlay" role="presentation"
+     onclick={(e) => e.target === e.currentTarget && (rawModal = false)}>
+  <div class="window raw-modal" role="dialog" aria-modal="true" aria-label="Run the raw CSS?">
+    <div class="title-bar">Run the raw CSS?</div>
+    <div class="window-body">
+      <p>
+        This opens the same cabinet as a plain stylesheet in a plain
+        tab &mdash; no Calcite, just your browser&rsquo;s own CSS engine
+        chewing through 300&nbsp;MB.
+      </p>
+      <p>
+        <b>It <u>will</u> crash the browser.</b> Expect a frame or two
+        per <i>month</i> before it does. Save your work first.
+      </p>
+      <p class="small">
+        Why it&rsquo;s this slow &mdash; and what Calcite does instead
+        &mdash; is on <a href="#about/calcite"
+        onclick={() => rawModal = false}>the Calcite page</a>.
+      </p>
+      <div class="raw-modal-btns">
+        <a class="btn" href="/player/raw.html" target="_blank" rel="noopener"
+           onclick={() => rawModal = false}>I understand &mdash; open it</a>
+        <button class="btn" onclick={() => rawModal = false}>Cancel</button>
+      </div>
+    </div>
+  </div>
 </div>
 {/if}
 </Wizard>

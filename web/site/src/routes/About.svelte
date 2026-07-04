@@ -46,6 +46,7 @@
     { label: 'Intro' },
     { label: 'How is this possible?' },
     { label: 'How it works' },
+    { label: 'Calcite' },
     { label: 'FAQs' },
     { label: 'Why?' },
     { label: 'Credits' },
@@ -163,8 +164,9 @@
         two instructions per second. At that speed, booting DOS takes
         a year and a half. So this site runs the same file through
         <b>Calcite</b>, a compiler that evaluates the same CSS about a
-        hundred thousand times faster; the Play page explains how it
-        works, and the rule that keeps it honest.
+        hundred thousand times faster; <a href="#about/calcite">its own
+        page</a> explains how it works, and the rule that keeps it
+        honest.
       </p>
 
       <div class="ext-link-box">
@@ -199,8 +201,71 @@
       </div>
     </div>
   {:else if nav.sub === 4}
-    <!-- FAQs -->
+    <!-- Calcite — how the file actually runs (moved from the Play page) -->
     <div class="subpage" data-subpage="4">
+      <h1>Calcite</h1>
+      <p>
+        You can <i>try</i> to load a 300&nbsp;MB stylesheet into your
+        browser, but it will crash. Browsers simply weren&rsquo;t built
+        for that.
+      </p>
+      <p>
+        So I built a separate tool &mdash; <b>Calcite</b> &mdash; a JIT
+        compiler for computational CSS. It&rsquo;s much like Chrome&rsquo;s
+        own V8 engine, which compiles your JavaScript down to machine code
+        before running it rather than plodding through the source line by
+        line. Calcite does the same trick for CSS: it&rsquo;s written in
+        Rust, ships as WebAssembly, and runs entirely inside the browser
+        tab.
+      </p>
+      <p>
+        On load it walks the whole stylesheet once, recognises the
+        repetitive shapes a CPU emulator forces CSS into, and compiles
+        them into fast native routines. Then it evaluates one frame,
+        paints, and loops &mdash; orders of magnitude faster than a browser
+        doing the same work by hand.
+      </p>
+
+      <h3 class="anatomy-head">Is this cheating?</h3>
+      <p>
+        No, and I&rsquo;ve taken the question seriously. The whole point
+        of the project is that the program is written in <i>real</i>,
+        spec-compliant CSS. Calcite is allowed to make that CSS fast, but
+        it is not allowed to change what the CSS <i>means</i>. Three
+        things keep it honest:
+      </p>
+      <ol class="cheat-list">
+        <li>
+          <b>Compiling before running is normal.</b> Chrome does
+          exactly this to your JavaScript via V8; the code you wrote is
+          still JavaScript. Almost no language runs from raw source &mdash;
+          even CPython compiles your <code>.py</code> files to bytecode
+          and runs <i>that</i>. Calcite is the same idea pointed at CSS.
+        </li>
+        <li>
+          <b>The CSS would run identically without Calcite.</b> Feed
+          the exact same cabinet to Chrome&rsquo;s own style engine and
+          you get the same pixels &mdash; just unbearably slowly. Calcite
+          changes the speed, never the result.
+        </li>
+        <li>
+          <b>Calcite knows nothing about DOS, x86, or Doom.</b> This is
+          the cardinal rule of the project: Calcite only ever reasons
+          about the <i>shape</i> of CSS. It has no idea it&rsquo;s running
+          an emulator. Point it at any other computational stylesheet
+          &mdash; a different CPU, a cellular automaton, a spreadsheet
+          encoded in selectors &mdash; and it would speed those up too.
+          Nothing about this machine is baked in.
+        </li>
+      </ol>
+      <p class="dim small">
+        If Calcite ever produced a different result than a real browser
+        would, that would be a bug in Calcite &mdash; not a feature.
+      </p>
+    </div>
+  {:else if nav.sub === 5}
+    <!-- FAQs -->
+    <div class="subpage" data-subpage="5">
       <h1>FAQs</h1>
 
       <div class="faq-list">
@@ -213,8 +278,9 @@
             300&nbsp;MB of stylesheet is more than a tab survives, and
             even a small build runs at a couple of instructions per
             second. So this site feeds the same file to <b>Calcite</b>,
-            a compiler built for the job &mdash; the Play page explains
-            it, and why it isn&rsquo;t cheating.
+            a compiler built for the job &mdash;
+            <a href="#about/calcite">its page</a> explains it, and why
+            it isn&rsquo;t cheating.
           </p>
         </Foldable>
 
@@ -295,9 +361,9 @@
         </Foldable>
       </div>
     </div>
-  {:else if nav.sub === 5}
+  {:else if nav.sub === 6}
     <!-- Why? -->
-    <div class="subpage" data-subpage="5">
+    <div class="subpage" data-subpage="6">
       <h1>Why?</h1>
       <blockquote class="epigraph">
         <p>&ldquo;Because it&rsquo;s there&rdquo;</p>
@@ -318,9 +384,9 @@
         foolish and the brave recklessly in.
       </p>
     </div>
-  {:else if nav.sub === 6}
+  {:else if nav.sub === 7}
     <!-- Credits (restored 2026-07-04 from the retired How-it-works route) -->
-    <div class="subpage" data-subpage="6">
+    <div class="subpage" data-subpage="7">
       <h1>Credits &amp; thanks</h1>
       <p>
         CSS-DOS stands on the shoulders of people who proved, piece by
