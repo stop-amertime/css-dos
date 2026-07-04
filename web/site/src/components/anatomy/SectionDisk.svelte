@@ -3,13 +3,14 @@
   // Copy recycled from the retired "300 MB question" page; window
   // mechanism from EXPLAINER.md §8 / CABINET-ANATOMY.md §10–11.
   import Foldable from '../Foldable.svelte';
+  import Term from '../Term.svelte';
 </script>
 
 <p>
   CSS can&rsquo;t open anything at runtime &mdash; no files, no
   requests, no loading. Whatever the machine will ever need has to be
-  in the stylesheet before it starts: the BIOS, DOS itself, and the
-  entire floppy disk, baked in byte by byte &mdash; one
+  in the stylesheet before it starts: the BIOS, <Term t="dos">DOS</Term> itself, and the
+  entire <Term t="floppy">floppy disk</Term>, baked in byte by byte &mdash; one
   <code>if()</code> arm each:
 </p>
 <pre class="byte-example"><code>@function <span class="tok-prop">--readDiskByte</span>(<span class="tok-prop">--idx</span> &lt;integer&gt;) returns &lt;integer&gt; {'{'}

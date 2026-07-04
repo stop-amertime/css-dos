@@ -1,0 +1,29 @@
+/* term.css — inline defined words (Term.svelte). The word stays
+   ordinary inline text with a subtle dotted underline; the definition
+   card is fixed-position (set inline by the component) so the
+   wizard's scroll band can't clip it. */
+
+.term {
+  text-decoration: underline dotted #888;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  cursor: help;
+}
+.term:hover, .term:focus-visible {
+  text-decoration-color: var(--edit-red);
+  outline: none;
+}
+
+.term-tip {
+  position: fixed;
+  z-index: 40;
+  width: max-content;
+  max-width: min(264px, calc(100vw - 16px));
+  padding: 7px 10px;
+  background: var(--edit-white);
+  border: 1px solid var(--edit-black);
+  box-shadow: 3px 3px 0 var(--edit-black);
+  font-size: 14px;
+  line-height: 17px;
+  color: var(--edit-black);
+}

@@ -6,6 +6,7 @@
   // verbatim from sokoban.css (names tidied per the NOTE callout).
   import Foldable from '../Foldable.svelte';
   import CpuCoverage from './CpuCoverage.svelte';
+  import Term from '../Term.svelte';
 </script>
 
 <p>
@@ -41,7 +42,7 @@
   <code>--AX</code> is a CSS variable, and a variable gets exactly one
   definition. So the definition has to cover, in advance, everything
   that could ever happen to the register &mdash; one table, keyed on
-  the current opcode, with a row for every instruction that can touch
+  the current <Term t="opcode">opcode</Term>, with a row for every instruction that can touch
   it:
 </p>
 <pre class="byte-example"><code><span class="tok-prop">--AX</span>: if(

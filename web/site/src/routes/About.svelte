@@ -9,6 +9,7 @@
   import '../styles/_fragments/anatomy.css';
   import { nav, FILE_SECTIONS } from '../lib/router.svelte.js';
   import StepDots from '../components/StepDots.svelte';
+  import Term from '../components/Term.svelte';
   import Wizard from '../components/Wizard.svelte';
   import Foldable from '../components/Foldable.svelte';
   import CssDemo from '../components/CssDemo.svelte';
@@ -74,7 +75,8 @@
           </p>
           <p class="lede">
             It boots real <b>DOS</b> (the precursor to Windows) from an
-            emulated floppy and runs unmodified 1980s software.
+            emulated <Term t="floppy">floppy</Term> and runs unmodified
+            1980s software.
           </p>
           <p class="lede">Yes, it runs <b>Doom</b><span class="flair-star">*</span></p>
           <div class="flair-burst">
@@ -105,7 +107,8 @@
         Everything in the machine is made of CSS variables &mdash;
         which are, basically, formulas. A variable can be defined in
         terms of other variables, so a variable can compute: every
-        register, every byte of RAM, every pixel on the screen is a
+        <Term t="register">register</Term>, every byte of RAM, every
+        pixel on the screen is a
         variable that works out its own value, the way a cell in a
         spreadsheet does.
       </p>
@@ -180,6 +183,7 @@
       <h1>How it works</h1>
 
       <CabinetBar selected={nav.section === 'map' ? null : nav.section}
+                  count="{nav.sectionIdx() + 1} / {FILE_SECTIONS.length}"
                   onselect={(g) => nav.sectionJump(g)} />
 
       <button class="sec-arrow sec-prev" onclick={() => nav.sectionStep(-1)}
@@ -187,12 +191,6 @@
       <button class="sec-arrow sec-next" onclick={() => nav.sectionStep(1)}
               aria-label="Next section" title="Next section">&#9658;</button>
       <div class="anatomy-pane" style="--pane-c:{curGroup.c}">
-        <h2 class="pane-head">
-          <span class="chip" style="background:{curGroup.c}"></span>
-          <span>{curGroup.label}</span>
-          <span class="sz">{curGroup.size}</span>
-          <span class="sec-count">{nav.sectionIdx() + 1} / {FILE_SECTIONS.length}</span>
-        </h2>
         {#key nav.section}
           <div class="sec-body" in:fly={{ x: 44 * nav.sectionDir, duration: 180 }}>
             <CurSection />
@@ -290,8 +288,9 @@
           <p>
             Yes &mdash; that&rsquo;s the Build step. Hand the builder
             any DOS program small enough for a floppy and it bakes the
-            machine and your files into a fresh cabinet. The presets on
-            the Build page were made the same way.
+            machine and your files into a fresh
+            <Term t="cabinet">cabinet</Term>. The presets on the Build
+            page were made the same way.
           </p>
         </Foldable>
       </div>

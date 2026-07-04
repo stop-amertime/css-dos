@@ -6,6 +6,7 @@
   // (~60 KB, offsets 28,218–90,652) measured from the same file.
   // (SignDemo removed 2026-07-03 — owner: demonstrated nothing.)
   import Foldable from '../Foldable.svelte';
+  import Term from '../Term.svelte';
 
   // The AND worked example: 172 AND 102 = 36.
   const A_BITS = [1, 0, 1, 0, 1, 1, 0, 0]; // 172
@@ -14,7 +15,7 @@
 
 <p>
   After a short header comment (the build recipe, for humans opening
-  the file), the first thing in the cabinet is a toolbox:
+  the file), the first thing in the <Term t="cabinet">cabinet</Term> is a toolbox:
   <b>66 small functions</b> that everything else is built from. They
   exist because of a supply problem:
 </p>
@@ -138,7 +139,7 @@
   Some of the functions don&rsquo;t compute anything &mdash; the
   answers were worked out at build time and written into the file.
   <code>calc()</code> can&rsquo;t raise 2 to a variable power, which is
-  needed whenever a program shifts by an amount held in a register, so
+  needed whenever a program shifts by an amount held in a <Term t="register">register</Term>, so
   <code>--pow2</code> is just the answers:
 </p>
 <pre class="byte-example"><code>@function <span class="tok-prop">--pow2</span>(<span class="tok-prop">--n</span> &lt;integer&gt;) returns &lt;integer&gt; {'{'}

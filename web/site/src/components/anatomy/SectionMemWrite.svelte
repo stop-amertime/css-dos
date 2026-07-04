@@ -7,6 +7,7 @@
   // outermost; names tidied per the CPU section's NOTE).
   import Foldable from '../Foldable.svelte';
   import RamWrite from '../RamWrite.svelte';
+  import Term from '../Term.svelte';
 </script>
 
 <p>
@@ -25,7 +26,7 @@
 <pre class="byte-example"><code><span class="tok-prop">--x</span>: <span class="tok-num">5</span>;</code></pre>
 <p>
   So the definition itself has to do the work: each byte of memory is
-  written as a formula that works out, every tick, what its value now
+  written as a formula that works out, every <Term t="tick">tick</Term>, what its value now
   is &mdash; closer to how a spreadsheet cell works than to a line of
   code. The formula asks one question &mdash; did this tick&rsquo;s
   instruction write to <i>my</i> address? Three <b>write slots</b>

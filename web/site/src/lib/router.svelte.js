@@ -56,6 +56,7 @@ class Nav {
     this.sectionDir = FILE_SECTIONS.indexOf(id) > this.sectionIdx() ? 1 : -1;
     this.section = id;
     this.carouselSeen = true;
+    scrollTop();
   }
 
   // Play unlocks once a cabinet exists.
@@ -172,7 +173,11 @@ class Nav {
 }
 
 function scrollTop() {
-  if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'instant' });
+  if (typeof window === 'undefined') return;
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  // The page itself can't scroll — the wizard's middle band is the
+  // real scroller, so a page turn has to reset it too.
+  document.querySelector('.wiz-scroll')?.scrollTo({ top: 0, behavior: 'instant' });
 }
 
 export const nav = new Nav();

@@ -4,6 +4,7 @@
   // from sokoban.css (736,510 RAM + 6,924 ROM + 512 window + 2
   // keyboard = 743,948).
   import FetchLadder from '../FetchLadder.svelte';
+  import Term from '../Term.svelte';
 </script>
 
 <p>
@@ -11,7 +12,7 @@
   look at a value. It isn&rsquo;t. Every memory cell is its own
   variable; an address is just a number; and CSS gives no way to get
   from the number to the variable. The very first thing a CPU does
-  every tick &mdash; fetch the byte its instruction pointer points at
+  every <Term t="tick">tick</Term> &mdash; fetch the byte its instruction pointer points at
   &mdash; is already impossible to write directly.
 </p>
 <p>

@@ -1,19 +1,72 @@
 /* cabinet-bar.css — the clickable to-scale bar of the cabinet file
    (CabinetBar.svelte) and the section carousel below it (About
-   sub-page 5): header strip, protruding prev/next arrows, tooltip. */
+   sub-page 3): sticky map header, title row + leader tick,
+   protruding prev/next arrows, tooltip. */
 
 .cab-bar {
+  /* Pinned to the top of the wizard's scroll band (.wiz-scroll):
+     the map stays put while the section text scrolls under it. */
+  position: sticky;
+  top: 0;
+  z-index: 8;
   border: 1px solid var(--edit-black);
   background: var(--edit-white);
   box-shadow: 4px 4px 0 var(--edit-black);
-  padding: 12px 16px;
+  padding: 10px 16px 8px;
   margin: 16px 0;
 }
 .cab-bar svg { width: 100%; height: auto; display: block; }
 
+/* Title row: the current section's name + size, centred over its bar
+   segment (clamped to the row) and tied to it by a coloured tick;
+   "n / N" carousel position at the right. */
+.bar-title {
+  position: relative;
+  height: 22px;
+  margin-bottom: 8px;
+}
+.bar-title .t-text {
+  position: absolute;
+  top: 0;
+  margin: 0;
+  font-size: 20px;
+  line-height: 22px;
+  font-weight: normal;
+  letter-spacing: normal;
+  white-space: nowrap;
+  color: var(--edit-black);
+  /* Never collide with the count at the right edge. */
+  max-width: calc(100% - 56px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bar-title .t-text .sz { color: var(--edit-red); font-size: 16px; }
+.bar-title .t-map { position: static; }
+.bar-title .t-count {
+  position: absolute;
+  right: 0;
+  top: 4px;
+  color: #555;
+  font-size: 15px;
+  line-height: 16px;
+}
+/* The leader tick: drops from under the title into the segment's top
+   edge (same colour, so the join reads as one mark). */
+.bar-title .t-tick {
+  position: absolute;
+  top: 22px;
+  width: 3px;
+  height: 12px;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
 .cab-bar .seg { cursor: pointer; outline: none; }
-.cab-bar .seg.dim, .cab-bar .cpu-callout.dim { opacity: 0.3; }
+.cab-bar .dim { opacity: 0.3; }
 .cab-bar rect.seg.sel { stroke: var(--edit-black); stroke-width: 2.5; }
+/* svg text: font-size here is in viewBox units (700-wide), so it
+   shrinks with the bar — the phone override keeps it legible. */
+.cab-bar .zoom-label { fill: #555; font-family: inherit; font-size: 13px; }
 
 /* Cursor tooltip: title + size of the hovered group. */
 .cab-tip {
@@ -40,13 +93,6 @@
 }
 .cab-tip .sz { color: var(--edit-red); }
 
-.cab-bar .caption {
-  margin: 10px 0 0;
-  font-size: 13px;
-  line-height: 16px;
-  color: #555;
-}
-
 /* — the section carousel below the bar — */
 .anatomy-pane {
   position: relative; /* anchors the arrow rails */
@@ -54,35 +100,16 @@
   border-top: 4px solid var(--pane-c, var(--edit-black));
   padding-top: 12px;
 }
-.anatomy-pane .pane-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0 0 14px;
-  font-size: 22px;
-  line-height: 24px;
-  letter-spacing: normal;
-}
-.anatomy-pane .pane-head .chip {
-  flex: none;
-  width: 16px;
-  height: 16px;
-  border: 1px solid var(--edit-black);
-}
-.anatomy-pane .pane-head .sz { color: var(--edit-red); font-size: 17px; }
-.anatomy-pane .pane-head .sec-count {
-  margin-left: auto;
-  color: #555;
-  font-size: 15px;
-}
 
 /* Prev/next arrows: fixed to the viewport, floating over the wizard
    window's left/right edges (the window is 820px, centred) — always
    visible, never part of any scroll container, so they can't create
-   scrollbars or push content. */
+   scrollbars or push content. dvh, not vh: the page can't scroll, so
+   on phones the URL bar never collapses and vh would centre against
+   the wrong (large) viewport. */
 .sec-arrow {
   position: fixed;
-  top: calc(50vh - 24px);
+  top: calc(50dvh - 24px);
   z-index: 20;
   width: 44px;
   height: 48px;
@@ -104,4 +131,15 @@
   .sec-arrow { width: 32px; height: 40px; font-size: 16px; }
   .sec-prev { left: 0; }
   .sec-next { right: 0; }
+}
+
+@media (max-width: 640px) {
+  /* Phone: tighter chrome so the pinned map eats less of the screen. */
+  .cab-bar { padding: 8px 10px 6px; margin: 10px 0; }
+  .bar-title { height: 18px; margin-bottom: 6px; }
+  .bar-title .t-text { font-size: 16px; line-height: 18px; }
+  .bar-title .t-text .sz { font-size: 13px; }
+  .bar-title .t-count { top: 2px; font-size: 13px; }
+  .bar-title .t-tick { top: 18px; height: 9px; }
+  .cab-bar .zoom-label { font-size: 22px; }
 }

@@ -19,20 +19,31 @@ export const GROUPS = [
   { id: 'memw',   label: 'Memory — write formulas',         size: '171 MB', c: '#0000aa' },
 ];
 
+// The three sections too small to draw at bar scale — together
+// 319 KB, 0.1% of the file, under a pixel of a 680px bar. On the
+// bar they are one 2px sliver; the zoom box below expands them.
+export const TINY = ['util', 'cpu', 'keys'];
+
 // Drawn bar segments: file order, contiguous same-group sections
-// merged. px pre-computed for a 680px bar (~2.2 px/MB); the first
-// three are held to a minimum clickable width (true scale would be
-// well under 1px each). The 25 KB header comment before util is
-// sub-pixel and has no carousel section, so it isn't drawn.
+// merged. px pre-computed for a 680px bar (~2.2 px/MB) starting at
+// x=12, after the 2px TINY sliver at x=10. The 25 KB header comment
+// before util is sub-pixel and has no carousel section, so it isn't
+// drawn.
 export const SEGS = [
-  { g: 'util',   x: 10,  w: 7   },  // the 66 @functions (exaggerated)
-  { g: 'cpu',    x: 17,  w: 7   },  // register tables…write slots (exaggerated)
-  { g: 'keys',   x: 24,  w: 5   },  // debug + keyboard (exaggerated)
-  { g: 'screen', x: 29,  w: 14  },  // pixel painter
-  { g: 'decl',   x: 43,  w: 66  },  // @property declarations
-  { g: 'memr',   x: 109, w: 91  },  // memory read function
-  { g: 'disk',   x: 200, w: 27  },  // disk read function
-  { g: 'clock',  x: 227, w: 31  },  // double-buffer reads
-  { g: 'memw',   x: 258, w: 374 },  // memory write rules
-  { g: 'clock',  x: 632, w: 58  },  // store + execute + clock keyframes
+  { g: 'screen', x: 12,  w: 14  },  // pixel painter
+  { g: 'decl',   x: 26,  w: 68  },  // @property declarations
+  { g: 'memr',   x: 94,  w: 93  },  // memory read function
+  { g: 'disk',   x: 187, w: 28  },  // disk read function
+  { g: 'clock',  x: 215, w: 32  },  // double-buffer reads
+  { g: 'memw',   x: 247, w: 384 },  // memory write rules
+  { g: 'clock',  x: 631, w: 59  },  // store + execute + clock keyframes
+];
+
+// Zoom box segments: the TINY sliver expanded to a 240px box —
+// ~350× the bar's scale. Proportional to 60 / 255 / 4 KB, except
+// keys is held to a 6px minimum so it can be hovered and clicked.
+export const ZOOM = [
+  { g: 'util', x: 10,  w: 45  },  // the 66 @functions
+  { g: 'cpu',  x: 55,  w: 189 },  // register tables…write slots
+  { g: 'keys', x: 244, w: 6   },  // debug + keyboard (min width)
 ];
