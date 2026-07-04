@@ -181,6 +181,7 @@
 
       <CabinetBar selected={nav.section === 'map' ? null : nav.section}
                   count="{nav.sectionIdx() + 1} / {FILE_SECTIONS.length}"
+                  hint={nav.section === 'map' && !nav.carouselSeen}
                   onselect={(g) => nav.sectionJump(g)} />
 
       <button class="sec-arrow sec-prev" onclick={() => nav.sectionStep(-1)}

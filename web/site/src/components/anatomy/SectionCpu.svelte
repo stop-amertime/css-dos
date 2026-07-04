@@ -8,6 +8,7 @@
   import CpuCoverage from './CpuCoverage.svelte';
   import Term from '../Term.svelte';
   import CodeCss from '../CodeCss.svelte';
+  import Callout from '../Callout.svelte';
 
   const AX_TABLE = `--AX: if(
   style(--_irqActive: 1): var(--snapshot-AX);  /* interrupt pending — hardware outranks the program this tick */
@@ -104,14 +105,13 @@ mod(calc(var(--snapshot-DX) * 65536 + var(--snapshot-AX)), max(1, var(--rmVal16)
   it:
 </p>
 <CodeCss code={AX_TABLE} />
-<div class="callout">
-  <span class="callout-label">NOTE</span>
+<Callout kind="info">
   <p>
     Code here is real cabinet code, structurally exact &mdash; only the
     variable names are tidied for reading: <code>--__1IP</code> becomes
     <code>--snapshot-IP</code>.
   </p>
-</div>
+</Callout>
 <p>
   Fourteen of these tables, one per register. Evaluating all fourteen
   against the current opcode, once, is how an instruction gets

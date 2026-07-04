@@ -4,6 +4,7 @@
   // "The CPU" pages; facts from CABINET-ANATOMY.md §7.
   import KeyboardDemo from '../KeyboardDemo.svelte';
   import CodeCss from '../CodeCss.svelte';
+  import Callout from '../Callout.svelte';
 
   const DEBUG_OUT = `.cpu::after {
   counter-reset: AX var(--AX) BX var(--BX) CX var(--CX) … IP var(--IP);
@@ -49,12 +50,11 @@
 </p>
 <CodeCss code={DEBUG_OUT} />
 
-<div class="callout">
-  <span class="callout-label">HONEST LIMITS</span>
+<Callout kind="warn" label="Honest limits">
   <p>
     CSS cannot see your physical keyboard &mdash; no selector reacts to
     a real keypress, so every program is piloted from the on-screen
     keys. And CSS cannot make sound &mdash; the PC speaker stays
     silent.
   </p>
-</div>
+</Callout>

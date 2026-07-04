@@ -124,7 +124,19 @@ Site shape: **3 wizard steps — About / Build / Play.** The separate
 8-page How-it-works route is stashed in `web/site/src/attic/` (not
 mounted) so its copy and widgets can be recycled.
 
-## Step 1: About — SIX pages (order revised 2026-07-04)
+## Step 1: About — SEVEN pages (Calcite added 2026-07-04 evening)
+
+Page 4 is now **Calcite** (`#about/calcite`): the Play step's intro
+prose plus the "Is this cheating?" argument promoted out of its fold.
+Play itself is player-first (embedded Calcite by default, raw-CSS
+behind a warning modal). Same evening: GLOSSARY callouts and the
+"Background: what CSS is" fold replaced by inline `Term` underlines
+(definitions at point of use), CssDemo promoted into page 2's flow,
+and several deep-dive folds promoted to main-flow sections (full ADD
+incl. flags, branchless jumps, clock conductor, keyboard latch,
+screen palette) — owner call: too much fun was hidden in dropdowns.
+
+## The SIX-page order below is the 2026-07-04 morning state
 
 1. Intro — the claim, Doom*, 300 MB of plain text. (Owner copy; the
    second footnote chain was dropped, "real programs" stands alone.)

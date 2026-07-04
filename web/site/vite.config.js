@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import Icons from 'unplugin-icons/vite';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -91,7 +92,7 @@ const externalRuntimeBuilder = {
 };
 
 export default defineConfig({
-  plugins: [svelte(), externalRuntimeBuilder, devRuntime, buildRuntime],
+  plugins: [svelte(), Icons({ compiler: 'svelte' }), externalRuntimeBuilder, devRuntime, buildRuntime],
   server: {
     port: 5173,
     fs: { allow: [repoRoot, calciteRoot] },

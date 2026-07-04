@@ -68,6 +68,38 @@
    shrinks with the bar — the phone override keeps it legible. */
 .cab-bar .zoom-label { fill: #555; font-family: inherit; font-size: 13px; }
 
+/* ── The first-visit hint bubble (tippy, theme "dos") ── */
+.tippy-box[data-theme~='dos'] {
+  background: var(--edit-white);
+  color: var(--edit-black);
+  border: 1px solid var(--edit-black);
+  border-radius: 0;
+  box-shadow: 4px 4px 0 var(--edit-black);
+  font-family: 'WebVGA', 'MorePerfectVGA', monospace;
+  font-size: 15px;
+  line-height: 18px;
+}
+.tippy-box[data-theme~='dos'] .tippy-content { padding: 10px 12px; }
+.tippy-box[data-theme~='dos'] .tippy-arrow { color: var(--edit-black); }
+.bar-hint {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.bar-hint-icon {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  margin-top: 1px;
+  color: var(--edit-blue);
+}
+.bar-hint-promise {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 15px;
+  color: var(--edit-red);
+}
+
 /* Cursor tooltip: title + size of the hovered group. */
 .cab-tip {
   position: fixed;

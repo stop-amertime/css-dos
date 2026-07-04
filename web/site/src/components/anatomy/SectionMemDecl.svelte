@@ -3,6 +3,7 @@
   // from sokoban.css; the cell count is measured from the same file
   // (grep -c '@property --mc' → 368,256).
   import CodeCss from '../CodeCss.svelte';
+  import Callout from '../Callout.svelte';
 
   const DECL = `@property --mc5000 {
   syntax: '<integer>';
@@ -77,12 +78,11 @@
   fallbacks.
 </p>
 
-<div class="callout">
-  <span class="callout-label">THE ONE OPTIMISATION</span>
+<Callout kind="tip" label="The one optimisation">
   <p>
     Memory is <b>packed two bytes per variable</b> (32861 is really the
     two bytes 93 and 128), so every sweep over memory mentions half as
     many cells as there are bytes. Without it, everything
     memory-related in the file doubles.
   </p>
-</div>
+</Callout>

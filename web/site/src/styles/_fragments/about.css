@@ -327,27 +327,37 @@
 .faq-list .foldable { margin: 10px 0; }
 
 /* DOS-setup style callout: a bordered note with a small label chip.
-   <div class="callout"><span class="callout-label">NOTE</span> ... */
+   Rendered by Callout.svelte: a floating head chip with a pixel icon
+   + label, colour per kind (info blue / tip yellow / warn red). */
 .callout {
-  margin: 14px 0;
-  padding: 12px 14px;
+  margin: 18px 0 14px;
+  padding: 14px 14px 12px;
   border: 1px solid var(--edit-black);
   background: var(--edit-white);
   box-shadow: 4px 4px 0 var(--edit-black);
   position: relative;
   max-width: 660px;
 }
-.callout .callout-label {
+.callout .callout-head {
   position: absolute;
-  top: -9px;
+  top: -10px;
   left: 10px;
-  padding: 1px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 8px 1px 6px;
   font-family: 'WebVGA', monospace; letter-spacing: normal;
   font-size: 13px;
   line-height: 15px;
   background: var(--edit-black);
   color: var(--edit-yellow);
 }
+.callout .callout-icon { width: 13px; height: 13px; flex: none; }
+.callout-info .callout-head { background: var(--edit-blue); color: var(--edit-white); }
+.callout-tip .callout-head { background: var(--edit-black); color: var(--edit-yellow); }
+.callout-warn .callout-head { background: var(--edit-red); color: var(--edit-white); }
+.callout-info { border-color: var(--edit-blue); box-shadow: 4px 4px 0 var(--edit-blue); }
+.callout-warn { border-color: var(--edit-red); box-shadow: 4px 4px 0 var(--edit-red); }
 .callout p { margin: 0 0 6px; }
 .callout p:last-child { margin-bottom: 0; }
 

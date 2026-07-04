@@ -12,8 +12,11 @@
   // twice in the file).
   import '../../styles/_fragments/cabinet-bar.css';
   import { GROUPS, SEGS, TINY, ZOOM } from './groups.js';
+  import tippy from 'tippy.js';
+  import 'tippy.js/dist/tippy.css';
+  import IconCursor from '~icons/pixelarticons/cursor-minimal';
 
-  let { selected = null, count = '', onselect } = $props();
+  let { selected = null, count = '', hint = false, onselect } = $props();
   let hovered = $state(null);
   let tip = $state(null); // cursor position for the tooltip
   let rowW = $state(0), labelW = $state(0); // measured: title row + label
@@ -38,6 +41,30 @@
     Math.max(0, Math.min((rowW * tickPct) / 100 - labelW / 2, rowW - labelW - 64)));
 
   function track(e) { tip = { x: e.clientX, y: e.clientY }; }
+
+  // First-visit hint: a tippy bubble under the bar telling the reader
+  // it's clickable. Shown while `hint` is true (map page, carousel
+  // untouched); any click or using the carousel dismisses it.
+  let barEl, hintEl;
+  let hintTip = null;
+  $effect(() => {
+    if (hint && barEl && hintEl && !hintTip) {
+      hintTip = tippy(barEl, {
+        content: hintEl,
+        theme: 'dos',
+        placement: 'bottom',
+        trigger: 'manual',
+        hideOnClick: true,
+        maxWidth: 360,
+        zIndex: 25,
+      });
+      hintTip.show();
+    } else if (!hint && hintTip) {
+      hintTip.destroy();
+      hintTip = null;
+    }
+    return () => { hintTip?.destroy(); hintTip = null; };
+  });
 </script>
 
 <div class="cab-bar">
@@ -53,7 +80,7 @@
     {#if count}<span class="t-count">{count}</span>{/if}
   </div>
 
-  <svg viewBox="0 0 700 100" role="img" onmousemove={track}
+  <svg bind:this={barEl} viewBox="0 0 700 100" role="img" onmousemove={track}
        onmouseleave={() => (hovered = null)}
        aria-label="The 309 megabyte cabinet file drawn to scale as a bar. Memory write rules take over half; the utilities, CPU and keyboard are together a 2 pixel sliver at the left edge, expanded below in a 350 times zoom box.">
     {#each SEGS as s}
@@ -98,4 +125,19 @@
       <span class="sz">{hoverG.size}</span>
     </div>
   {/if}
+
+  <div hidden>
+    <div class="bar-hint" bind:this={hintEl}>
+      <IconCursor class="bar-hint-icon" aria-hidden="true" />
+      <div>
+        <div>
+          This bar is the map &mdash; <b>click any stripe</b> to find
+          out how that part of the file works.
+        </div>
+        <div class="bar-hint-promise">
+          If you enjoy silly code hacks, this is top shelf stuff, I promise.
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
