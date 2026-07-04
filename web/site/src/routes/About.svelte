@@ -1,12 +1,12 @@
 <script>
   // About — five short pages: the claim, how it's possible (the
-  // machine + the one-tool idea), the why, the FAQs, and the contents
-  // of the file itself (becomes the clickable map). Copy per
-  // ABOUT-SCRIPT.md.
+  // one-tool idea + the mechanisms), the How-it-works carousel (the
+  // file dissected, with a map/overview landing page), the FAQs, and
+  // the why as an epilogue. Copy register per ABOUT-SCRIPT.md.
   import { fly } from 'svelte/transition';
   import '../styles/_fragments/about.css';
   import '../styles/_fragments/anatomy.css';
-  import { nav } from '../lib/router.svelte.js';
+  import { nav, FILE_SECTIONS } from '../lib/router.svelte.js';
   import StepDots from '../components/StepDots.svelte';
   import Wizard from '../components/Wizard.svelte';
   import Foldable from '../components/Foldable.svelte';
@@ -14,7 +14,7 @@
   import MoonViz from '../components/MoonViz.svelte';
   import CabinetBar from '../components/anatomy/CabinetBar.svelte';
   import { GROUPS } from '../components/anatomy/groups.js';
-  import SectionHeader from '../components/anatomy/SectionHeader.svelte';
+  import SectionMap from '../components/anatomy/SectionMap.svelte';
   import SectionUtil from '../components/anatomy/SectionUtil.svelte';
   import SectionCpu from '../components/anatomy/SectionCpu.svelte';
   import SectionKeys from '../components/anatomy/SectionKeys.svelte';
@@ -30,19 +30,22 @@
   // The cabinet carousel: the current section lives on the router
   // (nav.section) so it's addressable — #about/file/clock deep-links.
   const SECTIONS = {
-    hdr: SectionHeader, util: SectionUtil, cpu: SectionCpu, keys: SectionKeys,
+    map: SectionMap, util: SectionUtil, cpu: SectionCpu, keys: SectionKeys,
     screen: SectionScreen, decl: SectionMemDecl, memw: SectionMemWrite,
     memr: SectionMemRead, disk: SectionDisk, clock: SectionClock,
   };
-  const curGroup = $derived(GROUPS.find((x) => x.id === nav.section));
+  // The map page isn't a file section (no bytes, no bar segment) —
+  // it gets its own pane header and leaves the whole bar lit.
+  const MAP_GROUP = { id: 'map', label: 'The whole file', size: '309 MB', c: '#555555' };
+  const curGroup = $derived(GROUPS.find((x) => x.id === nav.section) ?? MAP_GROUP);
   const CurSection = $derived(SECTIONS[nav.section]);
 
   const SUBPAGES = [
     { label: 'Intro' },
     { label: 'How is this possible?' },
-    { label: 'Why?' },
+    { label: 'How it works' },
     { label: 'FAQs' },
-    { label: "What's in the file" },
+    { label: 'Why?' },
   ];
 </script>
 
@@ -68,23 +71,17 @@
             less-memorable support chips &mdash; in one CSS file.
           </p>
           <p class="lede">
-            It boots real <b>DOS</b> (disk operating system, the
-            precursor to Windows) from an emulated floppy and runs
-            unmodified 1980s software.
+            It boots real <b>DOS</b> (the precursor to Windows) from an
+            emulated floppy and runs unmodified 1980s software.
           </p>
           <p class="lede">Yes, it runs <b>Doom</b><span class="flair-star">*</span></p>
           <div class="flair-burst">
             <div class="flair-text">
-              <span>The first time real<span class="flair-star">**</span> programs have run in CSS!</span>
+              <span>The first time real programs have run in CSS!</span>
             </div>
           </div>
           <p class="intro-fn small">
             <span class="fn-star">*</span> barely.
-          </p>
-          <p class="intro-fn small">
-            <span class="fn-star">**</span> &ldquo;real&rdquo; meaning
-            production programs &mdash; the command shell, early computer
-            games, and so on.
           </p>
           <p class="lede">
             The file that does all this is about <b>300&nbsp;MB of plain
@@ -103,19 +100,66 @@
     <div class="subpage" data-subpage="2">
       <h1>How is this possible?</h1>
       <p>
-        One stylesheet, no JavaScript, simulating the whole machine:
+        Everything in the machine is made of CSS variables &mdash;
+        which are, basically, formulas. A variable can be defined in
+        terms of other variables, so a variable can compute: every
+        register, every byte of RAM, every pixel on the screen is a
+        variable that works out its own value, the way a cell in a
+        spreadsheet does.
+      </p>
+
+      <Foldable class="fold-bg">
+        {#snippet summary()}Background: what CSS is{/snippet}
+        <p>
+          The language that describes how web pages look. The
+          page&rsquo;s HTML holds the words and pictures; the CSS is
+          the list of rules saying what colour, size and position
+          everything gets. It was never meant to compute anything, but
+          over the years it has picked up the working parts of a
+          programming language &mdash; the newest of them,
+          <code>@function</code> and <code>if()</code>, only reached
+          browsers in the last couple of years:
+        </p>
+        <CssDemo />
+      </Foldable>
+
+      <p style="margin-top:16px">
+        Six abilities, between them, cover the whole computer. Each is
+        a stop on the <a href="#about/file">How-it-works tour</a>:
       </p>
       <ul class="sim-list">
-        <li><span class="ok">[X]</span> An Intel <b>8086</b> CPU</li>
-        <li><span class="ok">[X]</span> 640&nbsp;KB of RAM</li>
-        <li><span class="ok">[X]</span> A custom <b>BIOS</b>, booting real <b>DOS</b></li>
-        <li><span class="ok">[X]</span> A FAT12 <b>floppy disk</b>, with arbitrary files on it</li>
-        <li><span class="ok">[X]</span> Text mode and VGA graphics (Mode&nbsp;13h)</li>
-        <li><span class="ok">[X]</span> A keyboard, a timer chip, and hardware interrupts</li>
+        <li><code>calc()</code>, <code>mod()</code> and <code>round()</code>
+          do real arithmetic &mdash; enough to build AND, OR and the rest
+          of a CPU&rsquo;s toolkit (<a href="#about/file/util">utility functions</a>)</li>
+        <li>one typed variable per pair of bytes holds the state
+          (<a href="#about/file/decl">memory</a>)</li>
+        <li>an <code>if()</code> table per register spells out what every
+          instruction does to it (<a href="#about/file/cpu">the CPU</a>)</li>
+        <li>64,000 <code>&lt;div&gt;</code>s each colour themselves from
+          their byte of video memory (<a href="#about/file/screen">the screen</a>)</li>
+        <li>the <code>:active</code> selector reads an on-screen keyboard
+          (<a href="#about/file/keys">the keyboard</a>)</li>
+        <li>one animation ticks a counter, and every formula in the file
+          re-evaluates each tick (<a href="#about/file/clock">the clock</a>)</li>
       </ul>
-      <p style="margin-top:12px">
-        Faithfully enough that unmodified 1980s software can&rsquo;t tell
-        the difference.
+
+      <p style="margin-top:16px">
+        We have exactly one tool, and we are smacking every problem
+        with it until it&rsquo;s fixed. Some problems that a very
+        slightly different tool would fix in one hit get smacked a
+        million times instead. All of those smacks have to be written
+        down &mdash; that&rsquo;s how the file ends up at
+        300&nbsp;MB of plain text:
+      </p>
+      <MoonViz />
+
+      <p>
+        A browser really will evaluate all of this &mdash; at about
+        two instructions per second. At that speed, booting DOS takes
+        a year and a half. So this site runs the same file through
+        <b>Calcite</b>, a compiler that evaluates the same CSS about a
+        hundred thousand times faster; the Play page explains how it
+        works, and the rule that keeps it honest.
       </p>
 
       <div class="ext-link-box">
@@ -127,51 +171,32 @@
           full machine running an unmodified OS and real programs.
         </p>
       </div>
-
-      <p style="margin-top:20px">
-        Everything in the machine is made of CSS variables &mdash; which
-        are, basically, formulas. Every register, every byte of RAM,
-        every pixel on the screen is a variable that calculates its own
-        value. The amount of complexity that one sentence hides is
-        difficult to comprehend.
-      </p>
-      <p>
-        We have exactly one tool, and we are smacking every problem with
-        it until it&rsquo;s fixed. Some problems that a very slightly
-        different tool would fix in one hit get smacked a million times
-        instead.
-      </p>
-      <p>
-        All those smacks have to be written down. That&rsquo;s how the
-        file ends up at 300&nbsp;MB &mdash; three hundred million
-        characters of plain text:
-      </p>
-      <MoonViz />
     </div>
   {:else if nav.sub === 3}
-    <!-- Why? -->
+    <!-- How it works — the bar as map, the sections as a carousel -->
     <div class="subpage" data-subpage="3">
-      <h1>Why?</h1>
-      <blockquote class="epigraph">
-        <p>&ldquo;Because it&rsquo;s there&rdquo;</p>
-        <cite>&mdash; George Mallory, when asked why he climbed Everest.</cite>
-      </blockquote>
-      <!-- TODO(owner): link the Dark Souls bongos run -->
-      <p>
-        Cave paintings started with some spare blood being misused to
-        represent a deer. Ten thousand years later, someone beat Dark
-        Souls using the Bongo Drums controller from a Donkey Kong rhythm
-        game, which only has three buttons and a microphone. Humans, we
-        never learn, chasing useless abstract concepts like meaning,
-        challenge, innovation, love. Pick your poison.
-      </p>
-      <p>
-        I&rsquo;m under no illusion here: this project was excruciating
-        to create and serves no practical benefit whatsoever. But it sits
-        in that special nook between &lsquo;might be technically
-        possible&rsquo; and &lsquo;impossible&rsquo; that draws the
-        foolish and the brave recklessly in.
-      </p>
+      <h1>How it works</h1>
+
+      <CabinetBar selected={nav.section === 'map' ? null : nav.section}
+                  onselect={(g) => nav.sectionJump(g)} />
+
+      <button class="sec-arrow sec-prev" onclick={() => nav.sectionStep(-1)}
+              aria-label="Previous section" title="Previous section">&#9668;</button>
+      <button class="sec-arrow sec-next" onclick={() => nav.sectionStep(1)}
+              aria-label="Next section" title="Next section">&#9658;</button>
+      <div class="anatomy-pane" style="--pane-c:{curGroup.c}">
+        <h2 class="pane-head">
+          <span class="chip" style="background:{curGroup.c}"></span>
+          <span>{curGroup.label}</span>
+          <span class="sz">{curGroup.size}</span>
+          <span class="sec-count">{nav.sectionIdx() + 1} / {FILE_SECTIONS.length}</span>
+        </h2>
+        {#key nav.section}
+          <div class="sec-body" in:fly={{ x: 44 * nav.sectionDir, duration: 180 }}>
+            <CurSection />
+          </div>
+        {/key}
+      </div>
     </div>
   {:else if nav.sub === 4}
     <!-- FAQs -->
@@ -179,64 +204,17 @@
       <h1>FAQs</h1>
 
       <div class="faq-list">
-        <Foldable>
-          {#snippet summary()}What even is CSS?{/snippet}
+        <Foldable open={true}>
+          {#snippet summary()}Really &mdash; no JavaScript?{/snippet}
           <p>
-            The language that describes how web pages look. The
-            page&rsquo;s HTML holds the words and pictures; the CSS is
-            the list of rules saying what colour, size and position
-            everything gets. It was never meant to compute anything, but
-            over the years it has picked up the working parts of a
-            programming language:
-          </p>
-          <CssDemo />
-        </Foldable>
-
-        <Foldable>
-          {#snippet summary()}Wait &mdash; CSS can do maths?{/snippet}
-          <p>
-            Yes. A variable can hold a number, and functions like
-            <code>calc()</code>, <code>mod()</code> and
-            <code>round()</code> can do arithmetic on it. One variable
-            can be defined in terms of others &mdash; which is what makes
-            a variable a formula. That is the entire toolkit: the
-            registers, the RAM, the screen and the disk are all
-            variables, and everything that happens in the machine is
-            those formulas being recalculated.
-          </p>
-        </Foldable>
-
-        <Foldable>
-          {#snippet summary()}How can there be a clock? Nothing in CSS moves.{/snippet}
-          <p>
-            One thing in CSS moves by itself: animations. At the very
-            bottom of the file is a tiny animation whose only job is to
-            flip a variable back and forth, forever. Each flip is one
-            tick of the machine, one tick executes one instruction, and
-            every formula in the file re-evaluates against the new state.
-          </p>
-        </Foldable>
-
-        <Foldable>
-          {#snippet summary()}How does it draw video?{/snippet}
-          <p>
-            The screen is 64,000 boxes on the page &mdash; 320 wide by
-            200 tall. Each box has a rule that reads its own byte of the
-            machine&rsquo;s video memory and turns the value into a
-            background colour. When a program writes to video memory, the
-            boxes whose bytes changed recalculate, and the picture
-            changes.
-          </p>
-        </Foldable>
-
-        <Foldable>
-          {#snippet summary()}How do you control it? CSS can&rsquo;t see a keyboard.{/snippet}
-          <p>
-            It can&rsquo;t. What it can see is whether an element is
-            currently being pressed &mdash; the <code>:active</code>
-            selector. So the machine has an on-screen keyboard; while you
-            hold one of its keys, that key&rsquo;s <code>:active</code>
-            rule matches, and the CSS reads it as a keypress.
+            Really &mdash; the machine is one CSS file, and a browser
+            can evaluate every line of it; nothing you see comes from
+            JavaScript. What a browser can&rsquo;t do is keep up:
+            300&nbsp;MB of stylesheet is more than a tab survives, and
+            even a small build runs at a couple of instructions per
+            second. So this site feeds the same file to <b>Calcite</b>,
+            a compiler built for the job &mdash; the Play page explains
+            it, and why it isn&rsquo;t cheating.
           </p>
         </Foldable>
 
@@ -251,47 +229,93 @@
         </Foldable>
 
         <Foldable>
-          {#snippet summary()}Really &mdash; no JavaScript?{/snippet}
+          {#snippet summary()}How can there be a clock? Nothing in CSS moves.{/snippet}
           <p>
-            Really<span class="flair-star">*</span> &mdash; the machine
-            is one CSS file, and a browser can evaluate every line of it.
+            One thing in CSS moves by itself: animations. At the very
+            bottom of the file a tiny animation ticks a counter &mdash;
+            0, 1, 2, 3, forever &mdash; and each lap the machine
+            advances by one instruction. The
+            <a href="#about/file/clock">clock section</a> has the real
+            keyframes, and the trick that lets 368,256 memory cells
+            change at once.
           </p>
+        </Foldable>
+
+        <Foldable>
+          {#snippet summary()}How does it draw video?{/snippet}
           <p>
-            The asterisk: at browser speed it manages about two
-            instructions per second, so booting DOS would take a year and
-            a half. This site runs the same file through <b>Calcite</b>,
-            a compiler built for the job, which evaluates the same CSS
-            roughly a hundred thousand times faster. Calcite doesn&rsquo;t
-            get to change the rules: if it ever disagrees with what a
-            browser would compute, Calcite is wrong.
+            The screen is 64,000 boxes, 320 wide by 200 tall, each with
+            a rule that turns its own byte of video memory into a
+            background colour. The
+            <a href="#about/file/screen">screen section</a> has the
+            rules, the palette, and the faked electron beam.
+          </p>
+        </Foldable>
+
+        <Foldable>
+          {#snippet summary()}How do you control it? CSS can&rsquo;t see a keyboard.{/snippet}
+          <p>
+            It can&rsquo;t. What it can see is whether an element is
+            currently being pressed &mdash; the <code>:active</code>
+            selector &mdash; so the machine has an on-screen keyboard
+            whose keys are real buttons. The
+            <a href="#about/file/keys">keyboard section</a> shows the
+            actual rules, live.
+          </p>
+        </Foldable>
+
+        <Foldable>
+          {#snippet summary()}Why is there no sound?{/snippet}
+          <p>
+            CSS has nothing that makes noise &mdash; there is no audio
+            property to abuse the way animations get abused for time.
+            The PC speaker stays silent, so Doom runs mute.
+          </p>
+        </Foldable>
+
+        <Foldable>
+          {#snippet summary()}Is Doom actually playable?{/snippet}
+          <p>
+            Barely &mdash; the asterisk on the intro page is honest.
+            Through Calcite it manages a frame or two per second:
+            enough to walk, open doors and shoot, a long way from
+            comfortable.
+          </p>
+        </Foldable>
+
+        <Foldable>
+          {#snippet summary()}Can it run my own programs?{/snippet}
+          <p>
+            Yes &mdash; that&rsquo;s the Build step. Hand the builder
+            any DOS program small enough for a floppy and it bakes the
+            machine and your files into a fresh cabinet. The presets on
+            the Build page were made the same way.
           </p>
         </Foldable>
       </div>
     </div>
   {:else if nav.sub === 5}
-    <!-- What's in the file — the bar as map, the sections as a carousel -->
+    <!-- Why? -->
     <div class="subpage" data-subpage="5">
-      <h1>What&rsquo;s in the file</h1>
-
-      <CabinetBar selected={nav.section} onselect={(g) => nav.sectionJump(g)} />
-
-      <button class="sec-arrow sec-prev" onclick={() => nav.sectionStep(-1)}
-              aria-label="Previous section" title="Previous section">&#9668;</button>
-      <button class="sec-arrow sec-next" onclick={() => nav.sectionStep(1)}
-              aria-label="Next section" title="Next section">&#9658;</button>
-      <div class="anatomy-pane" style="--pane-c:{curGroup.c}">
-        <h2 class="pane-head">
-          <span class="chip" style="background:{curGroup.c}"></span>
-          <span>{curGroup.label}</span>
-          <span class="sz">{curGroup.size}</span>
-          <span class="sec-count">{nav.sectionIdx() + 1} / {GROUPS.length}</span>
-        </h2>
-        {#key nav.section}
-          <div class="sec-body" in:fly={{ x: 44 * nav.sectionDir, duration: 180 }}>
-            <CurSection />
-          </div>
-        {/key}
-      </div>
+      <h1>Why?</h1>
+      <blockquote class="epigraph">
+        <p>&ldquo;Because it&rsquo;s there&rdquo;</p>
+        <cite>&mdash; George Mallory, when asked why he climbed Everest.</cite>
+      </blockquote>
+      <!-- TODO(owner): link the Dark Souls bongos run -->
+      <p>
+        Cave paintings started with some spare blood being misused to
+        represent a deer. Ten thousand years later, someone beat Dark
+        Souls using the Bongo Drums controller from a Donkey Kong rhythm
+        game, which only has three buttons and a microphone.
+      </p>
+      <p>
+        I&rsquo;m under no illusion here: this project was excruciating
+        to create and serves no practical benefit whatsoever. But it sits
+        in that special nook between &lsquo;might be technically
+        possible&rsquo; and &lsquo;impossible&rsquo; that draws the
+        foolish and the brave recklessly in.
+      </p>
     </div>
   {/if}
 

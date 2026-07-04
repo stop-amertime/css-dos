@@ -60,7 +60,7 @@
 
   <p class="caption">
     The whole 309&nbsp;MB file (a real Sokoban build), to scale, in
-    file order &mdash; except the four leftmost slivers, drawn wider
+    file order &mdash; except the three leftmost slivers, drawn wider
     than truth (each would be under a pixel) so they can be clicked.
   </p>
 </div>

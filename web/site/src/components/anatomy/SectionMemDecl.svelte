@@ -44,7 +44,8 @@
 <h3 class="anatomy-head">One cell, four variables</h3>
 <p>
   There&rsquo;s a wrinkle: <code>--mc5000</code> isn&rsquo;t the only
-  variable for that cell. The clock section explains why every tick has
+  variable for that cell. The <a href="#about/file/clock">clock
+  section</a> explains why every tick has
   to read a frozen snapshot of memory while the new values are being
   computed &mdash; and that trick needs each cell to exist as <b>four</b>
   variables: the freshly computed value, the snapshot the formulas

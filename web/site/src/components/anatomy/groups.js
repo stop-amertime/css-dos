@@ -1,12 +1,13 @@
-// groups.js — the ten sections of the cabinet carousel, plus the
-// drawn bar segments. Order = file order (of first appearance).
+// groups.js — the nine file sections of the cabinet carousel, plus
+// the drawn bar segments. Order = file order (of first appearance).
+// The carousel also has a 'map' overview page (router FILE_SECTIONS)
+// that isn't a file section and so isn't listed here.
 // Sizes measured from a real Sokoban build (util/cpu boundary at
 // byte offsets 28,218 / 90,652 / ~345,543 of sokoban.css);
 // colours from the EGA palette (utilities get light red: same
 // family as the CPU; declarations light blue: same family as the
 // write formulas).
 export const GROUPS = [
-  { id: 'hdr',    label: 'Header comment',                  size: '25 KB',  c: '#555555' },
   { id: 'util',   label: 'Utility functions',               size: '60 KB',  c: '#ff5555' },
   { id: 'cpu',    label: 'CPU',                             size: '255 KB', c: '#aa0000' },
   { id: 'keys',   label: 'Keyboard & debug display',        size: '4 KB',   c: '#aa00aa' },
@@ -21,12 +22,12 @@ export const GROUPS = [
 // Drawn bar segments: file order, contiguous same-group sections
 // merged. px pre-computed for a 680px bar (~2.2 px/MB); the first
 // three are held to a minimum clickable width (true scale would be
-// well under 1px each).
+// well under 1px each). The 25 KB header comment before util is
+// sub-pixel and has no carousel section, so it isn't drawn.
 export const SEGS = [
-  { g: 'hdr',    x: 10,  w: 5   },  // header comment (exaggerated)
-  { g: 'util',   x: 15,  w: 5   },  // the 66 @functions (exaggerated)
-  { g: 'cpu',    x: 20,  w: 5   },  // register tables…write slots (exaggerated)
-  { g: 'keys',   x: 25,  w: 4   },  // debug + keyboard (exaggerated)
+  { g: 'util',   x: 10,  w: 7   },  // the 66 @functions (exaggerated)
+  { g: 'cpu',    x: 17,  w: 7   },  // register tables…write slots (exaggerated)
+  { g: 'keys',   x: 24,  w: 5   },  // debug + keyboard (exaggerated)
   { g: 'screen', x: 29,  w: 14  },  // pixel painter
   { g: 'decl',   x: 43,  w: 66  },  // @property declarations
   { g: 'memr',   x: 109, w: 91  },  // memory read function

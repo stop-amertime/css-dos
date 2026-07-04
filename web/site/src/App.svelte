@@ -1,5 +1,5 @@
 <script>
-  import { nav } from './lib/router.svelte.js';
+  import { nav, FILE_SECTIONS, ABOUT_FILE_SUB } from './lib/router.svelte.js';
   import { build } from './lib/builder.svelte.js';
   import StepDots from './components/StepDots.svelte';
   import About from './routes/About.svelte';
@@ -17,16 +17,17 @@
 
   function onkeydown(e) {
     if (e.target?.matches?.('input, textarea, select, [contenteditable]')) return;
-    // On the file carousel, left/right step sections instead of pages.
-    const inFileMap = nav.step === 1 && nav.sub === 5;
+    // On the How-it-works carousel, left/right step sections; at either
+    // end they fall through to normal page turns (no wrap-around trap).
+    const inFileMap = nav.step === 1 && nav.sub === ABOUT_FILE_SUB;
     if (e.key === 'ArrowRight') {
       e.preventDefault();
-      if (inFileMap) nav.sectionStep(1);
+      if (inFileMap && nav.sectionIdx() < FILE_SECTIONS.length - 1) nav.sectionStep(1);
       else if (!nav.nextDisabled && !nav.isLast) nav.next();
     }
     if (e.key === 'ArrowLeft') {
       e.preventDefault();
-      if (inFileMap) nav.sectionStep(-1);
+      if (inFileMap && nav.sectionIdx() > 0) nav.sectionStep(-1);
       else if (!nav.atStart) nav.prev();
     }
     if (e.key === 'Escape' && !nav.atStart) { e.preventDefault(); nav.prev(); }

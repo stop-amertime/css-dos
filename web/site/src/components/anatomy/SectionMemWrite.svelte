@@ -1,7 +1,10 @@
 <script>
   // Memory — write formulas: the 171 MB write rules, the biggest
-  // thing in the file. Copy recycled from the retired "Stumbling
-  // block" page; facts from CABINET-ANATOMY.md §6, §13.
+  // thing in the file. Main flow rewritten 2026-07-04 to the
+  // ABOUT-SCRIPT.md register (the owner's canonical x = y example);
+  // facts from CABINET-ANATOMY.md §6, §13. The assembled-cell
+  // extract mirrors kiln/emit-css.mjs (slot cascade, slot 0
+  // outermost; names tidied per the CPU section's NOTE).
   import Foldable from '../Foldable.svelte';
   import RamWrite from '../RamWrite.svelte';
 </script>
@@ -12,49 +15,37 @@
   other language.
 </p>
 <p>
-  Basically all programming languages are a list of instructions, like
-  a <i>recipe</i>. For example <code>x = y</code>. The instructions are
-  actioned in order. A stylesheet is very different. It has no order:
-  every rule in it is in force the whole time &mdash; more like a
-  blueprint or a diagram. You cannot tell CSS to <i>do</i> things. You
-  can only declare, once, what a thing <i>is</i>:
+  Normal programming languages are a list of instructions, run in
+  order &mdash; a recipe. They assign: <code>x&nbsp;=&nbsp;y</code>,
+  and x changes. A stylesheet has no order: every rule in it is in
+  force the whole time, more like a blueprint than a recipe. There is
+  no moment at which x <i>becomes</i> y &mdash; you can only declare,
+  once, what x <i>is</i>:
 </p>
-<pre class="byte-example"><code><span class="tok-prop">--x</span>: blue;</code></pre>
+<pre class="byte-example"><code><span class="tok-prop">--x</span>: <span class="tok-num">5</span>;</code></pre>
 <p>
-  In other words, we can only define X ONCE, and can&rsquo;t change it
-  later. This is clearly going to be a massive pain in the arse, but
-  CSS is Turing complete, so there must be a way around it.
-</p>
-<p>
-  We create a &lsquo;write slot&rsquo; &mdash; a variable that just
-  holds the address and value of a change to memory. Then, we define X
-  as a function that looks at the write slot to see if it has been
-  updated to a new value, and if not, it keeps its old value.
-</p>
-<p class="small">
-  (Some instructions change up to six bytes at once, so we need
-  multiple write slots!)
+  So the definition itself has to do the work: each byte of memory is
+  written as a formula that works out, every tick, what its value now
+  is &mdash; closer to how a spreadsheet cell works than to a line of
+  code. The formula asks one question &mdash; did this tick&rsquo;s
+  instruction write to <i>my</i> address? Three <b>write slots</b>
+  carry the answer: small variables holding the addresses and values
+  of whatever the current instruction writes.
 </p>
 
 <RamWrite />
 
 <p>
-  Now, the catch &mdash; this formula has to be rerun EVERY SINGLE TIME
-  anything happens, even if that variable wasn&rsquo;t changed.
-</p>
-<p>
-  In a normal programming language, <code>y = &lt;value&gt;</code> only
-  affects Y &mdash; one check, done.
-</p>
-<p>
-  In CSS, an instruction might write one byte, and 650,000 formulas
-  must be rerun to check whether the write was about them. Often, a CPU
-  instruction doesn&rsquo;t write <i>any</i> bytes, but they all still
-  have to check. This is absurdly wasteful.
+  Naturally, this means every byte has to re-check its formula every
+  single tick, whether it was written or not. In a normal programming
+  language, <code>x&nbsp;=&nbsp;y</code> changes x and touches nothing
+  else. Here, an instruction that writes one byte &mdash; or no bytes
+  at all &mdash; still makes all 650,000 write formulas ask their
+  question again. This is massively inefficient.
 </p>
 <p class="punchline">
   More than half the file (171&nbsp;MB) is this single formula, written
-  out once per byte.
+  out once per memory cell.
 </p>
 
 <h3 class="anatomy-head">How a write actually lands</h3>
@@ -83,6 +74,20 @@
   cells fire, each splicing in its own half. And in every cell&rsquo;s
   formula the three slot calls are nested with slot 0 outermost, so if
   two slots ever hit the same cell, slot 0 wins.
+</p>
+<p>
+  Assembled, this is one cell of the machine &mdash; verbatim, names
+  tidied as usual, the middle slot elided:
+</p>
+<pre class="byte-example"><code><span class="tok-prop">--mc5000</span>: --applySlot(--applySlot(--applySlot(var(<span class="tok-prop">--snapshot-mc5000</span>),
+      var(<span class="tok-prop">--_slot2Live</span>), calc(var(<span class="tok-prop">--memAddr2</span>) - <span class="tok-num">5000</span> * <span class="tok-num">2</span>),
+      calc(var(<span class="tok-prop">--memAddr2</span>) + <span class="tok-num">1</span> - <span class="tok-num">5000</span> * <span class="tok-num">2</span>), var(<span class="tok-prop">--memVal2</span>), var(<span class="tok-prop">--_writeWidth</span>)),
+    <span class="tok-comment">/* &hellip; slot 1, the same shape &hellip; */</span>),
+  var(<span class="tok-prop">--_slot0Live</span>), calc(var(<span class="tok-prop">--memAddr0</span>) - <span class="tok-num">5000</span> * <span class="tok-num">2</span>),
+  calc(var(<span class="tok-prop">--memAddr0</span>) + <span class="tok-num">1</span> - <span class="tok-num">5000</span> * <span class="tok-num">2</span>), var(<span class="tok-prop">--memVal0</span>), var(<span class="tok-prop">--_writeWidth</span>));</code></pre>
+<p>
+  This line, once per cell &mdash; 368,256 times, each with its own
+  address baked into the arithmetic &mdash; is the 171&nbsp;MB.
 </p>
 <p>
   Why stop at two bytes per cell, when four would halve everything

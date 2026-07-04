@@ -24,10 +24,18 @@
   zero of the disk is the first thing the machine boots.)
 </p>
 
+<div class="callout">
+  <span class="callout-label">GLOSSARY</span>
+  <p>
+    <b>Sector</b> &mdash; the unit a floppy drive reads and writes:
+    512 bytes. A 1.44&nbsp;MB floppy is 2,880 of them.
+  </p>
+</div>
+
 <h3 class="anatomy-head">The window</h3>
 <p>
   DOS never reads the disk all at once &mdash; it asks the floppy
-  controller for one 512-byte sector at a time: &ldquo;give me sector
+  controller for one sector at a time: &ldquo;give me sector
   57.&rdquo; So the machine keeps a 512-byte <b>window</b> in memory
   whose contents are not stored anywhere: those 512 addresses read
   <i>through</i> to the disk table, at &ldquo;requested sector &times;

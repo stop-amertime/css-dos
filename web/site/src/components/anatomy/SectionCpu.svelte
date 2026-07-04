@@ -66,7 +66,7 @@
   cabinet contains the line
   <code>--opcode:&nbsp;var(--q0)</code>, where <code>--q0</code> is
   the byte of memory IP points at, fetched through the giant function
-  in the read-formulas section.
+  in the <a href="#about/file/memr">read-formulas section</a>.
 </p>
 <p>
   All fourteen tables, drawn as one grid &mdash; a mark where a table
@@ -268,7 +268,7 @@ mod(calc(var(<span class="tok-prop">--snapshot-DX</span>) * <span class="tok-num
 @property <span class="tok-prop">--IP</span> {'{'} &hellip; initial-value: <span class="tok-num">0</span>; {'}'}</code></pre>
 <p>
   That is linear address 983,040 &mdash; the first ROM entry in the
-  read-formulas section &mdash; and the byte there is 235, a jump
+  <a href="#about/file/memr">read-formulas section</a> &mdash; and the byte there is 235, a jump
   instruction. The machine&rsquo;s first act is to jump into the BIOS
   proper, which sets up a stack, fills in the interrupt table, paints
   its splash screen, and jumps again, into DOS. Power arrives, the

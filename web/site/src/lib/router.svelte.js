@@ -13,10 +13,13 @@ export const ABOUT_SUBPAGES = 5;
 const BUILD_PICK = 1, BUILD_CONFIG = 2;
 
 // Named sub-pages (index = sub - 1).
-const ABOUT_SUBS = ['intro', 'how', 'why', 'faqs', 'file'];
+const ABOUT_SUBS = ['intro', 'how', 'file', 'faqs', 'why'];
 const BUILD_SUBS = ['pick', 'configure', 'result'];
-// Section ids on the About/file carousel — mirrors anatomy/groups.js.
-const FILE_SECTIONS = ['hdr', 'util', 'cpu', 'keys', 'screen', 'decl', 'memr', 'disk', 'clock', 'memw'];
+// The How-it-works carousel: the map/overview page, then the file's
+// sections in file order (mirrors anatomy/groups.js).
+export const FILE_SECTIONS = ['map', 'util', 'cpu', 'keys', 'screen', 'decl', 'memr', 'disk', 'clock', 'memw'];
+// Which About sub-page hosts the carousel (App.svelte keys arrows off it).
+export const ABOUT_FILE_SUB = ABOUT_SUBS.indexOf('file') + 1;
 
 const stepNames = {
   about: ABOUT, how: ABOUT, howitworks: ABOUT,
@@ -29,7 +32,7 @@ class Nav {
   step = $state(ABOUT);
   sub = $state(1);       // About sub-page 1..ABOUT_SUBPAGES
   buildSub = $state(1);  // Build sub-page 1..3
-  section = $state('hdr');   // current section on the About/file carousel
+  section = $state('map');   // current section on the About/file carousel
   sectionDir = $state(1);    // slide direction of the last section change
 
   sectionIdx() { return FILE_SECTIONS.indexOf(this.section); }
@@ -107,7 +110,7 @@ class Nav {
   restart() {
     this.sub = 1;
     this.buildSub = 1;
-    this.section = 'hdr';
+    this.section = 'map';
     this.go(ABOUT);
   }
 
@@ -115,7 +118,7 @@ class Nav {
   hashFor() {
     if (this.step === ABOUT) {
       let h = `about/${ABOUT_SUBS[this.sub - 1]}`;
-      if (this.sub === 5) h += `/${this.section}`;
+      if (this.sub === ABOUT_FILE_SUB) h += `/${this.section}`;
       return h;
     }
     if (this.step === BUILD) return `build/${BUILD_SUBS[this.buildSub - 1]}`;
@@ -125,6 +128,9 @@ class Nav {
   applyHash() {
     const raw = (location.hash || '').replace(/^#/, '').toLowerCase();
     if (!raw) return;
+    // In-copy deep links (e.g. a FAQ pointing at #about/file/clock)
+    // land like a page turn, not mid-scroll.
+    scrollTop();
     const [s0, s1, s2] = raw.split('/');
     const target = stepNames[s0];
     if (!target) return;
@@ -139,7 +145,7 @@ class Nav {
       const subName = s1 ?? (s0 === 'about' ? 'intro' : 'how');
       const i = ABOUT_SUBS.indexOf(subName);
       this.sub = i >= 0 ? i + 1 : 1;
-      if (this.sub === 5 && FILE_SECTIONS.includes(s2)) this.section = s2;
+      if (this.sub === ABOUT_FILE_SUB && FILE_SECTIONS.includes(s2)) this.section = s2;
     } else if (target === BUILD) {
       const i = BUILD_SUBS.indexOf(s1);
       let want = i >= 0 ? i + 1 : 1;

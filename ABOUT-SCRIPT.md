@@ -124,16 +124,22 @@ Site shape: **3 wizard steps — About / Build / Play.** The separate
 8-page How-it-works route is stashed in `web/site/src/attic/` (not
 mounted) so its copy and widgets can be recycled.
 
-## Step 1: About — FIVE pages
+## Step 1: About — FIVE pages (order revised 2026-07-04)
 
-1. Intro — the claim, Doom*, 300 MB of plain text. (Built; owner copy.)
-2. How is this possible? — ✓-list, Lyra lineage (owner copy 2026-07-03),
-   then the one-tool thesis (below) and the MoonViz walk (re-measured:
-   309,116,250 chars → ~60% of the way to the Moon, not the old 2/3).
-   (Built.)
-3. Why? — Mallory / bongos. (Built; owner copy.)
+1. Intro — the claim, Doom*, 300 MB of plain text. (Owner copy; the
+   second footnote chain was dropped, "real programs" stands alone.)
+2. How is this possible? — the mechanisms page: variables-are-formulas
+   (spreadsheet anchor), a "Background: what CSS is" fold holding the
+   CssDemo (absorbed from the FAQs, plus the @function/if()-are-new
+   fact), the six abilities as a deep-linked list into the hub, the
+   one-tool thesis (below), MoonViz, the speed truth (two
+   instructions/second, a year and a half to boot DOS) with Calcite
+   named once and deferred to Play, Lyra lineage box at the bottom.
+3. How it works — the cabinet dissected (the hub, below; renamed from
+   "What's in the file").
 4. FAQs — the expandable questions (below).
-5. What's in the file — the cabinet dissected (the hub, below).
+5. Why? — Mallory / bongos, as the epilogue. (Owner copy; the
+   "Humans, we never learn…" sentence cut 2026-07-04.)
 
 ### Page 2 bottom — the one-tool thesis
 
@@ -147,23 +153,26 @@ The one idea the reader needs before the map, in the owner's words
 > its fixed. Some problems that could be fixed with a very slightly
 > different tool are smacked a million times instead.
 
-### Page 4 — FAQs
+### Page 4 — FAQs (revised 2026-07-04)
 
-Expandable questions (Foldable component) for the curious — short
-honest answers, deep versions live behind the map:
+Expandable questions (Foldable component), skeptic-first — short
+honest answers; anything with a deep version behind the map links to
+its section instead of re-explaining. The two CSS-basics questions
+(What even is CSS? / CSS can do maths?) moved into page 2's
+background fold. Current list:
 
-- What even is CSS? *(the four CssDemo panels fold out here)*
-- Wait — CSS can do maths?
-- How can there be a clock? Nothing in CSS moves.
-- How does it draw video?
-- How do you control it? Surely CSS can't see a keyboard.
-- Don't you need an HTML page for this to work? *(yes — a small shell: a
-  link tag, a div for the clock, a div for the CPU, 64,000 empty divs)*
-- Really, no JavaScript? *(yes\* — at pure-CSS speed booting DOS takes
-  about a year and a half, so a compiler called Calcite evaluates the
-  same file faster)*
+- Really — no JavaScript? *(first, open by default; names Calcite,
+  admits 300 MB kills a tab, defers to Play)*
+- Don't you need an HTML page for this to work?
+- How can there be a clock? *(short + link to the clock section)*
+- How does it draw video? *(short + link to the screen section)*
+- How do you control it? *(short + link to the keyboard section)*
+- Why is there no sound?
+- Is Doom actually playable? *(a frame or two per second — never a
+  single FPS figure)*
+- Can it run my own programs? *(points at Build)*
 
-### Page 5 — the cabinet, dissected (the hub; replaces the slideshow)
+### Page 3 — the cabinet, dissected (the hub; replaces the slideshow)
 
 The reader meets the absurd size EARLY and the anatomy is the navigation:
 
@@ -174,13 +183,22 @@ The reader meets the absurd size EARLY and the anatomy is the navigation:
   the group's story in a **pane below**. No page order; curiosity drives.
 - Titles are rigorous, not floral: *topic — concrete detail · size*.
 
-The ten groups (sizes measured from the real Sokoban cabinet; the
-util/CPU boundary measured at byte offsets 28,218 / 90,652 /
-~345,543 of sokoban.css):
+Since 2026-07-04 the carousel opens on a **map page** (not a file
+section): the bar fully lit, a GLOSSARY callout (cart / cabinet /
+tick — the arcade-cabinet framing), and the one-definition fact
+planted so the 171 MB last stop pays off. The header-comment section
+was removed outright (owner call; its build-recipe fact moved into
+the utilities section's first sentence). Cross-references between
+sections and from the FAQs are real deep links (`#about/file/<id>`).
+Keyboard ←/→ walk the carousel and fall through to page turns at the
+ends (no wrap trap).
+
+The nine remaining groups (sizes measured from the real Sokoban
+cabinet; the util/CPU boundary measured at byte offsets 28,218 /
+90,652 / ~345,543 of sokoban.css):
 
 | Group (one story each) | File sections | Size |
 |---|---|---:|
-| Header comment | 1 | 25 KB |
 | Utility functions | the 66 opening @functions + lookup tables | 60 KB |
 | CPU | decode, fetch, register tables, write slots | 255 KB |
 | Keyboard & debug display | 7 | 4 KB |
@@ -242,3 +260,20 @@ after the hub?). [Q for owner.]
   copy now says 850. Proposed but not built (owner passed for now):
   disk-window sector switcher, clock handover lap, applySlot straddle
   diagram, readMem census bar.
+- 2026-07-04 critique pass (owner-approved list, actioned): pages
+  reordered (Why? → epilogue), hub renamed "How it works" + map page
+  added + header section deleted, page 2 rebuilt as the mechanisms
+  page (CssDemo absorbed; year-and-a-half stat and Calcite mention
+  promoted out of the last FAQ fold), FAQs rewritten skeptic-first
+  with section deep links + three new questions (sound, playability,
+  own programs), write-formulas main flow brought onto the register
+  (canonical x = y example, spreadsheet line restored,
+  Turing-complete aside cut) + verbatim assembled-cell extract added,
+  utilities sign() paragraph corrected (borrow/CMP is what that line
+  computes — verified against kiln/patterns/flags.mjs), GLOSSARY
+  callout pattern introduced (map: cart/cabinet/tick; disk: sector).
+  Deep-link hashes unchanged (`#about/file/...`) so old links
+  survive; `hdr` links fall back to the map page. Numbers left alone
+  where the 650,000-vs-368,256 question is still open, but the new
+  assembled-cell extract says 368,256 cells (matches the
+  declarations section).

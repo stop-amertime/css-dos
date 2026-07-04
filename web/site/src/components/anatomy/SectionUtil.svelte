@@ -13,7 +13,8 @@
 </script>
 
 <p>
-  After the header comment, the first thing in the file is a toolbox:
+  After a short header comment (the build recipe, for humans opening
+  the file), the first thing in the cabinet is a toolbox:
   <b>66 small functions</b> that everything else is built from. They
   exist because of a supply problem:
 </p>
@@ -110,12 +111,16 @@
 </p>
 <pre class="byte-example"><code>max(<span class="tok-num">0</span>, sign(B - A - <span class="tok-num">0.5</span>))    <span class="tok-comment">/* 1 if A &lt; B, else 0 */</span></code></pre>
 <p>
-  <code>sign(B&nbsp;&minus;&nbsp;A)</code> is +1 exactly when A is
-  below B; <code>max()</code> flattens the other two cases to 0; the
-  <code>&minus;&nbsp;0.5</code> keeps the expression away from exact
-  ties. The answer is a clean 0 or 1 that can be fed straight into
-  more arithmetic. This is the line that computes the carry flag, and
-  the screen&rsquo;s 70-per-second retrace signal.
+  <code>sign(B&nbsp;&minus;&nbsp;A)</code> is +1 when A is below B,
+  0 at a tie, &minus;1 above; <code>max()</code> flattens everything
+  that isn&rsquo;t +1 to 0. A and B are whole numbers, so subtracting
+  0.5 pushes a tie safely below zero instead of landing on
+  <code>sign()</code>&rsquo;s awkward middle answer. The result is a
+  clean 0 or 1 that can be fed straight into more arithmetic. This
+  exact line is how subtraction decides whether it had to borrow
+  (<a href="#about/file/cpu">the CPU</a>&rsquo;s carry flag), and how
+  <a href="#about/file/screen">the screen</a> fakes its
+  70-per-second retrace signal.
 </p>
 
 <p>
@@ -168,12 +173,13 @@
   The rest of the 66 sort into three rough families: byte plumbing,
   which splits and splices the two-bytes-per-cell memory
   (<code>--extractByte</code>, <code>--spliceByte</code>,
-  <code>--applySlot</code> &mdash; the write-formulas section shows the
+  <code>--applySlot</code> &mdash; the
+  <a href="#about/file/memw">write-formulas section</a> shows the
   last one at work); instruction decoding, which picks apart x86
   operand bytes (<code>--getReg16</code>, <code>--modrmLen</code>);
   and thirty-six flag calculators
   (<code>--addFlags16</code>, <code>--shrFlags8</code>, &hellip;),
-  which the CPU section comes back to.
+  which <a href="#about/file/cpu">the CPU section</a> comes back to.
 </p>
 
 <style>

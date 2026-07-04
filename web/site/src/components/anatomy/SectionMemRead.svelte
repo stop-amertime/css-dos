@@ -62,7 +62,8 @@
   offset&rdquo; &mdash; the sector number itself read out of a memory
   cell &mdash; and passes the question through to the disk function.
   Those 512 addresses are a <i>view</i> onto whichever sector was last
-  asked for. The disk section picks it up from there.
+  asked for. The <a href="#about/file/disk">disk section</a> picks it
+  up from there.
 </p>
 <p>
   736,510 + 6,924 + 512 + 2 = 743,948. Then <code>else: 0);</code>,

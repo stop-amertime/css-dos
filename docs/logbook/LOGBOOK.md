@@ -4,7 +4,7 @@ Chronological work entries. Newest first. The durable handbook
 (current state, sentinels, gotchas, how to test) is in
 [`STATUS.md`](STATUS.md).
 
-Last updated: 2026-07-03
+Last updated: 2026-07-04
 
 Entries are individual files in [`entries/`](entries/). This page is
 the **index only** — read the tag + one-line summary, open the 1–3
@@ -22,6 +22,7 @@ See [`PROTOCOL.md`](PROTOCOL.md).
 
 | Date | Tag | Entry |
 |------|-----|-------|
+| 2026-07-04 | LANDED | [About section critique pass: pages reordered (Why → epilogue), hub renamed "How it works" + map/overview landing page (GLOSSARY callout: cart/cabinet/tick) + header-comment section deleted, page 2 rebuilt as the mechanisms page (CssDemo absorbed as a background fold; year-and-a-half + Calcite mention promoted out of the last FAQ fold), FAQs deduped skeptic-first with section deep links + 3 new Qs (sound/playability/own programs), memw main flow rewritten to the ABOUT-SCRIPT register + verbatim per-cell applySlot cascade added, util sign() claim corrected (SUB/CMP borrow, verified vs kiln flags.mjs), carousel arrow-key wrap trap fixed. Playwright-verified, 0 console errors](entries/2026-07-04-about-critique-pass.md) |
 | 2026-07-03 | FINDING | [Play-page calcite `unknown function: rgb` warning is benign (pixel painter's `--paletteRGB`, fires in every successful wasm compile ~3s in); flow verified end-to-end (Sokoban 295MB/13s, Doom 323MB/9.5s → title). Real traps: no compile feedback in the player tab for 10–25s, builder-tab reload (incl. Vite HMR) silently kills bridge+cabinet so the player waits forever, and leftover `[linear branch]` debug dumps in calcite compile.rs flood DevTools during compile](entries/2026-07-03-calcite-play-rgb-warn-benign.md) |
 | 2026-07-02 | LANDED | [About section rebuilt as a 10-sub-page teaching sequence (basics reordered + new deep-dives: Inside the file with a to-scale 309MB map, One tick with a pure-CSS four-beat clock widget, Tricks with 9 lacks-X-so-Y blocks incl. a live sign() demo) with live widgets — div-grid screen, zero-JS `:active` keyboard, MOV-into-RAM recalc feed, verbatim-code CPU section (ADD arm, flag-by-flag addFlags16, DAA in full; 232 opcodes / 1,094 arms measured from a real build). Body text switched to More Perfect DOS VGA (−1px back onto the 8px grid), 8x16 pinned on chrome/code. Landed to master in the 2026-07-02 unification merge. Companion doc `CABINET-ANATOMY.md`](entries/2026-07-02-about-anatomy-subpages.md) |
 | 2026-07-01 | LANDED | [Web Svelte site styling & UX pass (18 fixes): wizard chrome (dot spacing, min-height, de-bold h1s, monospace `<code>` chips), About intro gold scalloped banner + GitHub link + SvarDOS credit, Build cart-grid cap/no-shadow + flex configure page + non-blue spec column + visibly-grey disabled buttons, result-page redesign (small floppy header, one-line centred pager, tall source box), Play width constrained, shared `Foldable` component w/ blue `[+]` glyph + blue radio dot, dead-CSS audit. `vite build` green; landed to master in the 2026-07-02 unification merge](entries/2026-07-01-web-svelte-styling-pass.md) |
