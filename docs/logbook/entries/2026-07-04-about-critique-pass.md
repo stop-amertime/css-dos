@@ -28,3 +28,12 @@ used once (arrow/bar/deep link) so readers can't skip the tour
 without finding it. Credits & thanks restored as About page 6
 (verbatim from the retired route; dropped in the 2026-07-03
 collapse) — half-answers the old open [Q]; Tricks still attic-only.
+Second mobile fix (same day): the dvh switch above was incomplete —
+the base `body{min-height:100vh}` still won over the wizard rule's
+`height:100dvh` (min-height beats height), so with the URL bar showing
+the body was URL-bar-height too tall and safe-center split that excess
+into extra blue gap on top + footer pushed below the fold. Wizard body
+rule now sets `min-height:100dvh` too. Verified in Chromium by
+rendering both resolved values at 390×844 (pre: 904px body, +30px top
+gap, footer +30px down; post: symmetric, footer on-screen) + desktop
+1440×900 and 390×560 regression screenshots.

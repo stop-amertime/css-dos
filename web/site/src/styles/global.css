@@ -357,6 +357,12 @@ body:has(.window.wizard) {
      (between the fixed menu/status bars) and .window-body scrolls
      internally instead. */
   height: 100dvh;
+  /* Must repeat in dvh: the base body rule's min-height:100vh would
+     otherwise win over height (min-height beats height), making the
+     body 100vh tall on phones with the URL bar showing. safe-center
+     then centres the dialog in that too-tall box — extra blue gap on
+     top, pinned Back/Next footer shoved below the visible bottom. */
+  min-height: 100dvh;
   box-sizing: border-box;
   padding: 17px 0;   /* clear the fixed 16px+1px menu/status bars */
   overflow: hidden;
