@@ -90,3 +90,54 @@
   flex-shrink: 0;
 }
 .run-opt-warn u { text-decoration: underline; }
+
+/* The calcite card is a <button> (starts the inline player) — undo the
+   UA button styling so it renders like the .run-opt anchor card. */
+button.run-opt {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  line-height: inherit;
+}
+
+/* Inline player — /player/calcite.html iframed into this page. Keeps the
+   bridge worker's tab in the foreground; mobile Chrome freezes background
+   tabs, so the old two-tab flow starved the frame stream on phones. */
+.inline-player {
+  margin-top: 16px;
+  border: 1px solid var(--edit-black);
+  box-shadow: 4px 4px 0 var(--edit-blue);
+  background: var(--edit-white);
+}
+.inline-player-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 6px 10px;
+  background: var(--edit-gray);
+  color: var(--edit-black);
+  border-bottom: 1px solid var(--edit-black);
+}
+.inline-player-title { font-weight: bold; }
+/* Live engine status (compiling / running / errors) — the only feedback
+   during the 10–25s cabinet compile, and the on-page error surface. */
+.inline-player-status {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.inline-player-status.error {
+  color: var(--edit-white);
+  background: var(--edit-red);
+  padding: 0 6px;
+  white-space: normal;
+}
+.inline-player-pop { color: var(--edit-blue); margin-left: auto; flex-shrink: 0; }
+.inline-player-frame {
+  display: block;
+  width: 100%;
+  height: min(78dvh, 820px);
+  border: 0;
+  background: var(--edit-blue);
+}

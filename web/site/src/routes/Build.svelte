@@ -13,6 +13,7 @@
   import BuildProgress from '../components/BuildProgress.svelte';
   import ResultFloppy from '../components/ResultFloppy.svelte';
   import SourceViewer from '../components/SourceViewer.svelte';
+  import EnvNotice from '../components/EnvNotice.svelte';
 
   build.loadServerCarts();
 
@@ -59,6 +60,7 @@
 <Wizard {strip} {subhead} nav={wizNav}>
 {#if nav.buildSub === 1}
   <div class="subpage">
+    <EnvNotice />
     <div class="build-intro">
       <h1>Build the <code>.css</code> file</h1>
       <p>
