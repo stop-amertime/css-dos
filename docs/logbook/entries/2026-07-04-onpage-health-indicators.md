@@ -1,6 +1,6 @@
 # On-page health indicators (capability banner + live engine status)
 
-**2026-07-04 · BRANCH (`claude/mobile-service-worker-debug-hfda9g`)**
+**2026-07-04 · LANDED (master, `e6fa2ea`)**
 
 Console errors are unreachable on mobile, so failures were invisible.
 Now: `web/site/src/lib/health.svelte.js` probes capabilities once

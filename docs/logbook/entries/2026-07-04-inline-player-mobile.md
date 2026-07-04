@@ -1,6 +1,6 @@
 # Inline player on Play route (mobile fix)
 
-**2026-07-04 · BRANCH (`claude/mobile-service-worker-debug-hfda9g`)**
+**2026-07-04 · LANDED (master, `c6305f6`)**
 
 Mobile Chrome froze the old two-tab flow: the bridge worker (WASM
 engine) lives in the site tab, and opening `/player/calcite.html` in a
