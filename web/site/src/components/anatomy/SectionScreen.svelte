@@ -48,35 +48,36 @@ max(0, sign(3409 - mod(var(--snapshot-cycleCount), 68182)))`;
   memory cell, and the palette function turns that byte into a colour.
 </p>
 
+<h3 class="anatomy-head">The palette &mdash; how 256 colours get chosen</h3>
+<p>
+  A pixel&rsquo;s byte isn&rsquo;t a colour; it&rsquo;s an index into
+  a palette of 256. The palette isn&rsquo;t fixed either &mdash; the
+  running program loads its own, and the machine accepts it exactly
+  the way real VGA hardware did: to set one colour, the program
+  writes three bytes &mdash; red, green, blue &mdash; to a single
+  port, while a small counter steps 0, 1, 2 and rolls over to the
+  next colour slot. When a game fades to black, it is re-streaming
+  the whole table a little darker, over and over.
+</p>
+<p>
+  The lookup itself is a shared 256-way <code>if()</code> function,
+  <code>--paletteRGB</code>, that turns the live palette into an
+  actual <code>rgb(&hellip;)</code> value for each div:
+</p>
+<CodeCss code={PALETTE_FN} />
+<p>
+  The mess inside <code>rgb()</code> is three live memory reads
+  &mdash; red, green, blue &mdash; each scaled by 255/63 because a
+  real VGA&rsquo;s palette chip only kept six bits per channel:
+  programs wrote brightnesses from 0 to 63, and the machine honours
+  that. Of the file&rsquo;s thousands of functions, this is the only
+  one that returns a colour &mdash; everything else in
+  300&nbsp;MB computes integers.
+</p>
 <Foldable>
-  {#snippet summary()}The palette &mdash; how 256 colours get chosen{/snippet}
+  {#snippet summary()}The palette read-back cursor{/snippet}
   <p>
-    A pixel&rsquo;s byte isn&rsquo;t a colour; it&rsquo;s an index into
-    a palette of 256. The palette isn&rsquo;t fixed either &mdash; the
-    running program loads its own, and the machine accepts it exactly
-    the way real VGA hardware did: to set one colour, the program
-    writes three bytes &mdash; red, green, blue &mdash; to a single
-    port, while a small counter steps 0, 1, 2 and rolls over to the
-    next colour slot. When a game fades to black, it is re-streaming
-    the whole table a little darker, over and over.
-  </p>
-  <p>
-    The lookup itself is a shared 256-way <code>if()</code> function,
-    <code>--paletteRGB</code>, that turns the live palette into an
-    actual <code>rgb(&hellip;)</code> value for each div:
-  </p>
-  <CodeCss code={PALETTE_FN} />
-  <p>
-    The mess inside <code>rgb()</code> is three live memory reads
-    &mdash; red, green, blue &mdash; each scaled by 255/63 because a
-    real VGA&rsquo;s palette chip only kept six bits per channel:
-    programs wrote brightnesses from 0 to 63, and the machine honours
-    that. Of the file&rsquo;s thousands of functions, this is the only
-    one that returns a colour &mdash; everything else in
-    300&nbsp;MB computes integers.
-  </p>
-  <p>
-    There&rsquo;s even a second, separate cursor for <i>reading</i> the
+    There&rsquo;s a second, separate cursor for <i>reading</i> the
     palette back &mdash; a fade effect wants to know the current
     colours before dimming them, and real VGA hardware let it ask
     without disturbing the write cursor. So does this one.

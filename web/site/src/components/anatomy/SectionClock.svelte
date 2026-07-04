@@ -5,7 +5,6 @@
   // in a fold). Facts from CABINET-ANATOMY.md §4, §12, §14–16;
   // keyframe extracts verbatim from sokoban.css (names tidied:
   // --__1mc5000 → --snapshot-mc5000).
-  import Foldable from '../Foldable.svelte';
   import TickClock from '../TickClock.svelte';
   import CodeCss from '../CodeCss.svelte';
   import Term from '../Term.svelte';
@@ -135,13 +134,11 @@ style(--opcode: 212): calc(var(--snapshot-cycleCount) + 83);  /* AAM: 83 — div
   is tied to work done, not to your wall clock.
 </p>
 
-<Foldable>
-  {#snippet summary()}How one animation conducts two more{/snippet}
-  <p>
-    The store and execute steps are themselves <code>@keyframes</code>
-    &mdash; and an animation can&rsquo;t call another animation. So the
-    cabinet attaches both to the CPU permanently, <b>paused</b>, and
-    the clock unpauses each one for a single beat &mdash; verbatim:
-  </p>
-  <CodeCss code={CONDUCTOR} />
-</Foldable>
+<h3 class="anatomy-head">How one animation conducts two more</h3>
+<p>
+  The store and execute steps are themselves <code>@keyframes</code>
+  &mdash; and an animation can&rsquo;t call another animation. So the
+  cabinet attaches both to the CPU permanently, <b>paused</b>, and
+  the clock unpauses each one for a single beat &mdash; verbatim:
+</p>
+<CodeCss code={CONDUCTOR} />

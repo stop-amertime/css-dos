@@ -158,60 +158,53 @@ mod(calc(var(--snapshot-DX) * 65536 + var(--snapshot-AX)), max(1, var(--rmVal16)
   went negative. These reports are the <b>flags</b>, and programs
   check them constantly &mdash; every &ldquo;if&rdquo; in every
   program ends up as a flag check &mdash; so the flags table has its
-  own row for opcode 5 and computes all six reports by hand. In total, one
-  ADD is a sum, a new IP, six flags and a table lookup, and ADD is one
-  of the easiest instructions in the set.
+  own row for opcode 5 and calls the machine&rsquo;s real 16-bit ADD
+  flag function &mdash; in full:
+</p>
+<CodeCss code={ADD_FLAGS} />
+<p>
+  In there: <code>--cf</code> asks &ldquo;did the true sum pass
+  65,535?&rdquo; &mdash; divide by 65,536, round down, and that is
+  the <b>carry flag</b> as a 1 or a 0. <code>--zfsf</code> asks
+  &ldquo;is the result zero?&rdquo; and &ldquo;is its top bit
+  set?&rdquo; (a 16-bit number&rsquo;s way of being negative) &mdash;
+  the <b>zero</b> and <b>sign</b> flags, each parked at its own bit
+  position. <code>--pf</code>, the <b>parity flag</b>, comes from the
+  256-entry lookup table in the utility-functions section. The long
+  line in the middle is the <b>half-carry</b> flag &mdash; &ldquo;did
+  the bottom four bits overflow?&rdquo; &mdash; built out of
+  <code>sign()</code> because CSS has no <code>&lt;</code>. And the
+  <code>+ 2</code> at the end is a bit the 8086 keeps permanently
+  switched on.
+</p>
+<p>
+  In total, one ADD is a sum, a new IP, six flags and a table lookup
+  &mdash; and ADD is one of the easiest instructions in the set.
 </p>
 
-<Foldable>
-  {#snippet summary()}The flag function for ADD, in full{/snippet}
-  <p>
-    The flags table&rsquo;s opcode-5 row calls this &mdash; the
-    machine&rsquo;s real 16-bit ADD flag function:
-  </p>
-  <CodeCss code={ADD_FLAGS} />
-  <p>
-    In there: <code>--cf</code> asks &ldquo;did the true sum pass
-    65,535?&rdquo; &mdash; divide by 65,536, round down, and that is
-    the <b>carry flag</b> as a 1 or a 0. <code>--zfsf</code> asks
-    &ldquo;is the result zero?&rdquo; and &ldquo;is its top bit
-    set?&rdquo; (a 16-bit number&rsquo;s way of being negative) &mdash;
-    the <b>zero</b> and <b>sign</b> flags, each parked at its own bit
-    position. <code>--pf</code>, the <b>parity flag</b>, comes from the
-    256-entry lookup table in the utility-functions section. The long
-    line in the middle is the <b>half-carry</b> flag &mdash; &ldquo;did
-    the bottom four bits overflow?&rdquo; &mdash; built out of
-    <code>sign()</code> because CSS has no <code>&lt;</code>. And the
-    <code>+ 2</code> at the end is a bit the 8086 keeps permanently
-    switched on.
-  </p>
-</Foldable>
-
-<Foldable>
-  {#snippet summary()}How a program decides anything{/snippet}
-  <p>
-    Programs branch &mdash; &ldquo;if health is zero, die&rdquo;
-    &mdash; and a formula can&rsquo;t branch; it computes one value.
-    So a conditional jump is arithmetic too: <code>--bit()</code>
-    pulls one flag out of the flags register as a 0 or a 1, and the
-    jump multiplies its travel distance by it. This is the real IP
-    row for JZ, &ldquo;jump if zero&rdquo;:
-  </p>
-  <CodeCss code={JZ_ROW} />
-  <p>
-    Taken, IP moves by the distance byte; not taken, it moves by zero
-    times the distance byte. (<code>--u2s1()</code> reads the byte as
-    signed, so the distance can be negative.)
-  </p>
-  <p>
-    Some conditions cost more. &ldquo;Jump if less&rdquo; is taken
-    when the sign flag and the overflow flag disagree &mdash; an XOR,
-    which CSS doesn&rsquo;t have. The
-    <a href="#about/file/util">utility section</a> builds XOR out of
-    multiplication, and here it is at work on two flag bits:
-  </p>
-  <CodeCss code={JL_COND} />
-</Foldable>
+<h3 class="anatomy-head">How a program decides anything</h3>
+<p>
+  Programs branch &mdash; &ldquo;if health is zero, die&rdquo;
+  &mdash; and a formula can&rsquo;t branch; it computes one value.
+  So a conditional jump is arithmetic too: <code>--bit()</code>
+  pulls one flag out of the flags register as a 0 or a 1, and the
+  jump multiplies its travel distance by it. This is the real IP
+  row for JZ, &ldquo;jump if zero&rdquo;:
+</p>
+<CodeCss code={JZ_ROW} />
+<p>
+  Taken, IP moves by the distance byte; not taken, it moves by zero
+  times the distance byte. (<code>--u2s1()</code> reads the byte as
+  signed, so the distance can be negative.)
+</p>
+<p>
+  Some conditions cost more. &ldquo;Jump if less&rdquo; is taken
+  when the sign flag and the overflow flag disagree &mdash; an XOR,
+  which CSS doesn&rsquo;t have. The
+  <a href="#about/file/util">utility section</a> builds XOR out of
+  multiplication, and here it is at work on two flag bits:
+</p>
+<CodeCss code={JL_COND} />
 
 <Foldable>
   {#snippet summary()}DIV, DAA, and the less reasonable instructions{/snippet}
