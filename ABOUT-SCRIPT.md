@@ -124,7 +124,7 @@ Site shape: **3 wizard steps — About / Build / Play.** The separate
 8-page How-it-works route is stashed in `web/site/src/attic/` (not
 mounted) so its copy and widgets can be recycled.
 
-## Step 1: About — FIVE pages (order revised 2026-07-04)
+## Step 1: About — SIX pages (order revised 2026-07-04)
 
 1. Intro — the claim, Doom*, 300 MB of plain text. (Owner copy; the
    second footnote chain was dropped, "real programs" stands alone.)
@@ -140,6 +140,10 @@ mounted) so its copy and widgets can be recycled.
 4. FAQs — the expandable questions (below).
 5. Why? — Mallory / bongos, as the epilogue. (Owner copy; the
    "Humans, we never learn…" sentence cut 2026-07-04.)
+6. Credits & thanks — restored 2026-07-04 verbatim from the retired
+   route (was dropped in the 2026-07-03 collapse; owner asked for it
+   back). This half-answers the old open [Q]: Credits is a page
+   again; Tricks content still lives only in the attic.
 
 ### Page 2 bottom — the one-tool thesis
 

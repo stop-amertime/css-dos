@@ -1,5 +1,5 @@
 // Wizard navigation as reactive state. Three steps (About / Build /
-// Play); About has 5 sub-pages, Build has 3. The URL hash addresses
+// Play); About has 6 sub-pages, Build has 3. The URL hash addresses
 // the exact page — `#step/subpage[/section]`, names not numbers, so
 // deep links survive reordering and a refresh keeps your spot.
 // Legacy one-word hashes (#about, #build, #play, #how) still land on
@@ -9,11 +9,11 @@ import { build } from './builder.svelte.js';
 
 export const STEPS = ['about', 'build', 'play'];
 const ABOUT = 1, BUILD = 2, PLAY = 3;
-export const ABOUT_SUBPAGES = 5;
+export const ABOUT_SUBPAGES = 6;
 const BUILD_PICK = 1, BUILD_CONFIG = 2;
 
 // Named sub-pages (index = sub - 1).
-const ABOUT_SUBS = ['intro', 'how', 'file', 'faqs', 'why'];
+const ABOUT_SUBS = ['intro', 'how', 'file', 'faqs', 'why', 'credits'];
 const BUILD_SUBS = ['pick', 'configure', 'result'];
 // The How-it-works carousel: the map/overview page, then the file's
 // sections in file order (mirrors anatomy/groups.js).

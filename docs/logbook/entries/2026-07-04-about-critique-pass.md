@@ -25,4 +25,6 @@ the large viewport on phones; with the URL bar showing and the body
 unable to scroll, the pinned Next footer sat off-screen), and Next is
 now disabled on the carousel's map page until the carousel has been
 used once (arrow/bar/deep link) so readers can't skip the tour
-without finding it.
+without finding it. Credits & thanks restored as About page 6
+(verbatim from the retired route; dropped in the 2026-07-03
+collapse) — half-answers the old open [Q]; Tricks still attic-only.
