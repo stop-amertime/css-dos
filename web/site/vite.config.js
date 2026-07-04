@@ -38,7 +38,8 @@ const devRuntime = {
 };
 
 // PROD: copy the runtime files into dist/, emit carts/index.json, and emit
-// the host header config (COOP/COEP for SharedArrayBuffer).
+// the host header config (COOP/COEP — optional; nothing in the live path
+// needs SharedArrayBuffer, kept for a possible future wasm-threads path).
 const buildRuntime = {
   name: 'css-dos-build-runtime',
   apply: 'build',

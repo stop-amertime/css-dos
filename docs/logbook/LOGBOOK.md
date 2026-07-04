@@ -22,6 +22,7 @@ See [`PROTOCOL.md`](PROTOCOL.md).
 
 | Date | Tag | Entry |
 |------|-----|-------|
+| 2026-07-04 | LANDED | [COOP/COEP hard-gate dropped: health.svelte.js no longer blocks header-less hosts (GitHub Pages/mobile); false "host must send COOP/COEP" claims corrected in site README/vite/runtime-assets/STATUS. Headers still emitted (optional, future wasm-threads). e2e: headers stripped → no banner, build→play→frames](entries/2026-07-04-drop-coi-gate.md) |
 | 2026-07-04 | FINDING | [COOP/COEP NOT required: no SAB/shared-memory/atomics anywhere in the live path (engine is single-threaded wasm, postMessage transport); full build→play verified in Chromium with headers stripped + SharedArrayBuffer undefined. The health gate added same-day over-blocks; README claim false](entries/2026-07-04-coop-coep-not-required.md) |
 | 2026-07-04 | LANDED | [On-page health indicators: capability banner (SW/HTTPS/COOP+COEP/WASM/low-RAM reasons) on Build+Play via new health.svelte.js + EnvNotice, live bridge status line in the inline-player bar (red on boot/compile/engine errors) — mobile users finally see WHY it broke; also fixes the 10–25s silent-compile trap](entries/2026-07-04-onpage-health-indicators.md) |
 | 2026-07-04 | LANDED | [Inline player on Play route: "Run using Calcite" now iframes calcite.html into the page (same-tab bridge) — fixes mobile Chrome freezing the backgrounded bridge tab in the old two-tab flow; Pop-out link keeps the old behaviour. e2e-verified headless (sokoban build → inline frames → Stop)](entries/2026-07-04-inline-player-mobile.md) |
