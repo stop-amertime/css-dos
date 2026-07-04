@@ -304,15 +304,20 @@
     .embed-anchor { display: none; }
     body:has(#embed:target) {
       background: var(--edit-gray);
-      padding: 8px 0;
+      padding: 4px 0;
       min-height: 0;
     }
     body:has(#embed:target) .menu-bar,
     body:has(#embed:target) .status-line { display: none; }
+    /* Every pixel of the iframe is playing surface: no desktop margin
+       around the window, tighter body padding. (The host page already
+       provides the frame.) */
     body:has(#embed:target) .window {
       box-shadow: none;
       border: none;
+      max-width: 100%;
     }
+    body:has(#embed:target) .window-body { padding: 8px 6px; }
   </style>
 </head>
 <body>
@@ -331,7 +336,7 @@
     <div class="window-body">
       <div class="screen-cell">
         <div class="loading-msg">
-          <div>Parsing 50-100MB of CSS text (a lot)...</div>
+          <div>Parsing ~300 MB of CSS text (a lot)...</div>
           <div>Your browser may hang/look unresponsive</div>
           <div>Just wait ~10 seconds and it'll start.</div>
         </div>

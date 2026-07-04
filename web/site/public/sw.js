@@ -1,4 +1,6 @@
-// web/site/sw.js
+// web/site/public/sw.js — served at /sw.js (Vite publicDir). The old
+// duplicate at web/site/sw.js was removed 2026-07-04: edits there were
+// dead, public/ is what dev and dist actually serve.
 // Service worker for the CSS-DOS web version.
 //
 // Two jobs:
@@ -61,8 +63,30 @@ self.addEventListener('message', (event) => {
     bridgePort = event.ports[0];
     bridgePort.onmessage = handleBridgeMessage;
     bridgePort.postMessage({ type: 'sw-ready' });
+    // If a viewer is already waiting on an open stream (we were
+    // idle-restarted mid-session and just got re-handed the port),
+    // kick the engine now — the stream's own viewer-connected went to
+    // the dead instance.
+    if (streamControllers.size > 0) {
+      bridgePort.postMessage({ type: 'viewer-connected' });
+    }
   }
 });
+
+// The browser idle-kills service workers and restarts them with EMPTY
+// module state — bridgePort is null in the new instance, and the boot
+// shim only hands its port over once, at page load. Without recovery,
+// any /_stream/fb opened after an idle restart hangs forever (the
+// player shows its loading text and nothing else arrives). Ask every
+// window we control to re-register; calcite-bridge-boot.js answers
+// with a fresh MessageChannel.
+function requestBridgePort() {
+  self.clients.matchAll({ type: 'window' }).then((clients) => {
+    for (const c of clients) {
+      try { c.postMessage({ type: 'cssdos-need-bridge' }); } catch {}
+    }
+  });
+}
 
 function handleBridgeMessage(ev) {
   const m = ev.data;
@@ -135,6 +159,11 @@ function handleStream() {
       // treated as "restart the machine, I want to watch it boot".
       if (bridgePort) {
         bridgePort.postMessage({ type: 'viewer-connected' });
+      } else {
+        // Idle-restarted instance with no port: recover it. The
+        // register handler fires viewer-connected for us once the
+        // page re-hands the port over.
+        requestBridgePort();
       }
     },
     cancel() {
@@ -168,6 +197,10 @@ function handleKbd(url) {
   const klass = url.searchParams.get('class');
   if (klass && bridgePort) {
     bridgePort.postMessage({ type: 'kbd-active', selector: klass });
+  } else if (klass) {
+    // Idle-restarted instance: this key is lost, but recover the port
+    // so the next one lands.
+    requestBridgePort();
   }
   // 204 No Content — the target iframe won't re-render, page stays put.
   return new Response(null, {

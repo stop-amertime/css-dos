@@ -66,6 +66,22 @@
         );
       }, { once: true });
     }
+
+    // The browser idle-kills the SW and restarts it with no bridge
+    // port (the channel above died with the old instance). The new
+    // instance asks us for a fresh one the moment a stream or key
+    // fetch finds itself portless — without this, opening the player
+    // a while after building hangs forever on the loading text.
+    navigator.serviceWorker.addEventListener('message', (ev) => {
+      if (ev.data?.type !== 'cssdos-need-bridge') return;
+      const fresh = new MessageChannel();
+      bridge.postMessage({ type: 'sw-port' }, [fresh.port1]);
+      navigator.serviceWorker.controller?.postMessage(
+        { type: 'register-calcite-bridge' }, [fresh.port2]
+      );
+      console.log('[calcite-bridge] SW restarted — bridge port re-registered');
+    });
+
     window.__calciteBridge = bridge;
     announce('spawned');
     console.log('[calcite-bridge] worker spawned, SW port registered');
