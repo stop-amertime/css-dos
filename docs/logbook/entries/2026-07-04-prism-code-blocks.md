@@ -9,7 +9,9 @@ extracts in the anatomy sections are now `<CodeCss code={...}>`
 host; the grammar gains `variable` (--idents anywhere, incl. @-rule
 preludes — stock Prism misses var() args) and `number` tokens. DOS
 theme in about.css: variables/selectors red, numbers green, comments
-grey (rest inherits — matches the manual look, applied uniformly).
+grey, functions (if/style/var/calc…) EDIT-blue, @-rules magenta,
+strings brown; plain properties/punctuation stay black (owner asked
+for functions "lighting up" after a first minimal-palette pass).
 SourceViewer imports the same module (its previously-dead
 .token.variable/.token.number theme rules now fire). Interactive
 widgets (RamWrite/TickClock/CssDemo/…) keep manual spans — they bind

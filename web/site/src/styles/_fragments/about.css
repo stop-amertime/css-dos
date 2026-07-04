@@ -269,14 +269,20 @@
 .byte-example .tok-comment { color: #777; }
 .byte-example .tok-prop { color: var(--edit-red); }
 .byte-example .tok-num { color: #006600; }
-/* Prism tokens (CodeCss.svelte) — same palette as the .tok-* spans
-   they replaced. Only these families are painted; everything else
-   (plain properties, functions, punctuation) inherits black, which
-   is how the hand-coloured originals read. */
+/* Prism tokens (CodeCss.svelte) — EGA palette on the light dialog
+   fill. Variables keep the manual spans' red and numbers their
+   green; functions and @-rules get their own families. Plain
+   properties and punctuation stay black on purpose — colouring
+   everything makes nothing stand out. */
 .byte-example .token.comment { color: #777; }
 .byte-example .token.variable { color: var(--edit-red); }
 .byte-example .token.selector { color: var(--edit-red); }
 .byte-example .token.number { color: #006600; }
+.byte-example .token.function { color: var(--edit-blue); }
+.byte-example .token.atrule { color: #aa00aa; }
+.byte-example .token.atrule .token.variable { color: var(--edit-red); }
+.byte-example .token.atrule .token.number { color: #006600; }
+.byte-example .token.string { color: #aa5500; }
 
 /* ===== About rebuild (ABOUT-SCRIPT.md port) ===== */
 .epigraph {
