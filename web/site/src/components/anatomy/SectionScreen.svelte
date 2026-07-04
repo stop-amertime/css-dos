@@ -4,6 +4,10 @@
   // from CABINET-ANATOMY.md §8.
   import Foldable from '../Foldable.svelte';
   import PixelScreen from '../PixelScreen.svelte';
+  import CodeCss from '../CodeCss.svelte';
+
+  const RETRACE = `/* in retrace? — 1 while the beam would be flying back */
+max(0, sign(3409 - mod(var(--snapshot-cycleCount), 68182)))`;
 </script>
 
 <p>
@@ -85,8 +89,7 @@
   seventieth of a second is 68,182 cycles, and the beam spends about
   5% of each frame flying back, so:
 </p>
-<pre class="byte-example"><code><span class="tok-comment">/* in retrace? — 1 while the beam would be flying back */</span>
-max(<span class="tok-num">0</span>, sign(<span class="tok-num">3409</span> - mod(var(<span class="tok-prop">--snapshot-cycleCount</span>), <span class="tok-num">68182</span>)))</code></pre>
+<CodeCss code={RETRACE} />
 <p>
   The electron beam of a CRT monitor, reduced to a <code>mod()</code>
   and a <code>sign()</code>. Games genuinely synchronise to it.

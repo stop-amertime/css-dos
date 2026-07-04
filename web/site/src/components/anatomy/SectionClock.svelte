@@ -7,6 +7,40 @@
   // --__1mc5000 → --snapshot-mc5000).
   import Foldable from '../Foldable.svelte';
   import TickClock from '../TickClock.svelte';
+  import CodeCss from '../CodeCss.svelte';
+
+  const CLOCK_ANIM = `.clock {
+  animation: anim-play 400ms steps(4, jump-end) infinite;
+  --clock: 0;
+}
+
+@keyframes anim-play {
+  0% { --clock: 0 }
+  25% { --clock: 1 }
+  50% { --clock: 2 }
+  75% { --clock: 3 }
+}`;
+
+  const CELL_PLUMBING = `/* always in force: the snapshot — the copy every formula reads —
+   is wired to the staged copy from last tick */
+--snapshot-mc5000: var(--staged-mc5000, 32861);
+
+/* always in force: the next value, computed from snapshots only
+   (this is the write formula from the write-formulas section) */
+--mc5000: …;
+
+/* beat 3 — the "execute" keyframe: park the computed value */
+--held-mc5000: var(--mc5000);
+
+/* beat 1 — the "store" keyframe: stage the parked value
+   so it becomes the NEXT tick's snapshot */
+--staged-mc5000: var(--held-mc5000, 32861);`;
+
+  const CONDUCTOR = `.cpu {
+  animation: store 1ms infinite, execute 1ms infinite;
+  animation-play-state: paused, paused;
+  @container style(--clock: 1) { animation-play-state: running, paused }
+  @container style(--clock: 3) { animation-play-state: paused, running }`;
 </script>
 
 <p>
@@ -14,17 +48,7 @@
   the very bottom of the file, after 300&nbsp;MB of formulas, sits the
   thing that runs them &mdash; verbatim:
 </p>
-<pre class="byte-example"><code><span class="tok-prop">.clock</span> {'{'}
-  animation: <span class="tok-prop">anim-play</span> <span class="tok-num">400ms</span> steps(<span class="tok-num">4</span>, jump-end) infinite;
-  <span class="tok-prop">--clock</span>: <span class="tok-num">0</span>;
-{'}'}
-
-@keyframes <span class="tok-prop">anim-play</span> {'{'}
-  <span class="tok-num">0%</span> {'{'} <span class="tok-prop">--clock</span>: <span class="tok-num">0</span> {'}'}
-  <span class="tok-num">25%</span> {'{'} <span class="tok-prop">--clock</span>: <span class="tok-num">1</span> {'}'}
-  <span class="tok-num">50%</span> {'{'} <span class="tok-prop">--clock</span>: <span class="tok-num">2</span> {'}'}
-  <span class="tok-num">75%</span> {'{'} <span class="tok-prop">--clock</span>: <span class="tok-num">3</span> {'}'}
-{'}'}</code></pre>
+<CodeCss code={CLOCK_ANIM} />
 <p>
   A counter ticking 0,&nbsp;1,&nbsp;2,&nbsp;3, forever. Each lap, every
   formula in the file re-evaluates once and the machine advances by one
@@ -42,20 +66,7 @@
   tick&rsquo;s results across to the next tick. Here is one cell&rsquo;s
   full plumbing:
 </p>
-<pre class="byte-example"><code><span class="tok-comment">/* always in force: the snapshot — the copy every formula reads —
-   is wired to the staged copy from last tick */</span>
-<span class="tok-prop">--snapshot-mc5000</span>: var(<span class="tok-prop">--staged-mc5000</span>, <span class="tok-num">32861</span>);
-
-<span class="tok-comment">/* always in force: the next value, computed from snapshots only
-   (this is the write formula from the write-formulas section) */</span>
-<span class="tok-prop">--mc5000</span>: &hellip;;
-
-<span class="tok-comment">/* beat 3 — the "execute" keyframe: park the computed value */</span>
-<span class="tok-prop">--held-mc5000</span>: var(<span class="tok-prop">--mc5000</span>);
-
-<span class="tok-comment">/* beat 1 — the "store" keyframe: stage the parked value
-   so it becomes the NEXT tick's snapshot */</span>
-<span class="tok-prop">--staged-mc5000</span>: var(<span class="tok-prop">--held-mc5000</span>, <span class="tok-num">32861</span>);</code></pre>
+<CodeCss code={CELL_PLUMBING} />
 <p>
   Follow one lap of the clock. The formulas compute the whole
   machine&rsquo;s next state, reading only the frozen snapshots. On
@@ -120,9 +131,5 @@
     cabinet attaches both to the CPU permanently, <b>paused</b>, and
     the clock unpauses each one for a single beat &mdash; verbatim:
   </p>
-  <pre class="byte-example"><code><span class="tok-prop">.cpu</span> {'{'}
-  animation: <span class="tok-prop">store</span> <span class="tok-num">1ms</span> infinite, <span class="tok-prop">execute</span> <span class="tok-num">1ms</span> infinite;
-  animation-play-state: paused, paused;
-  @container style(<span class="tok-prop">--clock</span>: <span class="tok-num">1</span>) {'{'} animation-play-state: running, paused {'}'}
-  @container style(<span class="tok-prop">--clock</span>: <span class="tok-num">3</span>) {'{'} animation-play-state: paused, running {'}'}</code></pre>
+  <CodeCss code={CONDUCTOR} />
 </Foldable>

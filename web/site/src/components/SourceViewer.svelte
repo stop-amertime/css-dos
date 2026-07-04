@@ -2,6 +2,8 @@
   // Paginated cabinet-source viewer. Cabinets are 100+ MB with pathologically
   // long lines, so we paginate by LINE COUNT and discover page offsets lazily
   // (stream forward counting newlines, cache the byte offset of each page).
+  import Prism from '../lib/prism.js';
+
   let { blob } = $props();
 
   const LINES_PER_PAGE = 200;
@@ -46,7 +48,7 @@
     const end = pageStarts[n] ?? blob.size;
     const text = await blob.slice(start, end).text();
     codeEl.textContent = text;
-    window.Prism?.highlightElement(codeEl);
+    Prism.highlightElement(codeEl);
     const total = estimateTotal();
     totalLabel = exactPageCount != null ? String(total) : `~${total}`;
   }

@@ -7,6 +7,56 @@
   import Foldable from '../Foldable.svelte';
   import CpuCoverage from './CpuCoverage.svelte';
   import Term from '../Term.svelte';
+  import CodeCss from '../CodeCss.svelte';
+
+  const AX_TABLE = `--AX: if(
+  style(--_irqActive: 1): var(--snapshot-AX);  /* interrupt pending — hardware outranks the program this tick */
+  else: if(
+    style(--opcode: 0): …;    /* ADD, one flavour */
+    style(--opcode: 1): …;    /* ADD, another */
+    …                     /* every opcode that can touch AX */
+    else: var(--snapshot-AX)));   /* untouched: keep the old value */`;
+
+  const ADD_AX = `style(--opcode: 5): --lowerBytes(calc(var(--snapshot-AX) + var(--imm16)), 16);   /* ADD AX, imm16 */`;
+
+  const ADD_IP = `style(--opcode: 5): calc(var(--snapshot-IP) + 3);   /* ADD is three bytes long */`;
+
+  const ADD_FLAGS = `@function --addFlags16(--dst <integer>, --src <integer>) returns <integer> {
+  --raw: calc(var(--dst) + var(--src));
+  --res: --lowerBytes(var(--raw), 16);
+  --cf: min(1, round(down, var(--raw) / 65536));
+  --pf: --parity(var(--res));
+  --zfsf: calc(if(style(--res: 0): 64; else: 0) + --bit(var(--res), 15) * 128);
+  --of: --addOF16(var(--dst), var(--src), var(--res));
+  result: calc(var(--cf) + var(--pf)
+    + calc(round(down, max(0, sign(mod(var(--dst), 16)
+        + mod(var(--src), 16) - 15.5)) + 0.5) * 16)
+    + var(--zfsf) + var(--of) + 2);
+}`;
+
+  const DIV_ROWS = `/* AX takes the quotient */
+round(down, calc((var(--snapshot-DX) * 65536 + var(--snapshot-AX)) / max(1, var(--rmVal16))))
+/* DX takes the remainder */
+mod(calc(var(--snapshot-DX) * 65536 + var(--snapshot-AX)), max(1, var(--rmVal16)))`;
+
+  const DAA = `style(--opcode: 39): calc(round(down, var(--snapshot-AX) / 256) * 256
+  + mod(calc(var(--AL)
+  + calc(min(1, calc(round(down, mod(var(--AL), 16) / 10)
+  + mod(round(down, var(--snapshot-flags) / 16), 2))) * 6)
+  + calc(min(1, calc(round(down, var(--AL) / 154)
+  + mod(var(--snapshot-flags), 2))) * 96)), 256))`;
+
+  const TF_DELAY = `--_tf: var(--__1_tfPending);   /* this tick's trap = LAST tick's request */`;
+
+  const CHIP_VARS = `--AX --CX --DX --BX --SP --BP --SI --DI   /* the registers … */
+--CS --DS --ES --SS --IP --flags          /* … all fourteen */
+--picMask --picPending --picInService     /* interrupt controller */
+--pitMode --pitReload --pitCounter …      /* timer chip */
+--prevKeyboard --kbdScancodeLatch         /* keyboard */
+--dacWriteIndex --dacSubIndex …           /* VGA palette chip */`;
+
+  const POWER_ON = `@property --CS { … initial-value: 61440; }   /* 0xF000 — the BIOS ROM */
+@property --IP { … initial-value: 0; }`;
 </script>
 
 <p>
@@ -45,13 +95,7 @@
   the current <Term t="opcode">opcode</Term>, with a row for every instruction that can touch
   it:
 </p>
-<pre class="byte-example"><code><span class="tok-prop">--AX</span>: if(
-  style(<span class="tok-prop">--_irqActive</span>: <span class="tok-num">1</span>): var(<span class="tok-prop">--snapshot-AX</span>);  <span class="tok-comment">/* interrupt pending — hardware outranks the program this tick */</span>
-  else: if(
-    style(<span class="tok-prop">--opcode</span>: <span class="tok-num">0</span>): &hellip;;    <span class="tok-comment">/* ADD, one flavour */</span>
-    style(<span class="tok-prop">--opcode</span>: <span class="tok-num">1</span>): &hellip;;    <span class="tok-comment">/* ADD, another */</span>
-    &hellip;                     <span class="tok-comment">/* every opcode that can touch AX */</span>
-    else: var(<span class="tok-prop">--snapshot-AX</span>)));   <span class="tok-comment">/* untouched: keep the old value */</span></code></pre>
+<CodeCss code={AX_TABLE} />
 <div class="callout">
   <span class="callout-label">NOTE</span>
   <p>
@@ -87,13 +131,13 @@
   Opcode 5 is &ldquo;add a number to AX&rdquo;. When the snapshot says
   <code>--opcode: 5</code>, this row fires in the AX table:
 </p>
-<pre class="byte-example"><code>style(<span class="tok-prop">--opcode</span>: <span class="tok-num">5</span>): --lowerBytes(calc(var(<span class="tok-prop">--snapshot-AX</span>) + var(<span class="tok-prop">--imm16</span>)), <span class="tok-num">16</span>);   <span class="tok-comment">/* ADD AX, imm16 */</span></code></pre>
+<CodeCss code={ADD_AX} />
 <p>
   New AX = old AX plus the number that followed the opcode in memory,
   trimmed back to 16 bits because registers wrap. The same opcode
   selects a row in the IP table:
 </p>
-<pre class="byte-example"><code>style(<span class="tok-prop">--opcode</span>: <span class="tok-num">5</span>): calc(var(<span class="tok-prop">--snapshot-IP</span>) + <span class="tok-num">3</span>);   <span class="tok-comment">/* ADD is three bytes long */</span></code></pre>
+<CodeCss code={ADD_IP} />
 <p>
   &mdash; stepping the machine past the three-byte instruction. A
   jump&rsquo;s IP row computes a destination instead, and a backwards
@@ -117,18 +161,7 @@
     The flags table&rsquo;s opcode-5 row calls this &mdash; the
     machine&rsquo;s real 16-bit ADD flag function:
   </p>
-  <pre class="byte-example"><code>@function <span class="tok-prop">--addFlags16</span>(<span class="tok-prop">--dst</span> &lt;integer&gt;, <span class="tok-prop">--src</span> &lt;integer&gt;) returns &lt;integer&gt; {'{'}
-  <span class="tok-prop">--raw</span>: calc(var(--dst) + var(--src));
-  <span class="tok-prop">--res</span>: --lowerBytes(var(--raw), <span class="tok-num">16</span>);
-  <span class="tok-prop">--cf</span>: min(<span class="tok-num">1</span>, round(down, var(--raw) / <span class="tok-num">65536</span>));
-  <span class="tok-prop">--pf</span>: --parity(var(--res));
-  <span class="tok-prop">--zfsf</span>: calc(if(style(--res: <span class="tok-num">0</span>): <span class="tok-num">64</span>; else: <span class="tok-num">0</span>) + --bit(var(--res), <span class="tok-num">15</span>) * <span class="tok-num">128</span>);
-  <span class="tok-prop">--of</span>: --addOF16(var(--dst), var(--src), var(--res));
-  result: calc(var(--cf) + var(--pf)
-    + calc(round(down, max(<span class="tok-num">0</span>, sign(mod(var(--dst), <span class="tok-num">16</span>)
-        + mod(var(--src), <span class="tok-num">16</span>) - <span class="tok-num">15.5</span>)) + <span class="tok-num">0.5</span>) * <span class="tok-num">16</span>)
-    + var(--zfsf) + var(--of) + <span class="tok-num">2</span>);
-{'}'}</code></pre>
+  <CodeCss code={ADD_FLAGS} />
   <p>
     In there: <code>--cf</code> asks &ldquo;did the true sum pass
     65,535?&rdquo; &mdash; divide by 65,536, round down, and that is
@@ -153,10 +186,7 @@
     and AX &mdash; producing a quotient and a remainder at once. Two
     tables catch its output:
   </p>
-  <pre class="byte-example"><code><span class="tok-comment">/* AX takes the quotient */</span>
-round(down, calc((var(<span class="tok-prop">--snapshot-DX</span>) * <span class="tok-num">65536</span> + var(<span class="tok-prop">--snapshot-AX</span>)) / max(<span class="tok-num">1</span>, var(<span class="tok-prop">--rmVal16</span>))))
-<span class="tok-comment">/* DX takes the remainder */</span>
-mod(calc(var(<span class="tok-prop">--snapshot-DX</span>) * <span class="tok-num">65536</span> + var(<span class="tok-prop">--snapshot-AX</span>)), max(<span class="tok-num">1</span>, var(<span class="tok-prop">--rmVal16</span>)))</code></pre>
+  <CodeCss code={DIV_ROWS} />
   <p>
     The <code>max(1, &hellip;)</code> is there because a program can
     ask to divide by zero, and the formula has to stay legal CSS when
@@ -167,12 +197,7 @@ mod(calc(var(<span class="tok-prop">--snapshot-DX</span>) * <span class="tok-num
     calculator-era relic that patches up sums done on numbers stored as
     decimal digits. DOS-era programs really use it, so:
   </p>
-  <pre class="byte-example"><code>style(<span class="tok-prop">--opcode</span>: <span class="tok-num">39</span>): calc(round(down, var(<span class="tok-prop">--snapshot-AX</span>) / <span class="tok-num">256</span>) * <span class="tok-num">256</span>
-  + mod(calc(var(--AL)
-  + calc(min(<span class="tok-num">1</span>, calc(round(down, mod(var(--AL), <span class="tok-num">16</span>) / <span class="tok-num">10</span>)
-  + mod(round(down, var(<span class="tok-prop">--snapshot-flags</span>) / <span class="tok-num">16</span>), <span class="tok-num">2</span>))) * <span class="tok-num">6</span>)
-  + calc(min(<span class="tok-num">1</span>, calc(round(down, var(--AL) / <span class="tok-num">154</span>)
-  + mod(var(<span class="tok-prop">--snapshot-flags</span>), <span class="tok-num">2</span>))) * <span class="tok-num">96</span>)), <span class="tok-num">256</span>))</code></pre>
+  <CodeCss code={DAA} />
   <p>
     DAA needs to ask &ldquo;is this 4-bit chunk bigger than 9?&rdquo;,
     and with no <code>&lt;</code> available it asks by dividing:
@@ -216,7 +241,7 @@ mod(calc(var(<span class="tok-prop">--snapshot-DX</span>) * <span class="tok-num
     before. The machine reproduces that with a one-tick delay line
     &mdash; verbatim:
   </p>
-  <pre class="byte-example"><code><span class="tok-prop">--_tf</span>: var(<span class="tok-prop">--__1_tfPending</span>);   <span class="tok-comment">/* this tick's trap = LAST tick's request */</span></code></pre>
+  <CodeCss code={TF_DELAY} />
 </Foldable>
 
 <Foldable>
@@ -251,12 +276,7 @@ mod(calc(var(<span class="tok-prop">--snapshot-DX</span>) * <span class="tok-num
     registers are &mdash; a few more variables, with tables describing
     what the silicon would have done:
   </p>
-  <pre class="byte-example"><code><span class="tok-prop">--AX --CX --DX --BX --SP --BP --SI --DI</span>   <span class="tok-comment">/* the registers &hellip; */</span>
-<span class="tok-prop">--CS --DS --ES --SS --IP --flags</span>          <span class="tok-comment">/* &hellip; all fourteen */</span>
-<span class="tok-prop">--picMask --picPending --picInService</span>     <span class="tok-comment">/* interrupt controller */</span>
-<span class="tok-prop">--pitMode --pitReload --pitCounter</span> &hellip;      <span class="tok-comment">/* timer chip */</span>
-<span class="tok-prop">--prevKeyboard --kbdScancodeLatch</span>         <span class="tok-comment">/* keyboard */</span>
-<span class="tok-prop">--dacWriteIndex --dacSubIndex</span> &hellip;           <span class="tok-comment">/* VGA palette chip */</span></code></pre>
+  <CodeCss code={CHIP_VARS} />
 </Foldable>
 
 <h3 class="anatomy-head">Power-on</h3>
@@ -265,8 +285,7 @@ mod(calc(var(<span class="tok-prop">--snapshot-DX</span>) * <span class="tok-num
   moment the stylesheet loads, and on tick one the fetch simply reads
   from wherever CS:IP already point. The declarations put them there:
 </p>
-<pre class="byte-example"><code>@property <span class="tok-prop">--CS</span> {'{'} &hellip; initial-value: <span class="tok-num">61440</span>; {'}'}   <span class="tok-comment">/* 0xF000 — the BIOS ROM */</span>
-@property <span class="tok-prop">--IP</span> {'{'} &hellip; initial-value: <span class="tok-num">0</span>; {'}'}</code></pre>
+<CodeCss code={POWER_ON} />
 <p>
   That is linear address 983,040 &mdash; the first ROM entry in the
   <a href="#about/file/memr">read-formulas section</a> &mdash; and the byte there is 235, a jump

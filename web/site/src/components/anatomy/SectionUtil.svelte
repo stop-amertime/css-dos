@@ -7,10 +7,41 @@
   // (SignDemo removed 2026-07-03 — owner: demonstrated nothing.)
   import Foldable from '../Foldable.svelte';
   import Term from '../Term.svelte';
+  import CodeCss from '../CodeCss.svelte';
 
   // The AND worked example: 172 AND 102 = 36.
   const A_BITS = [1, 0, 1, 0, 1, 1, 0, 0]; // 172
   const B_BITS = [0, 1, 1, 0, 0, 1, 1, 0]; // 102
+
+  const AND_FN = `@function --and(--a <integer>, --b <integer>) returns <integer> {
+  --a1: mod(var(--a), 2);
+  --a2: mod(round(down, var(--a) / 2), 2);
+  --a3: mod(round(down, var(--a) / 4), 2);
+  /* … sixteen bits of --a, sixteen bits of --b … */
+  result: calc(
+    var(--a1) * var(--b1) +
+    calc(var(--a2) * var(--b2)) * 2 +
+    calc(var(--a3) * var(--b3)) * 4 +
+    /* … */`;
+
+  const LESS_THAN = `max(0, sign(B - A - 0.5))    /* 1 if A < B, else 0 */`;
+
+  const POW2 = `@function --pow2(--n <integer>) returns <integer> {
+  result: if(
+    style(--n: 0): 1;
+    style(--n: 1): 2;
+    style(--n: 2): 4;
+    style(--n: 3): 8;
+    /* … up to 2³¹ … */`;
+
+  const PARITY = `@function --parity(--val <integer>) returns <integer> {
+  --low8: --lowerBytes(var(--val), 8);
+  result: if(
+    style(--low8: 0): 4;
+    style(--low8: 1): 0;
+    style(--low8: 2): 0;
+    style(--low8: 3): 4;
+    /* … all 256 byte values … */`;
 </script>
 
 <p>
@@ -89,16 +120,7 @@
   sixteen bits with divide-and-remainder, multiplies each pair, and
   reassembles the result:
 </p>
-<pre class="byte-example"><code>@function <span class="tok-prop">--and</span>(<span class="tok-prop">--a</span> &lt;integer&gt;, <span class="tok-prop">--b</span> &lt;integer&gt;) returns &lt;integer&gt; {'{'}
-  <span class="tok-prop">--a1</span>: mod(var(--a), <span class="tok-num">2</span>);
-  <span class="tok-prop">--a2</span>: mod(round(down, var(--a) / <span class="tok-num">2</span>), <span class="tok-num">2</span>);
-  <span class="tok-prop">--a3</span>: mod(round(down, var(--a) / <span class="tok-num">4</span>), <span class="tok-num">2</span>);
-  <span class="tok-comment">/* … sixteen bits of --a, sixteen bits of --b … */</span>
-  result: calc(
-    var(--a1) * var(--b1) +
-    calc(var(--a2) * var(--b2)) * <span class="tok-num">2</span> +
-    calc(var(--a3) * var(--b3)) * <span class="tok-num">4</span> +
-    <span class="tok-comment">/* … */</span></code></pre>
+<CodeCss code={AND_FN} />
 <p>
   OR and XOR come out of the same move: per bit, OR is
   <code>min(1, a + b)</code> and XOR is
@@ -110,7 +132,7 @@
   &ldquo;Is A less than B?&rdquo; is built from <code>sign()</code>,
   which returns &minus;1, 0 or +1:
 </p>
-<pre class="byte-example"><code>max(<span class="tok-num">0</span>, sign(B - A - <span class="tok-num">0.5</span>))    <span class="tok-comment">/* 1 if A &lt; B, else 0 */</span></code></pre>
+<CodeCss code={LESS_THAN} />
 <p>
   <code>sign(B&nbsp;&minus;&nbsp;A)</code> is +1 when A is below B,
   0 at a tie, &minus;1 above; <code>max()</code> flattens everything
@@ -142,26 +164,13 @@
   needed whenever a program shifts by an amount held in a <Term t="register">register</Term>, so
   <code>--pow2</code> is just the answers:
 </p>
-<pre class="byte-example"><code>@function <span class="tok-prop">--pow2</span>(<span class="tok-prop">--n</span> &lt;integer&gt;) returns &lt;integer&gt; {'{'}
-  result: if(
-    style(<span class="tok-prop">--n</span>: <span class="tok-num">0</span>): <span class="tok-num">1</span>;
-    style(<span class="tok-prop">--n</span>: <span class="tok-num">1</span>): <span class="tok-num">2</span>;
-    style(<span class="tok-prop">--n</span>: <span class="tok-num">2</span>): <span class="tok-num">4</span>;
-    style(<span class="tok-prop">--n</span>: <span class="tok-num">3</span>): <span class="tok-num">8</span>;
-    <span class="tok-comment">/* … up to 2³¹ … */</span></code></pre>
+<CodeCss code={POW2} />
 <p>
   And the 8086&rsquo;s parity flag reports the number of 1-bits in a
   result. Nothing in CSS counts bits, so <code>--parity</code> carries
   the verdict for all 256 possible bytes:
 </p>
-<pre class="byte-example"><code>@function <span class="tok-prop">--parity</span>(<span class="tok-prop">--val</span> &lt;integer&gt;) returns &lt;integer&gt; {'{'}
-  <span class="tok-prop">--low8</span>: --lowerBytes(var(--val), <span class="tok-num">8</span>);
-  result: if(
-    style(<span class="tok-prop">--low8</span>: <span class="tok-num">0</span>): <span class="tok-num">4</span>;
-    style(<span class="tok-prop">--low8</span>: <span class="tok-num">1</span>): <span class="tok-num">0</span>;
-    style(<span class="tok-prop">--low8</span>: <span class="tok-num">2</span>): <span class="tok-num">0</span>;
-    style(<span class="tok-prop">--low8</span>: <span class="tok-num">3</span>): <span class="tok-num">4</span>;
-    <span class="tok-comment">/* … all 256 byte values … */</span></code></pre>
+<CodeCss code={PARITY} />
 <p>
   The answers are 0 and 4 rather than 0 and 1. The parity flag sits at
   bit 2 of the flags register &mdash; worth 4 &mdash; so the table

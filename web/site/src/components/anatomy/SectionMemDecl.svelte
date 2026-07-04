@@ -2,6 +2,16 @@
   // Memory — variable declarations. The @property block is verbatim
   // from sokoban.css; the cell count is measured from the same file
   // (grep -c '@property --mc' → 368,256).
+  import CodeCss from '../CodeCss.svelte';
+
+  const DECL = `@property --mc5000 {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 32861;
+}`;
+
+  const FALLBACKS = `--snapshot-mc5000: var(--staged-mc5000, 32861);
+--staged-mc5000: var(--held-mc5000, 32861);`;
 </script>
 
 <p>
@@ -9,11 +19,7 @@
   declare it. The file declares every memory cell &mdash; all
   <b>368,256</b> of them. This one is verbatim:
 </p>
-<pre class="byte-example"><code>@property <span class="tok-prop">--mc5000</span> {'{'}
-  syntax: '&lt;integer&gt;';
-  inherits: true;
-  initial-value: <span class="tok-num">32861</span>;
-{'}'}</code></pre>
+<CodeCss code={DECL} />
 <p>
   The <code>initial-value</code> is that cell&rsquo;s power-on
   contents. Which means the machine&rsquo;s entire starting state
@@ -61,8 +67,7 @@
   (variable names tidied for reading &mdash; the real ones are
   <code>--__1mc5000</code> and friends):
 </p>
-<pre class="byte-example"><code><span class="tok-prop">--snapshot-mc5000</span>: var(<span class="tok-prop">--staged-mc5000</span>, <span class="tok-num">32861</span>);
-<span class="tok-prop">--staged-mc5000</span>: var(<span class="tok-prop">--held-mc5000</span>, <span class="tok-num">32861</span>);</code></pre>
+<CodeCss code={FALLBACKS} />
 <p>
   If the staged copy doesn&rsquo;t exist yet &mdash; tick one, nothing
   stored &mdash; the snapshot falls back to 32861, the declared

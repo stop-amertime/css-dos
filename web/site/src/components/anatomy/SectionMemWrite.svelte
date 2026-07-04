@@ -8,6 +8,28 @@
   import Foldable from '../Foldable.svelte';
   import RamWrite from '../RamWrite.svelte';
   import Term from '../Term.svelte';
+  import CodeCss from '../CodeCss.svelte';
+
+  const APPLY_SLOT = `@function --applySlot(--cell, --live, --loOff, --hiOff, --val, --width) returns <integer> {
+  result: if(
+    style(--live: 0): var(--cell);                /* slot idle — pass through */
+    style(--width: 2) and style(--loOff: 0) and style(--hiOff: 1):
+      --lowerBytes(var(--val), 16);              /* whole word, aligned */
+    style(--width: 2) and style(--loOff: 1):
+      calc(--lowerBytes(var(--val), 8) * 256 + mod(var(--cell), 256));   /* word straddles me: low half */
+    style(--width: 2) and style(--hiOff: 0):
+      calc(round(down, var(--cell) / 256) * 256 + --rightShift(var(--val), 8));   /* word straddles me: high half */
+    style(--loOff: 0): calc(round(down, var(--cell) / 256) * 256 + var(--val));   /* one byte, low */
+    style(--loOff: 1): calc(var(--val) * 256 + mod(var(--cell), 256));            /* one byte, high */
+  else: var(--cell));
+}`;
+
+  const ASSEMBLED_CELL = `--mc5000: --applySlot(--applySlot(--applySlot(var(--snapshot-mc5000),
+      var(--_slot2Live), calc(var(--memAddr2) - 5000 * 2),
+      calc(var(--memAddr2) + 1 - 5000 * 2), var(--memVal2), var(--_writeWidth)),
+    /* … slot 1, the same shape … */),
+  var(--_slot0Live), calc(var(--memAddr0) - 5000 * 2),
+  calc(var(--memAddr0) + 1 - 5000 * 2), var(--memVal0), var(--_writeWidth));`;
 </script>
 
 <p>
@@ -23,7 +45,7 @@
   no moment at which x <i>becomes</i> y &mdash; you can only declare,
   once, what x <i>is</i>:
 </p>
-<pre class="byte-example"><code><span class="tok-prop">--x</span>: <span class="tok-num">5</span>;</code></pre>
+<CodeCss code={'--x: 5;'} />
 <p>
   So the definition itself has to do the work: each byte of memory is
   written as a formula that works out, every <Term t="tick">tick</Term>, what its value now
@@ -56,19 +78,7 @@
   the other half. One function does it, and every cell&rsquo;s formula
   calls it once per write slot &mdash; verbatim:
 </p>
-<pre class="byte-example"><code>@function <span class="tok-prop">--applySlot</span>(<span class="tok-prop">--cell</span>, <span class="tok-prop">--live</span>, <span class="tok-prop">--loOff</span>, <span class="tok-prop">--hiOff</span>, <span class="tok-prop">--val</span>, <span class="tok-prop">--width</span>) returns &lt;integer&gt; {'{'}
-  result: if(
-    style(<span class="tok-prop">--live</span>: <span class="tok-num">0</span>): var(--cell);                <span class="tok-comment">/* slot idle — pass through */</span>
-    style(<span class="tok-prop">--width</span>: <span class="tok-num">2</span>) and style(<span class="tok-prop">--loOff</span>: <span class="tok-num">0</span>) and style(<span class="tok-prop">--hiOff</span>: <span class="tok-num">1</span>):
-      --lowerBytes(var(--val), <span class="tok-num">16</span>);              <span class="tok-comment">/* whole word, aligned */</span>
-    style(<span class="tok-prop">--width</span>: <span class="tok-num">2</span>) and style(<span class="tok-prop">--loOff</span>: <span class="tok-num">1</span>):
-      calc(--lowerBytes(var(--val), <span class="tok-num">8</span>) * <span class="tok-num">256</span> + mod(var(--cell), <span class="tok-num">256</span>));   <span class="tok-comment">/* word straddles me: low half */</span>
-    style(<span class="tok-prop">--width</span>: <span class="tok-num">2</span>) and style(<span class="tok-prop">--hiOff</span>: <span class="tok-num">0</span>):
-      calc(round(down, var(--cell) / <span class="tok-num">256</span>) * <span class="tok-num">256</span> + --rightShift(var(--val), <span class="tok-num">8</span>));   <span class="tok-comment">/* word straddles me: high half */</span>
-    style(<span class="tok-prop">--loOff</span>: <span class="tok-num">0</span>): calc(round(down, var(--cell) / <span class="tok-num">256</span>) * <span class="tok-num">256</span> + var(--val));   <span class="tok-comment">/* one byte, low */</span>
-    style(<span class="tok-prop">--loOff</span>: <span class="tok-num">1</span>): calc(var(--val) * <span class="tok-num">256</span> + mod(var(--cell), <span class="tok-num">256</span>));            <span class="tok-comment">/* one byte, high */</span>
-  else: var(--cell));
-{'}'}</code></pre>
+<CodeCss code={APPLY_SLOT} />
 <p>
   The middle two cases are the awkward one: a 16-bit write to an odd
   address lands half in one cell and half in the next, so <i>both</i>
@@ -80,12 +90,7 @@
   Assembled, this is one cell of the machine &mdash; verbatim, names
   tidied as usual, the middle slot elided:
 </p>
-<pre class="byte-example"><code><span class="tok-prop">--mc5000</span>: --applySlot(--applySlot(--applySlot(var(<span class="tok-prop">--snapshot-mc5000</span>),
-      var(<span class="tok-prop">--_slot2Live</span>), calc(var(<span class="tok-prop">--memAddr2</span>) - <span class="tok-num">5000</span> * <span class="tok-num">2</span>),
-      calc(var(<span class="tok-prop">--memAddr2</span>) + <span class="tok-num">1</span> - <span class="tok-num">5000</span> * <span class="tok-num">2</span>), var(<span class="tok-prop">--memVal2</span>), var(<span class="tok-prop">--_writeWidth</span>)),
-    <span class="tok-comment">/* &hellip; slot 1, the same shape &hellip; */</span>),
-  var(<span class="tok-prop">--_slot0Live</span>), calc(var(<span class="tok-prop">--memAddr0</span>) - <span class="tok-num">5000</span> * <span class="tok-num">2</span>),
-  calc(var(<span class="tok-prop">--memAddr0</span>) + <span class="tok-num">1</span> - <span class="tok-num">5000</span> * <span class="tok-num">2</span>), var(<span class="tok-prop">--memVal0</span>), var(<span class="tok-prop">--_writeWidth</span>));</code></pre>
+<CodeCss code={ASSEMBLED_CELL} />
 <p>
   This line, once per cell &mdash; 368,256 times, each with its own
   address baked into the arithmetic &mdash; is the 171&nbsp;MB.

@@ -4,6 +4,14 @@
   // mechanism from EXPLAINER.md §8 / CABINET-ANATOMY.md §10–11.
   import Foldable from '../Foldable.svelte';
   import Term from '../Term.svelte';
+  import CodeCss from '../CodeCss.svelte';
+
+  const DISK_FN = `@function --readDiskByte(--idx <integer>) returns <integer> {
+  result: if(
+    style(--idx: 0): 235;
+    style(--idx: 1): 60;
+    style(--idx: 2): 144;
+    /* … one arm per byte of the floppy … */`;
 </script>
 
 <p>
@@ -13,12 +21,7 @@
   entire <Term t="floppy">floppy disk</Term>, baked in byte by byte &mdash; one
   <code>if()</code> arm each:
 </p>
-<pre class="byte-example"><code>@function <span class="tok-prop">--readDiskByte</span>(<span class="tok-prop">--idx</span> &lt;integer&gt;) returns &lt;integer&gt; {'{'}
-  result: if(
-    style(<span class="tok-prop">--idx</span>: <span class="tok-num">0</span>): <span class="tok-num">235</span>;
-    style(<span class="tok-prop">--idx</span>: <span class="tok-num">1</span>): <span class="tok-num">60</span>;
-    style(<span class="tok-prop">--idx</span>: <span class="tok-num">2</span>): <span class="tok-num">144</span>;
-    <span class="tok-comment">/* &hellip; one arm per byte of the floppy &hellip; */</span></code></pre>
+<CodeCss code={DISK_FN} />
 <p>
   (Verbatim, and already meaningful: 235,&nbsp;60,&nbsp;144 is the
   x86 jump instruction that every FAT boot sector opens with. Byte
