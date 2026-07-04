@@ -11,7 +11,19 @@
 // Close this tab and the runner in the other tab freezes.
 
 (async function bootCalciteBridge() {
-  if (!('serviceWorker' in navigator)) return;
+  // Announce boot state so the page can show it (the Svelte site renders
+  // these on the Play step — console-only errors are invisible on mobile).
+  const announce = (phase, error) => {
+    window.__calciteBridgeState = { phase, error };
+    try {
+      window.dispatchEvent(new CustomEvent('cssdos-bridge-state', { detail: { phase, error } }));
+    } catch {}
+  };
+  if (!('serviceWorker' in navigator)) {
+    console.error('[calcite-bridge] service workers unavailable — player cannot stream');
+    announce('unsupported', 'service workers unavailable');
+    return;
+  }
   try {
     const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
     await navigator.serviceWorker.ready;
@@ -55,8 +67,10 @@
       }, { once: true });
     }
     window.__calciteBridge = bridge;
+    announce('spawned');
     console.log('[calcite-bridge] worker spawned, SW port registered');
   } catch (e) {
     console.error('[calcite-bridge] boot failed:', e);
+    announce('failed', e?.message || String(e));
   }
 })();

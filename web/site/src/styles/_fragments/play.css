@@ -119,7 +119,21 @@ button.run-opt {
   border-bottom: 1px solid var(--edit-black);
 }
 .inline-player-title { font-weight: bold; }
-.inline-player-pop { color: var(--edit-blue); margin-left: auto; }
+/* Live engine status (compiling / running / errors) — the only feedback
+   during the 10–25s cabinet compile, and the on-page error surface. */
+.inline-player-status {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.inline-player-status.error {
+  color: var(--edit-white);
+  background: var(--edit-red);
+  padding: 0 6px;
+  white-space: normal;
+}
+.inline-player-pop { color: var(--edit-blue); margin-left: auto; flex-shrink: 0; }
 .inline-player-frame {
   display: block;
   width: 100%;

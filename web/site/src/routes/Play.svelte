@@ -2,7 +2,9 @@
   import '../styles/_fragments/play.css';
   import Wizard from '../components/Wizard.svelte';
   import Foldable from '../components/Foldable.svelte';
+  import EnvNotice from '../components/EnvNotice.svelte';
   import { nav } from '../lib/router.svelte.js';
+  import { health } from '../lib/health.svelte.js';
 
   let { strip, wizNav } = $props();
 
@@ -99,6 +101,8 @@
   </Foldable>
 </div>
 
+<EnvNotice />
+
 <!-- Two run options — small, side by side. -->
 <div class="run-options">
   <a class="run-opt run-raw" id="play-raw-card" href="/player/raw.html" target="_blank" rel="noopener">
@@ -111,7 +115,8 @@
     </div>
   </a>
 
-  <button class="run-opt run-calcite" id="play-calcite-card" onclick={() => inlinePlaying = true}>
+  <button class="run-opt run-calcite" id="play-calcite-card" class:disabled={!health.canRun}
+          disabled={!health.canRun} onclick={() => inlinePlaying = true}>
     <div class="run-opt-head">
       Run using Calcite
       <span class="run-opt-rec">recommended</span>
@@ -127,7 +132,10 @@
 {#if inlinePlaying}
 <div class="inline-player" bind:this={playerEl}>
   <div class="inline-player-bar">
-    <span class="inline-player-title">CSS-DOS &mdash; playing</span>
+    <span class="inline-player-title">CSS-DOS</span>
+    <span class="inline-player-status" class:error={health.engineError}>
+      {health.engineError || health.engineStatus}
+    </span>
     <a class="inline-player-pop" href="/player/calcite.html" target="_blank" rel="noopener"
        onclick={() => inlinePlaying = false}>Pop out &#8599;</a>
     <button class="btn inline-player-stop" onclick={() => inlinePlaying = false}>Stop</button>
