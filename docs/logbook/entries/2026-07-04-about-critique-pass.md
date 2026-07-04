@@ -20,3 +20,9 @@ through to page turns at carousel ends (no wrap trap); applyHash
 scrolls to top. Verified in Chromium via Playwright: all 5 pages, 10
 carousel stops, deep links, arrow fall-through, 0 console errors.
 ABOUT-SCRIPT.md design section updated to match.
+Follow-up (same day): wizard height caps switched 100vh→100dvh (vh is
+the large viewport on phones; with the URL bar showing and the body
+unable to scroll, the pinned Next footer sat off-screen), and Next is
+now disabled on the carousel's map page until the carousel has been
+used once (arrow/bar/deep link) so readers can't skip the tour
+without finding it.

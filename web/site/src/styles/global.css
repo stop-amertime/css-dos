@@ -380,12 +380,16 @@ body:has(.window.wizard) {
   display: flex;
   flex-direction: column;
   /* Leave room for the fixed menu bar (top) + status line (bottom) + the
-     body's 16px pads + the window's own 8px margins + drop shadow. */
-  max-height: calc(100vh - 96px);
+     body's 16px pads + the window's own 8px margins + drop shadow.
+     dvh, not vh: on phones vh is the LARGE viewport (URL bar collapsed),
+     and since the body can't scroll (overflow:hidden, height:100dvh) a
+     vh-sized dialog pushes the pinned Next footer off the visible screen
+     whenever the URL bar is showing. */
+  max-height: calc(100dvh - 96px);
   /* Floor so sparse pages don't collapse to an awkward little box — but
      never taller than the viewport cap above (min() clamps it on short
      screens). */
-  min-height: min(600px, calc(100vh - 96px));
+  min-height: min(600px, calc(100dvh - 96px));
 }
 /* Pinned header: the main step strip + (optional) substep dots. The
    separator under the substeps is the visual floor of this band. */
@@ -547,8 +551,8 @@ pre, code, kbd {
     width: calc(100vw - 8px);
     max-width: calc(100vw - 8px);
     margin: 4px;
-    max-height: calc(100vh - 72px);
-    min-height: min(480px, calc(100vh - 72px));
+    max-height: calc(100dvh - 72px);
+    min-height: min(480px, calc(100dvh - 72px));
   }
   .window.wizard .window-body { padding: 12px 10px 10px; }
 

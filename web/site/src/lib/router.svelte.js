@@ -34,6 +34,10 @@ class Nav {
   buildSub = $state(1);  // Build sub-page 1..3
   section = $state('map');   // current section on the About/file carousel
   sectionDir = $state(1);    // slide direction of the last section change
+  // Next is held on the carousel's map page until the reader has moved
+  // the carousel at least once (arrows, bar click, or a section deep
+  // link) — proof they've found the navigation before skipping the tour.
+  carouselSeen = $state(false);
 
   sectionIdx() { return FILE_SECTIONS.indexOf(this.section); }
 
@@ -42,6 +46,7 @@ class Nav {
     const n = FILE_SECTIONS.length;
     this.sectionDir = d;
     this.section = FILE_SECTIONS[(this.sectionIdx() + d + n) % n];
+    this.carouselSeen = true;
     scrollTop();
   }
 
@@ -50,6 +55,7 @@ class Nav {
     if (id === this.section || !FILE_SECTIONS.includes(id)) return;
     this.sectionDir = FILE_SECTIONS.indexOf(id) > this.sectionIdx() ? 1 : -1;
     this.section = id;
+    this.carouselSeen = true;
   }
 
   // Play unlocks once a cabinet exists.
@@ -59,8 +65,13 @@ class Nav {
   get isLast() { return this.step === PLAY; }
 
   // Next is blocked on the Build step until the gate for the current
-  // sub-page is met: pick → need a cart; configure → need a finished build.
+  // sub-page is met (pick → need a cart; configure → need a finished
+  // build), and on the carousel's map page until the carousel has been
+  // used once.
   get nextDisabled() {
+    if (this.step === ABOUT) {
+      return this.sub === ABOUT_FILE_SUB && this.section === 'map' && !this.carouselSeen;
+    }
     if (this.step !== BUILD) return false;
     if (this.buildSub === BUILD_PICK) return !build.hasSource;
     if (this.buildSub === BUILD_CONFIG) return !build.done;
@@ -145,7 +156,10 @@ class Nav {
       const subName = s1 ?? (s0 === 'about' ? 'intro' : 'how');
       const i = ABOUT_SUBS.indexOf(subName);
       this.sub = i >= 0 ? i + 1 : 1;
-      if (this.sub === ABOUT_FILE_SUB && FILE_SECTIONS.includes(s2)) this.section = s2;
+      if (this.sub === ABOUT_FILE_SUB && FILE_SECTIONS.includes(s2)) {
+        this.section = s2;
+        if (s2 !== 'map') this.carouselSeen = true;
+      }
     } else if (target === BUILD) {
       const i = BUILD_SUBS.indexOf(s1);
       let want = i >= 0 ? i + 1 : 1;
