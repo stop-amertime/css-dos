@@ -6,6 +6,19 @@
 
   let { strip, wizNav } = $props();
 
+  // Inline player: iframe the calcite runner into this page instead of a
+  // new tab. The bridge worker (WASM engine) lives in THIS tab; mobile
+  // Chrome freezes background tabs, so the old two-tab flow starved the
+  // frame stream the moment the player tab took focus.
+  let inlinePlaying = $state(false);
+  let playerEl = $state(null);
+
+  $effect(() => {
+    if (inlinePlaying && playerEl) {
+      playerEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+
   // Back to the Build step's cart picker.
   function pickDifferent() {
     nav.buildSub = 1;
@@ -98,15 +111,28 @@
     </div>
   </a>
 
-  <a class="run-opt run-calcite" id="play-calcite-card" href="/player/calcite.html" target="_blank" rel="noopener">
+  <button class="run-opt run-calcite" id="play-calcite-card" onclick={() => inlinePlaying = true}>
     <div class="run-opt-head">
       Run using Calcite
       <span class="run-opt-rec">recommended</span>
     </div>
     <p class="run-opt-sub">
       The loaded page is still entirely HTML and CSS &mdash; Calcite
-      just evaluates it sanely.
+      just evaluates it sanely. Runs right here &mdash; the engine
+      lives in this tab.
     </p>
-  </a>
+  </button>
 </div>
+
+{#if inlinePlaying}
+<div class="inline-player" bind:this={playerEl}>
+  <div class="inline-player-bar">
+    <span class="inline-player-title">CSS-DOS &mdash; playing</span>
+    <a class="inline-player-pop" href="/player/calcite.html" target="_blank" rel="noopener"
+       onclick={() => inlinePlaying = false}>Pop out &#8599;</a>
+    <button class="btn inline-player-stop" onclick={() => inlinePlaying = false}>Stop</button>
+  </div>
+  <iframe class="inline-player-frame" src="/player/calcite.html" title="CSS-DOS player"></iframe>
+</div>
+{/if}
 </Wizard>
