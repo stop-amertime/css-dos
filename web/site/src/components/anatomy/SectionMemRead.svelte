@@ -53,7 +53,7 @@ style(--at: 1281): --rightShift(var(--snapshot-keyboard), 8);`;
 
 <h3 class="anatomy-head">The BIOS ROM arms &mdash; 6,924</h3>
 <p>
-  The BIOS is read-only, so its bytes don&rsquo;t need cells &mdash;
+  The <Term t="bios">BIOS</Term> is read-only, so its bytes don&rsquo;t need cells &mdash;
   each one is baked in as a literal constant:
   <code>style(--at: 983040): 235;</code>. Bytes that are zero are
   omitted entirely (the <code>else: 0</code> at the bottom of the

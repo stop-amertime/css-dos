@@ -70,7 +70,8 @@
         <div class="intro-text">
           <h1>A complete 1980s PC, in a stylesheet.</h1>
           <p class="lede">
-            An IBM PC compatible &mdash; 8086 processor, 640&nbsp;KB of
+            An IBM PC compatible &mdash;
+            <Term t="i8086">8086</Term> processor, 640&nbsp;KB of
             RAM, floppy drive, keyboard, VGA screen, and various
             less-memorable support chips &mdash; in one CSS file.
           </p>
@@ -90,8 +91,8 @@
           </p>
           <p class="lede">
             The file that does all this is about <b>300&nbsp;MB of plain
-            text</b>. Every line is spec-compliant CSS, albeit abused
-            beyond recognition.
+            text</b>. Every line is spec-compliant
+            <Term t="css">CSS</Term>, albeit abused beyond recognition.
           </p>
           <p class="intro-gh">
             <a href="https://github.com/stop-amertime/css-dos" class="ext-link"
@@ -105,7 +106,8 @@
     <div class="subpage" data-subpage="2">
       <h1>How is this possible?</h1>
       <p>
-        Everything in the machine is made of CSS variables &mdash;
+        Everything in the machine is made of
+        <Term t="css">CSS</Term> variables &mdash;
         which are, basically, formulas. A variable can be defined in
         terms of other variables, so a variable can compute: every
         <Term t="register">register</Term>, every byte of RAM, every
@@ -113,21 +115,14 @@
         variable that works out its own value, the way a cell in a
         spreadsheet does.
       </p>
-
-      <Foldable class="fold-bg">
-        {#snippet summary()}Background: what CSS is{/snippet}
-        <p>
-          The language that describes how web pages look. The
-          page&rsquo;s HTML holds the words and pictures; the CSS is
-          the list of rules saying what colour, size and position
-          everything gets. It was never meant to compute anything, but
-          over the years it has picked up the working parts of a
-          programming language &mdash; the newest of them,
-          <code>@function</code> and <code>if()</code>, only reached
-          browsers in the last couple of years:
-        </p>
-        <CssDemo />
-      </Foldable>
+      <p>
+        CSS was never meant to compute anything, but over the years it
+        has picked up the working parts of a programming language
+        &mdash; the newest of them, <code>@function</code> and
+        <code>if()</code>, only reached browsers in the last couple of
+        years:
+      </p>
+      <CssDemo />
 
       <p style="margin-top:16px">
         Six abilities, between them, cover the whole computer. Each is
@@ -205,18 +200,19 @@
     <div class="subpage" data-subpage="4">
       <h1>Calcite</h1>
       <p>
-        You can <i>try</i> to load a 300&nbsp;MB stylesheet into your
-        browser, but it will crash. Browsers simply weren&rsquo;t built
-        for that.
+        You can <i>try</i> to load a 300&nbsp;MB
+        <Term t="css">stylesheet</Term> into your browser, but it will
+        crash. Browsers simply weren&rsquo;t built for that.
       </p>
       <p>
-        So I built a separate tool &mdash; <b>Calcite</b> &mdash; a JIT
-        compiler for computational CSS. It&rsquo;s much like Chrome&rsquo;s
+        So I built a separate tool &mdash; <b>Calcite</b> &mdash; a
+        <Term t="jit">JIT compiler</Term> for computational CSS.
+        It&rsquo;s much like Chrome&rsquo;s
         own V8 engine, which compiles your JavaScript down to machine code
         before running it rather than plodding through the source line by
         line. Calcite does the same trick for CSS: it&rsquo;s written in
-        Rust, ships as WebAssembly, and runs entirely inside the browser
-        tab.
+        Rust, ships as <Term t="wasm">WebAssembly</Term>, and runs
+        entirely inside the browser tab.
       </p>
       <p>
         On load it walks the whole stylesheet once, recognises the

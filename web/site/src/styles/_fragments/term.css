@@ -4,8 +4,9 @@
    wizard's scroll band can't clip it. */
 
 .term {
-  text-decoration: underline dotted #888;
-  text-decoration-thickness: 1px;
+  /* Blue like every other interactable, dotted unlike real links. */
+  text-decoration: underline dotted var(--edit-blue);
+  text-decoration-thickness: 2px;
   text-underline-offset: 3px;
   cursor: help;
 }

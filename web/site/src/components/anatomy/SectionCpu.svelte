@@ -68,7 +68,7 @@ mod(calc(var(--snapshot-DX) * 65536 + var(--snapshot-AX)), max(1, var(--rmVal16)
 </script>
 
 <p>
-  This section is the fourteen registers &mdash; <code>--AX</code>,
+  This section is the fourteen <Term t="register">registers</Term> &mdash; <code>--AX</code>,
   <code>--BX</code>, <code>--IP</code> and the rest &mdash; and the
   tables that define them. It is about 255&nbsp;KB: less than a tenth
   of a percent of the file does all of the machine&rsquo;s thinking.

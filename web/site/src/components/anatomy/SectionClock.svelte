@@ -8,6 +8,7 @@
   import Foldable from '../Foldable.svelte';
   import TickClock from '../TickClock.svelte';
   import CodeCss from '../CodeCss.svelte';
+  import Term from '../Term.svelte';
 
   const CLOCK_ANIM = `.clock {
   animation: anim-play 400ms steps(4, jump-end) infinite;
@@ -58,7 +59,7 @@ style(--opcode: 212): calc(var(--snapshot-cycleCount) + 83);  /* AAM: 83 — div
   A counter ticking 0,&nbsp;1,&nbsp;2,&nbsp;3, forever. Each lap, every
   formula in the file re-evaluates once and the machine advances by one
   CPU instruction. These few lines are the smallest section of the
-  cabinet and its only moving part.
+  <Term t="cabinet">cabinet</Term> and its only moving part.
 </p>
 
 <h3 class="anatomy-head">Why four beats and not one?</h3>

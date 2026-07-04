@@ -5,6 +5,7 @@
   import Foldable from '../Foldable.svelte';
   import PixelScreen from '../PixelScreen.svelte';
   import CodeCss from '../CodeCss.svelte';
+  import Term from '../Term.svelte';
 
   const RETRACE = `/* in retrace? — 1 while the beam would be flying back */
 max(0, sign(3409 - mod(var(--snapshot-cycleCount), 68182)))`;
@@ -84,7 +85,7 @@ max(0, sign(3409 - mod(var(--snapshot-cycleCount), 68182)))`;
 
 <h3 class="anatomy-head">Text mode &amp; CGA &mdash; the shared bytes</h3>
 <p>
-  Mode 13h isn&rsquo;t the only screen the machine carries. Text mode
+  <Term t="mode13h">Mode 13h</Term> isn&rsquo;t the only screen the machine carries. Text mode
   &mdash; the 80&times;25 grid the DOS prompt lives on &mdash; is its
   own region of video memory at a different address: two bytes per
   character, the letter and its colours. And the older CGA graphics

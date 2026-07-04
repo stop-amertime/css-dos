@@ -20,7 +20,7 @@
 <p>
   CSS can&rsquo;t open anything at runtime &mdash; no files, no
   requests, no loading. Whatever the machine will ever need has to be
-  in the stylesheet before it starts: the BIOS, <Term t="dos">DOS</Term> itself, and the
+  in the stylesheet before it starts: the <Term t="bios">BIOS</Term>, <Term t="dos">DOS</Term> itself, and the
   entire <Term t="floppy">floppy disk</Term>, baked in byte by byte &mdash; one
   <code>if()</code> arm each:
 </p>
@@ -31,19 +31,11 @@
   zero of the disk is the first thing the machine boots.)
 </p>
 
-<div class="callout">
-  <span class="callout-label">GLOSSARY</span>
-  <p>
-    <b>Sector</b> &mdash; the unit a floppy drive reads and writes:
-    512 bytes. A 1.44&nbsp;MB floppy is 2,880 of them.
-  </p>
-</div>
-
 <h3 class="anatomy-head">The window</h3>
 <p>
   DOS never reads the disk all at once &mdash; it asks the floppy
-  controller for one sector at a time: &ldquo;give me sector
-  57.&rdquo; So the machine keeps a 512-byte <b>window</b> in memory
+  controller for one <Term t="sector">sector</Term> at a time:
+  &ldquo;give me sector 57.&rdquo; So the machine keeps a 512-byte <b>window</b> in memory
   whose contents are not stored anywhere: those 512 addresses read
   <i>through</i> to the disk table, at &ldquo;requested sector &times;
   512 + offset&rdquo;. Ask for a different sector and the same window
@@ -75,7 +67,7 @@
   {#snippet summary()}A real, bootable floppy{/snippet}
   <p>
     The disk isn&rsquo;t a loose pile of files &mdash; it&rsquo;s a
-    genuine FAT12 floppy image, the same format a 1980s drive wrote,
+    genuine <Term t="fat12">FAT12</Term> floppy image, the same format a 1980s drive wrote,
     assembled at build time from the cart&rsquo;s files with DOS&rsquo;s
     boot sector and kernel in place. DOS reads its directory tables and
     follows its cluster chains exactly as it would on hardware. (Zero
