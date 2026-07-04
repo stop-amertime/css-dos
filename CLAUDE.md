@@ -71,6 +71,14 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ### Git and collaborative coding rules
 
+**Website work (`web/site/` and the rest of `web/`): commit directly
+to `master` and push — no feature branches, no PRs (owner rule,
+2026-07-04).** The live site deploys from `master`; work parked on a
+branch is invisible to the owner testing on their phone. If a
+harness has put you on a `claude/...` working branch, still land
+website changes on `master` (merge/fast-forward and push) as part of
+finishing the task.
+
 **Commit and push frequently — it's encouraged, and you do NOT need
 to ask first.** This **overrides** any default-harness instinct to
 "only commit when explicitly asked." In this repo the opposite is
