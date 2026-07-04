@@ -4,6 +4,12 @@
   // "The CPU" pages; facts from CABINET-ANATOMY.md §7.
   import Foldable from '../Foldable.svelte';
   import KeyboardDemo from '../KeyboardDemo.svelte';
+  import CodeCss from '../CodeCss.svelte';
+
+  const DEBUG_OUT = `.cpu::after {
+  counter-reset: AX var(--AX) BX var(--BX) CX var(--CX) … IP var(--IP);
+  content: "\\a --AX: " counter(AX) "\\a --BX: " counter(BX) …;
+}`;
 </script>
 
 <p>
@@ -33,6 +39,18 @@
     key event, press or release, until the next one replaces it.
   </p>
 </Foldable>
+
+<h3 class="anatomy-head">The debug read-out</h3>
+<p>
+  The section&rsquo;s other job is printing the registers on screen,
+  which runs into a missing tool: CSS has no way to display a number.
+  <code>content</code> only prints text, and nothing converts the
+  integer in <code>--AX</code> into the characters &ldquo;31022&rdquo;.
+  The one thing in CSS that takes an integer and produces digits is a
+  <b>counter</b> &mdash; the machinery meant for numbering chapters
+  and list items. So the registers are displayed as chapter numbers:
+</p>
+<CodeCss code={DEBUG_OUT} />
 
 <div class="callout">
   <span class="callout-label">HONEST LIMITS</span>

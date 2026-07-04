@@ -36,6 +36,11 @@
    so it becomes the NEXT tick's snapshot */
 --staged-mc5000: var(--held-mc5000, 32861);`;
 
+  const CYCLE_ROWS = `style(--opcode: 144): calc(var(--snapshot-cycleCount) + 3);   /* NOP: 3 cycles */
+style(--opcode: 136): calc(var(--snapshot-cycleCount)
+  + if(style(--mod: 3): 2; else: 9));   /* MOV: 2 — or 9 if memory is involved */
+style(--opcode: 212): calc(var(--snapshot-cycleCount) + 83);  /* AAM: 83 — division was expensive */`;
+
   const CONDUCTOR = `.cpu {
   animation: store 1ms infinite, execute 1ms infinite;
   animation-play-state: paused, paused;
@@ -104,6 +109,12 @@
   already tracks: a running tally of the cycles each instruction
   <i>would have cost</i> on the real 4.77&nbsp;MHz chip.
 </p>
+<p>
+  The tally is one more register table &mdash; every
+  instruction&rsquo;s row adds what Intel&rsquo;s 1978 manual billed
+  for it:
+</p>
+<CodeCss code={CYCLE_ROWS} />
 <p>
   The gearing is real 1981 engineering: the PC&rsquo;s timer chip ran
   at exactly one quarter of the CPU&rsquo;s clock, so the

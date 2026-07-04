@@ -12,6 +12,9 @@
     style(--idx: 1): 60;
     style(--idx: 2): 144;
     /* … one arm per byte of the floppy … */`;
+
+  const WINDOW_ARM = `style(--at: 852016): --readDiskByte(calc(
+  (mod(var(--snapshot-mc632), 256) + round(down, var(--snapshot-mc632) / 256) * 256) * 512 + 48));`;
 </script>
 
 <p>
@@ -46,6 +49,17 @@
   512 + offset&rdquo;. Ask for a different sector and the same window
   now shows different bytes. DOS copies them out and never learns the
   disk is a fiction.
+</p>
+<p>
+  Window byte 48&rsquo;s actual arm, in full:
+</p>
+<CodeCss code={WINDOW_ARM} />
+<p>
+  The clutter in the middle is the sector number being dug out of
+  memory cell 632 &mdash; the &ldquo;which sector do you want&rdquo;
+  register is itself two bytes of ordinary RAM. DOS writes a number
+  there, and 512 addresses instantly mean a different part of the
+  disk.
 </p>
 
 <p>

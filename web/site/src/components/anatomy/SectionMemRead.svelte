@@ -5,6 +5,10 @@
   // keyboard = 743,948).
   import FetchLadder from '../FetchLadder.svelte';
   import Term from '../Term.svelte';
+  import CodeCss from '../CodeCss.svelte';
+
+  const KBD_ARMS = `style(--at: 1280): --lowerBytes(var(--snapshot-keyboard), 8);
+style(--at: 1281): --rightShift(var(--snapshot-keyboard), 8);`;
 </script>
 
 <p>
@@ -43,8 +47,9 @@
   Two arms hiding in the middle of the RAM range aren&rsquo;t memory at
   all: addresses 1280 and 1281 are wired straight to the live keyboard
   value. When the BIOS keyboard service reads those addresses, it gets
-  real keypresses through the same function as everything else.
+  real keypresses through the same function as everything else:
 </p>
+<CodeCss code={KBD_ARMS} />
 
 <h3 class="anatomy-head">The BIOS ROM arms &mdash; 6,924</h3>
 <p>

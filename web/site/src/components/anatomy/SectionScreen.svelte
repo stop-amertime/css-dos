@@ -8,6 +8,17 @@
 
   const RETRACE = `/* in retrace? — 1 while the beam would be flying back */
 max(0, sign(3409 - mod(var(--snapshot-cycleCount), 68182)))`;
+
+  const PIXEL_RULE = `#p31840 { --ci: mod(var(--snapshot-mc343600), 256); background-color: --paletteRGB(var(--ci)); }`;
+
+  const PALETTE_FN = `@function --paletteRGB(--idx <integer>) returns <color> {
+  result: if(
+    style(--idx: 0): rgb(round(mod(var(--snapshot-mc524288), 256) * 255 / 63)
+                         round(round(down, var(--snapshot-mc524288) / 256) * 255 / 63)
+                         round(mod(var(--snapshot-mc524289), 256) * 255 / 63));
+    /* … all 256 palette slots … */
+    else: rgb(0 0 0));
+}`;
 </script>
 
 <p>
@@ -26,6 +37,15 @@ max(0, sign(3409 - mod(var(--snapshot-cycleCount), 68182)))`;
   they&rsquo;re always in it &mdash; this is the pure-CSS renderer,
   proven to paint in real Chromium.
 </p>
+<p>
+  Each rule is one line. Pixel 31,840 &mdash; row 99, column 160, the
+  middle of the screen &mdash; is:
+</p>
+<CodeCss code={PIXEL_RULE} />
+<p>
+  <code>mod()</code> digs the pixel&rsquo;s byte out of its packed
+  memory cell, and the palette function turns that byte into a colour.
+</p>
 
 <Foldable>
   {#snippet summary()}The palette &mdash; how 256 colours get chosen{/snippet}
@@ -42,7 +62,17 @@ max(0, sign(3409 - mod(var(--snapshot-cycleCount), 68182)))`;
   <p>
     The lookup itself is a shared 256-way <code>if()</code> function,
     <code>--paletteRGB</code>, that turns the live palette into an
-    actual <code>rgb(&hellip;)</code> value for each div.
+    actual <code>rgb(&hellip;)</code> value for each div:
+  </p>
+  <CodeCss code={PALETTE_FN} />
+  <p>
+    The mess inside <code>rgb()</code> is three live memory reads
+    &mdash; red, green, blue &mdash; each scaled by 255/63 because a
+    real VGA&rsquo;s palette chip only kept six bits per channel:
+    programs wrote brightnesses from 0 to 63, and the machine honours
+    that. Of the file&rsquo;s thousands of functions, this is the only
+    one that returns a colour &mdash; everything else in
+    300&nbsp;MB computes integers.
   </p>
   <p>
     There&rsquo;s even a second, separate cursor for <i>reading</i> the

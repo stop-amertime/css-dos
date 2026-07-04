@@ -34,6 +34,14 @@
     + var(--zfsf) + var(--of) + 2);
 }`;
 
+  const JZ_ROW = `style(--opcode: 116): --lowerBytes(calc(var(--snapshot-IP) + 2
+  + --bit(var(--snapshot-flags), 6) * --u2s1(var(--q1))), 16);   /* JZ — jump if zero */`;
+
+  const JL_COND = `/* JL, "jump if less": taken when the sign flag differs from the
+   overflow flag — an XOR, done as a + b − 2ab on two flag bits */
+calc(--bit(var(--snapshot-flags), 7) + --bit(var(--snapshot-flags), 11)
+   - 2 * --bit(var(--snapshot-flags), 7) * --bit(var(--snapshot-flags), 11))`;
+
   const DIV_ROWS = `/* AX takes the quotient */
 round(down, calc((var(--snapshot-DX) * 65536 + var(--snapshot-AX)) / max(1, var(--rmVal16))))
 /* DX takes the remainder */
@@ -177,6 +185,32 @@ mod(calc(var(--snapshot-DX) * 65536 + var(--snapshot-AX)), max(1, var(--rmVal16)
     <code>+ 2</code> at the end is a bit the 8086 keeps permanently
     switched on.
   </p>
+</Foldable>
+
+<Foldable>
+  {#snippet summary()}How a program decides anything{/snippet}
+  <p>
+    Programs branch &mdash; &ldquo;if health is zero, die&rdquo;
+    &mdash; and a formula can&rsquo;t branch; it computes one value.
+    So a conditional jump is arithmetic too: <code>--bit()</code>
+    pulls one flag out of the flags register as a 0 or a 1, and the
+    jump multiplies its travel distance by it. This is the real IP
+    row for JZ, &ldquo;jump if zero&rdquo;:
+  </p>
+  <CodeCss code={JZ_ROW} />
+  <p>
+    Taken, IP moves by the distance byte; not taken, it moves by zero
+    times the distance byte. (<code>--u2s1()</code> reads the byte as
+    signed, so the distance can be negative.)
+  </p>
+  <p>
+    Some conditions cost more. &ldquo;Jump if less&rdquo; is taken
+    when the sign flag and the overflow flag disagree &mdash; an XOR,
+    which CSS doesn&rsquo;t have. The
+    <a href="#about/file/util">utility section</a> builds XOR out of
+    multiplication, and here it is at work on two flag bits:
+  </p>
+  <CodeCss code={JL_COND} />
 </Foldable>
 
 <Foldable>
