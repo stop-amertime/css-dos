@@ -69,8 +69,9 @@ proven by the A/B).
    below.)
 2. **Website Svelte 5 static port — LANDED 2026-07-01 (master
    `ad3c3e0`).** `web/site/` is now a Svelte 5 (runes) app that
-   `vite build`s to a plain static `dist/` (Vercel/Netlify/CF Pages;
-   host must send COOP/COEP — emitted as `vercel.json`/`_headers`).
+   `vite build`s to a plain static `dist/` (any HTTPS static host;
+   COOP/COEP emitted as `vercel.json`/`_headers` but OPTIONAL —
+   nothing needs SAB, verified 2026-07-04, LOGBOOK FINDING).
    No runtime dev server: one `RUNTIME_COPIES` table
    (`web/site/scripts/runtime-assets.mjs`) drives dev-serve + build-copy
    of the browser-builder ESM graph, kiln/builder/tools, presets,

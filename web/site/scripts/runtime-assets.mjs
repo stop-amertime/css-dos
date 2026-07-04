@@ -86,8 +86,9 @@ export function cartsIndex() {
   return out;
 }
 
-// COOP/COEP so SharedArrayBuffer works in dev (prod gets these from the host
-// via vercel.json / _headers).
+// COOP/COEP for dev parity with header-capable hosts. OPTIONAL: nothing in
+// the live path uses SharedArrayBuffer (single-threaded wasm, postMessage
+// transport — verified 2026-07-04); kept for a possible wasm-threads future.
 export const COI_HEADERS = {
   'Cross-Origin-Opener-Policy': 'same-origin',
   'Cross-Origin-Embedder-Policy': 'require-corp',

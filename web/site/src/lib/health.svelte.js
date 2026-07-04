@@ -4,8 +4,11 @@
 //
 // Two layers:
 // 1. Static capability probe (computed once at load): secure context,
-//    service workers, cross-origin isolation (COOP/COEP → SAB), WASM.
-//    Any failure here means the player cannot work on this browser/host.
+//    service workers, WASM. Any failure here means the player cannot
+//    work on this browser/host. NOTE deliberately absent:
+//    crossOriginIsolated/SharedArrayBuffer — the engine is
+//    single-threaded wasm over postMessage and runs fine without
+//    isolation (verified end-to-end 2026-07-04, see logbook).
 // 2. Live bridge status: the boot shim announces its phase via the
 //    'cssdos-bridge-state' window event; the bridge worker posts
 //    'status' messages (compiling / ready / running / *error*).
@@ -15,7 +18,6 @@ const inBrowser = typeof window !== 'undefined';
 const cap = {
   secure: inBrowser && window.isSecureContext,
   sw: inBrowser && 'serviceWorker' in navigator,
-  isolated: inBrowser && window.crossOriginIsolated === true,
   wasm: typeof WebAssembly !== 'undefined',
   deviceMemory: inBrowser ? navigator.deviceMemory : undefined,
 };
@@ -28,9 +30,6 @@ if (!cap.sw) {
 }
 if (!cap.wasm) {
   hardFailures.push('This browser has no WebAssembly support, so the Calcite engine cannot run.');
-}
-if (cap.wasm && !cap.isolated) {
-  hardFailures.push('Cross-origin isolation is off — the server is not sending the COOP/COEP headers the engine’s shared memory needs (or this browser is too old to support it).');
 }
 
 const softWarnings = [];

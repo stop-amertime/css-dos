@@ -47,9 +47,11 @@ URLs**:
   - `carts/index.json` — `[{name, files, program}]`, the cart directory
     listing a static host won't give the browser. Adding a cart needs a
     rebuild.
-  - `vercel.json` + `_headers` — COOP/COEP so `SharedArrayBuffer` (hence
-    the calcite WASM engine) works. **The host must send these headers**;
-    a plain file host without header support won't run the player.
+  - `vercel.json` + `_headers` — COOP/COEP (cross-origin isolation).
+    **Optional**: the engine is single-threaded WASM over postMessage and
+    runs fine without isolation (verified end-to-end 2026-07-04 — see
+    logbook). Emitted anyway to keep the door open for a future
+    wasm-threads/SAB path; header-less hosts (e.g. GitHub Pages) work.
 
 The browser-builder import is marked Rollup-external (copied, not
 bundled — avoids its CLI shebang / Node-shaped files). The one shebang
