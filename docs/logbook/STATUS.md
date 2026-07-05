@@ -112,9 +112,10 @@ proven by the A/B).
 
 ## Git state (verified 2026-07-05)
 
-- **CSS-DOS** `master` == `origin/master` == `79dfe62` (2026-07-05
-  PoP PIT channel-select fix + harness Linux fixes + docs, on top of
-  the 2026-07-04 SW-hang fix `94e35dd`). Earlier context: the
+- **CSS-DOS** `master` == `origin/master` == the 2026-07-05 line:
+  PoP PIT channel-select fix + harness Linux fixes (`79dfe62`) plus
+  follow-on logbook/EXPLAINER docs commits, on top of the 2026-07-04
+  SW-hang fix `94e35dd`. Earlier context: the
   2026-07-02 **unification merge** `3a912e1`: the two live site branches
   (`worktree-web-svelte-scoping` styling/UX pass + Wizard shell;
   `worktree-cabinet-anatomy-doc` About teaching rebuild + fonts) are
