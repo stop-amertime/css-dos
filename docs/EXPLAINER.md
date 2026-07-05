@@ -1134,3 +1134,180 @@ Whether algebra is *practical* enough is a separate question, and one the file s
 
 ---
 
+
+## Section 11 — Case study: the game that froze when it touched the ground
+
+Everything above describes how CSS-DOS is *supposed* to work. This section is about a day when it didn't, because real projects have bugs, and the bugs in this project are unusually fun: when your computer is a stylesheet, a bug is one wrong expression hiding in 300 MB of CSS. This is the full story of one of them — the symptoms, the tools, the hunt, and the fix — told in enough detail that you could retrace every step.
+
+### The symptom
+
+Prince of Persia (1990) boots fine. Title screen, intro, level one fades in. The prince drops down into the dungeon, his feet touch the flagstones — and the game stops. Not a crash, not an error, not a glitchy screen. It just… stops. The torches quit flickering. Keys do nothing. The machine looks dead.
+
+And here's the detail that matters: it happened *every single time*, at *exactly the same moment* — the first time the prince touches the ground. Other games ran fine. Doom ran fine. Zork ran fine. Something about *landing*, specifically, in *this game*, specifically, was fatal.
+
+A 100%-reproducible freeze at a precise gameplay moment is, honestly, the best kind of bug. It means the machine is deterministic (it is — the same cabinet runs the same instruction at the same tick, every time), and it means the freeze has a *cause* sitting at a *findable tick*. The job is to find the tick, then find the cause.
+
+### The debugging toolkit
+
+You can't debug this in Chrome's DevTools. The cabinet crashes Chrome, and even if it didn't, "inspect element" on 360,000 custom properties is not a plan. What the project has instead is Calcite (section 6) — the native engine that runs cabinets at hundreds of thousands of instructions per second — and a small toolbox built on top of it:
+
+| Tool | What it answers |
+|---|---|
+| `builder/build.mjs` | "Turn this cart into a cabinet." |
+| `pipeline.mjs fast-shoot --tick=N` | "What's on screen at tick N?" (runs the cabinet fresh, dumps video memory, renders a PNG) |
+| `calcite-cli --dump-ticks=A,B,C` | "What are the CPU registers at these ticks?" |
+| `calcite-cli --dump-mem-range=ADDR:LEN:FILE` | "What bytes are in guest memory at ADDR?" |
+| `calcite-cli --press-events=TICK:kb-x,...` | "Press this key at this tick." (drives the same `:active` pseudo-class path a real browser click would) |
+
+That last one deserves a note, because it's where the session actually started. To reproduce a freeze that happens *during gameplay*, you have to get *into* gameplay: dismiss two "press any key" sound-driver dialogs, skip the title, and start the game — all with keystrokes delivered at the right ticks, millions of ticks deep. The key-injection path existed but ran the whole simulation one tick at a time (about 10× slower than batch mode), so reaching tick 16,000,000 with input blew every time budget. First order of business was fixing the tool: the loop now runs at full batch speed and only pauses *exactly on* each keypress tick. Debugging infrastructure is load-bearing in this project; when it can't reach the bug, you fix the ladder before the roof.
+
+### The hunt, step by step
+
+**Step 1: find the freeze with screenshots.** `fast-shoot` at increasing ticks gives you a flipbook of the boot: sound dialog at tick 4M, title screen at 8M, black screen (level loading — the FAT filesystem walk from section 8, working hard) at 10–12M, and level one, prince standing, at 16M. Then press a key to make him jump and screenshot again at 17.5M and 18.5M:
+
+Nothing. Identical frames. He never even jumped. The game was *already* frozen before the input arrived — because level one *begins* with the prince dropping to the ground. The "first touch" isn't something the player does; it happens automatically, seconds into the level. The freeze was already minutes old by the time anyone wiggled the arrow keys.
+
+**Step 2: is the CPU dead or spinning?** Registers, sampled every 250,000 ticks:
+
+```
+tick       AX BX CX DX  ...   IP    CS    flags  cycleCount
+15000000    1  6  0  0       1389  4655   518    185386634
+15250000    1  6  0  0       1394  4655   518    189386635
+15500000    1  6  0  0       1396  4655   518    193386635
+15750000    1  6  0  0       1389  4655   518    197386634
+```
+
+This one table says a lot. `cycleCount` climbs — the CPU is executing, four million cycles per sample, so the machine isn't halted. But every register is frozen, `CS` never moves, and `IP` cycles through the same three values: 1389, 1394, 1396 (`0x056D`, `0x0572`, `0x0574`). The CPU is running a **three-instruction loop, forever**. That's not a dead machine; that's a machine *waiting for something that will never happen*.
+
+**Step 3: read the loop.** Three IP values and a segment give you a linear address (`CS × 16 + IP` — section 4): `0x122F × 16 + 0x56D = 0x1285D`. Dump 64 bytes of guest memory there and decode them against the 8086 manual:
+
+```
+0x056D:  83 3E EC 32 00    CMP  word [0x32EC], 0    ; is the counter zero?
+0x0572:  74 9E             JZ   0x0512              ; yes → leave the loop
+0x0574:  EB F7             JMP  0x056D              ; no → check again
+```
+
+The game is polling a 16-bit counter in its own memory, waiting for it to reach zero. And one more clue from the register dump: `flags` is 518 = `0x206`, and bit 9 (`0x200`) is the **interrupt flag** — interrupts are *enabled*. This is the classic shape of "wait for the interrupt handler to count something down." Somewhere, an interrupt service routine is supposed to be decrementing `[0x32EC]` — and it has stopped being called.
+
+**Step 4: check the interrupt hardware.** On a PC, the metronome behind almost everything is the **PIT** — the 8253 Programmable Interval Timer — whose channel 0 counts down and fires **IRQ 0** each time it wraps (that's the timer tick that drives `INT 8`, the handler games hook for anything rhythmic). CSS-DOS models it with a handful of state variables. Dumping them at the freeze:
+
+```
+picMask=252   picPending=0   pitMode=3   pitReload=0   pitCounter=0
+```
+
+`picMask=252` is `0xFC` — IRQ 0 unmasked, allowed through. But `pitReload=0`. In the emulation, a reload of zero means *the timer is disarmed*; the counter holds at zero and never fires. There's the "something that will never happen": **the timer interrupt is dead.** No IRQ 0 → no `INT 8` → nobody decrements `[0x32EC]` → the loop at `0x056D` spins until the heat death of the universe.
+
+**Step 5: find the murder weapon.** Determinism pays off here. If the timer died, it died at a specific tick — so bisect with register dumps:
+
+```
+tick 12600000   pitReload=19886    ← alive (1,193,182 ÷ 19,886 ≈ 60 Hz — PoP runs its game clock at 60 Hz)
+tick 12800000   pitReload=0        ← dead
+```
+
+The timer was programmed to 60 Hz — Prince of Persia reprograms the PC's timer for its game loop, a famously smooth thing for a 1990 DOS game to do — and something between tick 12.6M and 12.8M zeroed it. Which is *exactly* when the prince lands. The landing plays a sound: a little percussive *thud* through the PC speaker.
+
+### The actual bug
+
+To play a speaker tone on a PC you program **PIT channel 2** (the channel wired to the speaker) with the tone's frequency. The recipe every DOS game uses:
+
+```
+OUT 0x43, 0xB6      ; control word: set up channel 2
+OUT 0x42, lo        ; low byte of the frequency divisor
+OUT 0x42, hi        ; high byte
+```
+
+That control word, `0xB6`, is a bitfield: `10 11 011 0` — bits 7-6 say **"channel 2"**, bits 5-4 say "low byte then high byte," bits 3-1 say "mode 3, square wave." On real hardware, the chip reads bits 7-6 and applies the command *to channel 2 only*. Channel 0 — the one firing IRQ 0 sixty times a second, the game's heartbeat — is untouched.
+
+Now here's what Kiln's I/O emulation did with it. The handler for `OUT` on port `0x43` (67 in decimal — remember from section 10, `style()` compares against integer literals):
+
+```css
+/* pitReload: OUT 0x43 resets to 0. ... */
+if(
+  style(--q1: 67): 0;      /* ← ANY control word: zero the reload */
+  ...
+)
+```
+
+And there was even an honest comment admitting it:
+
+> *"Channel select (bits 7-6) is ignored for Phase 1 — we only track channel 0."*
+
+The emulation only *models* channel 0 — which is fine, nothing needs speaker output — but it treated **every** control word as if it were *for* channel 0. So the landing thud's perfectly innocent "hey, channel 2, play a note" got misread as "channel 0: reset," and wiped the reload value. And because the emulation treats `pitReload=0` as "timer disarmed," IRQ 0 stopped forever. One sound effect, one wrong assumption about two bits, one dead heartbeat.
+
+The full causal chain, laid end to end:
+
+```mermaid
+flowchart TD
+    A["🦶 prince lands"] --> B["game plays thud:<br/>OUT 0x43, 0xB6 (channel 2)"]
+    B --> C["kiln ignores bits 7-6:<br/>--pitReload := 0"]
+    C --> D["pitReload=0 = timer disarmed:<br/>IRQ 0 never fires again"]
+    D --> E["INT 8 handler never runs:<br/>[0x32EC] never decrements"]
+    E --> F["CMP/JZ/JMP<br/>spins forever ❄️"]
+```
+
+Why only this game? Because the freeze needs *both* halves: a game that programs channel 2 through port 0x43 (any game with PC-speaker sound effects) *and* a game whose main loop hard-depends on channel-0 interrupts it configured itself (rarer — many games poll the BIOS clock instead, or would merely lose a beep). Prince of Persia does both, and does the second at 60 Hz with a wait-loop, so the very first sound effect is instantly fatal.
+
+One more thing worth saying, because it's the project's cardinal rule (section 6): this was **not** a Calcite bug. Calcite executed the stylesheet with perfect fidelity — the *stylesheet* was wrong. Chrome, given infinite patience, would have frozen the prince in exactly the same way. The fix therefore belongs in Kiln, the transpiler that *generates* the CSS, so that every cabinet built from then on carries the corrected machine.
+
+### The fix
+
+The correct behaviour: an `OUT 0x43` should only touch channel-0 state when bits 7-6 of AL actually select channel 0 — and (a wrinkle discovered while reading the 8253 datasheet) not even then if bits 5-4 are `00`, which is the "latch" command, a read-your-count instruction that doesn't disturb counting either.
+
+Here's the awkward part, and it's a very CSS-DOS kind of awkward: the natural way to write this is `if (al >> 6 == 0 && (al & 0x30) != 0)`. But `style()` queries can only compare a property against a *literal* — there's no `style(--q1 > 64)`, no way to test a bitfield in a condition. Which is exactly the situation Section 10 was about: **when you can't branch, do algebra.** The fix builds the condition as an arithmetic gate that evaluates to exactly 1 or 0:
+
+```js
+// 1 iff AL is a channel-0 write config: bits 7-6 == 00 AND bits 5-4 != 00
+const pitCh0Write =
+  `(max(0, 1 - --rightShift(${al}, 6)) * min(1, --and(${al}, 48)))`;
+```
+
+Take it apart:
+
+- `--rightShift(al, 6)` extracts bits 7-6: `0` for channel 0, `1`/`2` for channels 1/2 (and `3` for read-back). Then `max(0, 1 - that)` is **1 only when the channel is 0** — subtract from 1 and clamp, the sign-and-clamp comparison trick, trick 3 from the museum.
+- `--and(al, 48)` masks bits 5-4 (48 = `0x30`). It's `0` for a latch command, non-zero (16/32/48) for a real write config; `min(1, that)` squashes it to **0 or 1**.
+- Multiply the two: logical AND, expressed as arithmetic.
+
+Then every piece of channel-0 state gets gated on it. Where the old code said "on port 0x43, become 0":
+
+```css
+style(--q1: 67): 0;
+```
+
+the new code says "on port 0x43, become *yourself times (1 − gate)*":
+
+```css
+style(--q1: 67): calc(var(--__1pitReload) * (1 - GATE));
+```
+
+If the control word is a channel-0 write, the gate is 1 and the reload zeroes — old behaviour, still correct, that's how the BIOS and PoP legitimately set the timer. If it's a channel-2 word or a latch, the gate is 0 and the expression collapses to `var(--__1pitReload) × 1` — *hold your value*. The mode register gets the same treatment with a blend — `old + (new − old) × gate` — the standard trick for "conditionally assign" when all you have is arithmetic. Chrome evaluates all of this happily; it's just `calc()`, `min`, `max`, and two of the project's bitwise helper functions. The machine stays honest.
+
+### Proving it
+
+Determinism giveth again: rebuild the cabinet, re-run the exact same input script, and watch the same ticks.
+
+```
+tick 12600000   pitReload=19886   ← alive
+tick 12800000   pitReload=19886   ← STILL alive (the thud played — silently — and the timer survived)
+tick 13500000   pitReload=35093   ← PoP legitimately re-programming its own timer (a sound routine)
+tick 14500000   pitReload=19886   ← back to the 60 Hz game clock
+```
+
+That third line is a lovely confirmation, incidentally — the game *does* reprogram channel 0 on purpose sometimes, through control words that genuinely select channel 0, and the gate lets those through while blocking the speaker's.
+
+And then the fun part: screenshots as proof of life. The prince lands. He stands up. Hold →: he runs across the dungeon, off the ledge, *falls a full level, lands again* — the exact event that used to kill the machine, now happening repeatedly with impunity. Press ↑: he jumps (the screenshot catches him mid-air, arms up). Hold ←: he walks back the way he came. Left, right, jump, four separate landings, eleven million ticks of gameplay, torches still flickering.
+
+The regression gate (the smoke suite — six reference carts, built and booted) came back green, which closes the other half of the question: gating the reset didn't break the machines that were already working, because their control words (`0x36` — bits 7-6 = 00, a genuine channel-0 setup) sail through the gate exactly as before.
+
+### What this bug teaches
+
+**A frozen screen is data.** The difference between "halted," "crashed," and "spinning in a wait loop" is visible in three numbers — cycle count moving, registers frozen, IP cycling — and each one points somewhere completely different.
+
+**Waiting loops mean interrupt problems.** A tight poll-a-memory-location loop with interrupts enabled has one likely diagnosis before you've even read the interrupt state: whoever was supposed to write that location has stopped running. Work backwards from the counter to the handler to the hardware that triggers the handler.
+
+**Determinism is a superpower.** Every step of this hunt — the flipbook, the bisection to a 200,000-tick window, the before/after proof — leans on the machine running identically every time. In a stylesheet-computer there's no scheduler jitter, no async, no luck. Tick 12,700,000 is the same instruction today, tomorrow, always.
+
+**Emulate the bits you ignore.** The original sin wasn't failing to emulate the speaker — nobody needs the speaker. It was accepting a command *addressed to the speaker* and applying it to something else. An emulator's ignored features still need their *addressing* respected: the safe way to not-implement channel 2 is to decode "this is for channel 2" and then do nothing.
+
+**And the theme holds.** The fix itself is Section 10 in miniature: a hardware chip's two-bit field decode, rebuilt as `max`, `min`, a shift, a mask, and a multiplication — one more decision converted into arithmetic, because in this machine, algebra is all there is.
+
+---
