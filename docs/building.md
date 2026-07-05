@@ -57,7 +57,10 @@ Dispatches on `manifest.bios`:
 - **muslin** — invokes NASM on `bios/muslin/muslin.asm`, parses the
   listing for `bios_init`'s offset.
 - **corduroy** — invokes `bios/corduroy/build.mjs`, which runs
-  NASM + Watcom (`wcc`) + `wlink` to produce `bios.bin`.
+  NASM + Watcom (`wcc`) + `wlink` to produce `bios.bin`. If the
+  toolchain is missing, falls back to the prebaked
+  `web/prebake/corduroy.bin` (same artifact the browser builder uses),
+  as long as its version matches `bios/corduroy/VERSION`.
 
 Returns `{ bytes, entrySegment, entryOffset, meta }`.
 
@@ -125,6 +128,9 @@ Three options:
   `bios/corduroy/toolchain.env`.
 
 Gossamer ships pre-built, so a hack-cart build needs only Node.
+Corduroy builds also work without NASM/Watcom via the prebaked
+fallback (see stage 3 above) — you only need the toolchain when
+editing BIOS sources.
 
 ## Where intermediate artifacts go
 
