@@ -724,6 +724,22 @@ That's the entire idea, repeated about thirty different ways. A long `if`-chain 
 
 The result is that Calcite runs a CSS-DOS cabinet at somewhere around four hundred thousand ticks per second, against Chrome's three or four. That's enough to boot DOS in a few seconds, load *Doom* in about half a minute, and get the marine on screen at — admittedly — about a fifth of a frame per second. The performance work is ongoing. *Doom* on a stylesheet was always going to be a long walk.
 
+> 💡 **What the honest clock would deliver**
+>
+> It's worth actually doing the arithmetic on what *Doom* would run like in pure CSS, on the real 400 ms clock from section 5 — 2.5 instructions per second — because the numbers come out needing scientific notation.
+>
+> From the benchmarks, one rendered *Doom* frame costs roughly 2 × 10⁵ instructions (measured: ~1–2.4 fps while executing ~330–478K ticks/s; divide one by the other). At 2.5 instructions per second, that's:
+>
+> **FPS = 2.5 ÷ (2 × 10⁵) ≈ 1 × 10⁻⁵ frames per second.**
+>
+> One frame every ~25 hours. Almost exactly **one frame of *Doom* per day**, or about 360 frames a year — call it twelve seconds of gameplay footage per decade of continuous rendering.
+>
+> And that's the *steady state*. Just reaching gameplay — BIOS, DOS boot, the two-month… sorry, the 13.5-million-instruction boot-and-level-load — takes 13.5M ÷ 2.5 = 5.4 × 10⁶ seconds: **about 62 days**. Two months of Chrome running before the first frame of the one-frame-per-day slideshow appears.
+>
+> (These are the *optimistic* figures, too — they assume Chrome finishes each tick's style recalculation inside its 400 ms slot, which on a 352 MB stylesheet it would not. The honest number is "slower than that, right up until it crashes.")
+>
+> Calcite's ~400K ticks per second is a factor of ~1.6 × 10⁵ over the honest clock. That's the entire distance between "one frame a day" and "a fifth of a frame a second" — between geology and a slideshow.
+
 ---
 
 ### What you actually run
