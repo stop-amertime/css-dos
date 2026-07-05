@@ -66,8 +66,12 @@ const REPO_ROOT = resolve(__dirname, '..', '..');
 function log(msg) { process.stderr.write(`[pipeline] ${msg}\n`); }
 
 function die(code, result) {
-  process.stdout.write(JSON.stringify(result) + '\n');
-  process.exit(code);
+  // When stdout is a pipe (e.g. run.mjs wrapping us), write() is async and
+  // process.exit() drops whatever hasn't flushed — a multi-MB JSON line
+  // (dos-smoke dumps ~110K memory cells) gets truncated mid-key and the
+  // wrapper sees "produced no JSON". Exit from the write callback instead,
+  // which fires only after the pipe has accepted the whole payload.
+  process.stdout.write(JSON.stringify(result) + '\n', () => process.exit(code));
 }
 
 function ok(result) {

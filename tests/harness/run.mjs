@@ -99,7 +99,7 @@ function runPipeline(subcommand, ...rest) {
       let parsed = null;
       try { parsed = JSON.parse(last); } catch { /* ignore */ }
       if (parsed == null) {
-        reject(new Error(`pipeline ${subcommand} produced no JSON: exit=${code}\nstderr: ${err.slice(-400)}`));
+        reject(new Error(`pipeline ${subcommand} produced no JSON: exit=${code}\nstdout tail: ${out.slice(-200)}\nstderr tail: ${err.slice(-400)}`));
         return;
       }
       resolvePromise({ exitCode: code, result: parsed, stderr: err });
