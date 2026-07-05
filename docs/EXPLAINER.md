@@ -738,7 +738,11 @@ The result is that Calcite runs a CSS-DOS cabinet at somewhere around four hundr
 >
 > (These are the *optimistic* figures, too — they assume Chrome finishes each tick's style recalculation inside its 400 ms slot, which on a 352 MB stylesheet it would not. The honest number is "slower than that, right up until it crashes.")
 >
-> Calcite's ~400K ticks per second is a factor of ~1.6 × 10⁵ over the honest clock. That's the entire distance between "one frame a day" and "a fifth of a frame a second" — between geology and a slideshow.
+> Which puts a hard number on what Calcite is actually buying us:
+>
+> **Calcite's speedup ≈ 400,000 ÷ 2.5 = 1.6 × 10⁵ — about 160,000× faster than the honest clock.**
+>
+> Every downstream number scales by that same factor: one frame a day becomes a couple of frames a second; a 62-day boot becomes about half a minute. It's the entire distance between geology and a slideshow. (For scale: 160,000× is roughly the speed difference between continental drift and a walking human.)
 
 ---
 
