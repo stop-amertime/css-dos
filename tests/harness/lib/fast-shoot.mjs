@@ -16,7 +16,7 @@
 // Output shape matches `shoot()` so callers can swap freely.
 
 import { spawn } from 'node:child_process';
-import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
@@ -27,7 +27,7 @@ const REPO_ROOT = resolve(__dirname, '..', '..', '..');
 
 // Default location for the calcite-cli release binary. Resolution order:
 //   1. CALCITE_CLI_BIN — direct path to the binary, wins over everything.
-//   2. CALCITE_REPO — calcite repo root; binary is target/release/calcite-cli.exe under it.
+//   2. CALCITE_REPO — calcite repo root; binary is target/release/calcite-cli[.exe] under it.
 //   3. ../calcite from CSS-DOS repo root — the legacy sibling-repo default.
 // Mirrors `defaultDebuggerBinary` in debugger-client.mjs.
 export function defaultCalciteCliBinary() {
@@ -35,7 +35,11 @@ export function defaultCalciteCliBinary() {
   const calciteRoot = process.env.CALCITE_REPO
     ? resolve(process.env.CALCITE_REPO)
     : resolve(REPO_ROOT, '..', 'calcite');
-  return resolve(calciteRoot, 'target', 'release', 'calcite-cli.exe');
+  // Cargo names the binary calcite-cli.exe on Windows, calcite-cli
+  // elsewhere — pick whichever exists (fall back to .exe for the error path).
+  const bare = resolve(calciteRoot, 'target', 'release', 'calcite-cli');
+  if (existsSync(bare)) return bare;
+  return `${bare}.exe`;
 }
 
 // 16 standard CGA/VGA text-attribute colours.

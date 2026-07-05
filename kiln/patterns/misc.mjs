@@ -610,9 +610,11 @@ export function emitIRQCompute() {
  *   Port 0x21 (PIC data):    writes AL to --picMask.
  *   Port 0x40 (PIT ch0 data): lo/hi sequenced write to --pitReload; the
  *     hi-byte write also loads --pitCounter.
- *   Port 0x43 (PIT control): sets --pitMode from bits 3-1 of AL and resets
- *     reload/counter/writeState. Channel select (bits 7-6) is ignored for
- *     Phase 1 — we only track channel 0.
+ *   Port 0x43 (PIT control): when the control word selects channel 0 with
+ *     a write access-mode (bits 7-6 == 00, bits 5-4 != 00), sets --pitMode
+ *     from bits 3-1 of AL and resets reload/counter/writeState. Control
+ *     words for ch1/ch2 and ch0 counter-latch commands hold all state —
+ *     we only track channel 0, and a ch2 speaker write must not stop it.
  *
  * Unhandled ports (speaker 0x61, CRTC 0x3D4/0x3D5, secondary PIC 0xA0/0xA1,
  * PIT ch1/ch2 0x41/0x42) remain no-ops. DAC ports 0x3C7/0x3C8/0x3C9 are
@@ -750,33 +752,51 @@ export function emitIO(dispatch) {
     `if(style(--__1DX: 33): ${al}; else: var(--__1picMask))`,
     `OUT DX=0x21: set PIC mask`);
 
-  // pitMode: OUT to 0x43 (control word) → bits 3-1 of AL.
+  // OUT 0x43 (PIT control word) — channel decode. Only a control word
+  // that (a) selects channel 0 (bits 7-6 == 00) AND (b) has a non-latch
+  // access mode (bits 5-4 != 00; 00 is "counter latch", which snapshots
+  // the count for reading without disturbing it) may touch our channel-0
+  // state. Control words for ch1/ch2 must hold everything: PC-speaker
+  // effects send 0xB6 (ch2, mode 3) while the program's whole timebase
+  // is ch0 IRQ 0s — zeroing ch0's reload on that write kills the timer
+  // interrupt and wedges any wait-for-INT8-counter loop (PoP's landing
+  // thud froze the game this way, 2026-07-05).
+  // pitCh0Write is 1 for a ch0 write config, else 0 — used as an
+  // arithmetic gate since style() can't test AL's bit fields.
+  const pitCh0Write = `(max(0, 1 - --rightShift(${al}, 6)) * min(1, --and(${al}, 48)))`;
+
+  // pitMode: OUT to 0x43 with ch0-write → bits 3-1 of AL; else hold.
   const pitModeExpr = `--lowerBytes(--rightShift(--and(${al}, 14), 1), 3)`;
+  const pitModeGated =
+    `calc(var(--__1pitMode) + (${pitModeExpr} - var(--__1pitMode)) * ${pitCh0Write})`;
   dispatch.addEntry('pitMode', 0xE6,
-    `if(style(--q1: 67): ${pitModeExpr}; else: var(--__1pitMode))`,
+    `if(style(--q1: 67): ${pitModeGated}; else: var(--__1pitMode))`,
     `OUT 0x43: PIT control word`);
   dispatch.addEntry('pitMode', 0xEE,
-    `if(style(--__1DX: 67): ${pitModeExpr}; else: var(--__1pitMode))`,
+    `if(style(--__1DX: 67): ${pitModeGated}; else: var(--__1pitMode))`,
     `OUT DX=0x43: PIT control word`);
 
-  // pitWriteState: toggled by OUT 0x40, reset by OUT 0x43. Hold otherwise.
+  // pitWriteState: toggled by OUT 0x40, reset by OUT 0x43 (ch0 write config
+  // only). Hold otherwise.
+  const pitWriteStateGated = `calc(var(--__1pitWriteState) * (1 - ${pitCh0Write}))`;
   dispatch.addEntry('pitWriteState', 0xE6,
-    `if(style(--q1: 67): 0; style(--q1: 64): calc(1 - var(--__1pitWriteState)); else: var(--__1pitWriteState))`,
+    `if(style(--q1: 67): ${pitWriteStateGated}; style(--q1: 64): calc(1 - var(--__1pitWriteState)); else: var(--__1pitWriteState))`,
     `OUT 0x43/0x40: PIT writeState`);
   dispatch.addEntry('pitWriteState', 0xEE,
-    `if(style(--__1DX: 67): 0; style(--__1DX: 64): calc(1 - var(--__1pitWriteState)); else: var(--__1pitWriteState))`,
+    `if(style(--__1DX: 67): ${pitWriteStateGated}; style(--__1DX: 64): calc(1 - var(--__1pitWriteState)); else: var(--__1pitWriteState))`,
     `OUT DX=0x43/0x40: PIT writeState`);
 
-  // pitReload: OUT 0x43 resets to 0. OUT 0x40 with writeState=0 sets lo byte,
-  // writeState=1 sets hi byte. Hold otherwise.
+  // pitReload: OUT 0x43 (ch0 write config) resets to 0. OUT 0x40 with
+  // writeState=0 sets lo byte, writeState=1 sets hi byte. Hold otherwise.
+  const pitReloadGated = `calc(var(--__1pitReload) * (1 - ${pitCh0Write}))`;
   const pitReloadImm = `if(
-    style(--q1: 67): 0;
+    style(--q1: 67): ${pitReloadGated};
     style(--q1: 64) and style(--__1pitWriteState: 0): calc(--and(var(--__1pitReload), 65280) + ${al});
     style(--q1: 64) and style(--__1pitWriteState: 1): calc(--and(var(--__1pitReload), 255) + ${al} * 256);
     else: var(--__1pitReload)
   )`;
   const pitReloadDx = `if(
-    style(--__1DX: 67): 0;
+    style(--__1DX: 67): ${pitReloadGated};
     style(--__1DX: 64) and style(--__1pitWriteState: 0): calc(--and(var(--__1pitReload), 65280) + ${al});
     style(--__1DX: 64) and style(--__1pitWriteState: 1): calc(--and(var(--__1pitReload), 255) + ${al} * 256);
     else: var(--__1pitReload)
@@ -784,19 +804,23 @@ export function emitIO(dispatch) {
   dispatch.addEntry('pitReload', 0xE6, pitReloadImm, `OUT 0x40/0x43: PIT reload`);
   dispatch.addEntry('pitReload', 0xEE, pitReloadDx, `OUT DX=0x40/0x43: PIT reload`);
 
-  // pitCounter: OUT 0x43 resets to 0. OUT 0x40 with writeState=1 loads the
-  // new full reload into the counter (matches real PIT behavior — the counter
-  // starts ticking only after both bytes are written). On OUT to any other
-  // port (e.g. 0x20, 0x21), fall through to the normal per-tick countdown —
-  // the PIT must keep running while the program is talking to other devices.
+  // pitCounter: OUT 0x43 (ch0 write config) resets to 0; other 0x43 words
+  // hold the count (pausing the countdown for that one tick — harmless
+  // drift, and simpler than threading the countdown through the gate).
+  // OUT 0x40 with writeState=1 loads the new full reload into the counter
+  // (matches real PIT behavior — the counter starts ticking only after
+  // both bytes are written). On OUT to any other port (e.g. 0x20, 0x21),
+  // fall through to the normal per-tick countdown — the PIT must keep
+  // running while the program is talking to other devices.
   const pitTick = pitCounterDefaultExpr();
+  const pitCounterGated = `calc(var(--__1pitCounter) * (1 - ${pitCh0Write}))`;
   const pitCounterImm = `if(
-    style(--q1: 67): 0;
+    style(--q1: 67): ${pitCounterGated};
     style(--q1: 64) and style(--__1pitWriteState: 1): calc(--and(var(--__1pitReload), 255) + ${al} * 256);
     else: ${pitTick}
   )`;
   const pitCounterDx = `if(
-    style(--__1DX: 67): 0;
+    style(--__1DX: 67): ${pitCounterGated};
     style(--__1DX: 64) and style(--__1pitWriteState: 1): calc(--and(var(--__1pitReload), 255) + ${al} * 256);
     else: ${pitTick}
   )`;

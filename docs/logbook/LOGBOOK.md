@@ -4,7 +4,7 @@ Chronological work entries. Newest first. The durable handbook
 (current state, sentinels, gotchas, how to test) is in
 [`STATUS.md`](STATUS.md).
 
-Last updated: 2026-07-04
+Last updated: 2026-07-05
 
 Entries are individual files in [`entries/`](entries/). This page is
 the **index only** — read the tag + one-line summary, open the 1–3
@@ -22,6 +22,7 @@ See [`PROTOCOL.md`](PROTOCOL.md).
 
 | Date | Tag | Entry |
 |------|-----|-------|
+| 2026-07-05 | LANDED | [PoP ground-touch freeze fixed: OUT 0x43 ch2 speaker control word was zeroing PIT ch0 reload, killing IRQ 0; emitIO now decodes channel-select. PoP runs/jumps/falls past landings](entries/2026-07-05-pop-pit-ch2-freeze.md) |
 | 2026-07-04 | LANDED | [Play hang-forever root-caused + fixed: SW idle-restart wipes bridgePort and nothing re-registered it — new cssdos-need-bridge recovery handshake (SW asks, boot shim re-hands a fresh port, waiting stream gets its viewer-connected). CDP-verified. Trap: web/site/sw.js was a dead duplicate of public/sw.js (deleted; public/ canonical). Also: player loading text 50-100MB→~300 MB; phone margins rethought, playing surface 304→368px at 390w](entries/2026-07-04-sw-idle-restart-hang.md) |
 | 2026-07-04 | LANDED | [About/Play ironing pass (owner list): Calcite gets About page 4 + Play becomes player-first with a pure-CSS #embed player mode and a raw-CSS warning modal; Term underlines replace the glossaries + what-is-CSS fold (blue dotted restyle); full-ADD/jumps/conductor/latch/palette promoted out of folds; tippy first-visit hint bubble on the cabinet bar; callouts rebuilt with pixel icons (info/tip/warn). New deps: tippy.js, unplugin-icons, pixelarticons](entries/2026-07-04-about-ironing-pass.md) |
 | 2026-07-04 | LANDED | [Six new verbatim code exhibits in the How-it-works sections, all verified against kiln emitters: CPU branchless-jump fold (JZ row + JL's XOR-as-arithmetic), keys debug read-out (registers as CSS counters), screen per-pixel rule + paletteRGB arm (6-bit DAC ×255/63; the file's only colour-returning function), disk window arm (LBA from cell 632), clock 1978 cycle price list, memr keyboard-bridge arms. Owner prose review pending](entries/2026-07-04-section-code-exhibits.md) |

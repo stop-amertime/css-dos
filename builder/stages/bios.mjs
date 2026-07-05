@@ -96,11 +96,24 @@ function buildMuslin() {
 
 function buildCorduroy() {
   const buildScript = resolve(repoRoot, 'bios', 'corduroy', 'build.mjs');
-  execFileSync('node', [buildScript], { stdio: 'inherit' });
-  // The Corduroy build script emits bios.bin under bios/corduroy/build/.
-  const bin = resolve(repoRoot, 'bios', 'corduroy', 'build', 'bios.bin');
-  const bytes = [...readFileSync(bin)];
   const version = readFlavorVersion('corduroy');
+  let bytes;
+  try {
+    execFileSync('node', [buildScript], { stdio: 'inherit' });
+    // The Corduroy build script emits bios.bin under bios/corduroy/build/.
+    bytes = [...readFileSync(resolve(repoRoot, 'bios', 'corduroy', 'build', 'bios.bin'))];
+  } catch (err) {
+    // No NASM/OpenWatcom on this machine — fall back to the prebaked
+    // binary (the same artifact the browser builder always uses).
+    const prebaked = join(prebakeDir, 'corduroy.bin');
+    const meta = join(prebakeDir, 'corduroy.meta.json');
+    if (!existsSync(prebaked) || !existsSync(meta)) throw err;
+    if (JSON.parse(readFileSync(meta, 'utf8')).version !== version) {
+      throw new Error(`corduroy toolchain build failed and prebake is stale (${err.message})`);
+    }
+    console.warn('corduroy: toolchain unavailable, using prebaked web/prebake/corduroy.bin');
+    bytes = [...readFileSync(prebaked)];
+  }
   // Corduroy's entry.asm sits at offset 0 and jumps to bios_init itself.
   refreshPrebake('corduroy', bytes, 0xF000, 0x0000, version);
   return {

@@ -20,6 +20,7 @@
 // it. Constructor binds a default session so the harness doesn't have to
 // thread it through every call site.
 
+import { existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ChildMcpClient, TcpMcpClient } from './mcp-client.mjs';
@@ -28,7 +29,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Locate the debugger binary. Resolution order:
 //   1. CALCITE_DEBUGGER_BIN — direct path to the binary.
-//   2. CALCITE_REPO — calcite repo root; binary at target/release/calcite-debugger.exe under it.
+//   2. CALCITE_REPO — calcite repo root; binary at target/release/calcite-debugger[.exe] under it.
 //   3. ../calcite from CSS-DOS repo root — the legacy sibling-repo default.
 export function defaultDebuggerBinary() {
   const envPath = process.env.CALCITE_DEBUGGER_BIN;
@@ -36,7 +37,11 @@ export function defaultDebuggerBinary() {
   const calciteRoot = process.env.CALCITE_REPO
     ? resolve(process.env.CALCITE_REPO)
     : resolve(__dirname, '..', '..', '..', '..', 'calcite');
-  return resolve(calciteRoot, 'target', 'release', 'calcite-debugger.exe');
+  // Cargo names the binary calcite-debugger.exe on Windows, calcite-debugger
+  // elsewhere — pick whichever exists (fall back to .exe for the error path).
+  const bare = resolve(calciteRoot, 'target', 'release', 'calcite-debugger');
+  if (existsSync(bare)) return bare;
+  return `${bare}.exe`;
 }
 
 export class DebuggerClient {
