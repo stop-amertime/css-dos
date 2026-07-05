@@ -63,6 +63,9 @@ proven by the A/B).
    rogue1_0 (title + name prompt), pop1_4 (PoP title; needed the
    INT 10h AH=1Ah BIOS fix, sound drivers renamed `.BAK`, two
    press-any-key dialogs at boot — see LOGBOOK 2026-06-12).
+   pop1_4 verified **in-game** 2026-07-05 (runs/jumps/falls, several
+   landings): the speaker thud on the kid's first landing was killing
+   IRQ 0 — OUT 0x43 now decodes PIT channel-select (LOGBOOK 2026-07-05).
    Smoke set runs 6 carts while montezuma is deleted on disk.
    Final lineup, smoke-list update + website presentation pass are
    owner-collab. (Website itself now a Svelte 5 static app — see
