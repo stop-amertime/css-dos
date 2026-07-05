@@ -299,15 +299,34 @@ const KEYBOARD_KEYS = [
 ];
 
 /**
- * Emit CSS rules that map :active button presses to --keyboard values.
+ * Emit CSS rules that map key-press UI state to --keyboard values.
  * Uses ID selectors (#kb-X) so HTML layout is free — button order in the
  * DOM does not need to match KEYBOARD_KEYS order.
+ *
+ * Two rules per key:
+ *   #kb-X:active        — momentary press (mouse held down on the key).
+ *   #kb-X-hold:checked  — the key's "pin" checkbox: while checked, the
+ *                         key is held. This is what makes hold-a-key
+ *                         possible in a pure-CSS player (raw.html): the
+ *                         checkbox IS the key-held state. The calcite
+ *                         player mirrors the same pin via
+ *                         set_pseudo_class_active('checked', ...).
+ *
+ * Emitted as separate rules (not a selector list) — calcite's input-edge
+ * recogniser matches one `&:has(#ID:pseudo) { ... }` per rule.
+ *
+ * --keyboard is a single cascade-resolved value, and the press/release
+ * edge detectors fire only on 0 ↔ non-zero transitions (patterns/
+ * misc.mjs emitIRQCompute). One key on the wire at a time: while a key
+ * is held, other key presses produce no edges and are invisible to the
+ * machine. Chords (held modifier + second key) need a second wire.
  */
 export function emitKeyboardRules() {
   const lines = ['.cpu {'];
   for (const key of KEYBOARD_KEYS) {
     const value = (key.scancode << 8) | key.ascii;
     lines.push(`  &:has(#${key.id}:active) { --keyboard: ${value}; } /* ${key.label} */`);
+    lines.push(`  &:has(#${key.id}-hold:checked) { --keyboard: ${value}; } /* ${key.label} held */`);
   }
   lines.push('}');
   return lines.join('\n');

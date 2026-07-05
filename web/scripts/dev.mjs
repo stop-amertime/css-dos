@@ -58,6 +58,10 @@ const MIME = {
 };
 
 const ALIASES = [
+  // The service worker moved to site/public/ (Vite publicDir) 2026-07-04;
+  // map it here too so the legacy server keeps serving /sw.js (the
+  // calcite-bridge boot shim registers it, kbd-e2e depends on it).
+  ['/sw.js',            resolve(__dirname, '..', 'site', 'public', 'sw.js')],
   ['/prebake/',         resolve(__dirname, '..', 'prebake')],
   ['/browser-builder/', resolve(__dirname, '..', 'browser-builder')],
   ['/kiln/',            resolve(repoRoot, 'kiln')],

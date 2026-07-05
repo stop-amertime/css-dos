@@ -190,14 +190,29 @@ function handleStream() {
 }
 
 function handleKbd(url) {
-  // /_kbd?class=kb-X — pulse the (active, kb-X) pseudo-class edge
-  // through calcite. The cabinet's own
-  // `&:has(#kb-X:active) { --keyboard: V }` rule produces the value
-  // via calcite's input-edge recogniser; the host only flips the gate.
+  // Two forms:
+  //
+  // /_kbd?key=kb-X&held=kb-A&held=kb-B — the player keyboard's GET
+  // form. `key` is the clicked key; `held` (repeated) is every checked
+  // pin checkbox, so the bridge sees the full held-key set on every
+  // press and can latch/release the 'checked' pseudo-classes to match.
+  //
+  // /_kbd?class=kb-X — legacy single-key link form (experiments, old
+  // pages): pulse the (active, kb-X) pseudo-class edge.
+  //
+  // Either way the cabinet's own `&:has(...) { --keyboard: V }` rules
+  // produce the value via calcite's input-edge recogniser; the host
+  // only flips the gates.
+  const key = url.searchParams.get('key');
+  const held = url.searchParams.getAll('held');
   const klass = url.searchParams.get('class');
-  if (klass && bridgePort) {
-    bridgePort.postMessage({ type: 'kbd-active', selector: klass });
-  } else if (klass) {
+  if (bridgePort) {
+    if (key || held.length > 0) {
+      bridgePort.postMessage({ type: 'kbd-event', key: key || '', held });
+    } else if (klass) {
+      bridgePort.postMessage({ type: 'kbd-active', selector: klass });
+    }
+  } else if (key || klass || held.length > 0) {
     // Idle-restarted instance: this key is lost, but recover the port
     // so the next one lands.
     requestBridgePort();

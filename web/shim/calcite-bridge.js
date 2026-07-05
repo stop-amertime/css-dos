@@ -79,13 +79,23 @@ let batchMsEma = TARGET_MS;
 // hold; KEY_GAP_BATCHES is the trailing 0-tick gap before the next
 // queued press fires (must be ≥ 1 so the edge detector resets).
 //
-// Queue entries are selector strings. The drainer pulses each through
-//   engine.set_pseudo_class_active("active", sel, true)
-//   → hold N batches → set_pseudo_class_active(..., false) → gap M batches
-// The cabinet's `&:has(#SEL:active) { --PROP: V }` rule produces V via
-// calcite's input-edge recogniser; the host only flips the gate.
-// (calcite's old `set_keyboard` host API is gone — it was an x86-aware
-// side-channel, retired with the keyboard rework.)
+// Queue entries are {op, sel} objects:
+//   {op:'pulse', sel:'kb-x'}   — momentary press. The drainer walks it
+//     through set_pseudo_class_active('active','kb-x',true) → hold N
+//     batches → (...false) → gap M batches.
+//   {op:'latch', sel:'kb-x'}   — hold the key: ('checked','kb-x-hold',
+//     true), then a gap. No release is scheduled — the key stays down
+//     until an unlatch op.
+//   {op:'unlatch', sel:'kb-x'} — release a held key: ('checked',
+//     'kb-x-hold', false), then a gap.
+// The gaps guarantee every make/break lands on its own tick so the
+// cabinet's 0 ↔ non-zero edge detector sees each transition.
+//
+// The cabinet's `&:has(#SEL:active) { --PROP: V }` and
+// `&:has(#SEL-hold:checked) { --PROP: V }` rules produce V via calcite's
+// input-edge recogniser; the host only flips the gates. (calcite's old
+// `set_keyboard` host API is gone — it was an x86-aware side-channel,
+// retired with the keyboard rework.)
 //
 // Driven off tickLoop instead of setTimeout because build.html is a
 // background tab and Chrome throttles setTimeout there to ~1 Hz.
@@ -95,6 +105,15 @@ let currentGapBatches = 0;      // > 0 during the trailing 0-tick gap
 let currentActiveSelector = ''; // non-empty while pulsing a pseudo-class edge
 const KEY_HOLD_BATCHES = 8;
 const KEY_GAP_BATCHES = 2;
+// Hold-latch state. The player's per-key "pin" checkboxes are the source
+// of truth: every key submission carries the checked-pin set (held=...),
+// and we reconcile the engine's latch to it. The cabinet has a single
+// --keyboard wire (one key down at a time — see kiln/template.mjs
+// emitKeyboardRules), so at most one key is latched; while it is, plain
+// key pulses are dropped (they'd be edge-invisible to the machine, and
+// overlapping active edges are exactly the case where calcite's
+// summed-edges apply could diverge from Chrome's cascade).
+let latchTarget = '';           // key id whose pin latch is applied/queued
 // Trace toggle. Off by default — Playwright tests flip it on via the
 // 'kbd-trace' message type. Logs on (a) message receipt, (b) drainer
 // dispatch, (c) drainer release. Lets you measure click→engine.set_pseudo_class_active
@@ -125,9 +144,9 @@ function kbdTrace(msg) {
 // a missing-API regression for two weeks (the player keyboard was dead
 // while the bench, which injects keys via watch actions, stayed green).
 let pseudoActiveErrorLogged = false;
-function setPseudoActive(selector, value) {
+function setPseudoActive(pseudo, selector, value) {
   try {
-    engine.set_pseudo_class_active('active', selector, value);
+    engine.set_pseudo_class_active(pseudo, selector, value);
   } catch (e) {
     if (!pseudoActiveErrorLogged) {
       pseudoActiveErrorLogged = true;
@@ -142,7 +161,7 @@ function setPseudoActive(selector, value) {
 // Cache-busting canary — bump this when you change this file so you can
 // confirm the browser is serving the new version (it appears in the
 // status line and the bridge-info reply).
-const BRIDGE_VERSION = 'bridge-1';
+const BRIDGE_VERSION = 'bridge-2';
 
 async function boot() {
   postStatus(`bridge boot ${BRIDGE_VERSION}`);
@@ -281,6 +300,11 @@ function resetMachine(preserveWatches = false) {
   currentHoldBatches = 0;
   currentGapBatches = 0;
   currentActiveSelector = '';
+  // engine.reset() rebuilds State from scratch (pseudo_active empties),
+  // so any latched pin is already gone engine-side; drop our mirror.
+  // The page's pin checkboxes may still be checked — the next key press
+  // resubmits the held set and the latch is re-applied.
+  latchTarget = '';
   // Tear down the existing stats interval so no stale stats sample
   // (with the previous run's cycleCount) leaks through to a viewer
   // that reconnects on top of an existing bridge. startStatsInterval
@@ -324,7 +348,7 @@ function tickLoop() {
     currentHoldBatches--;
     if (currentHoldBatches === 0) {
       if (currentActiveSelector) {
-        setPseudoActive(currentActiveSelector, false);
+        setPseudoActive('active', currentActiveSelector, false);
         currentActiveSelector = '';
       }
       currentGapBatches = KEY_GAP_BATCHES;
@@ -333,14 +357,23 @@ function tickLoop() {
   } else if (currentGapBatches > 0) {
     currentGapBatches--;
   } else if (keyQueue.length > 0) {
-    const selector = keyQueue.shift();
-    setPseudoActive(selector, true);
-    currentActiveSelector = selector;
-    currentHoldBatches = KEY_HOLD_BATCHES;
-    if (kbdTraceEnabled) {
-      const cyc = (engine.get_state_var ? engine.get_state_var('cycleCount') : 0) >>> 0;
-      const tickN = (engine.get_tick ? engine.get_tick() : 0) >>> 0;
-      kbdTrace(`[kbd-trace] dispatch active=${selector} wallMs=${performance.now().toFixed(1)} cycle=${cyc} tick=${tickN} qlen=${keyQueue.length}`);
+    const { op, sel } = keyQueue.shift();
+    if (op === 'latch' || op === 'unlatch') {
+      // Pin latch: flip the 'checked' pseudo-class of the key's pin
+      // element. No hold countdown — a latch stays until unlatched.
+      // The trailing gap keeps the next op's edge on its own tick.
+      setPseudoActive('checked', sel + '-hold', op === 'latch');
+      currentGapBatches = KEY_GAP_BATCHES;
+      if (kbdTraceEnabled) kbdTrace(`[kbd-trace] ${op} checked=${sel}-hold wallMs=${performance.now().toFixed(1)} qlen=${keyQueue.length}`);
+    } else {
+      setPseudoActive('active', sel, true);
+      currentActiveSelector = sel;
+      currentHoldBatches = KEY_HOLD_BATCHES;
+      if (kbdTraceEnabled) {
+        const cyc = (engine.get_state_var ? engine.get_state_var('cycleCount') : 0) >>> 0;
+        const tickN = (engine.get_tick ? engine.get_tick() : 0) >>> 0;
+        kbdTrace(`[kbd-trace] dispatch active=${sel} wallMs=${performance.now().toFixed(1)} cycle=${cyc} tick=${tickN} qlen=${keyQueue.length}`);
+      }
     }
   }
   const batchStart = performance.now();
@@ -680,6 +713,17 @@ self.onmessage = (ev) => {
     }
     return;
   }
+  // Debug peek-var: read a state var by bare name (e.g. 'keyboard').
+  // Used by Playwright tests to verify the hold-latch path — --keyboard
+  // stays at the key's value while its pin is latched.
+  if (d.type === 'peek-var' && engine && ev.ports && ev.ports[0]) {
+    try {
+      ev.ports[0].postMessage({ ok: true, value: engine.get_state_var(String(d.name)) | 0 });
+    } catch (e) {
+      ev.ports[0].postMessage({ ok: false, err: String(e) });
+    }
+    return;
+  }
   if (d.type === 'kbd-trace') {
     kbdTraceEnabled = !!d.enabled;
     kbdTrace(`[kbd-trace] toggle enabled=${kbdTraceEnabled}`);
@@ -833,15 +877,52 @@ self.onmessage = (ev) => {
       const mm = m.data;
       if (!mm || !mm.type) return;
       if (mm.type === 'kbd-active' && engine) {
-        // Pulse the (active, selector) pseudo-class edge through
-        // calcite's input-edge recogniser. The cabinet's own
-        // `&:has(#SEL:active) { --keyboard: V }` rule produces V.
-        // Enqueue; the tickLoop drainer walks each press through its
-        // hold/gap cycle so rapid-fire clicks each produce a real edge.
+        // Legacy single-key pulse (/_kbd?class=kb-X). Enqueue; the
+        // tickLoop drainer walks each press through its hold/gap cycle
+        // so rapid-fire clicks each produce a real edge.
         const sel = String(mm.selector || '');
         if (sel) {
           if (kbdTraceEnabled) kbdTrace(`[kbd-trace] recv active=${sel} wallMs=${performance.now().toFixed(1)} qlen=${keyQueue.length}`);
-          keyQueue.push(sel);
+          if (latchTarget) {
+            if (kbdTraceEnabled) kbdTrace(`[kbd-trace] drop active=${sel} (latched=${latchTarget})`);
+          } else {
+            keyQueue.push({ op: 'pulse', sel });
+          }
+        }
+      } else if (mm.type === 'kbd-event' && engine) {
+        // Player keyboard form submission: `key` is the clicked key,
+        // `held` is the full checked-pin set. Reconcile the engine's
+        // latch to the pins, then handle the click:
+        //  - clicked key is pinned → latch it (releasing any other latch)
+        //  - latch's pin was unchecked → release it (the click that
+        //    carried the uncheck is the apply gesture, not a pulse)
+        //  - plain click, nothing latched → normal pulse
+        //  - plain click while latched → dropped: the machine's single
+        //    --keyboard wire can't see a second key while one is held
+        //    (no 0↔non-zero edge), same as in the raw CSS player.
+        const key = String(mm.key || '');
+        const held = new Set((mm.held || []).map(String));
+        if (kbdTraceEnabled) kbdTrace(`[kbd-trace] recv key=${key} held=[${[...held]}] latched=${latchTarget} qlen=${keyQueue.length}`);
+        let releasedNow = '';
+        if (latchTarget && !held.has(latchTarget)) {
+          keyQueue.push({ op: 'unlatch', sel: latchTarget });
+          releasedNow = latchTarget;
+          latchTarget = '';
+        }
+        if (key) {
+          if (held.has(key)) {
+            if (latchTarget !== key) {
+              if (latchTarget) keyQueue.push({ op: 'unlatch', sel: latchTarget });
+              keyQueue.push({ op: 'latch', sel: key });
+              latchTarget = key;
+            }
+          } else if (key === releasedNow) {
+            // Click applied the unpin — swallow the pulse.
+          } else if (latchTarget) {
+            if (kbdTraceEnabled) kbdTrace(`[kbd-trace] drop key=${key} (latched=${latchTarget})`);
+          } else {
+            keyQueue.push({ op: 'pulse', sel: key });
+          }
         }
       } else if (mm.type === 'viewer-connected') {
         // New viewer opened the stream. Three entry paths:

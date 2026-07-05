@@ -31,7 +31,15 @@ try {
 }
 const { chromium } = pw;
 
-const SYS_CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+// Browser resolution: CHROME_BIN env → system Chrome (Windows) →
+// Playwright-managed chromium (PLAYWRIGHT_BROWSERS_PATH / default).
+import { existsSync } from 'node:fs';
+const CHROME_CANDIDATES = [
+  process.env.CHROME_BIN,
+  'C:/Program Files/Google/Chrome/Application/chrome.exe',
+  '/opt/pw-browsers/chromium',
+].filter(Boolean);
+const SYS_CHROME = CHROME_CANDIDATES.find((p) => existsSync(p));
 const BASE = 'http://localhost:5173';
 // Doom8088 sentinels (linear addresses, docs/logbook/STATUS.md — re-derive
 // from the .map if the doom8088 cart or memory layout changes).
@@ -49,6 +57,9 @@ const browser = await chromium.launch({
     '--disable-backgrounding-occluded-windows',
     '--disable-background-timer-throttling',
     '--disable-features=AutomaticTabDiscarding,MemorySaverMode,BackForwardCache',
+    // Container-friendly: /dev/shm is tiny in CI boxes and the cabinet
+    // blob is large; without this the renderer OOM-crashes.
+    '--disable-dev-shm-usage',
   ],
 });
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
@@ -91,15 +102,32 @@ await buildPage.evaluate(() => {
   window.__kbdTraces = [];
   new BroadcastChannel('cssdos-kbd-trace').onmessage = (ev) => window.__kbdTraces.push(ev.data);
   w.postMessage({ type: 'kbd-trace', enabled: true });
+  // Peeks resolve on the worker's reply, with a timeout fallback: an
+  // unresolved promise leaves page.evaluate pending, and a pending
+  // evaluate racing the player's viewer-connect can die with a spurious
+  // "execution context destroyed" (seen on headless Linux). Bounded
+  // promises + the try/catch below make each poll independently safe —
+  // the waitFor loops just retry a second later.
   window.__peek = (addr, len) => new Promise((resolve) => {
     const ch = new MessageChannel();
     ch.port1.onmessage = (m) => resolve(m.data);
     w.postMessage({ type: 'peek-mem', addr, len }, [ch.port2]);
+    setTimeout(() => resolve(null), 4000);
+  });
+  window.__peekVar = (name) => new Promise((resolve) => {
+    const ch = new MessageChannel();
+    ch.port1.onmessage = (m) => resolve(m.data);
+    w.postMessage({ type: 'peek-var', name }, [ch.port2]);
+    setTimeout(() => resolve(null), 4000);
   });
 });
 const peekByte = async (addr) => {
-  const r = await buildPage.evaluate((a) => window.__peek(a, 1), addr);
+  const r = await buildPage.evaluate((a) => window.__peek(a, 1), addr).catch(() => null);
   return r?.ok && r.bytes?.length ? r.bytes[0] : null;
+};
+const peekVar = async (name) => {
+  const r = await buildPage.evaluate((n) => window.__peekVar(n), name).catch(() => null);
+  return r?.ok ? r.value : null;
 };
 
 log('opening calcite player');
@@ -144,9 +172,35 @@ if (!userGame) {
 
 // Loading → in-game (gamestate 0 = GS_LEVEL).
 const ingame = await waitFor('ingame (gamestate=LEVEL)', async () => (await peekByte(G_GAMESTATE)) === 0 && (await peekByte(G_USERGAME)) === 1, 180000, 2000);
+
+// Hold-key phase: pin LEFT (turn key), press it to apply the latch, and
+// verify --keyboard stays at LEFT's make value (0x4B00 = 19200) instead
+// of pulsing back to 0. Then unpin + press to release.
+let holdOk = false;
+if (ingame) {
+  log('hold phase: pinning LEFT');
+  await player.click('#kb-hold');       // reveal pins (pure CSS toggle)
+  await player.click('#kb-left-hold');  // check LEFT's pin
+  await player.click('#kb-left');       // submit → bridge latches
+  const latched = await waitFor('latched --keyboard=19200', async () => (await peekVar('keyboard')) === 19200, 20000);
+  let sustained = false;
+  if (latched) {
+    await new Promise(r => setTimeout(r, 3000));
+    sustained = (await peekVar('keyboard')) === 19200;
+    log(`latch sustained after 3s: ${sustained}`);
+  }
+  await player.click('#kb-left-hold');  // uncheck the pin
+  await player.click('#kb-left');       // submit → bridge releases
+  const released = await waitFor('released --keyboard=0', async () => (await peekVar('keyboard')) === 0, 20000);
+  holdOk = latched && sustained && released;
+}
+
 const traces = await buildPage.evaluate(() => window.__kbdTraces);
 console.log(`kbd traces captured: ${traces.length}`);
 console.log('keyboard-broken status present:', (await buildPage.evaluate(() => window.__bridgeStatuses)).some(s => /keyboard input broken/.test(s)));
 await browser.close();
-log(ingame ? 'PASS: full flow build→title→menu→ingame via on-screen keyboard' : 'FAIL: never reached ingame');
-process.exit(ingame ? 0 : 1);
+const pass = ingame && holdOk;
+log(pass
+  ? 'PASS: full flow build→title→menu→ingame + hold-latch via on-screen keyboard'
+  : `FAIL: ingame=${ingame} holdOk=${holdOk}`);
+process.exit(pass ? 0 : 1);

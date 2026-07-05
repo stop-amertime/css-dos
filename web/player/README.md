@@ -37,10 +37,40 @@ http://localhost:5173/player/turbo-meter.html
 
 ## Keyboard
 
-Buttons use stable IDs (`id="kb-a"`, `id="kb-enter"`, etc.) that match
+Keys use stable IDs (`id="kb-a"`, `id="kb-enter"`, etc.) that match
 the `:has(#kb-X:active)` selectors Kiln emits. HTML layout is free —
-button order in the DOM does not need to match Kiln's `KEYBOARD_KEYS`
+key order in the DOM does not need to match Kiln's `KEYBOARD_KEYS`
 array.
+
+The keyboard is one GET `<form action="/_kbd" target="kbd-sink">`
+(still zero `<script>`): each key is a submit button (`name=key
+value=kb-X`), so a click navigates the hidden sink iframe to
+`/_kbd?key=kb-X&held=…` and the service worker forwards it to the
+bridge.
+
+### Hold (pin) a key
+
+Each key has a **pin checkbox** (`id="kb-X-hold"`, `name=held`) in the
+same grid cell; the **Hold** toggle (pure-CSS checkbox + label) reveals
+them. A checked pin marks the key held and styles it pressed
+(`.kb-key:has(+ .kb-pin:checked)`).
+
+- **Raw player:** the cabinet's `&:has(#kb-X-hold:checked)
+  { --keyboard: V }` rule (Kiln emits one per key next to the
+  `:active` rule) holds the key directly — the checkbox *is* the
+  key-held state, no host involved.
+- **Calcite player:** checked pins ride along on every key submission
+  (repeated `held=` params). The bridge reconciles: pressing a pinned
+  key latches it via `set_pseudo_class_active('checked','kb-X-hold',
+  true)`; pressing it after unchecking the pin releases it. So the
+  gesture is *toggle the pin, then press the key*.
+
+One key at a time: `--keyboard` is a single cascade-resolved value and
+the cabinet's press/release edges fire only on 0 ↔ non-zero
+transitions, so while a key is held other presses are invisible to the
+machine (the bridge drops them; in the raw player the cascade eats
+them). Chords (held Shift + another key) would need a second keyboard
+wire in the cabinet — not built.
 
 ## Not to be confused with
 
