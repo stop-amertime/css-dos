@@ -110,10 +110,12 @@ proven by the A/B).
    Follow-ups: apply to zork-big / prince-of-persia; remaining
    per-read syscall overhead (fdrw div64s, deblock copies).
 
-## Git state (verified 2026-07-02)
+## Git state (verified 2026-07-05)
 
-- **CSS-DOS** `master` == `origin/master` == the 2026-07-02
-  **unification merge** `3a912e1`: the two live site branches
+- **CSS-DOS** `master` == `origin/master` == `79dfe62` (2026-07-05
+  PoP PIT channel-select fix + harness Linux fixes + docs, on top of
+  the 2026-07-04 SW-hang fix `94e35dd`). Earlier context: the
+  2026-07-02 **unification merge** `3a912e1`: the two live site branches
   (`worktree-web-svelte-scoping` styling/UX pass + Wizard shell;
   `worktree-cabinet-anatomy-doc` About teaching rebuild + fonts) are
   both landed. The main checkout is back **on `master`** (was parked
@@ -125,7 +127,9 @@ proven by the A/B).
   owner-supervised). Deliberately NOT merged:
   `worktree-calcite-v2` — 3 stale logbook commits about the reverted
   S1.2/S1.3 calcite stream; merging would resurrect dead claims.
-- **calcite** `main` == `origin/main` == **`c728187`** (2026-06-12
+- **calcite** `main` == `origin/main` == **`4d8d597`** (2026-07-05
+  calcite-cli --press-events batching, on `10d7b0f` 2026-07-03
+  console-diagnostics deletion, on `c728187` — 2026-06-12
   compile-wall work: 6 commits `6228955`…`4b107d1` + logs — see
   LOGBOOK compile-wall row; on top of `788389d` —
   column_drawer dead-code deletion 2026-06-12, on top of `854867d`
