@@ -175,7 +175,8 @@ removing/replacing several (see Active work #1). Doom8088 in-game on
 web + cli; zork-big (2.88 MB), command-bare, shelltest, smoke set
 unaffected.
 
-**Regression gate:** `node tests/harness/run.mjs smoke` (7 carts).
+**Regression gate:** `node tests/harness/run.mjs smoke` (6 carts) +
+`node tests/harness/run.mjs writable` (writable-disk e2e).
 
 **Architecture:** V4 single-cycle, one instruction per CSS tick,
 3-word-slot scheme default. Default BIOS: Corduroy.
@@ -189,9 +190,13 @@ flapped healthy↔3×-degraded that day, so a clean 3-run median is
 still owed — but ticks are deterministic (boot→ingame 13.5–13.7M on
 every run/transport) and within-state wall pairs agree to ±1%.
 **NOTE 2026-07-06:** the splash-hold BIOS change (LOGBOOK) adds
-~+750K boot ticks to every Corduroy cabinet — boot-milestone tick
-constants (incl. the 13.5–13.7M above and tick-benchmarks.md) are
-stale until re-measured; dosBoot wall gains ~+1–2 s.
+~+750K boot ticks to every Corduroy cabinet — measured same day by
+the writable-disk 3-run medians (`docs/benches/
+doom-all-2026-07-06-writable-disk-run{1,2,3}.json`): boot→ingame now
+**14.32–14.34M ticks**, engine-run wall 30.2 s, doomLoad 19.6 s,
+463.8K t/s, compile 4.65 s — all inside the cross-day ±3% band vs
+the 2026-06-11 numbers below once the +750K is accounted for.
+tick-benchmarks.md milestone constants remain stale.
 
 | Phase | Wall | | Phase | Wall |
 |---|--:|---|---|--:|
