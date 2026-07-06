@@ -1,11 +1,11 @@
 // web/shim/calcite-bridge-boot.js
-// Loaded by build.html (and split.html). Spawns the calcite-bridge
-// worker, which hosts the calcite WASM engine + a JPEG encoder, and
-// hands a MessagePort to the service worker so the worker's frames
-// fan out into any active /_stream/fb responses the SW serves.
-// The /player/calcite.html runner is pure HTML+CSS — its <img>
-// fetches /_stream/fb from the SW, which pumps frames from the
-// bridge worker spawned here.
+// Loaded by the site page. Registers the service worker and spawns the
+// calcite-bridge worker, which hosts the calcite WASM engine. All
+// runtime coordination (frames, viewer signals, keyboard, cabinet
+// pings) flows over the 'cssdos-bridge' BroadcastChannel between the
+// worker and the SW — nothing to wire up here. The /player/calcite.html
+// runner is pure HTML+CSS: its <img> fetches /_screen/framebuffer from
+// the SW, which pumps frames broadcast by the worker spawned here.
 //
 // Lifetime: bridge worker lives as long as this tab stays open.
 // Close this tab and the runner in the other tab freezes.
@@ -25,7 +25,7 @@
     return;
   }
   try {
-    const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    await navigator.serviceWorker.register('/sw.js', { scope: '/' });
     await navigator.serviceWorker.ready;
 
     // Verbose logging (per-frame runtime stats + video-mode traces) is off
@@ -54,54 +54,9 @@
       console.error('[calcite-bridge error]', ev.message || ev);
     });
 
-    const ch = new MessageChannel();
-    bridge.postMessage({ type: 'sw-port' }, [ch.port1]);
-    const sw = navigator.serviceWorker.controller || reg.active;
-    if (sw) {
-      sw.postMessage({ type: 'register-calcite-bridge' }, [ch.port2]);
-    } else {
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        navigator.serviceWorker.controller?.postMessage(
-          { type: 'register-calcite-bridge' }, [ch.port2]
-        );
-      }, { once: true });
-    }
-
-    // The browser idle-kills the SW and restarts it with no bridge
-    // port (the channel above died with the old instance). The new
-    // instance asks us for a fresh one the moment a stream or key
-    // fetch finds itself portless — without this, opening the player
-    // a while after building hangs forever on the loading text.
-    navigator.serviceWorker.addEventListener('message', (ev) => {
-      if (ev.data?.type !== 'cssdos-need-bridge') return;
-      const fresh = new MessageChannel();
-      bridge.postMessage({ type: 'sw-port' }, [fresh.port1]);
-      navigator.serviceWorker.controller?.postMessage(
-        { type: 'register-calcite-bridge' }, [fresh.port2]
-      );
-      console.log('[calcite-bridge] SW restarted — bridge port re-registered');
-    });
-
     window.__calciteBridge = bridge;
     announce('spawned');
-    console.log('[calcite-bridge] worker spawned, SW port registered');
-
-    // Rehydrate: a cabinet built in a previous page lifetime (reload,
-    // dev-server HMR, a discarded mobile tab) is still in Cache Storage
-    // — cabinets are only purged when the next build starts. Hand it to
-    // the bridge lazily so a still-open player recovers and Play works
-    // without a rebuild; a build in this lifetime simply replaces it.
-    // Cache name/URL must match web/browser-builder/storage.mjs.
-    try {
-      const cache = await caches.open('cssdos-cabinets-v2');
-      const hit = await cache.match('/cabinet.css');
-      if (hit) {
-        const blob = await hit.blob();
-        bridge.postMessage({ type: 'cabinet-blob-lazy', blob });
-        console.log('[calcite-bridge] cabinet restored from cache ('
-          + (blob.size / 1024 / 1024).toFixed(1) + ' MB, lazy)');
-      }
-    } catch {}
+    console.log('[calcite-bridge] worker spawned');
   } catch (e) {
     console.error('[calcite-bridge] boot failed:', e);
     announce('failed', e?.message || String(e));

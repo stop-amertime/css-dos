@@ -7,11 +7,15 @@ import { saveCabinet, getCabinet, purgeCabinets } from '/browser-builder/storage
 import { mergeManifest } from './manifest.js';
 
 // The built cabinet persists in Cache Storage until the next build starts
-// (purgeCabinets() in build()). That is what lets a reloaded tab recover:
-// calcite-bridge-boot.js re-feeds the bridge worker from the cache on page
-// load, and the restore probe below re-unlocks Play. (Cabinets were
-// previously purged on pagehide, which made any reload — F5, Vite HMR, a
-// discarded mobile tab — silently strand the player and lose the build.)
+// (purgeCabinets() in build()). Cache Storage is the cabinet's ONLY home:
+// the bridge worker reads it from there when a viewer connects (which is
+// also what lets a reloaded tab recover — F5, Vite HMR, a discarded mobile
+// tab), and the restore probe below re-unlocks Play. The build just writes
+// the cache and broadcasts 'cabinet-updated'.
+
+const bridgeBus = typeof window !== 'undefined'
+  ? new BroadcastChannel('cssdos-bridge')
+  : null;
 
 const PRESET_LABELS = {
   'dos-corduroy': 'DOS + Corduroy BIOS',
@@ -322,14 +326,12 @@ class Build {
     });
 
     try {
-      window.__calciteBridge?.postMessage({
-        type: this.options.eagerCompile ? 'cabinet-blob' : 'cabinet-blob-lazy',
-        blob, diskBytes,
-      });
+      await saveCabinet(blob);
+      bridgeBus?.postMessage({ type: 'cabinet-updated', eager: this.options.eagerCompile });
     } catch (e) {
-      console.warn('[build] failed to post cabinet blob to bridge:', e);
+      console.warn('[build] saveCabinet failed:', e);
+      this.status = 'Cabinet built, but caching it failed — the player cannot run it.';
     }
-    saveCabinet(blob).catch((e) => console.warn('[build] saveCabinet failed:', e));
     this.busy = false;
   }
 
@@ -347,9 +349,9 @@ class Build {
 export const build = new Build();
 
 // Restore probe: a cabinet left by a previous page lifetime unlocks Play
-// without a rebuild (the bridge itself is re-fed by calcite-bridge-boot.js;
-// this only flips the UI state). Metadata comes from the cached response's
-// headers — the blob is never materialised here.
+// without a rebuild (the bridge reads the cache itself when a viewer
+// connects; this only flips the UI state). Metadata comes from the cached
+// response's headers — the blob is never materialised here.
 if (typeof window !== 'undefined') {
   getCabinet().then((hit) => {
     if (!hit || build.busy || build.done) return;

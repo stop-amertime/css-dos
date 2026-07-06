@@ -1,12 +1,18 @@
 // web/shim/calcite-bridge.js
-// The calcite bridge: a dedicated module worker spawned by build.html
-// (and split.html) on page load. Hosts the calcite WASM engine against
-// the cached cabinet, assembles each frame as a BMP, and ships the
-// bytes over a MessagePort to the service worker, which fans them out
-// into any active /_stream/fb multipart responses.
+// The calcite bridge: a dedicated module worker spawned by the site
+// page on load. Hosts the calcite WASM engine against the cached
+// cabinet, assembles each frame as a BMP, and broadcasts the bytes on
+// the 'cssdos-bridge' BroadcastChannel; the service worker feeds them
+// into any active /_screen/framebuffer multipart responses.
 //
 // This is the "output device" side of /player/calcite.html: when that
-// page opens its <img> fetches /_stream/fb
+// page opens, its <img> fetches /_screen/framebuffer.
+//
+// The cabinet itself lives in Cache Storage (written there by the
+// builder) — the bridge reads it from the cache when a viewer connects
+// or a 'cabinet-updated' broadcast asks for an eager compile. One
+// store, one path: a fresh page load and a mid-session build compile
+// through the same code.
 //
 // Lifetime: tied to the page that spawned the bridge. Close that tab
 // and this worker dies; the runner freezes on its last frame.
@@ -17,6 +23,7 @@
 // `../calcite/web/`.
 
 import { pickMode, decodeCga4, decodeCga2, rasteriseText, modeName } from '/shim/video-modes.mjs';
+import { getCabinetBlob } from '/browser-builder/storage.mjs';
 
 // Silence the calcite WASM's info/log/debug chatter (it emits a handful of
 // lines per parse/compile + periodic informational logs). We keep warn/error
@@ -33,15 +40,31 @@ let initCalcite, CalciteEngine;
 
 let engine = null;
 let fontAtlas = null;
-let swPort = null;
 let running = false;      // tick loop gate — true only while a viewer is watching
 let bootPromise;          // assigned below once boot() is kicked off
-let viewerWaiting = false; // a viewer fetched /_stream/fb before compile finished
+let viewerWaiting = false; // a viewer fetched the framebuffer before compile finished
 
-// Lazy-mode holding pen: when the build tab posts a 'cabinet-blob-lazy'
-// we stash the Blob here and defer parse/compile until the first viewer
-// connects. Cleared after it's consumed. In eager mode this stays null.
-let pendingLazyBlob = null;
+// The origin-wide bridge bus, shared with the service worker (which
+// subscribes per open framebuffer stream and rebroadcasts /_kbd hits)
+// and the builder page (which broadcasts 'cabinet-updated'). One
+// object suffices: BroadcastChannel never delivers a message back to
+// the object that sent it, so our frame posts don't echo into our own
+// handler. Name must match web/site/public/sw.js.
+const bus = new BroadcastChannel('cssdos-bridge');
+
+// True after a 'cabinet-updated' broadcast until the new cabinet is
+// compiled — the next viewer-connected recompiles from the cache.
+let cabinetPending = false;
+// In-flight compile promise, so simultaneous viewer-connected /
+// cabinet-updated triggers share one compile instead of racing.
+let compileInFlight = null;
+
+// Single-bridge arbitration (matches the old SW-port replacement
+// semantics: last bridge wins). Every bridge announces itself once at
+// boot; since a broadcast never reaches its own sender, anyone who
+// hears an announcement is an older bridge — it mutes for good.
+let muted = false;
+bus.postMessage({ type: 'bridge-takeover' });
 
 
 // Batch pacing — start small (200 cycles) and let the EMA grow
@@ -184,9 +207,8 @@ async function boot() {
 }
 
 // Parse + compile raw cabinet bytes into a CalciteEngine. The ArrayBuffer
-// comes from awaiting `blob.arrayBuffer()` on the Blob that build.js posts
-// to us — all off the main thread, no SW round-trip, no JS-string
-// intermediate.
+// comes from reading the cached cabinet response (compileCabinetFromCache
+// below) — all off the main thread, no JS-string intermediate.
 //
 // The cabinet self-describes its rom-disk: disk bytes are embedded in the
 // cabinet's `--readDiskByte` flat dispatch and calcite recognises the
@@ -233,12 +255,38 @@ async function compileCabinetBytes(arrayBuffer) {
       });
     }
   } catch {}
-  // If a viewer fetched /_stream/fb while we were compiling, fire the
-  // start sequence now. The viewer-connected handler that ran during
-  // compile saw engine=null and bailed; this is the recovery path.
+  // If a viewer fetched the framebuffer while we were compiling, fire
+  // the start sequence now. The viewer-connected handler that ran
+  // during compile joined the in-flight compile; this hook is the one
+  // place a compile-then-run starts.
   if (viewerWaiting && engine) {
     startRunning();
   }
+}
+
+// Read the cabinet from Cache Storage and compile it. The single entry
+// point for every compile trigger — first viewer after a page load
+// (rehydration), viewer after a lazy build, eager build, viewer racing
+// an in-flight compile — they all share one promise.
+function compileCabinetFromCache() {
+  if (!compileInFlight) {
+    compileInFlight = (async () => {
+      try {
+        await bootPromise;
+        const blob = await getCabinetBlob();
+        if (!blob) {
+          postStatus('no cabinet in Cache Storage — build one first');
+          return;
+        }
+        cabinetPending = false;
+        const buf = await blob.arrayBuffer();
+        await compileCabinetBytes(buf);
+      } finally {
+        compileInFlight = null;
+      }
+    })();
+  }
+  return compileInFlight;
 }
 
 // Reset engine state to power-on, start the tick loop, mark the bridge
@@ -252,7 +300,7 @@ async function compileCabinetBytes(arrayBuffer) {
 // detection, run never halts). The engine is already at power-on
 // immediately post-compile (new_from_bytes; nothing has ticked), so
 // for the bench entry the reset is redundant anyway.
-// Idempotent: the iframe player's /_stream/fb viewer-connected and
+// Idempotent: the iframe player's framebuffer viewer-connected and
 // the profile's bench-run can both call this. Whichever is first
 // does the reset+start; the second is a no-op (running-guard) so it
 // can't double-reset and wipe watches the profile registered after
@@ -262,7 +310,7 @@ async function compileCabinetBytes(arrayBuffer) {
 function startRunning(preserveWatches = false) {
   if (running) {
     // Expected whenever a second caller races a live run (another
-    // /_stream/fb viewer, bench-run vs viewer-connected). Debug-level:
+    // framebuffer viewer, bench-run vs viewer-connected). Debug-level:
     // at status level it stuck in the player's status bar looking
     // like an error.
     postDebug('startRunning called while already running — no-op');
@@ -415,7 +463,7 @@ function tickLoop() {
   const ratio = Math.max(0.5, Math.min(2.0, TARGET_MS / batchMsEma));
   batchCount = Math.max(MIN_BATCH, Math.min(MAX_BATCH, Math.round(batchCount * ratio)));
 
-  // Yield back to the event loop so SW-port messages (kbd input) get
+  // Yield back to the event loop so bus messages (kbd input) get
   // drained promptly. We use MessageChannel here rather than
   // setTimeout because build.html is a background tab while the
   // user watches calcite.html in the foreground, and Chrome
@@ -556,7 +604,7 @@ function traceVideoState(activeMode, reqMode, palReg) {
 }
 
 function maybeEmitFrame() {
-  if (!swPort) return;
+  if (muted) return;
 
   const modeByte = engine.get_video_mode();
   const reqMode = engine.get_requested_video_mode ? engine.get_requested_video_mode() : 0;
@@ -645,9 +693,10 @@ function maybeEmitFrame() {
 
   frameCount++;
   lastFrameBytes = fileBytes.byteLength;
-  // Transfer the underlying ArrayBuffer so the SW owns it after post.
-  const buf = fileBytes.buffer;
-  swPort.postMessage({ type: 'frame', bytes: buf, width: w, height: h, mime: 'image/bmp' }, [buf]);
+  // Broadcast — every open framebuffer stream's SW subscription gets a
+  // copy. BroadcastChannel can't transfer, but the structured clone of
+  // a ≤2 MB frame at ≤30 Hz is memcpy noise.
+  bus.postMessage({ type: 'frame', bytes: fileBytes.buffer, width: w, height: h, mime: 'image/bmp' });
 }
 
 let frameCount = 0;
@@ -827,7 +876,7 @@ self.onmessage = (ev) => {
     return;
   }
   if (d.type === 'bench-run' && engine) {
-    // Bench-mode entry: skip the viewer-connected dance (no /_stream/fb
+    // Bench-mode entry: skip the viewer-connected dance (no framebuffer
     // is being fetched by the bench page). The caller registered its
     // watches first; engine.reset() would wipe them (calcite-wasm
     // reset() drops the watch registry), leaving run_batch_watched with
@@ -846,126 +895,118 @@ self.onmessage = (ev) => {
     running = false;
     return;
   }
-  if (d.type === 'cabinet-blob' && d.blob) {
-    // Eager: compile NOW, in the background, off the main thread.
-    // Wait for boot() to finish (initCalcite must complete before
-    // CalciteEngine.new_from_bytes can run — without this gate, a fast
-    // cabinet-blob message arriving during the wasm fetch fails with
-    // "Cannot read properties of undefined (reading '__wbindgen_malloc')").
-    pendingLazyBlob = null;
-    (async () => {
-      try {
-        await bootPromise;
-        const buf = await d.blob.arrayBuffer();
-        await compileCabinetBytes(buf);
-      } catch (e) {
-        postStatus('compile error: ' + (e.message || e));
-      }
-    })();
+  if (d.type === 'cabinet-updated') {
+    // Direct-port variant of the bus message below, for callers that
+    // might fire before this module finishes evaluating: worker
+    // postMessage queues until the handler exists; a broadcast sent
+    // before the bus subscription would be lost. The bench page uses
+    // this.
+    onCabinetUpdated(!!d.eager);
     return;
   }
-  if (d.type === 'cabinet-blob-lazy' && d.blob) {
-    // Lazy: hold the blob; compile on first viewer-connect. Drop any
-    // previously-compiled engine so the next viewer sees the new cabinet.
-    pendingLazyBlob = d.blob;
-    if (engine && typeof engine.free === 'function') {
-      try { engine.free(); } catch {}
+};
+
+// A new cabinet has been written to Cache Storage. Drop the old engine
+// so no viewer sees stale state; compile now if asked (eager) or if a
+// viewer is already waiting on an open stream, else on the next
+// viewer-connected.
+function onCabinetUpdated(eager) {
+  if (engine && typeof engine.free === 'function') {
+    try { engine.free(); } catch {}
+  }
+  engine = null;
+  cabinetPending = true;
+  if (eager || viewerWaiting) {
+    compileCabinetFromCache().catch((e) => postStatus('compile error: ' + (e.message || e)));
+  } else {
+    postStatus('cabinet updated (lazy); will compile when player opens');
+  }
+}
+
+// ---------- Bus messages (SW viewer/keyboard signals, builder pings) ----------
+
+bus.onmessage = (ev) => {
+  const mm = ev.data;
+  if (!mm || !mm.type) return;
+  if (mm.type === 'bridge-takeover') {
+    // A newer bridge booted (another site tab, or this page reloaded
+    // and respawned before this worker died). It owns the machine now;
+    // stop ticking and never emit another frame.
+    muted = true;
+    running = false;
+    postStatus('a newer bridge took over — this one is muted');
+    return;
+  }
+  if (muted) return;
+  if (mm.type === 'kbd-active' && engine) {
+    // Legacy single-key pulse (/_kbd?class=kb-X). Enqueue; the
+    // tickLoop drainer walks each press through its hold/gap cycle
+    // so rapid-fire clicks each produce a real edge.
+    const sel = String(mm.selector || '');
+    if (sel) {
+      if (kbdTraceEnabled) kbdTrace(`[kbd-trace] recv active=${sel} wallMs=${performance.now().toFixed(1)} qlen=${keyQueue.length}`);
+      if (latchTarget) {
+        if (kbdTraceEnabled) kbdTrace(`[kbd-trace] drop active=${sel} (latched=${latchTarget})`);
+      } else {
+        keyQueue.push({ op: 'pulse', sel });
+      }
     }
-    engine = null;
-    postStatus('cabinet received (lazy); will compile when player opens');
-    return;
-  }
-  if (d.type === 'sw-port' && ev.ports && ev.ports[0]) {
-    swPort = ev.ports[0];
-    swPort.onmessage = (m) => {
-      const mm = m.data;
-      if (!mm || !mm.type) return;
-      if (mm.type === 'kbd-active' && engine) {
-        // Legacy single-key pulse (/_kbd?class=kb-X). Enqueue; the
-        // tickLoop drainer walks each press through its hold/gap cycle
-        // so rapid-fire clicks each produce a real edge.
-        const sel = String(mm.selector || '');
-        if (sel) {
-          if (kbdTraceEnabled) kbdTrace(`[kbd-trace] recv active=${sel} wallMs=${performance.now().toFixed(1)} qlen=${keyQueue.length}`);
-          if (latchTarget) {
-            if (kbdTraceEnabled) kbdTrace(`[kbd-trace] drop active=${sel} (latched=${latchTarget})`);
-          } else {
-            keyQueue.push({ op: 'pulse', sel });
-          }
+  } else if (mm.type === 'kbd-event' && engine) {
+    // Player keyboard form submission: `key` is the clicked key,
+    // `held` is the full checked-pin set. Reconcile the engine's
+    // latch to the pins, then handle the click:
+    //  - clicked key is pinned → latch it (releasing any other latch)
+    //  - latch's pin was unchecked → release it (the click that
+    //    carried the uncheck is the apply gesture, not a pulse)
+    //  - plain click, nothing latched → normal pulse
+    //  - plain click while latched → dropped: the machine's single
+    //    --keyboard wire can't see a second key while one is held
+    //    (no 0↔non-zero edge), same as in the raw CSS player.
+    const key = String(mm.key || '');
+    const held = new Set((mm.held || []).map(String));
+    if (kbdTraceEnabled) kbdTrace(`[kbd-trace] recv key=${key} held=[${[...held]}] latched=${latchTarget} qlen=${keyQueue.length}`);
+    let releasedNow = '';
+    if (latchTarget && !held.has(latchTarget)) {
+      keyQueue.push({ op: 'unlatch', sel: latchTarget });
+      releasedNow = latchTarget;
+      latchTarget = '';
+    }
+    if (key) {
+      if (held.has(key)) {
+        if (latchTarget !== key) {
+          if (latchTarget) keyQueue.push({ op: 'unlatch', sel: latchTarget });
+          keyQueue.push({ op: 'latch', sel: key });
+          latchTarget = key;
         }
-      } else if (mm.type === 'kbd-event' && engine) {
-        // Player keyboard form submission: `key` is the clicked key,
-        // `held` is the full checked-pin set. Reconcile the engine's
-        // latch to the pins, then handle the click:
-        //  - clicked key is pinned → latch it (releasing any other latch)
-        //  - latch's pin was unchecked → release it (the click that
-        //    carried the uncheck is the apply gesture, not a pulse)
-        //  - plain click, nothing latched → normal pulse
-        //  - plain click while latched → dropped: the machine's single
-        //    --keyboard wire can't see a second key while one is held
-        //    (no 0↔non-zero edge), same as in the raw CSS player.
-        const key = String(mm.key || '');
-        const held = new Set((mm.held || []).map(String));
-        if (kbdTraceEnabled) kbdTrace(`[kbd-trace] recv key=${key} held=[${[...held]}] latched=${latchTarget} qlen=${keyQueue.length}`);
-        let releasedNow = '';
-        if (latchTarget && !held.has(latchTarget)) {
-          keyQueue.push({ op: 'unlatch', sel: latchTarget });
-          releasedNow = latchTarget;
-          latchTarget = '';
-        }
-        if (key) {
-          if (held.has(key)) {
-            if (latchTarget !== key) {
-              if (latchTarget) keyQueue.push({ op: 'unlatch', sel: latchTarget });
-              keyQueue.push({ op: 'latch', sel: key });
-              latchTarget = key;
-            }
-          } else if (key === releasedNow) {
-            // Click applied the unpin — swallow the pulse.
-          } else if (latchTarget) {
-            if (kbdTraceEnabled) kbdTrace(`[kbd-trace] drop key=${key} (latched=${latchTarget})`);
-          } else {
-            keyQueue.push({ op: 'pulse', sel: key });
-          }
-        }
-      } else if (mm.type === 'viewer-connected') {
-        // New viewer opened the stream. Three entry paths:
-        //  - Eager-mode build, engine ready: reset + tick — Play is instant.
-        //  - Lazy-mode build: we're still holding the blob. Compile it now.
-        //  - Eager-mode build, compile in flight: mark `viewerWaiting`;
-        //    when compile finishes the cabinet-blob handler kicks off
-        //    reset + tick. Without this, large-cabinet eager builds
-        //    (e.g. doom8088, 24s compile) silently dropped the viewer
-        //    that fetched /_stream/fb before compile completed.
-        viewerWaiting = true;
-        (async () => {
-          if (!engine && pendingLazyBlob) {
-            try {
-              await bootPromise;
-              const blob = pendingLazyBlob;
-              pendingLazyBlob = null;
-              const buf = await blob.arrayBuffer();
-              await compileCabinetBytes(buf);
-            } catch (e) {
-              postStatus('compile error: ' + (e.message || e));
-            }
-            // compileCabinetBytes already fired startRunning via its
-            // viewerWaiting hook — calling it again here just tripped
-            // the running-guard on every lazy build.
-            return;
-          }
-          if (engine) {
-            startRunning();
-          }
-        })();
-      } else if (mm.type === 'viewer-disconnected') {
-        // No one watching — stop spinning the CPU. The engine is kept
-        // around so a fast reconnect doesn't have to rebuild it, but
-        // the next viewer-connected will reset it anyway.
-        running = false;
-        viewerWaiting = false;
+      } else if (key === releasedNow) {
+        // Click applied the unpin — swallow the pulse.
+      } else if (latchTarget) {
+        if (kbdTraceEnabled) kbdTrace(`[kbd-trace] drop key=${key} (latched=${latchTarget})`);
+      } else {
+        keyQueue.push({ op: 'pulse', sel: key });
       }
-    };
+    }
+  } else if (mm.type === 'cabinet-updated') {
+    onCabinetUpdated(!!mm.eager);
+  } else if (mm.type === 'viewer-connected') {
+    // New viewer opened the framebuffer stream. Compile from the cache
+    // if there's no engine yet (covers a fresh page load rehydrating a
+    // previous session's cabinet, a lazy build, and a viewer racing an
+    // in-flight compile — all one path); the viewerWaiting hook in
+    // compileCabinetBytes starts the run when it's ready. With a live
+    // engine, reset + tick — Play is instant.
+    viewerWaiting = true;
+    if (!engine || cabinetPending || compileInFlight) {
+      compileCabinetFromCache().catch((e) => postStatus('compile error: ' + (e.message || e)));
+    } else {
+      startRunning();
+    }
+  } else if (mm.type === 'viewer-disconnected') {
+    // No one watching — stop spinning the CPU. The engine is kept
+    // around so a fast reconnect doesn't have to rebuild it, but
+    // the next viewer-connected will reset it anyway.
+    running = false;
+    viewerWaiting = false;
   }
 };
 

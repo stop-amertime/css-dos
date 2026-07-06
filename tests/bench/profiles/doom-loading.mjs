@@ -119,7 +119,7 @@ export async function run(host) {
   // Set chunk-ticks so the bridge's tickLoop polls the watch registry.
   bridge.postMessage({ type: 'set-watch-chunk-ticks', chunkTicks: 50_000 });
   // Start the tick loop. The bench page didn't trigger
-  // viewer-connected (no /_stream/fb fetch); use the bench-run entry.
+  // viewer-connected (no framebuffer fetch); use the bench-run entry.
   bridge.postMessage({ type: 'bench-run' });
 
   host.log('watches registered; running until ingame halt');
@@ -129,18 +129,9 @@ export async function run(host) {
   // Send keyboard input as needed to navigate Doom's menus:
   //   - title screen → Enter (dismiss)
   //   - main menu → Enter (start "New Game")
-  // The bench page doesn't have an open /_stream/fb so the SW's
-  // /_kbd endpoint isn't wired up. Send directly to the bridge worker
-  // — the bridge accepts {type:'kbd', key} on its sw-port channel.
-  // Easier: post directly on the worker's main port; the worker's
-  // viewer-side handler will see the key through the SW pipeline,
-  // but we can also write to set-keyboard via a dedicated msg.
-  //
-  // Simplest: use the existing 'kbd' message via the SW MessagePort
-  // we already gave the bridge. The bench page kept that as bridgeKbdPort.
   function sendKey(key) {
-    // Route through the SW: the SW received our register-calcite-bridge
-    // earlier; its /_kbd endpoint forwards to the same bridge port.
+    // Route through the SW: its /_kbd endpoint rebroadcasts on the
+    // cssdos-bridge channel, which our bridge worker listens to.
     fetch(`/_kbd?key=0x${key.toString(16)}`, { mode: 'no-cors' }).catch(() => {});
   }
   const ENTER = 0x1C0D;

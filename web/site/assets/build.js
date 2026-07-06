@@ -403,23 +403,16 @@ $('start').addEventListener('click', async () => {
     setTimeout(once, 100);
   });
 
-  // Hand the cabinet blob directly to the bridge worker.
+  // Cache Storage is the cabinet's only home: write it, then ping the
+  // bridge worker (over the 'cssdos-bridge' channel) to (re)compile
+  // from the cache.
   const eager = $('eager-compile').checked;
   try {
-    if (window.__calciteBridge) {
-      window.__calciteBridge.postMessage({
-        type: eager ? 'cabinet-blob' : 'cabinet-blob-lazy',
-        blob,
-        diskBytes,
-      });
-    }
+    await saveCabinet(blob);
+    new BroadcastChannel('cssdos-bridge').postMessage({ type: 'cabinet-updated', eager });
   } catch (e) {
-    console.warn('[build] failed to post cabinet blob to bridge:', e);
+    console.error('[build] saveCabinet failed — the player cannot run this cabinet:', e);
   }
-
-  saveCabinet(blob).catch((e) =>
-    console.warn('[build] saveCabinet failed:', e)
-  );
 
   if (document.body.classList.contains('split')) {
     const frame = document.getElementById('split-frame');

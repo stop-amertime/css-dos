@@ -22,7 +22,7 @@
 //   5. Report fps = frames-changed / measure_seconds, plus a 1Hz
 //      time series.
 //
-// Web target only; CLI has no /_stream/fb consumer so "FPS" is
+// Web target only; CLI has no /_screen/framebuffer consumer so "FPS" is
 // undefined for it.
 
 const ADDR_GAMESTATE  = 0x3a3c4;

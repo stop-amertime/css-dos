@@ -25,7 +25,7 @@
 // `_g_usergame` stays 0 (the new-game path didn't run; demo path took
 // us there via G_DeferedPlayDemo → G_DoPlayDemo → G_DoLoadLevel).
 //
-// Web target only; CLI has no /_stream/fb consumer so demoFps is
+// Web target only; CLI has no /_screen/framebuffer consumer so demoFps is
 // undefined for it.
 
 const ADDR_GAMESTATE  = 0x3a3c4;

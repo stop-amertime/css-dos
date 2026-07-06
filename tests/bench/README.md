@@ -265,10 +265,10 @@ registerArtifact({
 `page/index.html` spawns the calcite-bridge worker and exposes it as
 `window.__bridgeWorker`. Profiles assume it's there and post messages
 to it directly (`register-watch`, `set-watch-chunk-ticks`,
-`bench-run`, `drain-measurements`). The page doesn't open a viewer
-port (`/_stream/fb`) by default — keyboard input from a profile goes
-either through the bridge's `kbd` MessagePort handler or through the
-SW's `/_kbd?key=` endpoint.
+`bench-run`, `drain-measurements`). Frames/keys flow over the
+`cssdos-bridge` BroadcastChannel (the SW relays `/_screen/framebuffer`
+and `/_kbd?key=` onto it) — there is no port to register. Keyboard
+input from a profile goes through the SW's `/_kbd?key=` endpoint.
 
 ## What's NOT here, and what to use them for instead
 

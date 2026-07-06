@@ -8,31 +8,44 @@
 // 1. /cabinet.css — serve from Cache Storage. The browser-side builder
 //    writes into this cache; the player reads a fixed URL.
 //
-// 2. /_stream/fb and /_kbd — the calcite-bridge pipeline. When a page
-//    registers a MessagePort with us ({type:'register-calcite-bridge'}),
-//    we route /_stream/fb fetches into a multipart/x-mixed-replace
-//    response whose body is fed by BMP frames that arrive over the
-//    port, and we forward /_kbd?key=... submissions to the bridge.
-//    This lets player/calcite.html be a pure HTML+CSS runner: the
-//    <img src="/_stream/fb"> pulls a live stream with no page-side JS.
+// 2. /_screen/framebuffer and /_kbd — the calcite-bridge pipeline.
+//    Frames arrive from the bridge worker over the 'cssdos-bridge'
+//    BroadcastChannel; each open /_screen/framebuffer response holds
+//    its own channel subscription and feeds the frames into a
+//    multipart/x-mixed-replace body. /_kbd submissions are rebroadcast
+//    on the same channel. This lets player/calcite.html be a pure
+//    HTML+CSS runner: the <img src="/_screen/framebuffer"> pulls a
+//    live stream with no page-side JS.
+//
+// Deliberately stateless: this SW holds no cross-request state. The
+// browser idle-kills service workers and restarts them with empty
+// module globals, and the old MessagePort design (bridge registers a
+// port, SW keeps it) needed a whole recovery handshake to survive
+// that. A broadcast channel needs none: a fresh instance subscribes
+// per stream and rebroadcasts keys as they come.
 //
 // The cache name must match web/browser-builder/storage.mjs.
 
 const CACHE_NAME = 'cssdos-cabinets-v2';
 const LEGACY_CACHE_NAMES = ['cssdos-cabinets-v1'];
 const CABINET_URL = '/cabinet.css';
-const STREAM_URL = '/_stream/fb';
+const STREAM_URL = '/_screen/framebuffer';
 const KBD_URL = '/_kbd';
 
-// The single bridge MessagePort. Only one tab can be the bridge at a
-// time; if a second registers, it replaces the first. The previous
-// bridge's streams will then starve (fine — its frames stop arriving).
-let bridgePort = null;
+// Origin-wide bus shared with the bridge worker (frames, viewer
+// signals, keyboard) — must match web/shim/calcite-bridge.js.
+const CHANNEL_NAME = 'cssdos-bridge';
 
-// Active stream responses. Each entry is a ReadableStream default
-// controller that we push multipart parts into. When a frame arrives
-// from the bridge we fan it out to every active controller.
-const streamControllers = new Set();
+// One channel object for one-shot broadcasts (viewer signals, keys).
+// Per-instance and rebuilt for free on SW restart — not handshake
+// state. BroadcastChannel never delivers a message back to the object
+// that sent it, so frame messages don't echo here.
+const ctl = new BroadcastChannel(CHANNEL_NAME);
+
+// Open framebuffer streams in THIS instance — only used to tell the
+// bridge when the last viewer left. Reconstructible: if the browser
+// kills this instance, the streams die with it.
+let activeStreams = 0;
 
 // Multipart boundary — must match the Content-Type header below.
 const BOUNDARY = 'cssdoscalciteframe';
@@ -50,72 +63,6 @@ self.addEventListener('activate', (event) => {
     await self.clients.claim();
   })());
 });
-
-// Messages from any client page. The bridge tab sends us a MessagePort
-// at registration; subsequent frames flow over that port.
-self.addEventListener('message', (event) => {
-  const data = event.data;
-  if (!data || !data.type) return;
-  if (data.type === 'register-calcite-bridge' && event.ports && event.ports[0]) {
-    if (bridgePort) {
-      try { bridgePort.close(); } catch {}
-    }
-    bridgePort = event.ports[0];
-    bridgePort.onmessage = handleBridgeMessage;
-    bridgePort.postMessage({ type: 'sw-ready' });
-    // If a viewer is already waiting on an open stream (we were
-    // idle-restarted mid-session and just got re-handed the port),
-    // kick the engine now — the stream's own viewer-connected went to
-    // the dead instance.
-    if (streamControllers.size > 0) {
-      bridgePort.postMessage({ type: 'viewer-connected' });
-    }
-  }
-});
-
-// The browser idle-kills service workers and restarts them with EMPTY
-// module state — bridgePort is null in the new instance, and the boot
-// shim only hands its port over once, at page load. Without recovery,
-// any /_stream/fb opened after an idle restart hangs forever (the
-// player shows its loading text and nothing else arrives). Ask every
-// window we control to re-register; calcite-bridge-boot.js answers
-// with a fresh MessageChannel.
-function requestBridgePort() {
-  self.clients.matchAll({ type: 'window' }).then((clients) => {
-    for (const c of clients) {
-      try { c.postMessage({ type: 'cssdos-need-bridge' }); } catch {}
-    }
-  });
-}
-
-function handleBridgeMessage(ev) {
-  const m = ev.data;
-  if (!m || !m.type) return;
-  if (m.type === 'frame' && m.bytes) {
-    broadcastFrame(m.bytes, m.mime || 'image/bmp');
-  }
-}
-
-function broadcastFrame(frameBuffer, mime) {
-  if (streamControllers.size === 0) return;
-  const bytes = new Uint8Array(frameBuffer);
-  const header = ENC.encode(
-    `--${BOUNDARY}\r\n` +
-    `Content-Type: ${mime}\r\n` +
-    `Content-Length: ${bytes.byteLength}\r\n\r\n`
-  );
-  const trailer = ENC.encode(`\r\n`);
-  for (const controller of streamControllers) {
-    try {
-      controller.enqueue(header);
-      controller.enqueue(bytes);
-      controller.enqueue(trailer);
-    } catch (e) {
-      // Controller closed underneath us (client disconnected).
-      streamControllers.delete(controller);
-    }
-  }
-}
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
@@ -136,9 +83,29 @@ self.addEventListener('fetch', (event) => {
 });
 
 async function handleCabinet() {
+  // Cabinets are stored chunked (body-less index + ?part=N entries —
+  // see web/browser-builder/storage.mjs, whose scheme this mirrors;
+  // classic SW scripts can't import the module). Reassembling as a
+  // Blob-of-blobs references the cached parts without copying.
   const cache = await caches.open(CACHE_NAME);
-  const hit = await cache.match(CABINET_URL);
-  if (hit) return hit;
+  const index = await cache.match(CABINET_URL);
+  if (index) {
+    const parts = Number(index.headers.get('X-Cabinet-Parts') || '0');
+    if (!parts) return index; // pre-chunking single-entry cabinet
+    const blobs = [];
+    let complete = true;
+    for (let i = 0; i < parts; i++) {
+      const p = await cache.match(`${CABINET_URL}?part=${i}`);
+      if (!p) { complete = false; break; }
+      blobs.push(await p.blob());
+    }
+    if (complete) {
+      return new Response(new Blob(blobs, { type: 'text/css' }), {
+        status: 200,
+        headers: { 'Content-Type': 'text/css' },
+      });
+    }
+  }
   return new Response('/* CSS-DOS: no cabinet in cache */\n', {
     status: 200,
     headers: { 'Content-Type': 'text/css' },
@@ -146,33 +113,46 @@ async function handleCabinet() {
 }
 
 function handleStream() {
-  let streamController = null;
+  // Each stream owns its own channel subscription; fan-out to multiple
+  // viewers is the broadcast itself, not a shared controller set.
+  let sub = null;
   const stream = new ReadableStream({
     start(controller) {
-      streamController = controller;
       // Opening preamble — Firefox likes a leading boundary before the
       // first part. Chrome accepts either way.
       controller.enqueue(ENC.encode(`--${BOUNDARY}\r\n`));
-      streamControllers.add(controller);
-      // New viewer connected — tell the bridge to reset the cabinet
-      // and start running from scratch. Each /_stream/fb fetch is
-      // treated as "restart the machine, I want to watch it boot".
-      if (bridgePort) {
-        bridgePort.postMessage({ type: 'viewer-connected' });
-      } else {
-        // Idle-restarted instance with no port: recover it. The
-        // register handler fires viewer-connected for us once the
-        // page re-hands the port over.
-        requestBridgePort();
-      }
+      sub = new BroadcastChannel(CHANNEL_NAME);
+      sub.onmessage = (ev) => {
+        const m = ev.data;
+        if (!m || m.type !== 'frame' || !m.bytes) return;
+        const bytes = new Uint8Array(m.bytes);
+        const header = ENC.encode(
+          `--${BOUNDARY}\r\n` +
+          `Content-Type: ${m.mime || 'image/bmp'}\r\n` +
+          `Content-Length: ${bytes.byteLength}\r\n\r\n`
+        );
+        try {
+          controller.enqueue(header);
+          controller.enqueue(bytes);
+          controller.enqueue(ENC.encode(`\r\n`));
+        } catch {
+          // Controller closed underneath us (client disconnected).
+          sub.close();
+          sub = null;
+        }
+      };
+      activeStreams++;
+      // New viewer — tell the bridge to (compile if needed and) start.
+      // Idempotent bridge-side: a second viewer on a running machine is
+      // a no-op via the running-guard.
+      ctl.postMessage({ type: 'viewer-connected' });
     },
     cancel() {
       // Client closed the img connection (navigation, tab close).
-      // Remove the controller immediately and let the bridge know
-      // there's no one watching so it can pause.
-      if (streamController) streamControllers.delete(streamController);
-      if (streamControllers.size === 0 && bridgePort) {
-        bridgePort.postMessage({ type: 'viewer-disconnected' });
+      if (sub) { sub.close(); sub = null; }
+      activeStreams = Math.max(0, activeStreams - 1);
+      if (activeStreams === 0) {
+        ctl.postMessage({ type: 'viewer-disconnected' });
       }
     },
   });
@@ -202,20 +182,15 @@ function handleKbd(url) {
   //
   // Either way the cabinet's own `&:has(...) { --keyboard: V }` rules
   // produce the value via calcite's input-edge recogniser; the host
-  // only flips the gates.
+  // only flips the gates. Rebroadcast unconditionally — no port to be
+  // missing, so no key is ever lost to an SW restart.
   const key = url.searchParams.get('key');
   const held = url.searchParams.getAll('held');
   const klass = url.searchParams.get('class');
-  if (bridgePort) {
-    if (key || held.length > 0) {
-      bridgePort.postMessage({ type: 'kbd-event', key: key || '', held });
-    } else if (klass) {
-      bridgePort.postMessage({ type: 'kbd-active', selector: klass });
-    }
-  } else if (key || klass || held.length > 0) {
-    // Idle-restarted instance: this key is lost, but recover the port
-    // so the next one lands.
-    requestBridgePort();
+  if (key || held.length > 0) {
+    ctl.postMessage({ type: 'kbd-event', key: key || '', held });
+  } else if (klass) {
+    ctl.postMessage({ type: 'kbd-active', selector: klass });
   }
   // 204 No Content — the target iframe won't re-render, page stays put.
   return new Response(null, {

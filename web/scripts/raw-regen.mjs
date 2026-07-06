@@ -53,10 +53,10 @@ const gridStyle = `  <style>
 let html = readFileSync(calcitePath, 'utf8');
 
 // (1) Replace the <img> screen with the pixel grid.
-//     The img tag spans lines 317-321 in calcite.html:
+//     The img tag in calcite.html:
 //       <img id="calcite-screen"
 //            class="screen"
-//            src="/_stream/fb"
+//            src="/_screen/framebuffer"
 //            alt=""
 //            width="640" height="400">
 html = html.replace(

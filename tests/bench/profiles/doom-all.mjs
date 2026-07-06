@@ -14,7 +14,7 @@
 // `doom-all` is the right choice when you want all of them — runs in
 // the same wall time as `doom-ingame-fps` alone.
 //
-// Web target only; CLI has no /_stream/fb consumer so FPS is
+// Web target only; CLI has no /_screen/framebuffer consumer so FPS is
 // undefined for it.
 
 const ADDR_GAMESTATE  = 0x3a3c4;

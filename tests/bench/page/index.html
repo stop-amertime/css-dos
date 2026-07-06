@@ -32,7 +32,7 @@
   <div class="player-wrap">
     <!--
       The player iframe mirrors the user's actual experience:
-      <img src="/_stream/fb"> drives frame consumption (without it the
+      <img src="/_screen/framebuffer"> drives frame consumption (without it the
       bridge's frame emissions go to no SW subscribers, and the runtime
       cost / FPS reading diverges from real player). Keyboard <a> links
       fire `/_kbd?key=...` through the SW to our bridge — same input
@@ -68,9 +68,9 @@
   $title.textContent = `bench: ${profileName}`;
   log(`profile: ${profileName}`);
 
-  // 1. Register the service worker (provides the bridge fan-out
-  //    plumbing). The bench doesn't need /_stream/fb but it does need
-  //    the SW to claim the page so the bridge can register its port.
+  // 1. Register the service worker. It serves the player iframe's
+  //    /_screen/framebuffer stream and /_kbd endpoint (both relayed
+  //    over the 'cssdos-bridge' BroadcastChannel to our worker).
   const swReg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
   await navigator.serviceWorker.ready;
   if (!navigator.serviceWorker.controller) {
@@ -81,7 +81,8 @@
   }
   log('service worker ready');
 
-  // 2. Spawn the bridge worker and register its SW port.
+  // 2. Spawn the bridge worker. It talks to the SW over the
+  //    'cssdos-bridge' BroadcastChannel — nothing to wire up.
   const bridge = new Worker('/shim/calcite-bridge.js', { type: 'module' });
   window.__bridgeWorker = bridge;
   bridge.addEventListener('message', (ev) => {
@@ -91,12 +92,6 @@
   bridge.addEventListener('error', (ev) => {
     log('[bridge error] ' + (ev.message || ev), 'err');
   });
-  const swCh = new MessageChannel();
-  bridge.postMessage({ type: 'sw-port' }, [swCh.port1]);
-  const sw = navigator.serviceWorker.controller || swReg.active;
-  if (sw) {
-    sw.postMessage({ type: 'register-calcite-bridge' }, [swCh.port2]);
-  }
   log('bridge worker spawned');
 
   // 3. Load the profile.
@@ -136,25 +131,29 @@
     const blob = await r.blob();
     log(`fetched ${(blob.size / 1024 / 1024).toFixed(1)} MB cabinet`);
 
-    // Mirror the cabinet into Cache Storage at /cabinet.css so the
-    // iframed player's <link href="/cabinet.css"> resolves through the
-    // SW. Same key the browser-builder normally writes to (see
-    // web/browser-builder/storage.mjs). On Windows Chromium the
-    // Cache.put can intermittently fail with "Unexpected internal
-    // error" for large blobs (cabinet is ~330 MB); log+continue and
-    // the player iframe will fail-open by directly fetching the
-    // blob via a sw shim rather than hard-erroring the bench.
+    // Put the cabinet into Cache Storage at /cabinet.css — its only
+    // home: the bridge compiles from there, and the iframed player's
+    // <link href="/cabinet.css"> resolves through the SW. saveCabinet
+    // stores it chunked (single ~330 MB puts die on Windows Chromium).
+    // A failed save must be FATAL — a stale cabinet from a previous
+    // run could be sitting at that key, and benching the wrong cabinet
+    // is worse than no bench.
     try {
-      const cabResp = new Response(blob, { headers: { 'Content-Type': 'text/css' } });
-      const cabCache = await caches.open('cssdos-cabinets-v2');
-      await cabCache.put('/cabinet.css', cabResp);
+      const { purgeCabinets, saveCabinet } = await import('/browser-builder/storage.mjs');
+      await purgeCabinets();
+      await saveCabinet(blob);
       log('cabinet stored in Cache Storage at /cabinet.css');
     } catch (e) {
-      log(`Cache.put failed (${e.message}); falling back to blob URL`, 'err');
+      const err = `saveCabinet failed: ${e.message}`;
+      log(err, 'err');
+      window.__benchResult = { ok: false, error: err };
+      throw new Error(err);
     }
 
-    bridge.postMessage({ type: 'cabinet-blob', blob });
-    log('cabinet-blob posted to bridge; waiting for compile-done');
+    // Direct worker message (not the broadcast) — it queues until the
+    // worker module is ready, so there's no boot race.
+    bridge.postMessage({ type: 'cabinet-updated', eager: true });
+    log('cabinet-updated (eager) posted; waiting for compile-done');
     // The bridge broadcasts compile-done over the cssdos-bridge-stats
     // BroadcastChannel — not a direct postMessage. Listen there.
     // Capture compileMs / cabinetBytes for the result envelope.
@@ -173,17 +172,18 @@
     });
 
     // Point the player iframe at /player/calcite.html. The iframe's
-    // <img src="/_stream/fb"> fetch triggers the SW's viewer-connected
-    // signal which calls bridge.startRunning() — that's the engine
-    // start. The keyboard <a> links inside the iframe also flow through
-    // the SW to our bridge. The bridge's startRunning is idempotent
-    // (running-guard) so a later bench-run from the profile is a no-op.
+    // <img src="/_screen/framebuffer"> fetch triggers the SW's
+    // viewer-connected signal which calls bridge.startRunning() —
+    // that's the engine start. The keyboard <a> links inside the
+    // iframe also flow through the SW to our bridge. The bridge's
+    // startRunning is idempotent (running-guard) so a later bench-run
+    // from the profile is a no-op.
     const $iframe = document.getElementById('player-frame');
     $iframe.src = '/player/calcite.html';
     log('player iframe loading (SW will viewer-connect → engine starts)');
 
     // Wait for the bridge to broadcast running-started — the iframe's
-    // /_stream/fb fetch triggers viewer-connected → startRunning →
+    // framebuffer fetch triggers viewer-connected → startRunning →
     // engine.reset(). We must wait until AFTER reset before the profile
     // registers watches, or reset wipes them.
     await new Promise((resolve) => {
