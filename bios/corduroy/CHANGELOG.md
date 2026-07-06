@@ -13,6 +13,30 @@ is baked into any given `.css`:
 head -5 cabinet.css
 ```
 
+## 0.5.0 — 2026-07-06
+
+- INT 13h AH=08h/15h now fail for any drive but 0 (AH=08h: CF set,
+  AH=01; AH=15h: AH=00 "not present"). Previously both answered
+  success for ANY DL including 80h — MS-DOS's MSINIT counts hard
+  disks via AH=08h DL=80h and trusted the answer, conjuring a phantom
+  hard disk whose SETHARD setup corrupted IO.SYS code in memory.
+- INT 13h now honours the ROM-BIOS register contract: AH=02h/03h
+  preserve BX/CX/DX (read used to return BX=last-LBA+1 and CX=0 —
+  MS-DOS's MSBOOT reads the dir sector then does `MOV DI,BX` expecting
+  its buffer pointer back; EDR-DOS never noticed). CF is now set/cleared
+  in the STACKED FLAGS via a BP frame — the old bare `clc`/`stc` before
+  IRET never reached the caller (IRET restores the caller's FLAGS
+  image), so error returns were invisible.
+- Real INT 19h bootstrap: reads the boot sector (LBA 0) to 0000:7C00,
+  checks 55AA, jumps with DL=0. A missing/invalid boot sector halts.
+- New build-time-patched `boot_mode` byte ('BTMD' anchor, default 0):
+  entry.asm consults it after `bios_init` — 0 keeps the classic direct
+  jump to the preloaded kernel at 0060:0000 (EDR-DOS), 1 issues
+  INT 19h instead (boot.os "msdos4" carts, whose floppy carries a real
+  MS-DOS boot sector). Loader error paths that re-issue INT 19h
+  ("insert another disk") now re-enter the bootstrap instead of
+  hitting a halt-only stub.
+
 ## 0.4.0 — 2026-07-06
 
 - INT 13h gains AH=03h (write sectors) and AH=04h (verify sectors).

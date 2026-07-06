@@ -10,7 +10,7 @@
 import { runKiln } from '../../builder/stages/kiln.mjs';
 import { resolveManifest } from '../../builder/lib/config.mjs';
 import { loadPrebakedBios } from './prebake-loader.mjs';
-import { buildFloppyInBrowser } from './floppy-adapter.mjs';
+import { buildFloppyInBrowser, buildMsdos4FloppyInBrowser } from './floppy-adapter.mjs';
 import { BlobWriter } from './blob-writer.mjs';
 
 const SUPPORTED_PRESETS = new Set(['hack', 'dos-muslin', 'dos-corduroy']);
@@ -179,6 +179,47 @@ export async function buildCabinetInBrowser({
     });
     // Hack path has no floppy.
     var floppyDiskBytes = null;
+  } else if ((manifest.boot?.os ?? 'edrdos') === 'msdos4') {
+    // MS-DOS 4.00 path: fetch the real DOS binaries + MSBOOT boot sector,
+    // assemble the bootable floppy (IO.SYS/MSDOS.SYS first, AUTOEXEC.BAT
+    // synthesized), run Kiln with no kernel preload — the Corduroy BIOS is
+    // patched to INT 19h and boots the floppy's own boot sector.
+    onProgress({ stage: 'dos', message: 'Loading MS-DOS 4.00 (IO.SYS, MSDOS.SYS, COMMAND.COM, MSBOOT)...' });
+    const [ioArr, msdosArr, msCommandArr, msbootArr] = await Promise.all([
+      fetchBytes('/assets/msdos4/IO.SYS'),
+      fetchBytes('/assets/msdos4/MSDOS.SYS'),
+      fetchBytes('/assets/msdos4/COMMAND.COM'),
+      fetchBytes('/assets/msdos4/msboot.bin'),
+    ]);
+
+    onProgress({ stage: 'floppy', message: 'Assembling bootable MS-DOS floppy...' });
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    const floppy = buildMsdos4FloppyInBrowser({
+      ioBytes: ioArr,
+      msdosBytes: msdosArr,
+      commandBytes: msCommandArr,
+      bootSectorBytes: msbootArr,
+      programFiles: cartFileList.map(f => ({ name: f.name, bytes: f.bytes, source: 'user upload' })),
+      runCommand: manifest.boot?.runCommand ?? '',
+      sizeRequest: manifest.disk?.size ?? '720K',
+      sectorsPerCluster: manifest.disk?.sectorsPerCluster,
+    });
+
+    const header = buildHeader({ preset, biosFlavor, biosVersion: bios.meta?.version ?? null, programName: progName, floppyLayout: floppy.layout });
+
+    onProgress({ stage: 'kiln', message: 'Transpiling to CSS...' });
+    await new Promise(resolve => setTimeout(resolve, 0));
+    runKiln({
+      bios,
+      floppy,
+      manifest,
+      kernelBytes: null,     // no preloaded kernel — INT 19h boots the floppy
+      programBytes: null,
+      output: writer,
+      header,
+    });
+    var floppyDiskBytes = floppy.bytes;
   } else {
     // DOS path: fetch kernel + command.com + ansi.sys, assemble FAT12 floppy,
     // run Kiln. ansi.sys is NANSI (GPLv2), loaded by DEVICE=\ANSI.SYS in the

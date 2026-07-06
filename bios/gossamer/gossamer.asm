@@ -337,7 +337,7 @@ int16h_handler:
     xor bx, bx
     mov ds, bx
 .key_wait:
-    mov ax, [0x0500]
+    mov ax, [0x04F4]
     test ax, ax
     jz .key_wait
     pop bx
@@ -349,7 +349,7 @@ int16h_handler:
     push bx
     xor bx, bx
     mov ds, bx
-    mov ax, [0x0500]
+    mov ax, [0x04F4]
     pop bx
     pop ds
     test ax, ax
@@ -503,6 +503,24 @@ int20h_handler:
     mov byte [0x2110], 1
     pop ds
     jmp int20h_handler
+
+; ============================================================
+; Build-time-readable interrupt vector table. kiln (buildIVTData) and
+; the JS ref machine locate the 'IVTG' anchor in the assembled image
+; and build the guest IVT from these words, so the handler offsets can
+; never go stale when code above them grows. (They DID go stale once:
+; the hardcoded tables in kiln/memory.mjs + ref-machine.mjs pointed
+; INT 16h into the middle of set-mode after the 2026-06 CGA/DAC work
+; shifted every handler by +0x7B — INT 16h "hung" in the DAC loop.)
+; Data only — never executed.
+; ============================================================
+ivt_gossamer_table:
+    db 'IVTG'
+    dw int10h_handler      ; INT 10h - Video services
+    dw int16h_handler      ; INT 16h - Keyboard
+    dw int1ah_handler      ; INT 1Ah - Timer
+    dw int20h_handler      ; INT 20h - Program terminate
+    dw int21h_handler      ; INT 21h - DOS services
 
 ; ============================================================
 ; IBM default 256-entry VGA DAC palette (768 bytes, 6-bit RGB).

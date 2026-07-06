@@ -12,6 +12,7 @@ global _start
 global bios_halt
 
 extern bios_init_         ; OpenWatcom C ABI: leading underscore, cdecl
+extern boot_mode           ; handlers.asm: build-time-patched handoff selector
 
 ; Declare the data segments OpenWatcom's C compiler emits, and group
 ; them into DGROUP so `seg DGROUP` resolves to DGROUP's runtime
@@ -91,12 +92,21 @@ _start:
     ; code segment (F000) as this stub.
     call bios_init_
 
-    ; Hand off to kernel. Transpiler pre-loads KERNEL.SYS at 0060:0000.
+    ; Hand off. boot_mode (in handlers.asm, patched at build time via
+    ; the 'BTMD' anchor) selects between the two paths:
+    ;   0 — direct jump to the kernel the transpiler preloaded at
+    ;       0060:0000 (EDR-DOS, the default; DRBIO convention BL=drive).
+    ;   1 — real bootstrap: INT 19h reads the floppy's boot sector
+    ;       (LBA 0) to 0000:7C00 and jumps to it (boot.os "msdos4").
     sti
+    cmp byte [cs:boot_mode], 0
+    jne .bootstrap
     xor ax, ax
     mov ds, ax
     mov bl, 0x00              ; boot drive A:
     jmp 0x0060:0x0000
+.bootstrap:
+    int 0x19
 
 ; Halt routine — unreachable under normal operation, present for debugger
 ; visibility if bios_init ever returns unexpectedly.

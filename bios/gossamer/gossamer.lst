@@ -76,7 +76,7 @@
     76 00000052 80FE19                      cmp dh, 25
     77 00000055 7217                        jb .tty_save
     78 00000057 FECE                        dec dh                 ; row = 24
-    79 00000059 E8FB00                      call scroll_up_one
+    79 00000059 E84101                      call scroll_up_one
     80 0000005C EB10                        jmp short .tty_save
     81                                  
     82                                  .tty_cr:
@@ -88,7 +88,7 @@
     88 00000064 80FE19                      cmp dh, 25
     89 00000067 7205                        jb .tty_save
     90 00000069 FECE                        dec dh
-    91 0000006B E8E900                      call scroll_up_one
+    91 0000006B E82F01                      call scroll_up_one
     92                                  
     93                                  .tty_save:
     94                                      ; Write cursor back to BDA (DS already = 0x0040)
@@ -113,7 +113,7 @@
    113 00000087 80FC00                      cmp ah, 0x00
    114 0000008A 7449                        je .set_mode
    115 0000008C 80FC06                      cmp ah, 0x06
-   116 0000008F 0F849600                    je .scroll_up
+   116 0000008F 0F84DC00                    je .scroll_up
    117 00000093 80FC0F                      cmp ah, 0x0F
    118 00000096 7428                        je .get_mode
    119 00000098 CF                          iret
@@ -169,296 +169,365 @@
    169 000000E9 50                          push ax                ; save it again for the final pop
    170                                      ; Only store modes we support; map anything else to 0x03.
    171 000000EA 3C13                        cmp al, 0x13
-   172 000000EC 7402                        je .store_mode
-   173 000000EE B003                        mov al, 0x03
-   174                                  .store_mode:
-   175 000000F0 A24900                      mov [0x0049], al       ; store video_mode in BDA
-   176 000000F3 3C13                        cmp al, 0x13
-   177 000000F5 7417                        je .set_mode_13h
-   178                                      ; --- Text mode clear: 2000 words of space+attr at 0xB8000 ---
-   179 000000F7 B800B8                      mov ax, 0xB800
-   180 000000FA 8ED8                        mov ds, ax
-   181 000000FC 31FF                        xor di, di
-   182 000000FE B9D007                      mov cx, 2000
-   183 00000101 B82007                      mov ax, 0x0720
-   184                                  .clr_loop:
-   185 00000104 8905                        mov [di], ax           ; DS:DI = B800:offset
-   186 00000106 83C702                      add di, 2
-   187 00000109 49                          dec cx
-   188 0000010A 75F8                        jnz .clr_loop
-   189 0000010C EB14                        jmp short .set_mode_done
-   190                                  .set_mode_13h:
-   191                                      ; --- Mode 13h clear: 64000 bytes of 0 at 0xA0000 ---
-   192                                      ; Write as 32000 words for speed (still single-byte opcodes).
-   193 0000010E B800A0                      mov ax, 0xA000
-   194 00000111 8ED8                        mov ds, ax
-   195 00000113 31FF                        xor di, di
-   196 00000115 B9007D                      mov cx, 32000
-   197 00000118 31C0                        xor ax, ax
-   198                                  .clr13_loop:
-   199 0000011A 8905                        mov [di], ax           ; DS:DI = A000:offset, word write
-   200 0000011C 83C702                      add di, 2
-   201 0000011F 49                          dec cx
-   202 00000120 75F8                        jnz .clr13_loop
-   203                                  .set_mode_done:
-   204 00000122 58                          pop ax
-   205 00000123 B030                        mov al, 0x30
-   206 00000125 59                          pop cx
-   207 00000126 5F                          pop di
-   208 00000127 1F                          pop ds
-   209 00000128 CF                          iret
-   210                                  
-   211                                  .scroll_up:
-   212 00000129 3C00                        cmp al, 0
-   213 0000012B 751C                        jne .su_lines
-   214                                      ; Clear entire screen
-   215 0000012D 1E                          push ds
-   216 0000012E 57                          push di
-   217 0000012F 51                          push cx
-   218 00000130 B900B8                      mov cx, 0xB800
-   219 00000133 8ED9                        mov ds, cx
-   220 00000135 31FF                        xor di, di
-   221 00000137 B9D007                      mov cx, 2000
-   222 0000013A B82007                      mov ax, 0x0720
-   223                                  .su_clr:
-   224 0000013D 8905                        mov [di], ax
-   225 0000013F 83C702                      add di, 2
-   226 00000142 49                          dec cx
-   227 00000143 75F8                        jnz .su_clr
-   228 00000145 59                          pop cx
-   229 00000146 5F                          pop di
-   230 00000147 1F                          pop ds
-   231 00000148 CF                          iret
-   232                                  .su_lines:
-   233 00000149 51                          push cx
-   234 0000014A 88C1                        mov cl, al
-   235 0000014C 30ED                        xor ch, ch
-   236                                  .su_loop:
-   237 0000014E E80600                      call scroll_up_one
-   238 00000151 FEC9                        dec cl
-   239 00000153 75F9                        jnz .su_loop
-   240 00000155 59                          pop cx
-   241 00000156 CF                          iret
-   242                                  
-   243                                  ; ============================================================
-   244                                  ; scroll_up_one — all VGA access via DS=0xB800
-   245                                  ; ============================================================
-   246                                  scroll_up_one:
-   247 00000157 1E                          push ds
-   248 00000158 56                          push si
-   249 00000159 57                          push di
-   250 0000015A 51                          push cx
-   251 0000015B 50                          push ax
-   252 0000015C B800B8                      mov ax, 0xB800
-   253 0000015F 8ED8                        mov ds, ax
-   254                                      ; Copy rows 1-24 up to rows 0-23
-   255 00000161 BEA000                      mov si, 160            ; source = start of row 1
-   256 00000164 31FF                        xor di, di             ; dest = start of row 0
-   257 00000166 B98007                      mov cx, 1920           ; 24 rows * 80 cols = 1920 words
-   258                                  .scopy:
-   259 00000169 8B04                        mov ax, [si]           ; read char+attr from source
-   260 0000016B 8905                        mov [di], ax           ; write to dest
-   261 0000016D 83C602                      add si, 2
-   262 00000170 83C702                      add di, 2
-   263 00000173 49                          dec cx
-   264 00000174 75F3                        jnz .scopy
-   265                                      ; Clear last row
-   266 00000176 B95000                      mov cx, 80
-   267 00000179 B82007                      mov ax, 0x0720
-   268                                  .sclear:
-   269 0000017C 8905                        mov [di], ax
-   270 0000017E 83C702                      add di, 2
-   271 00000181 49                          dec cx
-   272 00000182 75F8                        jnz .sclear
-   273 00000184 58                          pop ax
-   274 00000185 59                          pop cx
-   275 00000186 5F                          pop di
-   276 00000187 5E                          pop si
-   277 00000188 1F                          pop ds
-   278 00000189 C3                          ret
-   279                                  
-   280                                  ; ============================================================
-   281                                  ; INT 16h — Keyboard
-   282                                  ; ============================================================
-   283                                  int16h_handler:
-   284 0000018A 80FC00                      cmp ah, 0x00
-   285 0000018D 7408                        je .read_key
-   286 0000018F 80FC01                      cmp ah, 0x01
-   287 00000192 7413                        je .check_key
-   288 00000194 30C0                        xor al, al
-   289 00000196 CF                          iret
-   290                                  
-   291                                  .read_key:
-   292 00000197 1E                          push ds
-   293 00000198 53                          push bx
-   294 00000199 31DB                        xor bx, bx
-   295 0000019B 8EDB                        mov ds, bx
-   296                                  .key_wait:
-   297 0000019D A10005                      mov ax, [0x0500]
-   298 000001A0 85C0                        test ax, ax
-   299 000001A2 74F9                        jz .key_wait
-   300 000001A4 5B                          pop bx
-   301 000001A5 1F                          pop ds
-   302 000001A6 CF                          iret
-   303                                  
-   304                                  .check_key:
-   305 000001A7 1E                          push ds
-   306 000001A8 53                          push bx
-   307 000001A9 31DB                        xor bx, bx
-   308 000001AB 8EDB                        mov ds, bx
-   309 000001AD A10005                      mov ax, [0x0500]
-   310 000001B0 5B                          pop bx
-   311 000001B1 1F                          pop ds
-   312 000001B2 85C0                        test ax, ax
-   313 000001B4 55                          push bp
-   314 000001B5 89E5                        mov bp, sp
-   315 000001B7 7406                        jz .ck_none
-   316 000001B9 836606BF                    and word [bp+6], 0xFFBF
-   317 000001BD EB04                        jmp short .ck_ret
-   318                                  .ck_none:
-   319 000001BF 834E0640                    or word [bp+6], 0x0040
-   320                                  .ck_ret:
-   321 000001C3 5D                          pop bp
-   322 000001C4 CF                          iret
-   323                                  
-   324                                  ; ============================================================
-   325                                  ; INT 1Ah — Timer
-   326                                  ; ============================================================
-   327                                  int1ah_handler:
-   328 000001C5 80FC00                      cmp ah, 0x00
-   329 000001C8 7511                        jne .timer_ret
-   330 000001CA 1E                          push ds
-   331 000001CB 53                          push bx
-   332 000001CC 31DB                        xor bx, bx
-   333 000001CE 8EDB                        mov ds, bx
-   334 000001D0 8B160205                    mov dx, [0x0502]
-   335 000001D4 31C9                        xor cx, cx
-   336 000001D6 30C0                        xor al, al
-   337 000001D8 5B                          pop bx
-   338 000001D9 1F                          pop ds
-   339 000001DA CF                          iret
-   340                                  .timer_ret:
-   341 000001DB 31C0                        xor ax, ax
-   342 000001DD CF                          iret
-   343                                  
-   344                                  ; ============================================================
-   345                                  ; INT 21h — DOS
-   346                                  ; ============================================================
-   347                                  int21h_handler:
-   348 000001DE 80FC02                      cmp ah, 0x02
-   349 000001E1 7433                        je .write_char
-   350 000001E3 80FC06                      cmp ah, 0x06
-   351 000001E6 7437                        je .direct_io
-   352 000001E8 80FC09                      cmp ah, 0x09
-   353 000001EB 7443                        je .write_string
-   354 000001ED 80FC01                      cmp ah, 0x01
-   355 000001F0 7454                        je .read_echo
-   356 000001F2 80FC07                      cmp ah, 0x07
-   357 000001F5 745A                        je .read_noecho
-   358 000001F7 80FC08                      cmp ah, 0x08
-   359 000001FA 7455                        je .read_noecho
-   360 000001FC 80FC4C                      cmp ah, 0x4C
-   361 000001FF 7455                        je .exit
-   362 00000201 80FC0E                      cmp ah, 0x0E
-   363 00000204 745D                        je .select_disk
-   364 00000206 80FC19                      cmp ah, 0x19
-   365 00000209 745B                        je .get_disk
-   366 0000020B 80FC30                      cmp ah, 0x30
-   367 0000020E 7459                        je .get_version
-   368 00000210 80FC2C                      cmp ah, 0x2C
-   369 00000213 7458                        je .get_time_dos
-   370 00000215 CF                          iret
-   371                                  
-   372                                  .write_char:
-   373 00000216 50                          push ax
-   374 00000217 88D0                        mov al, dl
-   375 00000219 B40E                        mov ah, 0x0E
-   376 0000021B CD10                        int 0x10
-   377 0000021D 58                          pop ax
-   378 0000021E CF                          iret
-   379                                  
-   380                                  .direct_io:
-   381 0000021F 80FAFF                      cmp dl, 0xFF
-   382 00000222 7409                        je .dio_read
-   383 00000224 50                          push ax
-   384 00000225 88D0                        mov al, dl
-   385 00000227 B40E                        mov ah, 0x0E
-   386 00000229 CD10                        int 0x10
-   387 0000022B 58                          pop ax
-   388 0000022C CF                          iret
-   389                                  .dio_read:
-   390 0000022D 30C0                        xor al, al
-   391 0000022F CF                          iret
-   392                                  
-   393                                  .write_string:
-   394 00000230 56                          push si
-   395 00000231 50                          push ax
-   396 00000232 89D6                        mov si, dx
-   397                                  .ws_loop:
-   398 00000234 8A04                        mov al, [si]
-   399 00000236 3C24                        cmp al, '$'
-   400 00000238 7409                        je .ws_end
-   401 0000023A 56                          push si
-   402 0000023B B40E                        mov ah, 0x0E
-   403 0000023D CD10                        int 0x10
-   404 0000023F 5E                          pop si
-   405 00000240 46                          inc si
-   406 00000241 EBF1                        jmp short .ws_loop
-   407                                  .ws_end:
-   408 00000243 58                          pop ax
-   409 00000244 5E                          pop si
-   410 00000245 CF                          iret
-   411                                  
-   412                                  .read_echo:
-   413 00000246 B400                        mov ah, 0x00
-   414 00000248 CD16                        int 0x16
-   415 0000024A 50                          push ax
-   416 0000024B B40E                        mov ah, 0x0E
-   417 0000024D CD10                        int 0x10
-   418 0000024F 58                          pop ax
-   419 00000250 CF                          iret
-   420                                  
-   421                                  .read_noecho:
-   422 00000251 B400                        mov ah, 0x00
-   423 00000253 CD16                        int 0x16
-   424 00000255 CF                          iret
-   425                                  
-   426                                  .exit:
-   427                                      ; Signal halt: write 1 to halt flag at DS:0x2110
-   428 00000256 1E                          push ds
-   429 00000257 31C0                        xor ax, ax
-   430 00000259 8ED8                        mov ds, ax
-   431 0000025B C606102101                  mov byte [0x2110], 1
-   432 00000260 1F                          pop ds
-   433 00000261 EBF3                        jmp .exit
-   434                                  
-   435                                  .select_disk:
-   436 00000263 B001                        mov al, 1
-   437 00000265 CF                          iret
-   438                                  
-   439                                  .get_disk:
-   440 00000266 30C0                        xor al, al
-   441 00000268 CF                          iret
-   442                                  
-   443                                  .get_version:
-   444 00000269 B80500                      mov ax, 0x0005
-   445 0000026C CF                          iret
-   446                                  
-   447                                  .get_time_dos:
-   448 0000026D 31C9                        xor cx, cx
-   449 0000026F 31D2                        xor dx, dx
-   450 00000271 CF                          iret
-   451                                  
-   452                                  ; ============================================================
-   453                                  ; INT 20h — Halt
-   454                                  ; ============================================================
-   455                                  int20h_handler:
-   456                                      ; Signal halt: write 1 to halt flag at DS:0x2110
-   457 00000272 1E                          push ds
-   458 00000273 31C0                        xor ax, ax
-   459 00000275 8ED8                        mov ds, ax
-   460 00000277 C606102101                  mov byte [0x2110], 1
-   461 0000027C 1F                          pop ds
-   462 0000027D EBF3                        jmp int20h_handler
+   172 000000EC 740E                        je .store_mode
+   173 000000EE 3C04                        cmp al, 0x04           ; CGA 320x200x4 — 16 KB aperture at B8000
+   174 000000F0 740A                        je .store_mode
+   175 000000F2 3C05                        cmp al, 0x05           ; CGA 320x200x4 mono — same aperture, grey palette
+   176 000000F4 7406                        je .store_mode
+   177 000000F6 3C06                        cmp al, 0x06           ; CGA 640x200x2 hires mono — 1 bpp, same 16 KB aperture
+   178 000000F8 7402                        je .store_mode
+   179 000000FA B003                        mov al, 0x03
+   180                                  .store_mode:
+   181 000000FC A24900                      mov [0x0049], al       ; store video_mode in BDA
+   182 000000FF 3C13                        cmp al, 0x13
+   183 00000101 7439                        je .set_mode_13h
+   184 00000103 3C04                        cmp al, 0x04
+   185 00000105 741F                        je .set_mode_04h
+   186 00000107 3C05                        cmp al, 0x05           ; mode 5 clears the 16 KB aperture just like mode 4
+   187 00000109 741B                        je .set_mode_04h
+   188 0000010B 3C06                        cmp al, 0x06           ; mode 6 clears the same 16 KB aperture
+   189 0000010D 7417                        je .set_mode_04h
+   190                                      ; --- Text mode clear: 2000 words of space+attr at 0xB8000 ---
+   191 0000010F B800B8                      mov ax, 0xB800
+   192 00000112 8ED8                        mov ds, ax
+   193 00000114 31FF                        xor di, di
+   194 00000116 B9D007                      mov cx, 2000
+   195 00000119 B82007                      mov ax, 0x0720
+   196                                  .clr_loop:
+   197 0000011C 8905                        mov [di], ax           ; DS:DI = B800:offset
+   198 0000011E 83C702                      add di, 2
+   199 00000121 49                          dec cx
+   200 00000122 75F8                        jnz .clr_loop
+   201 00000124 EB42                        jmp short .set_mode_done
+   202                                  .set_mode_04h:
+   203                                      ; --- CGA mode 0x04 clear: 16 KB of 0 at B8000 ---
+   204 00000126 B800B8                      mov ax, 0xB800
+   205 00000129 8ED8                        mov ds, ax
+   206 0000012B 31FF                        xor di, di
+   207 0000012D B90020                      mov cx, 8192
+   208 00000130 31C0                        xor ax, ax
+   209                                  .clr04_loop:
+   210 00000132 8905                        mov [di], ax           ; DS:DI = B800:offset, word write
+   211 00000134 83C702                      add di, 2
+   212 00000137 49                          dec cx
+   213 00000138 75F8                        jnz .clr04_loop
+   214 0000013A EB2C                        jmp short .set_mode_done
+   215                                  .set_mode_13h:
+   216                                      ; --- Mode 13h clear: 64000 bytes of 0 at 0xA0000 ---
+   217                                      ; Write as 32000 words for speed (still single-byte opcodes).
+   218 0000013C B800A0                      mov ax, 0xA000
+   219 0000013F 8ED8                        mov ds, ax
+   220 00000141 31FF                        xor di, di
+   221 00000143 B9007D                      mov cx, 32000
+   222 00000146 31C0                        xor ax, ax
+   223                                  .clr13_loop:
+   224 00000148 8905                        mov [di], ax           ; DS:DI = A000:offset, word write
+   225 0000014A 83C702                      add di, 2
+   226 0000014D 49                          dec cx
+   227 0000014E 75F8                        jnz .clr13_loop
+   228                                      ; --- Mode 13h: program the IBM default 256-entry VGA DAC. See
+   229                                      ; corduroy's handlers.asm for the rationale; same table, same
+   230                                      ; 0x3C8/0x3C9 sequence. Real VGA resets the DAC on set-mode.
+   231 00000150 56                          push si
+   232 00000151 30C0                        xor al, al
+   233 00000153 BAC803                      mov dx, 0x3C8
+   234 00000156 EE                          out dx, al
+   235 00000157 BAC903                      mov dx, 0x3C9
+   236 0000015A 0E                          push cs
+   237 0000015B 1F                          pop ds                 ; DS = CS = F000 so DS:SI reaches the table
+   238 0000015C BE[D302]                    mov si, vga_dac_default
+   239 0000015F B90003                      mov cx, 768
+   240                                  .dac_loop:
+   241 00000162 AC                          lodsb
+   242 00000163 EE                          out dx, al
+   243 00000164 49                          dec cx
+   244 00000165 75FB                        jnz .dac_loop
+   245 00000167 5E                          pop si
+   246                                  .set_mode_done:
+   247 00000168 58                          pop ax
+   248 00000169 B030                        mov al, 0x30
+   249 0000016B 59                          pop cx
+   250 0000016C 5F                          pop di
+   251 0000016D 1F                          pop ds
+   252 0000016E CF                          iret
+   253                                  
+   254                                  .scroll_up:
+   255 0000016F 3C00                        cmp al, 0
+   256 00000171 751C                        jne .su_lines
+   257                                      ; Clear entire screen
+   258 00000173 1E                          push ds
+   259 00000174 57                          push di
+   260 00000175 51                          push cx
+   261 00000176 B900B8                      mov cx, 0xB800
+   262 00000179 8ED9                        mov ds, cx
+   263 0000017B 31FF                        xor di, di
+   264 0000017D B9D007                      mov cx, 2000
+   265 00000180 B82007                      mov ax, 0x0720
+   266                                  .su_clr:
+   267 00000183 8905                        mov [di], ax
+   268 00000185 83C702                      add di, 2
+   269 00000188 49                          dec cx
+   270 00000189 75F8                        jnz .su_clr
+   271 0000018B 59                          pop cx
+   272 0000018C 5F                          pop di
+   273 0000018D 1F                          pop ds
+   274 0000018E CF                          iret
+   275                                  .su_lines:
+   276 0000018F 51                          push cx
+   277 00000190 88C1                        mov cl, al
+   278 00000192 30ED                        xor ch, ch
+   279                                  .su_loop:
+   280 00000194 E80600                      call scroll_up_one
+   281 00000197 FEC9                        dec cl
+   282 00000199 75F9                        jnz .su_loop
+   283 0000019B 59                          pop cx
+   284 0000019C CF                          iret
+   285                                  
+   286                                  ; ============================================================
+   287                                  ; scroll_up_one — all VGA access via DS=0xB800
+   288                                  ; ============================================================
+   289                                  scroll_up_one:
+   290 0000019D 1E                          push ds
+   291 0000019E 56                          push si
+   292 0000019F 57                          push di
+   293 000001A0 51                          push cx
+   294 000001A1 50                          push ax
+   295 000001A2 B800B8                      mov ax, 0xB800
+   296 000001A5 8ED8                        mov ds, ax
+   297                                      ; Copy rows 1-24 up to rows 0-23
+   298 000001A7 BEA000                      mov si, 160            ; source = start of row 1
+   299 000001AA 31FF                        xor di, di             ; dest = start of row 0
+   300 000001AC B98007                      mov cx, 1920           ; 24 rows * 80 cols = 1920 words
+   301                                  .scopy:
+   302 000001AF 8B04                        mov ax, [si]           ; read char+attr from source
+   303 000001B1 8905                        mov [di], ax           ; write to dest
+   304 000001B3 83C602                      add si, 2
+   305 000001B6 83C702                      add di, 2
+   306 000001B9 49                          dec cx
+   307 000001BA 75F3                        jnz .scopy
+   308                                      ; Clear last row
+   309 000001BC B95000                      mov cx, 80
+   310 000001BF B82007                      mov ax, 0x0720
+   311                                  .sclear:
+   312 000001C2 8905                        mov [di], ax
+   313 000001C4 83C702                      add di, 2
+   314 000001C7 49                          dec cx
+   315 000001C8 75F8                        jnz .sclear
+   316 000001CA 58                          pop ax
+   317 000001CB 59                          pop cx
+   318 000001CC 5F                          pop di
+   319 000001CD 5E                          pop si
+   320 000001CE 1F                          pop ds
+   321 000001CF C3                          ret
+   322                                  
+   323                                  ; ============================================================
+   324                                  ; INT 16h — Keyboard
+   325                                  ; ============================================================
+   326                                  int16h_handler:
+   327 000001D0 80FC00                      cmp ah, 0x00
+   328 000001D3 7408                        je .read_key
+   329 000001D5 80FC01                      cmp ah, 0x01
+   330 000001D8 7413                        je .check_key
+   331 000001DA 30C0                        xor al, al
+   332 000001DC CF                          iret
+   333                                  
+   334                                  .read_key:
+   335 000001DD 1E                          push ds
+   336 000001DE 53                          push bx
+   337 000001DF 31DB                        xor bx, bx
+   338 000001E1 8EDB                        mov ds, bx
+   339                                  .key_wait:
+   340 000001E3 A1F404                      mov ax, [0x04F4]
+   341 000001E6 85C0                        test ax, ax
+   342 000001E8 74F9                        jz .key_wait
+   343 000001EA 5B                          pop bx
+   344 000001EB 1F                          pop ds
+   345 000001EC CF                          iret
+   346                                  
+   347                                  .check_key:
+   348 000001ED 1E                          push ds
+   349 000001EE 53                          push bx
+   350 000001EF 31DB                        xor bx, bx
+   351 000001F1 8EDB                        mov ds, bx
+   352 000001F3 A1F404                      mov ax, [0x04F4]
+   353 000001F6 5B                          pop bx
+   354 000001F7 1F                          pop ds
+   355 000001F8 85C0                        test ax, ax
+   356 000001FA 55                          push bp
+   357 000001FB 89E5                        mov bp, sp
+   358 000001FD 7406                        jz .ck_none
+   359 000001FF 836606BF                    and word [bp+6], 0xFFBF
+   360 00000203 EB04                        jmp short .ck_ret
+   361                                  .ck_none:
+   362 00000205 834E0640                    or word [bp+6], 0x0040
+   363                                  .ck_ret:
+   364 00000209 5D                          pop bp
+   365 0000020A CF                          iret
+   366                                  
+   367                                  ; ============================================================
+   368                                  ; INT 1Ah — Timer
+   369                                  ; ============================================================
+   370                                  int1ah_handler:
+   371 0000020B 80FC00                      cmp ah, 0x00
+   372 0000020E 7511                        jne .timer_ret
+   373 00000210 1E                          push ds
+   374 00000211 53                          push bx
+   375 00000212 31DB                        xor bx, bx
+   376 00000214 8EDB                        mov ds, bx
+   377 00000216 8B160205                    mov dx, [0x0502]
+   378 0000021A 31C9                        xor cx, cx
+   379 0000021C 30C0                        xor al, al
+   380 0000021E 5B                          pop bx
+   381 0000021F 1F                          pop ds
+   382 00000220 CF                          iret
+   383                                  .timer_ret:
+   384 00000221 31C0                        xor ax, ax
+   385 00000223 CF                          iret
+   386                                  
+   387                                  ; ============================================================
+   388                                  ; INT 21h — DOS
+   389                                  ; ============================================================
+   390                                  int21h_handler:
+   391 00000224 80FC02                      cmp ah, 0x02
+   392 00000227 7433                        je .write_char
+   393 00000229 80FC06                      cmp ah, 0x06
+   394 0000022C 7437                        je .direct_io
+   395 0000022E 80FC09                      cmp ah, 0x09
+   396 00000231 7443                        je .write_string
+   397 00000233 80FC01                      cmp ah, 0x01
+   398 00000236 7454                        je .read_echo
+   399 00000238 80FC07                      cmp ah, 0x07
+   400 0000023B 745A                        je .read_noecho
+   401 0000023D 80FC08                      cmp ah, 0x08
+   402 00000240 7455                        je .read_noecho
+   403 00000242 80FC4C                      cmp ah, 0x4C
+   404 00000245 7455                        je .exit
+   405 00000247 80FC0E                      cmp ah, 0x0E
+   406 0000024A 745D                        je .select_disk
+   407 0000024C 80FC19                      cmp ah, 0x19
+   408 0000024F 745B                        je .get_disk
+   409 00000251 80FC30                      cmp ah, 0x30
+   410 00000254 7459                        je .get_version
+   411 00000256 80FC2C                      cmp ah, 0x2C
+   412 00000259 7458                        je .get_time_dos
+   413 0000025B CF                          iret
+   414                                  
+   415                                  .write_char:
+   416 0000025C 50                          push ax
+   417 0000025D 88D0                        mov al, dl
+   418 0000025F B40E                        mov ah, 0x0E
+   419 00000261 CD10                        int 0x10
+   420 00000263 58                          pop ax
+   421 00000264 CF                          iret
+   422                                  
+   423                                  .direct_io:
+   424 00000265 80FAFF                      cmp dl, 0xFF
+   425 00000268 7409                        je .dio_read
+   426 0000026A 50                          push ax
+   427 0000026B 88D0                        mov al, dl
+   428 0000026D B40E                        mov ah, 0x0E
+   429 0000026F CD10                        int 0x10
+   430 00000271 58                          pop ax
+   431 00000272 CF                          iret
+   432                                  .dio_read:
+   433 00000273 30C0                        xor al, al
+   434 00000275 CF                          iret
+   435                                  
+   436                                  .write_string:
+   437 00000276 56                          push si
+   438 00000277 50                          push ax
+   439 00000278 89D6                        mov si, dx
+   440                                  .ws_loop:
+   441 0000027A 8A04                        mov al, [si]
+   442 0000027C 3C24                        cmp al, '$'
+   443 0000027E 7409                        je .ws_end
+   444 00000280 56                          push si
+   445 00000281 B40E                        mov ah, 0x0E
+   446 00000283 CD10                        int 0x10
+   447 00000285 5E                          pop si
+   448 00000286 46                          inc si
+   449 00000287 EBF1                        jmp short .ws_loop
+   450                                  .ws_end:
+   451 00000289 58                          pop ax
+   452 0000028A 5E                          pop si
+   453 0000028B CF                          iret
+   454                                  
+   455                                  .read_echo:
+   456 0000028C B400                        mov ah, 0x00
+   457 0000028E CD16                        int 0x16
+   458 00000290 50                          push ax
+   459 00000291 B40E                        mov ah, 0x0E
+   460 00000293 CD10                        int 0x10
+   461 00000295 58                          pop ax
+   462 00000296 CF                          iret
    463                                  
-   464                                  bios_end:
+   464                                  .read_noecho:
+   465 00000297 B400                        mov ah, 0x00
+   466 00000299 CD16                        int 0x16
+   467 0000029B CF                          iret
+   468                                  
+   469                                  .exit:
+   470                                      ; Signal halt: write 1 to halt flag at DS:0x2110
+   471 0000029C 1E                          push ds
+   472 0000029D 31C0                        xor ax, ax
+   473 0000029F 8ED8                        mov ds, ax
+   474 000002A1 C606102101                  mov byte [0x2110], 1
+   475 000002A6 1F                          pop ds
+   476 000002A7 EBF3                        jmp .exit
+   477                                  
+   478                                  .select_disk:
+   479 000002A9 B001                        mov al, 1
+   480 000002AB CF                          iret
+   481                                  
+   482                                  .get_disk:
+   483 000002AC 30C0                        xor al, al
+   484 000002AE CF                          iret
+   485                                  
+   486                                  .get_version:
+   487 000002AF B80500                      mov ax, 0x0005
+   488 000002B2 CF                          iret
+   489                                  
+   490                                  .get_time_dos:
+   491 000002B3 31C9                        xor cx, cx
+   492 000002B5 31D2                        xor dx, dx
+   493 000002B7 CF                          iret
+   494                                  
+   495                                  ; ============================================================
+   496                                  ; INT 20h — Halt
+   497                                  ; ============================================================
+   498                                  int20h_handler:
+   499                                      ; Signal halt: write 1 to halt flag at DS:0x2110
+   500 000002B8 1E                          push ds
+   501 000002B9 31C0                        xor ax, ax
+   502 000002BB 8ED8                        mov ds, ax
+   503 000002BD C606102101                  mov byte [0x2110], 1
+   504 000002C2 1F                          pop ds
+   505 000002C3 EBF3                        jmp int20h_handler
+   506                                  
+   507                                  ; ============================================================
+   508                                  ; Build-time-readable interrupt vector table. kiln (buildIVTData) and
+   509                                  ; the JS ref machine locate the 'IVTG' anchor in the assembled image
+   510                                  ; and build the guest IVT from these words, so the handler offsets can
+   511                                  ; never go stale when code above them grows. (They DID go stale once:
+   512                                  ; the hardcoded tables in kiln/memory.mjs + ref-machine.mjs pointed
+   513                                  ; INT 16h into the middle of set-mode after the 2026-06 CGA/DAC work
+   514                                  ; shifted every handler by +0x7B — INT 16h "hung" in the DAC loop.)
+   515                                  ; Data only — never executed.
+   516                                  ; ============================================================
+   517                                  ivt_gossamer_table:
+   518 000002C5 49565447                    db 'IVTG'
+   519 000002C9 [0000]                      dw int10h_handler      ; INT 10h - Video services
+   520 000002CB [D001]                      dw int16h_handler      ; INT 16h - Keyboard
+   521 000002CD [0B02]                      dw int1ah_handler      ; INT 1Ah - Timer
+   522 000002CF [B802]                      dw int20h_handler      ; INT 20h - Program terminate
+   523 000002D1 [2402]                      dw int21h_handler      ; INT 21h - DOS services
+   524                                  
+   525                                  ; ============================================================
+   526                                  ; IBM default 256-entry VGA DAC palette (768 bytes, 6-bit RGB).
+   527                                  ; See bios/corduroy/handlers.asm for the same table + rationale.
+   528                                  ; Generated by tools/gen-vga-dac.mjs.
+   529                                  ; ============================================================
+   530                                  vga_dac_default:
+   531 000002D3 <bin 300h>                  incbin "../corduroy/vga-dac.bin"
+   532                                  
+   533                                  bios_end:

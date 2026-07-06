@@ -18,6 +18,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readGossamerVectors } from '../../../kiln/memory.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CSS_DOS_ROOT = resolve(__dirname, '..', '..', '..');
@@ -107,15 +108,12 @@ export function buildMemoryImage(sidecars) {
 
   if (meta.preset === 'hack') {
     // Hack cart: .COM at 0x100. IVT handled by kiln-embedded data that the
-    // cabinet materialises — we need to replicate it. Standard gossamer
-    // handlers (from kiln/memory.mjs BIOS_IVT_HANDLERS):
-    //   INT 10h → F000:0000 (video)
-    //   INT 16h → F000:0155 (keyboard)
-    //   INT 1Ah → F000:0190 (timer)
-    //   INT 20h → F000:023D (terminate)
-    //   INT 21h → F000:01A9 (DOS services)
-    // Other vectors point to F000:0000 (IRET stub) by default.
-    const HANDLERS = { 0x10: 0x0000, 0x16: 0x0155, 0x1A: 0x0190, 0x20: 0x023D, 0x21: 0x01A9 };
+    // cabinet materialises — we need to replicate it. Gossamer publishes
+    // its handler offsets behind the 'IVTG' anchor in the BIOS image
+    // (INT 10h/16h/1Ah/20h/21h); read them the same way kiln does so the
+    // ref can never disagree with the cabinet. Other vectors point to
+    // F000:0000 (IRET stub) by default.
+    const HANDLERS = readGossamerVectors(bios);
     // Default every vector to F000:0000.
     for (let i = 0; i < 256; i++) {
       mem[i * 4 + 0] = 0;

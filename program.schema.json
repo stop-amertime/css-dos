@@ -3,55 +3,118 @@
   "$id": "https://css-dos.dev/program.schema.json",
   "title": "CSS-DOS cart manifest",
   "description": "Declarative spec for a CSS-DOS cart. The builder reads this file (plus the cart's other contents) and produces a cabinet (a .css file runnable in Chrome, calcite-cli, or the static player).",
-
   "type": "object",
   "additionalProperties": false,
-
   "properties": {
-    "$schema":       { "type": "string" },
-
-    "name":          { "type": "string", "description": "Human-readable cart title. Defaults to the cart folder/zip basename." },
-    "version":       { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+(?:[-+][0-9A-Za-z.-]+)?$", "description": "Semver. Optional. Validated if present." },
-    "author":        { "type": "string", "description": "Cart author. Optional, unused by the builder, preserved in the cabinet header." },
-    "description":   { "type": "string", "description": "Short cart description. Optional, unused by the builder, preserved in the cabinet header." },
-
-    "preset":        { "enum": ["dos-muslin", "dos-corduroy", "hack"], "default": "dos-corduroy", "description": "Named preset. Supplies defaults for every other field; the cart's own values override the preset on conflict." },
-
-    "bios":          { "enum": ["gossamer", "muslin", "corduroy"], "description": "Which BIOS to boot. Gossamer is the hack-path shim; Muslin is the assembly DOS BIOS (fallback); Corduroy is the structured C DOS BIOS (default)." },
-
+    "$schema": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable cart title. Defaults to the cart folder/zip basename."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:[-+][0-9A-Za-z.-]+)?$",
+      "description": "Semver. Optional. Validated if present."
+    },
+    "author": {
+      "type": "string",
+      "description": "Cart author. Optional, unused by the builder, preserved in the cabinet header."
+    },
+    "description": {
+      "type": "string",
+      "description": "Short cart description. Optional, unused by the builder, preserved in the cabinet header."
+    },
+    "preset": {
+      "enum": [
+        "dos-muslin",
+        "dos-corduroy",
+        "hack"
+      ],
+      "default": "dos-corduroy",
+      "description": "Named preset. Supplies defaults for every other field; the cart's own values override the preset on conflict."
+    },
+    "bios": {
+      "enum": [
+        "gossamer",
+        "muslin",
+        "corduroy"
+      ],
+      "description": "Which BIOS to boot. Gossamer is the hack-path shim; Muslin is the assembly DOS BIOS (fallback); Corduroy is the structured C DOS BIOS (default)."
+    },
     "memory": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "conventional": {
           "oneOf": [
-            { "type": "integer", "minimum": 1024 },
-            { "enum": ["autofit", "4K", "64K", "128K", "256K", "512K", "640K"] }
+            {
+              "type": "integer",
+              "minimum": 1024
+            },
+            {
+              "enum": [
+                "autofit",
+                "4K",
+                "64K",
+                "128K",
+                "256K",
+                "512K",
+                "640K"
+              ]
+            }
           ],
           "description": "Size of conventional RAM in bytes. String = preset; number = exact bytes; 'autofit' sizes to the program. NOTE: on DOS carts, values below 640K are accepted by the schema but are not currently known to boot — the builder warns. Tracked as a follow-up."
         },
-        "gfx":     { "type": "boolean", "description": "Include the VGA Mode 13h framebuffer at 0xA0000–0xAFA00 (64000 bytes). Required for Mode 13h programs and the Corduroy boot splash." },
-        "textVga": { "type": "boolean", "description": "Include the VGA text buffer at 0xB8000–0xB8FA0 (4000 bytes). Required for any program that writes text via direct video memory (i.e. almost every DOS program)." },
-        "cgaGfx":  { "type": "boolean", "description": "Include CGA graphics memory at 0xB8000–0xBC000 (16384 bytes). Covers modes 0x04 (320×200×4) and 0x06 (640×200×2). Overlaps the text buffer's address range — enabling both is fine, the bytes share storage the same way real CGA hardware shares the 16 KB aperture between text and graphics." }
+        "gfx": {
+          "type": "boolean",
+          "description": "Include the VGA Mode 13h framebuffer at 0xA0000–0xAFA00 (64000 bytes). Required for Mode 13h programs and the Corduroy boot splash."
+        },
+        "textVga": {
+          "type": "boolean",
+          "description": "Include the VGA text buffer at 0xB8000–0xB8FA0 (4000 bytes). Required for any program that writes text via direct video memory (i.e. almost every DOS program)."
+        },
+        "cgaGfx": {
+          "type": "boolean",
+          "description": "Include CGA graphics memory at 0xB8000–0xBC000 (16384 bytes). Covers modes 0x04 (320×200×4) and 0x06 (640×200×2). Overlaps the text buffer's address range — enabling both is fine, the bytes share storage the same way real CGA hardware shares the 16 KB aperture between text and graphics."
+        }
       }
     },
-
     "disk": {
       "oneOf": [
-        { "type": "null", "description": "Hack carts have no disk." },
+        {
+          "type": "null",
+          "description": "Hack carts have no disk."
+        },
         {
           "type": "object",
           "additionalProperties": false,
           "properties": {
             "mode": {
-              "enum": ["rom", "embedded"],
+              "enum": [
+                "rom",
+                "embedded"
+              ],
               "default": "rom",
               "description": "'rom' exposes the disk outside 8086 memory via a 512-byte window (the current default). 'embedded' bakes disk bytes into 8086 memory (hacky, documented footnote, only works for tiny disks)."
             },
             "size": {
               "oneOf": [
-                { "type": "integer", "minimum": 1024 },
-                { "enum": ["autofit", "360K", "720K", "1200K", "1440K", "2880K"] }
+                {
+                  "type": "integer",
+                  "minimum": 1024
+                },
+                {
+                  "enum": [
+                    "autofit",
+                    "360K",
+                    "720K",
+                    "1200K",
+                    "1440K",
+                    "2880K"
+                  ]
+                }
               ],
               "default": "1440K",
               "description": "Floppy size. String = standard floppy preset; number = exact bytes; 'autofit' = round up to the smallest preset that fits. NOT YET IMPLEMENTED — today the floppy size is hard-coded in mkfat12.mjs."
@@ -67,10 +130,19 @@
               "items": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["name", "source"],
+                "required": [
+                  "name",
+                  "source"
+                ],
                 "properties": {
-                  "name":   { "type": "string", "description": "8.3 filename as it appears on the floppy (uppercased)." },
-                  "source": { "type": "string", "description": "Path relative to the cart root. Must not escape via '..'." }
+                  "name": {
+                    "type": "string",
+                    "description": "8.3 filename as it appears on the floppy (uppercased)."
+                  },
+                  "source": {
+                    "type": "string",
+                    "description": "Path relative to the cart root. Must not escape via '..'."
+                  }
                 }
               }
             }
@@ -78,7 +150,6 @@
         }
       ]
     },
-
     "display": {
       "type": "object",
       "additionalProperties": false,
@@ -89,7 +160,9 @@
         },
         "bullets": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Website only. Cover-less featured card: the site renders 'NAME with:' followed by these lines on the accent colour. Presence (like cover) opts the cart into the featured landing grid. Ignored by the builder."
         },
         "accent": {
@@ -97,31 +170,74 @@
           "description": "Website only. CSS background colour for the cover-less text card (default #0000AA). Ignored by the builder."
         },
         "vsyncMode": {
-          "enum": ["sim", "wall", "turbo"],
+          "enum": [
+            "sim",
+            "wall",
+            "turbo"
+          ],
           "default": "sim",
           "description": "Player paint cadence. 'sim' paints on the simulated 70 Hz vertical-retrace edge derived from the CPU cycle counter (matches what the guest program sees when it polls port 0x3DA). 'wall' paints on wall-clock 70 Hz regardless of CPU speed. 'turbo' paints every eval batch, no throttling. NOT YET PLUMBED — today the mode is picked by ?vsync=... on the player URL or the status-bar dropdown; this field records the cart's preferred default for future builder/player wiring."
         }
       }
     },
-
     "boot": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "os": {
+          "type": "string",
+          "enum": [
+            "edrdos",
+            "msdos4"
+          ],
+          "default": "edrdos",
+          "description": "DOS carts only. Which DOS boots. \"edrdos\" (default): the EDR-DOS kernel is preloaded at 0060:0000 and jumped to directly. \"msdos4\": real MS-DOS 4.00 (dos/msdos4/, MIT-licensed) boots from the floppy's own MSBOOT boot sector via the BIOS INT 19h bootstrap; IO.SYS/MSDOS.SYS/COMMAND.COM are placed on the disk and nothing is preloaded. Requires the corduroy BIOS. boot.runCommand becomes a line in a synthesized AUTOEXEC.BAT instead of a SHELL /K argument; boot.ems is not supported."
+        },
         "runCommand": {
           "type": "string",
           "description": "DOS carts only. The exact command line passed to COMMAND.COM via /K, e.g. 'DOOM -noxms -nosound'. Empty string drops to the COMMAND.COM prompt with no command run. CONFIG.SYS always emits SHELL=\\COMMAND.COM /P /K <runCommand>; the cart never runs as the shell directly. Default: if the cart contains exactly one .COM/.EXE, defaults to its name (no extension); otherwise empty."
         },
-        "raw": { "type": "string", "description": "Hack carts only. Filename of the .COM to load raw at 0x100. Mutually exclusive with boot.runCommand." },
-        "ems": { "type": "boolean", "default": false, "description": "DOS carts only. When true, load a fake EMS device driver (EMSDRV.SYS) so programs that detect EMS via open(\"EMMXXXX0\") see EMS as available. Doesn't provide real EMS pages — gates only. Needed for DOOM8088 and similar EMS-required programs." }
+        "raw": {
+          "type": "string",
+          "description": "Hack carts only. Filename of the .COM to load raw at 0x100. Mutually exclusive with boot.runCommand."
+        },
+        "ems": {
+          "type": "boolean",
+          "default": false,
+          "description": "DOS carts only. When true, load a fake EMS device driver (EMSDRV.SYS) so programs that detect EMS via open(\"EMMXXXX0\") see EMS as available. Doesn't provide real EMS pages — gates only. Needed for DOOM8088 and similar EMS-required programs."
+        }
       }
     }
   },
-
   "allOf": [
     {
-      "if":   { "properties": { "preset": { "const": "hack" } }, "required": ["preset"] },
-      "then": { "properties": { "disk": { "const": null }, "boot": { "required": ["raw"], "not": { "required": ["runCommand"] } } } }
+      "if": {
+        "properties": {
+          "preset": {
+            "const": "hack"
+          }
+        },
+        "required": [
+          "preset"
+        ]
+      },
+      "then": {
+        "properties": {
+          "disk": {
+            "const": null
+          },
+          "boot": {
+            "required": [
+              "raw"
+            ],
+            "not": {
+              "required": [
+                "runCommand"
+              ]
+            }
+          }
+        }
+      }
     }
   ]
 }

@@ -37,6 +37,7 @@ tests/*.html
 !bios/corduroy/cga-8x8.bin
 !bios/corduroy/vga-dac.bin
 !player/fonts/vga-8x16.bin
+!dos/msdos4/bin/msboot.bin
 
 # Build outputs
 bios/corduroy/build/

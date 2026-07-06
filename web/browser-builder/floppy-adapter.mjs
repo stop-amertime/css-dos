@@ -132,3 +132,90 @@ export function buildFloppyInBrowser({
     geometry: { ...geometry, totalSectors },
   };
 }
+
+// Canonical FAT media descriptor per standard floppy size (by total
+// sectors) — mirror of builder/stages/floppy.mjs MEDIA_BYTES.
+const MEDIA_BYTES = { 720: 0xFD, 1440: 0xF9, 2400: 0xF9, 2880: 0xF0, 5760: 0xF0 };
+
+/**
+ * Build a bootable MS-DOS 4.00 floppy in the browser — mirror of
+ * builder/stages/floppy.mjs buildMsdos4Floppy. See that function for the
+ * layout constraints (IO.SYS/MSDOS.SYS must be the first two root
+ * entries, AUTOEXEC.BAT synthesis, real MSBOOT boot sector).
+ *
+ * @param {object} opts
+ * @param {Uint8Array} opts.ioBytes          dos/msdos4/bin/IO.SYS
+ * @param {Uint8Array} opts.msdosBytes       dos/msdos4/bin/MSDOS.SYS
+ * @param {Uint8Array} opts.commandBytes     dos/msdos4/bin/COMMAND.COM
+ * @param {Uint8Array} opts.bootSectorBytes  dos/msdos4/bin/msboot.bin
+ * @param {Array}      [opts.programFiles]   Cart files: {name, bytes, source}
+ * @param {string}     [opts.runCommand]     Extra AUTOEXEC.BAT line
+ * @param {string|number} [opts.sizeRequest] Manifest disk.size (default '720K')
+ * @param {number}     [opts.sectorsPerCluster]
+ * @returns {{ bytes: Uint8Array, layout: [{name, size, source}], geometry: object }}
+ */
+export function buildMsdos4FloppyInBrowser({
+  ioBytes,
+  msdosBytes,
+  commandBytes,
+  bootSectorBytes,
+  programFiles = [],
+  runCommand = '',
+  sizeRequest = '720K',
+  sectorsPerCluster = undefined,
+}) {
+  for (const [k, v] of [['ioBytes', ioBytes], ['msdosBytes', msdosBytes],
+                        ['commandBytes', commandBytes], ['bootSectorBytes', bootSectorBytes]]) {
+    if (!(v instanceof Uint8Array)) {
+      throw new Error(`buildMsdos4FloppyInBrowser: ${k} must be Uint8Array`);
+    }
+  }
+
+  const layout = [
+    { name: 'IO.SYS',    bytes: ioBytes,    source: 'dos/msdos4/bin/IO.SYS',    attr: 0x07 },
+    { name: 'MSDOS.SYS', bytes: msdosBytes, source: 'dos/msdos4/bin/MSDOS.SYS', attr: 0x07 },
+  ];
+
+  for (const f of programFiles) {
+    layout.push({ name: f.name.toUpperCase(), bytes: f.bytes, source: f.source ?? 'user upload' });
+  }
+
+  if (!layout.some(f => f.name === 'COMMAND.COM')) {
+    layout.push({ name: 'COMMAND.COM', bytes: commandBytes, source: 'dos/msdos4/bin/COMMAND.COM' });
+  }
+
+  const trimmed = (runCommand ?? '').trim();
+  if (!layout.some(f => f.name === 'AUTOEXEC.BAT')) {
+    const autoexecContent = `@ECHO OFF\r\nVER\r\n${trimmed ? trimmed + '\r\n' : ''}`;
+    layout.push({
+      name: 'AUTOEXEC.BAT',
+      bytes: new TextEncoder().encode(autoexecContent),
+      source: `synthesized: ${autoexecContent.trimEnd().replace(/\r\n/g, ' / ')}`,
+    });
+  } else if (trimmed) {
+    throw new Error('boot.runCommand and a cart-supplied AUTOEXEC.BAT are mutually exclusive under boot.os "msdos4" — put the command in your AUTOEXEC.BAT.');
+  }
+
+  const contentBytes = layout.reduce((n, f) => n + f.bytes.length, 0);
+  const { bytes: diskBytes, geometry } = resolveFloppySize(sizeRequest, {
+    autofitBytes: contentBytes,
+  });
+  const totalSectors = diskBytes / 512;
+
+  const imgBytes = buildFat12Image(
+    layout.map(f => ({ name: f.name, bytes: f.bytes, attr: f.attr })),
+    {
+      ...geometry,
+      totalSectors,
+      sectorsPerCluster,
+      bootSector: bootSectorBytes,
+      mediaByte: MEDIA_BYTES[totalSectors] ?? 0xF0,
+    },
+  );
+
+  return {
+    bytes: imgBytes,
+    layout: layout.map(f => ({ name: f.name, size: f.bytes.length, source: f.source })),
+    geometry: { ...geometry, totalSectors },
+  };
+}

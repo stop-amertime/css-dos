@@ -88,6 +88,17 @@ export function resolveManifest(manifest, files, presets = {}) {
     if (typeof merged.boot?.runCommand !== 'string') {
       errors.push(`boot.runCommand must be a string (got ${JSON.stringify(merged.boot?.runCommand)})`);
     }
+    const os = merged.boot?.os ?? 'edrdos';
+    if (!['edrdos', 'msdos4'].includes(os)) {
+      errors.push(`boot.os: must be "edrdos" or "msdos4"; got ${JSON.stringify(os)}`);
+    } else if (os === 'msdos4') {
+      if (merged.bios !== 'corduroy') {
+        errors.push(`boot.os "msdos4" requires bios "corduroy" (the INT 19h bootstrap); got ${JSON.stringify(merged.bios)}`);
+      }
+      if (merged.boot?.ems === true) {
+        errors.push(`boot.ems is not supported with boot.os "msdos4" (EMSDRV.SYS is an EDR-DOS-path feature)`);
+      }
+    }
   }
 
   if (manifest.version != null && !/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(manifest.version)) {

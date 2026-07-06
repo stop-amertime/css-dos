@@ -28,6 +28,7 @@ global disk_param_table
 global disk_geometry_spt
 global disk_geometry_heads
 global disk_geometry_cyls
+global boot_mode
 
 section _TEXT public align=1 class=CODE use16
 
@@ -973,6 +974,15 @@ int12h_handler:
 ; INT 13h — Disk Services (memory-resident disk image)
 ; ============================================================
 int13h_handler:
+    ; Register contract (matches ROM BIOS, which MS-DOS's MSBOOT/MSLOAD/
+    ; MSDISK rely on): every function returns status in AH + stacked CF;
+    ; all other registers are preserved except each function's documented
+    ; outputs (AH=08h returns geometry in BL/CX/DX/ES:DI). CF must be
+    ; edited in the STACKED FLAGS — a bare clc/stc before IRET is dead,
+    ; IRET restores the caller's FLAGS image.
+    push bp
+    mov bp, sp             ; [bp+2]=IP, [bp+4]=CS, [bp+6]=FLAGS
+    and byte [bp+6], 0xFE  ; default: success (CF clear)
     cmp ah, 0x00
     je .disk_reset
     cmp ah, 0x02
@@ -987,12 +997,13 @@ int13h_handler:
     je .disk_type
     ; Unknown function — return error
     mov ah, 0x01           ; invalid function
-    stc
+    or byte [bp+6], 0x01   ; CF set in stacked FLAGS
+    pop bp
     iret
 
 .disk_reset:
     xor ah, ah
-    clc
+    pop bp
     iret
 
 .disk_verify:
@@ -1000,12 +1011,20 @@ int13h_handler:
     ; medium to develop errors. Report success, AL = sectors verified
     ; (unchanged from input).
     mov ah, 0
-    clc
+    pop bp
     iret
 
 .disk_params:
     ; Return drive parameters. Geometry is patched in at build time — see
-    ; disk_geometry_* words below.
+    ; disk_geometry_* words below. BL/CX/DX/ES:DI are documented outputs.
+    ;
+    ; Only drive 0 (floppy A:) exists — any other DL must FAIL. This is
+    ; load-bearing: MS-DOS's MSINIT counts hard disks by calling AH=08h
+    ; with DL=80h and, unless CF is set, believes DL on return. Answering
+    ; success here conjures a phantom hard disk whose BDS setup (SETHARD)
+    ; scribbles over IO.SYS code.
+    cmp dl, 0x00
+    jne .no_such_drive
     mov ah, 0
     mov bl, 0x04           ; drive type: 1.44MB-class (lie to satisfy drivers)
     mov ch, [cs:disk_geometry_cyls]
@@ -1014,19 +1033,27 @@ int13h_handler:
     mov dh, [cs:disk_geometry_heads]
     dec dh                 ; max head = heads - 1
     mov dl, 1              ; 1 floppy drive
-    ; ES:DI = disk parameter table
-    push bx
-    mov bx, BIOS_SEG
-    mov es, bx
+    mov di, BIOS_SEG       ; ES:DI = disk parameter table
+    mov es, di
     mov di, disk_param_table
-    pop bx
-    clc
+    pop bp
+    iret
+
+.no_such_drive:
+    mov ah, 0x01           ; invalid parameter
+    or byte [bp+6], 0x01   ; CF set in stacked FLAGS
+    pop bp
     iret
 
 .disk_type:
-    ; AH=15h: Get disk type — floppy without change detection
+    ; AH=15h: Get disk type. Drive 0: AH=01 = floppy without change
+    ; detection. Anything else: AH=00, CF clear = drive not present.
+    mov ah, 0x00
+    cmp dl, 0x00
+    jne .disk_type_done
     mov ah, 0x01
-    clc
+.disk_type_done:
+    pop bp
     iret
 
 .disk_read:
@@ -1037,26 +1064,20 @@ int13h_handler:
     ; (linear, via segment 0). CSS dispatches reads to 0xD0000..0xD01FF by
     ; looking up that LBA word, so a REP MOVSW from DS=0xD000 SI=0 produces
     ; the sector bytes. Then LBA++, DI advances by 512, loop.
-    push bp
-    mov bp, sp
-    push ds
-    push si
-    push di
-    push ax
-    push dx
-    push cx
-
-    ; Reload to get dx/cx values
-    pop cx
-    pop dx
-    push dx
-    push cx
+    ;
+    ; BP was pushed by the dispatcher; frame slots below are BP-relative.
+    push ds                ; [bp-2]
+    push si                ; [bp-4]
+    push di                ; [bp-6]
+    push bx                ; [bp-8]  caller BX = dest offset
+    push cx                ; [bp-10]
+    push dx                ; [bp-12]
+    push ax                ; [bp-14] AL = sector count (for loop + return)
 
     ; Compute LBA = (cyl * heads + head) * spt + (sector - 1).
     ; Geometry (heads, spt) is patched in at build time and read via CS.
-    ; Uses BX as scratch for the 16-bit geometry factors. DX must be
-    ; preserved across MUL (we save/restore it around each multiply).
-    push bx
+    ; Uses BX as scratch for the 16-bit geometry factors (restored from
+    ; the frame below). DX must be preserved across MUL.
     mov al, ch
     xor ah, ah             ; AX = cyl
     xor bh, bh
@@ -1072,22 +1093,15 @@ int13h_handler:
     push dx
     mul bx                 ; AX = (cyl*heads + head) * spt
     pop dx
-    pop bx
     mov si, ax
     xor ch, ch
     dec cl                 ; sector is 1-based
     add si, cx             ; SI = LBA (starting)
 
-    ; Reclaim original count (AL) from stack
-    pop cx                 ; cx (saved)
-    pop dx                 ; dx (saved)
-    pop ax                 ; ax (saved) — AL = sector count
+    mov ax, [bp-14]        ; saved AX — AL = sector count
     xor ah, ah
     mov cx, ax             ; CX = sector count
-    push cx                ; preserve original count for return (AL)
-
-    ; Destination offset = BX (segment already in ES)
-    mov di, bx
+    mov di, [bp-8]         ; caller BX = destination offset (segment in ES)
 
     ; SI currently = starting LBA. We'll keep LBA in BX across the loop
     ; because SI needs to be 0 for MOVSW from the disk window.
@@ -1120,10 +1134,12 @@ int13h_handler:
     dec cx
     jnz .read_sector_loop
 
-    ; Success
-    pop ax                 ; AL = sectors read (original count)
+    ; Success: AH=0, AL = sectors read; everything else restored.
+    pop ax                 ; saved AX — AL = original count
     xor ah, ah
-    clc
+    pop dx
+    pop cx
+    pop bx
     pop di
     pop si
     pop ds
@@ -1142,14 +1158,16 @@ int13h_handler:
     ; (same as writing adapter ROM on real hardware). We report success
     ; either way — the BIOS can't tell the flavors apart, and DOS re-reads
     ; what it wrote rather than checking.
-    push bp
-    mov bp, sp
+    ;
+    ; BP was pushed by the dispatcher; frame slots below are BP-relative.
     push ds                ; [bp-2]
     push es                ; [bp-4]
     push si                ; [bp-6]
     push di                ; [bp-8]
     push bx                ; [bp-10] caller BX = source offset
-    push ax                ; [bp-12] AL = sector count (for return)
+    push cx                ; [bp-12]
+    push dx                ; [bp-14]
+    push ax                ; [bp-16] AL = sector count (for loop + return)
 
     ; Compute LBA = (cyl * heads + head) * spt + (sector - 1) into AX.
     ; Same geometry math as .disk_read: BX scratch, DX preserved around MUL.
@@ -1173,7 +1191,7 @@ int13h_handler:
     add ax, cx             ; AX = starting LBA
     mov bx, ax             ; BX = LBA (loop counter)
 
-    mov ax, [bp-12]
+    mov ax, [bp-16]
     xor ah, ah
     mov cx, ax             ; CX = sector count
     mov si, [bp-10]        ; SI = source offset (caller BX)
@@ -1205,10 +1223,11 @@ int13h_handler:
     dec cx
     jnz .write_sector_loop
 
-    ; Success: AL = sectors written, AH = 0, CF clear.
+    ; Success: AL = sectors written, AH = 0; everything else restored.
     pop ax                 ; original count
     xor ah, ah
-    clc
+    pop dx
+    pop cx
     pop bx
     pop di
     pop si
@@ -1495,15 +1514,34 @@ int15h_handler:
     iret
 
 ; ============================================================
-; INT 19h — Bootstrap (halt in our system)
+; INT 19h — Bootstrap: read the boot sector (LBA 0) to 0000:7C00
+; and jump to it, DL = boot drive. Never returns. Reached from
+; entry.asm when boot_mode=1, and re-entered by loaders themselves
+; on "insert another disk" error paths (e.g. MSBOOT.ASM's CKERR).
+; A missing/invalid boot sector halts — same end state as the old
+; halt-only handler, which EDR-DOS builds (boot_mode=0) never reach
+; anyway because their floppies carry a stub boot sector.
 ; ============================================================
 int19h_handler:
-    push ds
     xor ax, ax
     mov ds, ax
+    mov es, ax
+    mov ah, 0x00              ; reset disk system
+    mov dl, 0x00
+    int 0x13
+    mov ax, 0x0201            ; read 1 sector
+    mov cx, 0x0001            ; cylinder 0, sector 1
+    xor dx, dx                ; head 0, drive 0
+    mov bx, 0x7C00
+    int 0x13
+    jc .halt
+    cmp word [0x7C00 + 510], 0xAA55
+    jne .halt
+    mov dl, 0x00              ; boot drive for the loader
+    jmp 0x0000:0x7C00
+.halt:
     mov byte [HALT_ADDR], 1
-    pop ds
-    jmp int19h_handler
+    jmp .halt
 
 ; ============================================================
 ; INT 20h — Program Terminate (halt)
@@ -1831,6 +1869,15 @@ disk_geometry_heads:
     db 'DGCY'              ; anchor — disk_geometry_cyls
 disk_geometry_cyls:
     dw 0x0000
+
+; Boot handoff mode — patched at build time by patchBiosBootMode() in
+; builder/stages/kiln.mjs (anchor 'BTMD'). 0 = direct jump to the
+; kernel the transpiler preloaded at 0060:0000 (EDR-DOS, the default);
+; 1 = real INT 19h bootstrap: read LBA 0 to 0000:7C00 and jump — for
+; carts whose floppy carries a real boot sector (boot.os "msdos4").
+    db 'BTMD'              ; anchor — boot_mode
+boot_mode:
+    db 0
 
 ; ============================================================
 ; Scancode → ASCII lookup for INT 09h.

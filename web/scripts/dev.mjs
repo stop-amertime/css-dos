@@ -68,6 +68,7 @@ const ALIASES = [
   ['/builder/',         resolve(repoRoot, 'builder')],
   ['/tools/',           resolve(repoRoot, 'tools')],
   ['/assets/dos/',      resolve(repoRoot, 'dos', 'bin')],
+  ['/assets/msdos4/',   resolve(repoRoot, 'dos', 'msdos4', 'bin')],
   // /player/ and /shim/ are URL surfaces; they live under web/player/ and web/shim/.
   ['/player/',          resolve(__dirname, '..', 'player')],
   ['/shim/',            resolve(__dirname, '..', 'shim')],

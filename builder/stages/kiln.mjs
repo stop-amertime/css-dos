@@ -54,6 +54,7 @@ const DISK_GEOM_ANCHORS = {
   cyls:  [0x44, 0x47, 0x43, 0x59], // 'DGCY'
 };
 const DISK_PARAM_SPT_SENTINEL = 0xD4;
+const BOOT_MODE_ANCHOR = [0x42, 0x54, 0x4D, 0x44]; // 'BTMD'
 
 function findUnique(biosBytes, needle, label) {
   let found = -1;
@@ -94,6 +95,15 @@ function patchBiosDiskGeometry(biosBytes, geometry) {
   const paramAnchor = [0x02, DISK_PARAM_SPT_SENTINEL, 0x1B];
   const paramOff = findUnique(biosBytes, paramAnchor, 'disk_param_spt');
   biosBytes[paramOff + 1] = spt & 0xFF;
+}
+
+// Patch the corduroy BIOS's boot_mode byte (handlers.asm, 'BTMD' anchor):
+// 0 = direct jump to the kernel preloaded at 0060:0000 (EDR-DOS default),
+// 1 = INT 19h bootstrap from the floppy's real boot sector (boot.os
+// "msdos4"). See bios/corduroy/entry.asm.
+function patchBiosBootMode(biosBytes, mode) {
+  const anchorOff = findUnique(biosBytes, BOOT_MODE_ANCHOR, 'boot_mode anchor');
+  biosBytes[anchorOff + BOOT_MODE_ANCHOR.length] = mode & 0xFF;
 }
 
 // Patch the corduroy BIOS's `conventional_mem_kb` variable in-place, so
@@ -154,7 +164,16 @@ function patchBiosStackSeg(biosBytes, memBytes) {
 // them to resolve memBytes for the harness header before runKiln runs.
 
 function runKilnDos({ bios, floppy, manifest, kernelBytes, output, header }) {
-  if (!kernelBytes) throw new Error('runKilnDos: kernelBytes is required');
+  // boot.os "msdos4": nothing is preloaded at 0060:0000 — the cabinet
+  // boots like real hardware, via the floppy's boot sector (Corduroy's
+  // INT 19h path, selected by the boot_mode patch below). kernelBytes
+  // is null in that mode; everything DOS comes off the disk.
+  const bootsFromDisk = (manifest.boot?.os ?? 'edrdos') === 'msdos4';
+  if (!kernelBytes && !bootsFromDisk) throw new Error('runKilnDos: kernelBytes is required');
+  if (bootsFromDisk && bios.meta?.flavor !== 'corduroy') {
+    throw new Error(`boot.os "msdos4" requires the corduroy BIOS (got ${bios.meta?.flavor}) — only corduroy has the INT 19h bootstrap.`);
+  }
+  const preloadBytes = kernelBytes ?? [];
 
   let autofitBytes = DOS_MAX_MEM;
   const progFile = autorunFileFromRunCommand(manifest, floppy?.layout);
@@ -163,6 +182,7 @@ function runKilnDos({ bios, floppy, manifest, kernelBytes, output, header }) {
   if (bios.meta?.flavor === 'corduroy') {
     patchBiosMemSize(bios.bytes, memBytes);
     patchBiosStackSeg(bios.bytes, memBytes);
+    patchBiosBootMode(bios.bytes, bootsFromDisk ? 1 : 0);
     if (floppy?.geometry) patchBiosDiskGeometry(bios.bytes, floppy.geometry);
   } else if (bios.meta?.flavor === 'muslin') {
     if (floppy?.geometry) patchBiosDiskGeometry(bios.bytes, floppy.geometry);
@@ -185,10 +205,10 @@ function runKilnDos({ bios, floppy, manifest, kernelBytes, output, header }) {
   if (wantsWritable) {
     embData.push({ addr: DISK_SHADOW_LINEAR, bytes: floppy.bytes });
   }
-  const memoryZones = dosMemoryZones(kernelBytes, KERNEL_LINEAR, memBytes, embData, prune);
+  const memoryZones = dosMemoryZones(preloadBytes, KERNEL_LINEAR, memBytes, embData, prune);
 
   emitCSS({
-    programBytes:  kernelBytes,
+    programBytes:  preloadBytes,
     biosBytes:     bios.bytes,
     memoryZones,
     embeddedData:  embData,
@@ -216,7 +236,7 @@ function runKilnHack({ bios, manifest, programBytes, output, header }) {
     cgaGfx:  manifest.memory?.cgaGfx !== true,  // opt-in for hack carts
   };
 
-  const embeddedData = [buildIVTData()];
+  const embeddedData = [buildIVTData(bios.bytes)];
   const memoryZones = comMemoryZones(programBytes, programOffset, memBytes, prune);
 
   emitCSS({

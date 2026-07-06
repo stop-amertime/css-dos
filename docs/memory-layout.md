@@ -61,6 +61,40 @@ segment-relative), which sits at absolute 0x4F0–0x4FF.
 Future BIOS work touching INT 13h: use `xor ax, ax; mov ds, ax`
 before addressing the LBA register. Don't use `BDA_SEG`.
 
+## Platform registers: keep them inside 0x4F0–0x4FF
+
+Kiln's memory-mapped platform registers all live in the BDA
+intra-application area, **linear 0x4F0–0x4FF** — the only low-memory
+range no real DOS component touches:
+
+| Linear | Width | What | Direction |
+|---|---|---|---|
+| `0x4F0–0x4F1` | word | Rom-disk LBA latch (cell `--__1mc632`) | guest writes, kiln disk window reads |
+| `0x4F2` | byte | Requested-video-mode shadow (Corduroy INT 10h AH=00h) | guest writes, host renderer reads |
+| `0x4F3` | byte | CGA palette-register shadow (kiln `OUT 0x3D9`) | guest writes, host renderer reads |
+| `0x4F4–0x4F5` | word | Keyboard bridge — guest reads return `--__1keyboard` | guest reads (Gossamer INT 16h) |
+
+Each register owns its address exclusively — don't overlap a
+write-shadow with a read-bridge even though their directions differ
+(the aliasing is invisible until some new consumer reads the "wrong"
+side).
+
+The keyboard bridge lived at **0x500–0x501 until 2026-07-06**, and
+that placement was a live bug: linear 0x500 is the start of the DOS
+inter-application communication area, and MS-DOS's boot sector
+(MSBOOT) hardcodes 0x500 as its root-directory sector buffer. The
+guest wrote the dir sector there, but reads came back as keyboard
+state (the readMem arms shadowed the RAM cells), so MS-DOS 4.00
+failed with "Non-System disk" — on calcite only, since the JS ref
+machine doesn't model the bridge. EDR-DOS never noticed for months
+because it doesn't use 0x500. Anything memory-mapped outside
+0x4F0–0x4FF is a collision waiting for a guest that uses that byte.
+
+Related: Corduroy writes a halt flag to linear `0x504` on fatal
+errors. That is a **write-only convention** — nothing reads it (the
+`--halt` property is driven by the HLT opcode alone), so guest data
+landing on 0x504 (as MS-DOS dir loads do) is harmless.
+
 ## Writable disk (`disk.writable`, landed 2026-07-06)
 
 Opt-in per cart (`"disk": { "writable": true }`). The whole floppy

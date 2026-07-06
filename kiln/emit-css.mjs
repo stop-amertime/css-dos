@@ -955,7 +955,16 @@ function emitReadMemStreaming(opts, ws) {
   let buf = '';
   let count = 0;
   // Writable memory region
-  // Addresses 0x0500-0x0501 (1280-1281) bridge to --keyboard for BIOS INT 16h
+  // Addresses 0x04F4-0x04F5 (1268-1269) bridge to --keyboard for BIOS
+  // INT 16h (gossamer reads this word; corduroy/muslin use port 0x60).
+  // The bridge lives in the BDA intra-application area (0x4F0-0x4FF,
+  // beside the 0x4F0 LBA latch) because that's the one region real
+  // DOSes provably leave alone. It USED to sit at 0x0500-0x0501 — but
+  // MS-DOS's boot sector loads the root directory at 0x0500 (DirOff in
+  // MSBOOT.ASM) and could never read its own buffer back through the
+  // bridge, so MS-DOS 4.0 boot died at "Non-System disk". 0x4F2/0x4F3
+  // are taken too (corduroy's requested-video-mode and CGA pal-reg
+  // shadows) — every platform register gets its own address.
   for (const addr of addresses) {
     // Disk-shadow cells are not guest-addressable — the CPU can only reach
     // them through the 0xD0000 window (whose arms are emitted below). Skip
@@ -963,10 +972,10 @@ function emitReadMemStreaming(opts, ws) {
     if (writableDisk && addr >= writableDisk.base && addr < writableDisk.base + writableDisk.length) {
       continue;
     }
-    if (addr === 0x0500) {
-      buf += `    style(--at: 1280): --lowerBytes(var(--__1keyboard), 8);\n`;
-    } else if (addr === 0x0501) {
-      buf += `    style(--at: 1281): --rightShift(var(--__1keyboard), 8);\n`;
+    if (addr === 0x04F4) {
+      buf += `    style(--at: 1268): --lowerBytes(var(--__1keyboard), 8);\n`;
+    } else if (addr === 0x04F5) {
+      buf += `    style(--at: 1269): --rightShift(var(--__1keyboard), 8);\n`;
     } else if (PACK_SIZE === 1) {
       buf += `    style(--at: ${addr}): var(--__1m${addr});\n`;
     } else {

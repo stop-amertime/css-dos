@@ -46,6 +46,8 @@ Presets:
                 instructions. Pass = no divergence against JS reference.
   writable      Build the writable-disk e2e cart (dos-writable), boot it,
                 and assert its batch-written file TYPEs back on screen.
+  msdos         Build carts/msdos4 (real MS-DOS 4.00 via INT 19h boot),
+                boot it, and assert the version banner reaches the screen.
   visual        --mode=verify: check each cart's screenshots against a
                 recorded baseline. --mode=record: create new baselines.
   full          smoke + conformance + visual(verify), in sequence.
@@ -263,6 +265,37 @@ async function runWritable() {
   };
 }
 
+// --- msdos preset --------------------------------------------------------
+
+// Real MS-DOS 4.00 boot check. carts/msdos4 boots via the Corduroy
+// INT 19h path (MSBOOT -> MSLOAD -> IO.SYS -> MSDOS.SYS -> COMMAND.COM);
+// AUTOEXEC.BAT runs VER, so the version banner on screen means the whole
+// chain executed. fast-shoot at a post-boot tick and assert the banner.
+const MSDOS_CART = 'carts/msdos4';
+const MSDOS_SENTINEL = 'MS-DOS Version 4.00';
+const MSDOS_SHOT_TICK = 12_000_000; // prompt lands well before 10M; margin
+
+async function runMsdos() {
+  log(`msdos: ${MSDOS_CART}`);
+  const cabinet = join(HARNESS_ROOT, 'cache', 'msdos4.css');
+  const build = await runPipeline('build', resolve(REPO_ROOT, MSDOS_CART), `--out=${cabinet}`);
+  if (!build.result.ok) {
+    return { preset: 'msdos', ok: false, allOk: false, stage: 'build', error: build.result.error };
+  }
+  const shot = await runPipeline('fast-shoot', cabinet, `--tick=${MSDOS_SHOT_TICK}`,
+    `--out=${join(HARNESS_ROOT, 'cache', 'msdos4.png')}`);
+  const text = shot.result?.shot?.text ?? '';
+  const ok = text.includes(MSDOS_SENTINEL);
+  return {
+    preset: 'msdos',
+    ok,
+    allOk: ok,
+    buildMs: build.result.buildMs,
+    sentinel: MSDOS_SENTINEL,
+    screenTail: text.split('\n').filter(l => l.trim()).slice(-3),
+  };
+}
+
 // --- full preset --------------------------------------------------------
 
 async function runFull() {
@@ -297,6 +330,7 @@ async function main() {
       case 'smoke':        report = await runSmoke();        break;
       case 'conformance':  report = await runConformance();  break;
       case 'writable':     report = await runWritable();     break;
+      case 'msdos':        report = await runMsdos();        break;
       case 'visual':       report = await runVisual();       break;
       case 'full':         report = await runFull();         break;
       default:

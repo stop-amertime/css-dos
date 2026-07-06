@@ -20,6 +20,21 @@ logo before it jumps to the kernel. The modular C layout (separate
 absorb future work (PIT, PIC, real IRQs) more easily than Muslin's
 monolithic assembly.
 
+Since 0.5.0, two boot paths, selected by the build-time-patched
+`boot_mode` byte ('BTMD' anchor in `handlers.asm`, patched by
+`builder/stages/kiln.mjs`):
+
+- `0` (default) — classic direct jump to the preloaded EDR-DOS kernel
+  at 0060:0000.
+- `1` (`boot.os: "msdos4"` carts) — real **INT 19h** bootstrap: read
+  LBA 0 to 0000:7C00, verify 55AA, jump with DL=0. This runs the
+  floppy's actual boot sector, which is how real MS-DOS 4.00 boots
+  (MSBOOT → MSLOAD → IO.SYS → MSDOS.SYS → COMMAND.COM). INT 13h
+  honours the ROM-BIOS register contract (AH=02h/03h preserve
+  BX/CX/DX; CF returned via the stacked FLAGS) and AH=08h/15h fail
+  for any drive but 0 — MS-DOS depends on all of it (see
+  `CHANGELOG.md` 0.5.0).
+
 ### Supported video modes (INT 10h AH=00h)
 
 | Mode | Kind | Clear behaviour |

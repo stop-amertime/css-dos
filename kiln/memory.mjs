@@ -77,23 +77,38 @@ export function cellIdxOf(addr) { return Math.floor(addr / PACK_SIZE); }
 export function cellOffOf(addr) { return addr % PACK_SIZE; }
 export function cellBase(cellIdx) { return cellIdx * PACK_SIZE; }
 
-// Standard IVT entries for gossamer.asm (must match handler offsets in gossamer.lst / ref-emu.mjs)
-const BIOS_IVT_HANDLERS = {
-  0x10: 0x0000,  // INT 10h - Video services
-  0x16: 0x0155,  // INT 16h - Keyboard
-  0x1A: 0x0190,  // INT 1Ah - Timer
-  0x20: 0x023D,  // INT 20h - Program terminate
-  0x21: 0x01A9,  // INT 21h - DOS services
-};
+// Gossamer publishes its handler offsets as data behind an 'IVTG'
+// anchor (see gossamer.asm ivt_gossamer_table): 5 words for INT 10h,
+// 16h, 1Ah, 20h, 21h in that order. Read them from the assembled
+// image instead of hardcoding — a hardcoded copy went stale once
+// (2026-06 CGA/DAC work shifted every handler by +0x7B and INT 16h
+// pointed into the middle of set-mode for a week).
+const IVT_ANCHOR = [0x49, 0x56, 0x54, 0x47]; // 'IVTG'
+const IVT_ANCHOR_INTS = [0x10, 0x16, 0x1A, 0x20, 0x21];
+
+export function readGossamerVectors(biosBytes) {
+  outer: for (let i = 0; i + 4 + IVT_ANCHOR_INTS.length * 2 <= biosBytes.length; i++) {
+    for (let j = 0; j < 4; j++) {
+      if (biosBytes[i + j] !== IVT_ANCHOR[j]) continue outer;
+    }
+    const vectors = {};
+    IVT_ANCHOR_INTS.forEach((intNum, k) => {
+      const p = i + 4 + k * 2;
+      vectors[intNum] = biosBytes[p] | (biosBytes[p + 1] << 8);
+    });
+    return vectors;
+  }
+  throw new Error("gossamer BIOS image has no 'IVTG' vector table anchor — rebuild bios/gossamer");
+}
 
 /**
  * Build IVT (Interrupt Vector Table) bytes for the standard BIOS handlers.
  * Returns {addr, bytes} suitable for embeddedData.
  * Each IVT entry is 4 bytes: IP_lo, IP_hi, CS_lo, CS_hi.
  */
-export function buildIVTData() {
+export function buildIVTData(biosBytes) {
   const ivt = new Array(0x400).fill(0);
-  for (const [intNum, handlerOff] of Object.entries(BIOS_IVT_HANDLERS)) {
+  for (const [intNum, handlerOff] of Object.entries(readGossamerVectors(biosBytes))) {
     const addr = parseInt(intNum) * 4;
     ivt[addr]     = handlerOff & 0xFF;         // IP low
     ivt[addr + 1] = (handlerOff >> 8) & 0xFF;  // IP high

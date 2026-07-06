@@ -21,10 +21,18 @@ Short version for each:
   real INT 09h handler (port 0x60 read, scancode → BDA ring buffer,
   EOI). Rewritten modularly in C so future work (PIT, PIC, real IRQs)
   lands without touching monolithic assembly. The current default.
+  Since 0.5.0 it's also the only BIOS with a real **INT 19h
+  bootstrap** (read boot sector to 0000:7C00, check 55AA, jump): a
+  build-time-patched `boot_mode` byte selects the classic direct jump
+  to a preloaded EDR-DOS kernel (default) or INT 19h for
+  `boot.os: "msdos4"` carts, which boot real MS-DOS 4.00 from the
+  floppy's own boot sector. See
+  [`cart-format.md`](cart-format.md#bootos--implemented).
 
-Both DOS BIOSes boot EDR-DOS but neither can run COMMAND.COM usefully,
-so carts must set `boot.autorun`. This is why the builder auto-detects
-a single `.com`/`.exe` in the cart and runs it directly.
+Both DOS BIOSes boot EDR-DOS; Corduroy also boots MS-DOS 4.00.
+COMMAND.COM is always the shell (`boot.runCommand` picks what it
+runs, `""` drops to the prompt) — the builder auto-detects a single
+`.com`/`.exe` in the cart and runs it directly.
 
 ## Why fabric names
 

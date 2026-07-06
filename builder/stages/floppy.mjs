@@ -21,12 +21,22 @@ const COMMAND_COM = resolve(repoRoot, 'dos', 'bin', 'command.com');
 const ANSI_SYS    = resolve(repoRoot, 'dos', 'bin', 'ansi.sys');
 const EMSDRV_SYS  = resolve(repoRoot, 'dos', 'bin', 'emsdrv.sys');
 
+const MSDOS4_DIR  = resolve(repoRoot, 'dos', 'msdos4', 'bin');
+
+// Canonical FAT media descriptor per standard floppy size (by total
+// sectors). Non-standard ("big floppy") geometries use 0xF0 (other).
+const MEDIA_BYTES = { 720: 0xFD, 1440: 0xF9, 2400: 0xF9, 2880: 0xF0, 5760: 0xF0 };
+
 export function buildFloppy({ cart, manifest, cacheDir }) {
   if (!manifest.disk) {
     return null; // hack carts have no floppy
   }
 
   mkdirSync(cacheDir, { recursive: true });
+
+  if ((manifest.boot?.os ?? 'edrdos') === 'msdos4') {
+    return buildMsdos4Floppy({ cart, manifest, cacheDir });
+  }
 
   // Synthesize CONFIG.SYS. Every DOS cabinet boots COMMAND.COM as the
   // shell; the cart's program (if any) runs as a /K argument so the
@@ -124,6 +134,83 @@ export function buildFloppy({ cart, manifest, cacheDir }) {
     if (existsSync(f.path)) {
       f.size = readFileSync(f.path).length;
     }
+  }
+
+  return { bytes, layout, geometry: { ...geometry, totalSectors } };
+}
+
+// boot.os "msdos4" — a real MS-DOS 4.00 floppy that boots via its own
+// boot sector (dos/msdos4/, MIT-licensed). Differences from the EDR-DOS
+// path above:
+//   - IO.SYS + MSDOS.SYS must be the FIRST TWO root directory entries
+//     with IO.SYS's first sectors contiguous at the start of the data
+//     area — MSBOOT.ASM's hard layout assumptions. mkfat12 writes files
+//     in layout order, contiguously, so list order is the guarantee.
+//   - No KERNEL.SYS / ANSI.SYS / CONFIG.SYS synthesis. IO.SYS loads
+//     \COMMAND.COM by default; carts can supply their own CONFIG.SYS
+//     via disk.files.
+//   - AUTOEXEC.BAT is synthesized (unless the cart supplies one): its
+//     mere presence skips COMMAND.COM's blocking date/time prompt, VER
+//     prints the screen-assertable banner, and boot.runCommand becomes
+//     a line in it (the EDR path's SHELL=/K has no equivalent here).
+//   - The boot sector is the real MSBOOT build with its BPB patched to
+//     this image's geometry (mkfat12 `bootSector`), plus the canonical
+//     media byte for standard sizes.
+function buildMsdos4Floppy({ cart, manifest, cacheDir }) {
+  const runCommand = (manifest.boot?.runCommand ?? '').trim();
+
+  const layout = [
+    { name: 'IO.SYS',    source: 'dos/msdos4/bin/IO.SYS',    path: join(MSDOS4_DIR, 'IO.SYS'),    attr: 0x07 },
+    { name: 'MSDOS.SYS', source: 'dos/msdos4/bin/MSDOS.SYS', path: join(MSDOS4_DIR, 'MSDOS.SYS'), attr: 0x07 },
+  ];
+
+  for (const f of manifest.disk.files ?? []) {
+    layout.push({
+      name: f.name.toUpperCase(),
+      source: f.source,
+      path: resolve(cart.root, f.source),
+    });
+  }
+
+  if (!layout.some(f => f.name === 'COMMAND.COM')) {
+    layout.push({ name: 'COMMAND.COM', source: 'dos/msdos4/bin/COMMAND.COM', path: join(MSDOS4_DIR, 'COMMAND.COM') });
+  }
+
+  if (!layout.some(f => f.name === 'AUTOEXEC.BAT')) {
+    const autoexecContent = `@ECHO OFF\r\nVER\r\n${runCommand ? runCommand + '\r\n' : ''}`;
+    const autoexecPath = join(cacheDir, 'AUTOEXEC.BAT');
+    writeFileSync(autoexecPath, autoexecContent);
+    layout.push({
+      name: 'AUTOEXEC.BAT',
+      source: `synthesized: ${autoexecContent.trimEnd().replace(/\r\n/g, ' / ')}`,
+      path: autoexecPath,
+    });
+  } else if (runCommand) {
+    throw new Error('boot.runCommand and a cart-supplied AUTOEXEC.BAT are mutually exclusive under boot.os "msdos4" — put the command in your AUTOEXEC.BAT.');
+  }
+
+  const fatFiles = layout.map(f => ({
+    name: f.name,
+    bytes: readFileSync(f.path),
+    attr: f.attr,
+  }));
+  const contentBytes = fatFiles.reduce((n, f) => n + f.bytes.length, 0);
+  const { bytes: diskBytes, geometry } = resolveFloppySize(
+    manifest.disk?.size ?? '720K',
+    { autofitBytes: contentBytes },
+  );
+  const totalSectors = diskBytes / 512;
+  const bootSector = readFileSync(join(MSDOS4_DIR, 'msboot.bin'));
+  const bytes = buildFat12Image(fatFiles, {
+    ...geometry,
+    totalSectors,
+    sectorsPerCluster: manifest.disk?.sectorsPerCluster,
+    bootSector,
+    mediaByte: MEDIA_BYTES[totalSectors] ?? 0xF0,
+  });
+
+  for (const f of layout) {
+    if (existsSync(f.path)) f.size = readFileSync(f.path).length;
   }
 
   return { bytes, layout, geometry: { ...geometry, totalSectors } };

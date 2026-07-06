@@ -222,18 +222,20 @@ it entirely.
   colliding with the kernel). See [`docs/hack-path.md`](hack-path.md) for
   details and why you'd almost never want this.
 
-#### `disk.size` · aspirational
+#### `disk.size` · implemented
 
 Floppy size.
 
 - Integer → exact bytes.
 - String → `"360K"` (5.25" DD), `"720K"` (3.5" DD), `"1200K"` (5.25" HD),
-  `"1440K"` (3.5" HD, default), `"2880K"` (3.5" ED), or `"autofit"`.
-- `"autofit"` rounds up to the smallest preset that fits the cart's files.
+  `"1440K"` (3.5" HD), `"2880K"` (3.5" ED), or `"autofit"`.
+- `"autofit"` (default) rounds up to the smallest preset that fits the
+  cart's files. (`boot.os: "msdos4"` carts default to `"720K"` instead.)
 
-**Not yet implemented:** today the floppy size is hard-coded in
-`tools/mkfat12.mjs`. The schema accepts the field; the builder plumbing
-is a follow-up.
+The builder resolves the size (`builder/lib/sizes.mjs`), derives the
+CHS geometry, and patches it into the BIOS at build time. Standard
+sizes also pick the canonical FAT media descriptor byte
+(`builder/stages/floppy.mjs`).
 
 #### `disk.sectorsPerCluster` · implemented
 
@@ -276,16 +278,43 @@ Explicit disk contents. Each entry is `{ name, source }`:
 If omitted, the builder auto-discovers: every file in the cart folder
 except `program.json` is added, uppercased.
 
-`KERNEL.SYS`, `ANSI.SYS`, `COMMAND.COM`, and `CONFIG.SYS` are always
-added by the builder (the first three sourced from `dos/bin/`,
-`CONFIG.SYS` synthesized from `boot.runCommand`). You don't list these
-yourself — COMMAND.COM is always the shell, so the program can EXIT
-back to a prompt, and an empty `runCommand` drops straight to DOS.
+On `edrdos` carts, `KERNEL.SYS`, `ANSI.SYS`, `COMMAND.COM`, and
+`CONFIG.SYS` are always added by the builder (the first three sourced
+from `dos/bin/`, `CONFIG.SYS` synthesized from `boot.runCommand`).
+You don't list these yourself — COMMAND.COM is always the shell, so
+the program can EXIT back to a prompt, and an empty `runCommand`
+drops straight to DOS. On `msdos4` carts the builder instead adds
+`IO.SYS`, `MSDOS.SYS`, and `COMMAND.COM` from `dos/msdos4/bin/` and
+synthesizes `AUTOEXEC.BAT` (see `boot.os`).
 
 If the cart already supplies a `COMMAND.COM` (e.g. you're testing your
 own shell, or running a bare `command.com` straight as a cart), the
 builder skips the bundled one — duplicate root-dir entries break the
 FAT12 lookup and DOS reports "Bad or missing command interpreter".
+
+### `boot.os` · implemented
+
+DOS carts only. Which operating system boots. Default `"edrdos"`.
+
+- `"edrdos"` — the classic path: the builder preloads the EDR-DOS
+  kernel at 0060:0000 and the BIOS jumps straight to it after POST.
+- `"msdos4"` — real MS-DOS 4.00 (MIT-licensed, binaries + provenance
+  in `dos/msdos4/`). No kernel preload; the BIOS instead issues
+  **INT 19h** at end of POST, which reads the floppy's real boot
+  sector (MSBOOT) to 0000:7C00 and jumps to it — the authentic
+  MSBOOT → MSLOAD → IO.SYS → MSDOS.SYS → COMMAND.COM chain. The
+  builder lays out IO.SYS/MSDOS.SYS as the first two root-dir
+  entries (hidden/system, contiguous — MSBOOT requires all three),
+  stamps the MSBOOT boot sector with the cart's real BPB geometry,
+  and synthesizes `AUTOEXEC.BAT` (`@ECHO OFF` + `VER` +
+  `boot.runCommand`) — its presence also skips DOS's date/time
+  prompt. Requires the Corduroy BIOS (≥ 0.5.0); incompatible with
+  `boot.ems` (the EMS driver is EDR-DOS-shaped). `CONFIG.SYS` is
+  not synthesized in this mode; supply your own if you need one.
+  Combine with `disk.writable` for a fully usable system (keep the
+  floppy ≤ 720K — see `disk.writable`).
+
+Regression gate: `node tests/harness/run.mjs msdos`.
 
 ### `boot.runCommand` · implemented
 

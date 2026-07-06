@@ -40,6 +40,7 @@ export const RUNTIME_COPIES = [
   ['/tools', resolve(repoRoot, 'tools')],
   ['/presets', resolve(repoRoot, 'builder', 'presets')],
   ['/assets/dos', resolve(repoRoot, 'dos', 'bin')],
+  ['/assets/msdos4', resolve(repoRoot, 'dos', 'msdos4', 'bin')],
   ['/prebake', resolve(webRoot, 'prebake')],
   ['/shim', resolve(webRoot, 'shim')],
   ['/player', resolve(webRoot, 'player')],

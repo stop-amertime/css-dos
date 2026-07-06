@@ -80,9 +80,15 @@ proven by the A/B).
    floppy. New regression gate: `node tests/harness/run.mjs
    writable`. **Keep writable carts ≤ 720K** — Chrome rounds
    computed numeric custom properties to ~6 significant digits
-   (memory-layout.md "1e6 precision rule"). Stage 3 = boot real
-   MS-DOS 4.0 from its MIT source. Plan:
-   `../plans/2026-07-06-dos-shell-writability-msdos.md`.
+   (memory-layout.md "1e6 precision rule"). **Stage 3 LANDED same
+   day: real MS-DOS 4.00 boots** — `carts/msdos4` via
+   `boot.os: "msdos4"` + Corduroy 0.5.0 INT 19h bootstrap; DIR via
+   keyboard verified on calcite; new gate `node tests/harness/run.mjs
+   msdos` (LOGBOOK 2026-07-06-msdos4-boot-stage3). Keyboard MMIO
+   bridge moved 0x500 → 0x4F4 (memory-layout.md "Platform
+   registers"). msdos4 cart is read-only; flipping it writable +
+   site presentation are owner decisions. Plan file deleted (all 3
+   stages shipped).
    (Website Svelte 5 port itself LANDED 2026-07-01 — see LOGBOOK
    + `web/site/README.md`; old `build.html`/`split.html` kept for
    the two legacy Playwright harnesses.)
@@ -176,7 +182,8 @@ web + cli; zork-big (2.88 MB), command-bare, shelltest, smoke set
 unaffected.
 
 **Regression gate:** `node tests/harness/run.mjs smoke` (6 carts) +
-`node tests/harness/run.mjs writable` (writable-disk e2e).
+`node tests/harness/run.mjs writable` (writable-disk e2e) +
+`node tests/harness/run.mjs msdos` (MS-DOS 4.00 boot e2e).
 
 **Architecture:** V4 single-cycle, one instruction per CSS tick,
 3-word-slot scheme default. Default BIOS: Corduroy.

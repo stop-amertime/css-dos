@@ -27,7 +27,8 @@
  *   Files to include. `name` may use backslash for a single subdirectory
  *   level, e.g. `"DATA\\ZORK1.DAT"`. Names are uppercased automatically.
  * @param {{cyls: number, heads: number, spt: number, totalSectors?: number,
- *          sectorsPerCluster?: number}} [geometry]
+ *          sectorsPerCluster?: number, bootSector?: Uint8Array,
+ *          mediaByte?: number}} [geometry]
  *   Optional geometry. If provided, the disk is sized to `totalSectors *
  *   512` (or `cyls*heads*spt*512` if totalSectors omitted) and the BPB
  *   records this geometry. If omitted, the disk is auto-sized to fit
@@ -36,6 +37,14 @@
  *   it is still doubled as needed to respect the FAT12 cluster-count cap.
  *   Bigger clusters mean shorter FAT chains — DOS walks the chain per
  *   seek/read, so cluster size directly scales file-I/O overhead.
+ *   `bootSector` (512 bytes) supplies a real boot loader — its code,
+ *   OEM name, messages and 55AA signature are kept verbatim; only the
+ *   BPB (offsets 11–35) is overwritten with this image's geometry so
+ *   loader and layout can't drift. `mediaByte` (default 0xF0) goes in
+ *   the BPB media descriptor and FAT[0].
+ *
+ *   Files may carry an `attr` byte (FAT attribute; default 0x20
+ *   archive) — e.g. 0x07 hidden+system+readonly for OS system files.
  * @returns {Uint8Array} Raw FAT12 disk image.
  */
 export function buildFat12Image(files, geometry) {
@@ -53,6 +62,7 @@ export function buildFat12Image(files, geometry) {
   const normFiles = files.map(f => ({
     name: f.name.toUpperCase().replace(/\//g, '\\'),
     data: f.bytes,
+    attr: f.attr ?? 0x20,
   }));
 
   // --- FAT12 geometry — auto-sized to fit content ---
@@ -168,10 +178,31 @@ export function buildFat12Image(files, geometry) {
   const disk = new Uint8Array(DISK_SIZE);
 
   // --- Boot sector (sector 0) ---
-  disk[0] = 0xEB; disk[1] = 0x3C; disk[2] = 0x90;
-  writeString(disk, 3, 'CSSDOS  ');
+  const MEDIA_BYTE = geometry?.mediaByte ?? 0xF0;
+  if (geometry?.bootSector) {
+    if (geometry.bootSector.length !== SECTOR_SIZE) {
+      throw new Error(`buildFat12Image: bootSector must be exactly ${SECTOR_SIZE} bytes; got ${geometry.bootSector.length}`);
+    }
+    // Real boot loader: keep its code, OEM name, serial, label, messages
+    // and 55AA signature verbatim; only the BPB below is ours.
+    disk.set(geometry.bootSector, 0);
+  } else {
+    disk[0] = 0xEB; disk[1] = 0x3C; disk[2] = 0x90;
+    writeString(disk, 3, 'CSSDOS  ');
 
-  // BIOS Parameter Block (BPB)
+    // Extended boot record
+    disk[36] = 0x00; disk[37] = 0x00; disk[38] = 0x29;
+    writeDword(disk, 39, 0x12345678);
+    writeString(disk, 43, 'CSS-DOS    ');
+    writeString(disk, 54, 'FAT12   ');
+
+    // Boot code (halt stub — nothing boots from this sector)
+    disk[0x3E] = 0xFA; disk[0x3F] = 0xEB; disk[0x40] = 0xFE;
+    disk[510] = 0x55; disk[511] = 0xAA;
+  }
+
+  // BIOS Parameter Block (BPB) — always this image's real geometry, even
+  // over a supplied bootSector, so the loader's CHS math matches the layout.
   writeWord(disk, 11, SECTOR_SIZE);
   disk[13] = SECTORS_PER_CLUSTER;             // sectors per cluster
   writeWord(disk, 14, RESERVED_SECTORS);
@@ -186,22 +217,12 @@ export function buildFat12Image(files, geometry) {
   } else {
     writeWord(disk, 19, 0);
   }
-  disk[21] = 0xF0;                            // media descriptor
+  disk[21] = MEDIA_BYTE;                      // media descriptor
   writeWord(disk, 22, FAT_SECTORS);
   writeWord(disk, 24, SECTORS_PER_TRACK);
   writeWord(disk, 26, HEADS);
   writeDword(disk, 28, 0);
   writeDword(disk, 32, TOTAL_SECTORS > 0xFFFF ? TOTAL_SECTORS : 0);
-
-  // Extended boot record
-  disk[36] = 0x00; disk[37] = 0x00; disk[38] = 0x29;
-  writeDword(disk, 39, 0x12345678);
-  writeString(disk, 43, 'CSS-DOS    ');
-  writeString(disk, 54, 'FAT12   ');
-
-  // Boot code
-  disk[0x3E] = 0xFA; disk[0x3F] = 0xEB; disk[0x40] = 0xFE;
-  disk[510] = 0x55; disk[511] = 0xAA;
 
   // --- Initialize FATs ---
   const fat1Start = RESERVED_SECTORS * SECTOR_SIZE;
@@ -212,10 +233,10 @@ export function buildFat12Image(files, geometry) {
   const CLUSTER_BYTES = SECTOR_SIZE * SECTORS_PER_CLUSTER;
   const clusterOffset = (cluster) =>
     (DATA_START_SECTOR + (cluster - 2) * SECTORS_PER_CLUSTER) * SECTOR_SIZE;
-  disk[fat1Start + 0] = 0xF0;
+  disk[fat1Start + 0] = MEDIA_BYTE;
   disk[fat1Start + 1] = 0xFF;
   disk[fat1Start + 2] = 0xFF;
-  disk[fat2Start + 0] = 0xF0;
+  disk[fat2Start + 0] = MEDIA_BYTE;
   disk[fat2Start + 1] = 0xFF;
   disk[fat2Start + 2] = 0xFF;
 
@@ -236,7 +257,7 @@ export function buildFat12Image(files, geometry) {
     if (backslash >= 0) {
       const dirName = file.name.substring(0, backslash);
       const fileName = file.name.substring(backslash + 1);
-      subdirFiles.push({ dirName, fileName, data: file.data });
+      subdirFiles.push({ dirName, fileName, data: file.data, attr: file.attr });
     } else {
       rootFiles.push(file);
     }
@@ -244,13 +265,13 @@ export function buildFat12Image(files, geometry) {
 
   // Write root-level files first
   for (const file of rootFiles) {
-    writeFileToDir(file.name, file.data, 'root');
+    writeFileToDir(file.name, file.data, 'root', file.attr);
   }
 
   // Create subdirectories and write their files
   for (const sf of subdirFiles) {
     ensureSubdir(sf.dirName);
-    writeFileToDir(sf.fileName, sf.data, sf.dirName);
+    writeFileToDir(sf.fileName, sf.data, sf.dirName, sf.attr);
   }
 
   // --- Write volume label in root directory ---
@@ -310,7 +331,7 @@ export function buildFat12Image(files, geometry) {
     subdirs.set(dirName, { cluster: dirCluster, entryOffset: 64 }); // 64 = after . and ..
   }
 
-  function writeFileToDir(name, data, dir) {
+  function writeFileToDir(name, data, dir, attr = 0x20) {
     const fileSize = data.length;
     // Cluster is the allocation unit, not sector — at SPC>1 a one-sector
     // file still occupies a full cluster.
@@ -342,7 +363,7 @@ export function buildFat12Image(files, geometry) {
       }
       const entryOff = rootDirStart + rootDirEntryOffset;
       writeString(disk, entryOff, name83);
-      disk[entryOff + 11] = 0x20; // archive attribute
+      disk[entryOff + 11] = attr;
       writeWord(disk, entryOff + 26, startCluster);
       writeDword(disk, entryOff + 28, fileSize);
       rootDirEntryOffset += 32;
@@ -360,7 +381,7 @@ export function buildFat12Image(files, geometry) {
       const dirDataOffset = clusterOffset(sub.cluster);
       const entryOff = dirDataOffset + sub.entryOffset;
       writeString(disk, entryOff, name83);
-      disk[entryOff + 11] = 0x20; // archive attribute
+      disk[entryOff + 11] = attr;
       writeWord(disk, entryOff + 26, startCluster);
       writeDword(disk, entryOff + 28, fileSize);
       sub.entryOffset += 32;

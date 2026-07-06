@@ -144,7 +144,9 @@ async function main() {
     const raw = manifest.boot?.raw;
     if (!raw) throw new Error('hack cart missing boot.raw');
     programBytes = [...readFileSync(resolve(cart.root, raw))];
-  } else {
+  } else if ((manifest.boot?.os ?? 'edrdos') !== 'msdos4') {
+    // msdos4 carts preload nothing — DOS boots from the floppy's own
+    // boot sector (IO.SYS/MSDOS.SYS are on the disk, see stages/floppy.mjs).
     kernelBytes = [...readFileSync(resolve(repoRoot, 'dos', 'bin', 'kernel.sys'))];
   }
 
