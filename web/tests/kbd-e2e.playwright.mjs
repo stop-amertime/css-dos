@@ -175,14 +175,15 @@ if (!userGame) {
 // Loading → in-game (gamestate 0 = GS_LEVEL).
 const ingame = await waitFor('ingame (gamestate=LEVEL)', async () => (await peekByte(G_GAMESTATE)) === 0 && (await peekByte(G_USERGAME)) === 1, 180000, 2000);
 
-// Hold-key phase: arm ("Hold a key..."), catch LEFT (turn key), and
-// verify --keyboard stays at LEFT's make value (0x4B00 = 19200) instead
-// of pulsing back to 0. Then re-press LEFT (its release overlay) to let go.
+// Hold-key phase: hold mode on ("Hold a key..." label — pure CSS, no
+// submission), press LEFT (turn key) → the bridge latches it; verify
+// --keyboard stays at LEFT's make value (0x4B00 = 19200) instead of
+// pulsing back to 0. Press LEFT again → release. Then exit the mode.
 let holdOk = false;
 if (ingame) {
-  log('hold phase: arming + catching LEFT');
-  await player.click('#kb-hold');       // arm: next key pressed holds
-  await player.click('#kb-left-hold');  // catch LEFT (radio overlay; auto-submits)
+  log('hold phase: mode on + holding LEFT');
+  await player.click('#kb-hold');       // hold mode on (lit)
+  await player.click('#kb-left');       // press LEFT → key=kb-left&holdmode=1 → latch
   const latched = await waitFor('latched --keyboard=19200', async () => (await peekVar('keyboard')) === 19200, 20000);
   let sustained = false;
   if (latched) {
@@ -190,8 +191,9 @@ if (ingame) {
     sustained = (await peekVar('keyboard')) === 19200;
     log(`latch sustained after 3s: ${sustained}`);
   }
-  await player.click('#kb-left-hold + .kb-unpin'); // re-press LEFT → release
+  await player.click('#kb-left');       // press LEFT again → release
   const released = await waitFor('released --keyboard=0', async () => (await peekVar('keyboard')) === 0, 20000);
+  await player.click('#kb-hold');       // hold mode off
   holdOk = latched && sustained && released;
 }
 

@@ -1,16 +1,18 @@
-# 2026-07-06 — Player "Hold a key..." rework (arm → press → latch)
+# 2026-07-06 — Player hold-key rework (hold mode; zero-JS constraint)
 
-The pin-checkbox Hold mode felt broken (checking a pin did nothing
-until the *next* key press — the bridge only latched on submissions)
-and wasn't ergonomic. New gesture: press **"Hold a key..."** (italic,
-arrow-block-width, right stack), press the key → it latches and turns
-red; press it again (or the button, now "release key") to let go.
-Mechanism: one hidden radio group `name=held` (#kb-holdmode = armed,
-#kb-nohold = idle, #kb-X-hold = held) — while armed each pin radio is
-an invisible catch target covering its key, and radio exclusivity
-un-arms in the same click. Pure CSS in raw.html (cabinet contract
-`#kb-X-hold:checked` unchanged). calcite.html gains its ONE script: a
-2-line change→requestSubmit shim (raw-regen strips it) so the bridge
-hears the latch at click time; bridge now reconciles its latch from
-`held=` alone (no key click needed). kbd-e2e updated to the new
-gesture + BASE env override; UI states verified headless, e2e PASS.
+The pin-checkbox Hold UI felt broken (latch only applied on the NEXT
+key press) and wasn't ergonomic. Constraint discovered en route: with
+zero `<script>` in the player, one click can flip page state OR submit
+the form, never both — and CSS `background-image` fetches fire once
+per URL per page (probed in Chrome via the real SW), so no pure-CSS
+side channel exists. A 2-line auto-submit shim shipped briefly and was
+vetoed by the owner same-day; final owner-picked design ("B"):
+**calcite** = hold MODE — `#kb-holdmode` checkbox lights the 128px
+italic "Hold a key..." label and rides key submissions (`holdmode=1`);
+the bridge latches/releases/switches on presses, stale latches release
+on the next plain press. No key colouring (page can't know the latch).
+**raw** = one-shot arm→catch with red held key, pure CSS (radio group
++ per-key pin overlays), all injected by raw-regen; the styling sits
+inert in calcite.html. Keys verified end-to-end on dos-shell (CLI
+press-events + web sweep incl. `.` and F1/F3 template recall);
+kbd-e2e doom PASS with the mode gesture.

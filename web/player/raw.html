@@ -295,17 +295,21 @@
     #kb-left-hold, #kb-left-hold + .kb-unpin  { grid-column: 1; grid-row: 2; }
     #kb-down-hold, #kb-down-hold + .kb-unpin  { grid-column: 2; grid-row: 2; }
     #kb-right-hold, #kb-right-hold + .kb-unpin { grid-column: 3; grid-row: 2; }
-    /* Hold a key. One hidden radio group (name=held) is the whole state
-       machine: #kb-holdmode = armed, #kb-nohold = idle, #kb-X-hold =
-       key X held. "Hold a key..." checks the armed radio; while armed,
-       every key's pin radio becomes an invisible catch target covering
-       it, so pressing a key checks its radio — and radio exclusivity
-       un-arms in the same click. The held key's invisible .kb-unpin
-       label (for=#kb-nohold) covers it, so pressing it again releases
-       back to idle. The radios are the state the raw cabinet reads
-       (`#kb-X-hold:checked { --keyboard: V }`); the calcite bridge
-       hears every change via the auto-submit shim at the bottom of
-       this file (a radio flip alone doesn't submit a GET form). */
+    /* Hold a key — two players, one stylesheet, zero <script>.
+       Calcite mode: #kb-holdmode is a checkbox (name=holdmode) toggled
+       by the #kb-hold label. It rides along on every key submission,
+       and the BRIDGE holds the state machine: while the mode is on,
+       pressing a key holds it, pressing it again releases; the checked
+       state lights the button (the page can't know which key the
+       bridge is holding — that feedback is the machine's behavior).
+       Raw mode: raw-regen swaps the checkbox for a radio group
+       (#kb-holdmode = armed, #kb-nohold = idle, injected per-key
+       #kb-X-hold pins = held) giving the full one-shot gesture with
+       the held key painted red — there the radio IS the machine input
+       (`#kb-X-hold:checked { --keyboard: V }`). The .kb-pin/.kb-unpin/
+       #kb-unhold rules below are INERT here (no such elements) and
+       exist for the regen-injected raw machinery; same for the
+       -hold/.kb-unpin selectors in the placement lists above. */
     .kb-state {
       appearance: none;
       position: absolute;
@@ -325,7 +329,7 @@
     #kb-holdmode:checked ~ .kb-right-stack .kb-pin { display: block; }
     .kb-pin:checked { display: none; }
     .kb-pin:checked + .kb-unpin { display: block; }
-    /* The held key looks pressed and stays lit. */
+    /* (raw) The held key looks pressed and stays lit. */
     .kb-key:has(+ .kb-pin:checked) {
       transform: translate(3px, 3px);
       box-shadow: none;
@@ -333,17 +337,23 @@
       color: var(--edit-white);
     }
     .kb-key:has(+ .kb-pin:checked) span { background: var(--edit-white); }
-    /* The hold button: as wide as the arrow block below it. Idle it
-       arms (#kb-hold); armed/held it swaps to its cancel/release twin
-       (#kb-unhold, for=#kb-nohold). */
+    /* The hold button: as wide as the arrow block below it. */
     #kb-hold, #kb-unhold {
       grid-row: 1;
       width: 128px; /* 3×40px arrows + 2×4px gaps */
       height: 26px;
       font-style: italic;
     }
+    #kb-hold::before { content: "Hold a key..."; }
+    /* (calcite) Mode on: the button stays down and lit. */
+    .keyboard:has(#kb-holdmode:checked) #kb-hold {
+      transform: translate(3px, 3px);
+      box-shadow: none;
+      background: #ffff55;
+    }
+    .keyboard:has(#kb-holdmode:checked) #kb-hold::before { content: "hold mode on"; }
+    /* (raw) Armed/held swap to the cancel/release twin. */
     #kb-unhold { display: none; }
-    .keyboard:has(#kb-holdmode:checked) #kb-hold,
     .keyboard:has(.kb-pin:checked) #kb-hold { display: none; }
     .keyboard:has(#kb-holdmode:checked) #kb-unhold,
     .keyboard:has(.kb-pin:checked) #kb-unhold {
@@ -357,8 +367,8 @@
     /* The sink iframe swallows every keyboard form submission so the
        page doesn't navigate. 0px/hidden keeps it invisible. The
        keyboard is a GET form: each key is a submit button (name=key)
-       and the checked hold radio rides along as the name=held param,
-       so the bridge always sees the current held key (or '' = none). */
+       and the hold-mode checkbox rides along (holdmode=1 while on),
+       so the bridge knows whether a press means type or hold. */
 
     .kbd-sink { width: 0; height: 0; border: 0; position: absolute; visibility: hidden; }
 
@@ -401,6 +411,10 @@
       margin: 0 auto;
     }
     .screen-grid > i { display: block; width: 2px; height: 2px; background: transparent; }
+  </style>
+  <style>
+    /* AUTOGEN raw hold machinery — armed swaps #kb-hold for #kb-unhold. */
+    .keyboard:has(#kb-holdmode:checked) #kb-hold { display: none; }
   </style>
 </head>
 <body>
@@ -627,8 +641,10 @@
 </div>
       </div>
       <form class="keyboard" action="/_kbd" method="get" target="kbd-sink">
-        <!-- Hold-a-key state: one radio group (armed / idle / one of
-             the per-key pins below). See the .kb-state CSS block. -->
+        <!-- Hold mode: a checkbox toggled by the #kb-hold label. While
+             checked it rides on every key submission (name=holdmode)
+             and the bridge treats those presses as hold/release
+             toggles. See the hold CSS block. -->
         <input type="radio" id="kb-holdmode" class="kb-state" name="held" value="" aria-label="Hold a key: the next key pressed stays held">
         <input type="radio" id="kb-nohold" class="kb-state" name="held" value="" checked aria-label="No held key">
         <div class="kb-main">
@@ -691,7 +707,7 @@
           <button id="kb-space" class="kb-key kb-space" type="submit" name="key" value="kb-space">&#x2423;</button><input type="radio" id="kb-space-hold" class="kb-pin" name="held" value="kb-space" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
         </div>
         <div class="kb-right-stack">
-          <label id="kb-hold" class="kb-key kb-mod" for="kb-holdmode" title="The next key pressed stays held">Hold a key...</label>
+          <label id="kb-hold" class="kb-key kb-mod" for="kb-holdmode" title="The next key pressed stays held"></label>
           <label id="kb-unhold" class="kb-key kb-mod" for="kb-nohold" title="Cancel / release the held key"></label>
           <div class="kb-arrows">
             <button id="kb-up" class="kb-key kb-arrow kb-up" type="submit" name="key" value="kb-up" aria-label="Up"><span></span></button><input type="radio" id="kb-up-hold" class="kb-pin" name="held" value="kb-up" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>

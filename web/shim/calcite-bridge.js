@@ -128,9 +128,10 @@ let currentGapBatches = 0;      // > 0 during the trailing 0-tick gap
 let currentActiveSelector = ''; // non-empty while pulsing a pseudo-class edge
 const KEY_HOLD_BATCHES = 8;
 const KEY_GAP_BATCHES = 2;
-// Hold-latch state. The player's hold-state radio group is the source
-// of truth: every submission carries the held key (held=kb-X, or ''
-// for none), and we reconcile the engine's latch to it. The cabinet has a single
+// Hold-latch state. The bridge is the source of truth: key presses
+// arriving with holdmode=1 (the player's hold-mode checkbox rides on
+// every submission) toggle the latch; plain presses release any stale
+// latch, then pulse. The cabinet has a single
 // --keyboard wire (one key down at a time — see kiln/template.mjs
 // emitKeyboardRules), so at most one key is latched; while it is, plain
 // key pulses are dropped (they'd be edge-invisible to the machine, and
@@ -952,38 +953,36 @@ bus.onmessage = (ev) => {
       }
     }
   } else if (mm.type === 'kbd-event' && engine) {
-    // Player keyboard form submission. `held` mirrors the player's
-    // hold-state radio group (at most one key; '' = idle/armed) and
-    // is present on every submission; `key` is the clicked submit
-    // button, absent when the hold auto-submit shim fired the form.
-    // Reconcile the engine's latch to `held` first — no key click
-    // required, the "Hold a key..." → key gesture must latch at the
-    // moment of the catch click — then handle the click:
-    //  - plain click, nothing latched → normal pulse
-    //  - plain click while latched → dropped: the machine's single
-    //    --keyboard wire can't see a second key while one is held
-    //    (no 0↔non-zero edge), same as in the raw CSS player.
+    // Player keyboard form submission: `key` is the clicked key,
+    // `holdmode` is the player's hold-mode checkbox riding along.
+    //  - holdmode press → toggle the latch: press a key to hold it,
+    //    press it again to release it, press another to switch.
+    //  - plain press with a stale latch (mode was exited, or the page
+    //    reloaded, with a key still held) → release it first, then
+    //    pulse the pressed key as normal.
+    //  - plain press, nothing latched → normal pulse.
+    // While a key is held, other presses can't reach the machine
+    // anyway (single --keyboard wire, edges fire only on 0↔non-zero),
+    // so releasing before pulsing is what the user means.
     const key = String(mm.key || '');
-    const want = (mm.held || []).map(String).filter(Boolean)[0] || '';
-    if (kbdTraceEnabled) kbdTrace(`[kbd-trace] recv key=${key} held=${want || '-'} latched=${latchTarget} qlen=${keyQueue.length}`);
-    let releasedNow = '';
-    if (latchTarget && latchTarget !== want) {
-      keyQueue.push({ op: 'unlatch', sel: latchTarget });
-      releasedNow = latchTarget;
-      latchTarget = '';
-    }
-    if (want && want !== latchTarget) {
-      keyQueue.push({ op: 'latch', sel: want });
-      latchTarget = want;
-    }
-    if (key && key !== latchTarget) {
-      if (key === releasedNow) {
-        // Click rode along with the release — not a new press.
-      } else if (latchTarget) {
-        if (kbdTraceEnabled) kbdTrace(`[kbd-trace] drop key=${key} (latched=${latchTarget})`);
+    const holdmode = !!mm.holdmode;
+    if (kbdTraceEnabled) kbdTrace(`[kbd-trace] recv key=${key} holdmode=${holdmode} latched=${latchTarget} qlen=${keyQueue.length}`);
+    if (!key) return;
+    if (holdmode) {
+      if (latchTarget === key) {
+        keyQueue.push({ op: 'unlatch', sel: key });
+        latchTarget = '';
       } else {
-        keyQueue.push({ op: 'pulse', sel: key });
+        if (latchTarget) keyQueue.push({ op: 'unlatch', sel: latchTarget });
+        keyQueue.push({ op: 'latch', sel: key });
+        latchTarget = key;
       }
+    } else {
+      if (latchTarget) {
+        keyQueue.push({ op: 'unlatch', sel: latchTarget });
+        latchTarget = '';
+      }
+      keyQueue.push({ op: 'pulse', sel: key });
     }
   } else if (mm.type === 'cabinet-updated') {
     onCabinetUpdated(!!mm.eager);

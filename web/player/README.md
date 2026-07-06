@@ -6,7 +6,7 @@ Static HTML shells for running a cabinet in Chrome. No build step.
 
 | File | What it is |
 |---|---|
-| `calcite.html` | The main player. Pure HTML + CSS except one 2-line auto-submit shim (see Hold a key below). In CSS mode the cabinet evaluates itself; in Calcite mode the bridge worker posts framebuffer bitmaps for it to render. |
+| `calcite.html` | The main player. Pure HTML + CSS, zero `<script>`. In CSS mode the cabinet evaluates itself; in Calcite mode the bridge worker posts framebuffer bitmaps for it to render. |
 | `calcite-canvas.html` | Calcite player variant rendering into a `<canvas>` instead of styled DOM nodes. Lower DOM cost when the bridge is producing many frames. |
 | `raw.html` | The "theoretical" player. Mirrors `calcite.html`'s chrome exactly (it's **derived** from it by `web/scripts/raw-regen.mjs`) but replaces the `<img>` screen with a 320×200 = 64,000-element CSS pixel grid (`<i id=pN>`) and loads `/cabinet.css` as a real `<link rel="stylesheet">`. The cabinet's `kiln/pixels.mjs` rules paint each pixel from the Mode 13h framebuffer via `@function --paletteRGB()` over the live DAC — spec-correct for a compliant CSS evaluator. In practice Chrome crashes/hangs on the cabinet's (and grid's) sheer size; that's the point. Regenerate with `node web/scripts/raw-regen.mjs`. |
 | `turbo-meter.html` | Pure-CSS player with a fast clock animation + Hz meter overlay. No bridge. |
@@ -42,36 +42,41 @@ the `:has(#kb-X:active)` selectors Kiln emits. HTML layout is free —
 key order in the DOM does not need to match Kiln's `KEYBOARD_KEYS`
 array.
 
-The keyboard is one GET `<form action="/_kbd" target="kbd-sink">`:
-each key is a submit button (`name=key value=kb-X`), so a click
-navigates the hidden sink iframe to `/_kbd?key=kb-X&held=…` and the
-service worker forwards it to the bridge.
+The keyboard is one GET `<form action="/_kbd" target="kbd-sink">`
+(still zero `<script>`): each key is a submit button (`name=key
+value=kb-X`), so a click navigates the hidden sink iframe to
+`/_kbd?key=kb-X[&holdmode=1]` and the service worker forwards it to
+the bridge.
 
 ### Hold a key
 
-Gesture: press **"Hold a key..."**, then press the key — it latches
-and turns red. Pressing the held key again (or the hold button, now
-"release key") lets go.
+Zero-JS constraint: one click can either flip page state (what CSS
+can colour) or submit the form (what the bridge can hear) — never
+both. So the two players implement hold differently, each fully
+inside pure HTML+CSS:
 
-The state machine is one hidden radio group (`name=held`):
-`#kb-holdmode` = armed, `#kb-nohold` = idle, `#kb-X-hold` = key X
-held. Arming turns every key's pin radio into an invisible catch
-target covering it, so the next key press checks that key's radio —
-and radio exclusivity clears the armed state in the same click. The
-held key's invisible `.kb-unpin` label (`for=kb-nohold`) covers it,
-so re-pressing it returns the group to idle. All pure CSS.
-
-- **Raw player:** the cabinet's `&:has(#kb-X-hold:checked)
-  { --keyboard: V }` rule (Kiln emits one per key next to the
-  `:active` rule) holds the key directly — the radio *is* the
-  key-held state, no host involved. Zero `<script>`.
-- **Calcite player:** the bridge must hear about the latch at the
-  moment of the catch click, but a radio flip doesn't submit a GET
-  form — the one `<script>` in the player (an auto-submit shim,
-  stripped from raw.html by raw-regen) submits the form on every
-  hold-state change. Submissions always carry `held=kb-X` (or
-  `held=` for none) and the bridge reconciles its latch to it via
-  `set_pseudo_class_active('checked','kb-X-hold', …)`.
+- **Calcite player — hold mode.** **"Hold a key..."** is a label on a
+  hidden checkbox (`name=holdmode`); while checked the button stays
+  lit ("hold mode on") and the checkbox rides on every key
+  submission. The *bridge* keeps the state: a press with `holdmode=1`
+  latches the key (via `set_pseudo_class_active('checked',
+  'kb-X-hold', …)`), pressing it again releases, pressing another key
+  switches. Tap the button to exit the mode; a stale latch left
+  behind (mode exited while holding, or a reload) is released by the
+  next plain key press, which then types normally. The page can't
+  know which key the bridge holds, so the held key isn't coloured —
+  the machine's behavior is the feedback.
+- **Raw player — one-shot catch.** raw-regen swaps the checkbox for a
+  radio group (`#kb-holdmode` = armed, `#kb-nohold` = idle, injected
+  per-key `#kb-X-hold` pins = held) and injects an invisible pin
+  radio + release label into every key cell. Arming reveals the pins
+  over their keys; the next press checks that key's radio — radio
+  exclusivity un-arms in the same click — and the cabinet's
+  `&:has(#kb-X-hold:checked) { --keyboard: V }` rule (Kiln emits one
+  per key beside `:active`) holds the key directly. The held key is
+  painted red; re-pressing it (its `.kb-unpin` label → `#kb-nohold`)
+  releases. The styling for all of this sits inert in calcite.html's
+  stylesheet; regen only adds the elements it selects on.
 
 One key at a time: `--keyboard` is a single cascade-resolved value and
 the cabinet's press/release edges fire only on 0 ↔ non-zero

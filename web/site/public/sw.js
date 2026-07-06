@@ -172,10 +172,10 @@ function handleStream() {
 function handleKbd(url) {
   // Two forms:
   //
-  // /_kbd?key=kb-X&held=kb-A&held=kb-B — the player keyboard's GET
-  // form. `key` is the clicked key; `held` (repeated) is every checked
-  // pin checkbox, so the bridge sees the full held-key set on every
-  // press and can latch/release the 'checked' pseudo-classes to match.
+  // /_kbd?key=kb-X[&holdmode=1] — the player keyboard's GET form.
+  // `key` is the clicked key; `holdmode=1` rides along while the
+  // player's hold-mode checkbox is on, telling the bridge the press
+  // is a hold/release toggle rather than a type-a-key pulse.
   //
   // /_kbd?class=kb-X — legacy single-key link form (experiments, old
   // pages): pulse the (active, kb-X) pseudo-class edge.
@@ -185,10 +185,10 @@ function handleKbd(url) {
   // only flips the gates. Rebroadcast unconditionally — no port to be
   // missing, so no key is ever lost to an SW restart.
   const key = url.searchParams.get('key');
-  const held = url.searchParams.getAll('held');
+  const holdmode = url.searchParams.get('holdmode') === '1';
   const klass = url.searchParams.get('class');
-  if (key || held.length > 0) {
-    ctl.postMessage({ type: 'kbd-event', key: key || '', held });
+  if (key) {
+    ctl.postMessage({ type: 'kbd-event', key, holdmode });
   } else if (klass) {
     ctl.postMessage({ type: 'kbd-active', selector: klass });
   }

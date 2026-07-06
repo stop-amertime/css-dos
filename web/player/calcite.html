@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CSS-DOS · Running...</title>
   <!--
-    Pure HTML + CSS runner. The one exception: the keyboard hold
-    auto-submit shim at the bottom (raw.html is generated without it
-    and has no <script> tag anywhere).
+    Pure HTML + CSS runner. No <script> tag anywhere in this file.
     In CSS mode, the CSS just runs. In theory.
     In Calcite mode, it has frames posted to it by the Calcite worker.
   -->
@@ -296,17 +294,21 @@
     #kb-left-hold, #kb-left-hold + .kb-unpin  { grid-column: 1; grid-row: 2; }
     #kb-down-hold, #kb-down-hold + .kb-unpin  { grid-column: 2; grid-row: 2; }
     #kb-right-hold, #kb-right-hold + .kb-unpin { grid-column: 3; grid-row: 2; }
-    /* Hold a key. One hidden radio group (name=held) is the whole state
-       machine: #kb-holdmode = armed, #kb-nohold = idle, #kb-X-hold =
-       key X held. "Hold a key..." checks the armed radio; while armed,
-       every key's pin radio becomes an invisible catch target covering
-       it, so pressing a key checks its radio — and radio exclusivity
-       un-arms in the same click. The held key's invisible .kb-unpin
-       label (for=#kb-nohold) covers it, so pressing it again releases
-       back to idle. The radios are the state the raw cabinet reads
-       (`#kb-X-hold:checked { --keyboard: V }`); the calcite bridge
-       hears every change via the auto-submit shim at the bottom of
-       this file (a radio flip alone doesn't submit a GET form). */
+    /* Hold a key — two players, one stylesheet, zero <script>.
+       Calcite mode: #kb-holdmode is a checkbox (name=holdmode) toggled
+       by the #kb-hold label. It rides along on every key submission,
+       and the BRIDGE holds the state machine: while the mode is on,
+       pressing a key holds it, pressing it again releases; the checked
+       state lights the button (the page can't know which key the
+       bridge is holding — that feedback is the machine's behavior).
+       Raw mode: raw-regen swaps the checkbox for a radio group
+       (#kb-holdmode = armed, #kb-nohold = idle, injected per-key
+       #kb-X-hold pins = held) giving the full one-shot gesture with
+       the held key painted red — there the radio IS the machine input
+       (`#kb-X-hold:checked { --keyboard: V }`). The .kb-pin/.kb-unpin/
+       #kb-unhold rules below are INERT here (no such elements) and
+       exist for the regen-injected raw machinery; same for the
+       -hold/.kb-unpin selectors in the placement lists above. */
     .kb-state {
       appearance: none;
       position: absolute;
@@ -326,7 +328,7 @@
     #kb-holdmode:checked ~ .kb-right-stack .kb-pin { display: block; }
     .kb-pin:checked { display: none; }
     .kb-pin:checked + .kb-unpin { display: block; }
-    /* The held key looks pressed and stays lit. */
+    /* (raw) The held key looks pressed and stays lit. */
     .kb-key:has(+ .kb-pin:checked) {
       transform: translate(3px, 3px);
       box-shadow: none;
@@ -334,17 +336,23 @@
       color: var(--edit-white);
     }
     .kb-key:has(+ .kb-pin:checked) span { background: var(--edit-white); }
-    /* The hold button: as wide as the arrow block below it. Idle it
-       arms (#kb-hold); armed/held it swaps to its cancel/release twin
-       (#kb-unhold, for=#kb-nohold). */
+    /* The hold button: as wide as the arrow block below it. */
     #kb-hold, #kb-unhold {
       grid-row: 1;
       width: 128px; /* 3×40px arrows + 2×4px gaps */
       height: 26px;
       font-style: italic;
     }
+    #kb-hold::before { content: "Hold a key..."; }
+    /* (calcite) Mode on: the button stays down and lit. */
+    .keyboard:has(#kb-holdmode:checked) #kb-hold {
+      transform: translate(3px, 3px);
+      box-shadow: none;
+      background: #ffff55;
+    }
+    .keyboard:has(#kb-holdmode:checked) #kb-hold::before { content: "hold mode on"; }
+    /* (raw) Armed/held swap to the cancel/release twin. */
     #kb-unhold { display: none; }
-    .keyboard:has(#kb-holdmode:checked) #kb-hold,
     .keyboard:has(.kb-pin:checked) #kb-hold { display: none; }
     .keyboard:has(#kb-holdmode:checked) #kb-unhold,
     .keyboard:has(.kb-pin:checked) #kb-unhold {
@@ -358,8 +366,8 @@
     /* The sink iframe swallows every keyboard form submission so the
        page doesn't navigate. 0px/hidden keeps it invisible. The
        keyboard is a GET form: each key is a submit button (name=key)
-       and the checked hold radio rides along as the name=held param,
-       so the bridge always sees the current held key (or '' = none). */
+       and the hold-mode checkbox rides along (holdmode=1 while on),
+       so the bridge knows whether a press means type or hold. */
 
     .kbd-sink { width: 0; height: 0; border: 0; position: absolute; visibility: hidden; }
 
@@ -416,77 +424,77 @@
              width="640" height="400">
       </div>
       <form class="keyboard" action="/_kbd" method="get" target="kbd-sink">
-        <!-- Hold-a-key state: one radio group (armed / idle / one of
-             the per-key pins below). See the .kb-state CSS block. -->
-        <input type="radio" id="kb-holdmode" class="kb-state" name="held" value="" aria-label="Hold a key: the next key pressed stays held">
-        <input type="radio" id="kb-nohold" class="kb-state" name="held" value="" checked aria-label="No held key">
+        <!-- Hold mode: a checkbox toggled by the #kb-hold label. While
+             checked it rides on every key submission (name=holdmode)
+             and the bridge treats those presses as hold/release
+             toggles. See the hold CSS block. -->
+        <input type="checkbox" id="kb-holdmode" class="kb-state" name="holdmode" value="1" aria-label="Hold mode: while on, pressing a key holds it and pressing it again releases it">
         <div class="kb-main">
-          <button id="kb-f1" class="kb-key kb-fn" type="submit" name="key" value="kb-f1">F1</button><input type="radio" id="kb-f1-hold" class="kb-pin" name="held" value="kb-f1" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-f2" class="kb-key kb-fn" type="submit" name="key" value="kb-f2">F2</button><input type="radio" id="kb-f2-hold" class="kb-pin" name="held" value="kb-f2" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-f3" class="kb-key kb-fn" type="submit" name="key" value="kb-f3">F3</button><input type="radio" id="kb-f3-hold" class="kb-pin" name="held" value="kb-f3" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-f4" class="kb-key kb-fn" type="submit" name="key" value="kb-f4">F4</button><input type="radio" id="kb-f4-hold" class="kb-pin" name="held" value="kb-f4" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-f5" class="kb-key kb-fn" type="submit" name="key" value="kb-f5">F5</button><input type="radio" id="kb-f5-hold" class="kb-pin" name="held" value="kb-f5" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-f6" class="kb-key kb-fn" type="submit" name="key" value="kb-f6">F6</button><input type="radio" id="kb-f6-hold" class="kb-pin" name="held" value="kb-f6" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-f7" class="kb-key kb-fn" type="submit" name="key" value="kb-f7">F7</button><input type="radio" id="kb-f7-hold" class="kb-pin" name="held" value="kb-f7" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-f8" class="kb-key kb-fn" type="submit" name="key" value="kb-f8">F8</button><input type="radio" id="kb-f8-hold" class="kb-pin" name="held" value="kb-f8" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-f9" class="kb-key kb-fn" type="submit" name="key" value="kb-f9">F9</button><input type="radio" id="kb-f9-hold" class="kb-pin" name="held" value="kb-f9" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-f10" class="kb-key kb-fn" type="submit" name="key" value="kb-f10">F10</button><input type="radio" id="kb-f10-hold" class="kb-pin" name="held" value="kb-f10" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-esc" class="kb-key kb-mod" type="submit" name="key" value="kb-esc">Esc</button><input type="radio" id="kb-esc-hold" class="kb-pin" name="held" value="kb-esc" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-1" class="kb-key kb-num" type="submit" name="key" value="kb-1">1</button><input type="radio" id="kb-1-hold" class="kb-pin" name="held" value="kb-1" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-2" class="kb-key kb-num" type="submit" name="key" value="kb-2">2</button><input type="radio" id="kb-2-hold" class="kb-pin" name="held" value="kb-2" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-3" class="kb-key kb-num" type="submit" name="key" value="kb-3">3</button><input type="radio" id="kb-3-hold" class="kb-pin" name="held" value="kb-3" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-4" class="kb-key kb-num" type="submit" name="key" value="kb-4">4</button><input type="radio" id="kb-4-hold" class="kb-pin" name="held" value="kb-4" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-5" class="kb-key kb-num" type="submit" name="key" value="kb-5">5</button><input type="radio" id="kb-5-hold" class="kb-pin" name="held" value="kb-5" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-6" class="kb-key kb-num" type="submit" name="key" value="kb-6">6</button><input type="radio" id="kb-6-hold" class="kb-pin" name="held" value="kb-6" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-7" class="kb-key kb-num" type="submit" name="key" value="kb-7">7</button><input type="radio" id="kb-7-hold" class="kb-pin" name="held" value="kb-7" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-8" class="kb-key kb-num" type="submit" name="key" value="kb-8">8</button><input type="radio" id="kb-8-hold" class="kb-pin" name="held" value="kb-8" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-9" class="kb-key kb-num" type="submit" name="key" value="kb-9">9</button><input type="radio" id="kb-9-hold" class="kb-pin" name="held" value="kb-9" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-0" class="kb-key kb-num" type="submit" name="key" value="kb-0">0</button><input type="radio" id="kb-0-hold" class="kb-pin" name="held" value="kb-0" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-bksp" class="kb-key kb-mod" type="submit" name="key" value="kb-bksp">Bksp</button><input type="radio" id="kb-bksp-hold" class="kb-pin" name="held" value="kb-bksp" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-q" class="kb-key" type="submit" name="key" value="kb-q">Q</button><input type="radio" id="kb-q-hold" class="kb-pin" name="held" value="kb-q" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-w" class="kb-key" type="submit" name="key" value="kb-w">W</button><input type="radio" id="kb-w-hold" class="kb-pin" name="held" value="kb-w" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-e" class="kb-key" type="submit" name="key" value="kb-e">E</button><input type="radio" id="kb-e-hold" class="kb-pin" name="held" value="kb-e" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-r" class="kb-key" type="submit" name="key" value="kb-r">R</button><input type="radio" id="kb-r-hold" class="kb-pin" name="held" value="kb-r" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-t" class="kb-key" type="submit" name="key" value="kb-t">T</button><input type="radio" id="kb-t-hold" class="kb-pin" name="held" value="kb-t" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-y" class="kb-key" type="submit" name="key" value="kb-y">Y</button><input type="radio" id="kb-y-hold" class="kb-pin" name="held" value="kb-y" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-u" class="kb-key" type="submit" name="key" value="kb-u">U</button><input type="radio" id="kb-u-hold" class="kb-pin" name="held" value="kb-u" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-i" class="kb-key" type="submit" name="key" value="kb-i">I</button><input type="radio" id="kb-i-hold" class="kb-pin" name="held" value="kb-i" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-o" class="kb-key" type="submit" name="key" value="kb-o">O</button><input type="radio" id="kb-o-hold" class="kb-pin" name="held" value="kb-o" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-p" class="kb-key" type="submit" name="key" value="kb-p">P</button><input type="radio" id="kb-p-hold" class="kb-pin" name="held" value="kb-p" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-tab" class="kb-key kb-mod" type="submit" name="key" value="kb-tab">Tab</button><input type="radio" id="kb-tab-hold" class="kb-pin" name="held" value="kb-tab" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-caps" class="kb-key kb-mod" type="submit" name="key" value="kb-caps">Caps</button><input type="radio" id="kb-caps-hold" class="kb-pin" name="held" value="kb-caps" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-a" class="kb-key" type="submit" name="key" value="kb-a">A</button><input type="radio" id="kb-a-hold" class="kb-pin" name="held" value="kb-a" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-s" class="kb-key" type="submit" name="key" value="kb-s">S</button><input type="radio" id="kb-s-hold" class="kb-pin" name="held" value="kb-s" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-d" class="kb-key" type="submit" name="key" value="kb-d">D</button><input type="radio" id="kb-d-hold" class="kb-pin" name="held" value="kb-d" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-f" class="kb-key" type="submit" name="key" value="kb-f">F</button><input type="radio" id="kb-f-hold" class="kb-pin" name="held" value="kb-f" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-g" class="kb-key" type="submit" name="key" value="kb-g">G</button><input type="radio" id="kb-g-hold" class="kb-pin" name="held" value="kb-g" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-h" class="kb-key" type="submit" name="key" value="kb-h">H</button><input type="radio" id="kb-h-hold" class="kb-pin" name="held" value="kb-h" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-j" class="kb-key" type="submit" name="key" value="kb-j">J</button><input type="radio" id="kb-j-hold" class="kb-pin" name="held" value="kb-j" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-k" class="kb-key" type="submit" name="key" value="kb-k">K</button><input type="radio" id="kb-k-hold" class="kb-pin" name="held" value="kb-k" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-l" class="kb-key" type="submit" name="key" value="kb-l">L</button><input type="radio" id="kb-l-hold" class="kb-pin" name="held" value="kb-l" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-enter" class="kb-key kb-enter" type="submit" name="key" value="kb-enter">&#x21B5;</button><input type="radio" id="kb-enter-hold" class="kb-pin" name="held" value="kb-enter" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-shift" class="kb-key kb-mod" type="submit" name="key" value="kb-shift">Shift</button><input type="radio" id="kb-shift-hold" class="kb-pin" name="held" value="kb-shift" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-z" class="kb-key" type="submit" name="key" value="kb-z">Z</button><input type="radio" id="kb-z-hold" class="kb-pin" name="held" value="kb-z" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-x" class="kb-key" type="submit" name="key" value="kb-x">X</button><input type="radio" id="kb-x-hold" class="kb-pin" name="held" value="kb-x" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-c" class="kb-key" type="submit" name="key" value="kb-c">C</button><input type="radio" id="kb-c-hold" class="kb-pin" name="held" value="kb-c" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-v" class="kb-key" type="submit" name="key" value="kb-v">V</button><input type="radio" id="kb-v-hold" class="kb-pin" name="held" value="kb-v" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-b" class="kb-key" type="submit" name="key" value="kb-b">B</button><input type="radio" id="kb-b-hold" class="kb-pin" name="held" value="kb-b" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-n" class="kb-key" type="submit" name="key" value="kb-n">N</button><input type="radio" id="kb-n-hold" class="kb-pin" name="held" value="kb-n" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-m" class="kb-key" type="submit" name="key" value="kb-m">M</button><input type="radio" id="kb-m-hold" class="kb-pin" name="held" value="kb-m" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-comma" class="kb-key" type="submit" name="key" value="kb-comma">,</button><input type="radio" id="kb-comma-hold" class="kb-pin" name="held" value="kb-comma" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-period" class="kb-key" type="submit" name="key" value="kb-period">.</button><input type="radio" id="kb-period-hold" class="kb-pin" name="held" value="kb-period" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-slash" class="kb-key" type="submit" name="key" value="kb-slash">/</button><input type="radio" id="kb-slash-hold" class="kb-pin" name="held" value="kb-slash" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-ctrl" class="kb-key kb-mod" type="submit" name="key" value="kb-ctrl">Ctrl</button><input type="radio" id="kb-ctrl-hold" class="kb-pin" name="held" value="kb-ctrl" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-          <button id="kb-space" class="kb-key kb-space" type="submit" name="key" value="kb-space">&#x2423;</button><input type="radio" id="kb-space-hold" class="kb-pin" name="held" value="kb-space" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
+          <button id="kb-f1" class="kb-key kb-fn" type="submit" name="key" value="kb-f1">F1</button>
+          <button id="kb-f2" class="kb-key kb-fn" type="submit" name="key" value="kb-f2">F2</button>
+          <button id="kb-f3" class="kb-key kb-fn" type="submit" name="key" value="kb-f3">F3</button>
+          <button id="kb-f4" class="kb-key kb-fn" type="submit" name="key" value="kb-f4">F4</button>
+          <button id="kb-f5" class="kb-key kb-fn" type="submit" name="key" value="kb-f5">F5</button>
+          <button id="kb-f6" class="kb-key kb-fn" type="submit" name="key" value="kb-f6">F6</button>
+          <button id="kb-f7" class="kb-key kb-fn" type="submit" name="key" value="kb-f7">F7</button>
+          <button id="kb-f8" class="kb-key kb-fn" type="submit" name="key" value="kb-f8">F8</button>
+          <button id="kb-f9" class="kb-key kb-fn" type="submit" name="key" value="kb-f9">F9</button>
+          <button id="kb-f10" class="kb-key kb-fn" type="submit" name="key" value="kb-f10">F10</button>
+          <button id="kb-esc" class="kb-key kb-mod" type="submit" name="key" value="kb-esc">Esc</button>
+          <button id="kb-1" class="kb-key kb-num" type="submit" name="key" value="kb-1">1</button>
+          <button id="kb-2" class="kb-key kb-num" type="submit" name="key" value="kb-2">2</button>
+          <button id="kb-3" class="kb-key kb-num" type="submit" name="key" value="kb-3">3</button>
+          <button id="kb-4" class="kb-key kb-num" type="submit" name="key" value="kb-4">4</button>
+          <button id="kb-5" class="kb-key kb-num" type="submit" name="key" value="kb-5">5</button>
+          <button id="kb-6" class="kb-key kb-num" type="submit" name="key" value="kb-6">6</button>
+          <button id="kb-7" class="kb-key kb-num" type="submit" name="key" value="kb-7">7</button>
+          <button id="kb-8" class="kb-key kb-num" type="submit" name="key" value="kb-8">8</button>
+          <button id="kb-9" class="kb-key kb-num" type="submit" name="key" value="kb-9">9</button>
+          <button id="kb-0" class="kb-key kb-num" type="submit" name="key" value="kb-0">0</button>
+          <button id="kb-bksp" class="kb-key kb-mod" type="submit" name="key" value="kb-bksp">Bksp</button>
+          <button id="kb-q" class="kb-key" type="submit" name="key" value="kb-q">Q</button>
+          <button id="kb-w" class="kb-key" type="submit" name="key" value="kb-w">W</button>
+          <button id="kb-e" class="kb-key" type="submit" name="key" value="kb-e">E</button>
+          <button id="kb-r" class="kb-key" type="submit" name="key" value="kb-r">R</button>
+          <button id="kb-t" class="kb-key" type="submit" name="key" value="kb-t">T</button>
+          <button id="kb-y" class="kb-key" type="submit" name="key" value="kb-y">Y</button>
+          <button id="kb-u" class="kb-key" type="submit" name="key" value="kb-u">U</button>
+          <button id="kb-i" class="kb-key" type="submit" name="key" value="kb-i">I</button>
+          <button id="kb-o" class="kb-key" type="submit" name="key" value="kb-o">O</button>
+          <button id="kb-p" class="kb-key" type="submit" name="key" value="kb-p">P</button>
+          <button id="kb-tab" class="kb-key kb-mod" type="submit" name="key" value="kb-tab">Tab</button>
+          <button id="kb-caps" class="kb-key kb-mod" type="submit" name="key" value="kb-caps">Caps</button>
+          <button id="kb-a" class="kb-key" type="submit" name="key" value="kb-a">A</button>
+          <button id="kb-s" class="kb-key" type="submit" name="key" value="kb-s">S</button>
+          <button id="kb-d" class="kb-key" type="submit" name="key" value="kb-d">D</button>
+          <button id="kb-f" class="kb-key" type="submit" name="key" value="kb-f">F</button>
+          <button id="kb-g" class="kb-key" type="submit" name="key" value="kb-g">G</button>
+          <button id="kb-h" class="kb-key" type="submit" name="key" value="kb-h">H</button>
+          <button id="kb-j" class="kb-key" type="submit" name="key" value="kb-j">J</button>
+          <button id="kb-k" class="kb-key" type="submit" name="key" value="kb-k">K</button>
+          <button id="kb-l" class="kb-key" type="submit" name="key" value="kb-l">L</button>
+          <button id="kb-enter" class="kb-key kb-enter" type="submit" name="key" value="kb-enter">&#x21B5;</button>
+          <button id="kb-shift" class="kb-key kb-mod" type="submit" name="key" value="kb-shift">Shift</button>
+          <button id="kb-z" class="kb-key" type="submit" name="key" value="kb-z">Z</button>
+          <button id="kb-x" class="kb-key" type="submit" name="key" value="kb-x">X</button>
+          <button id="kb-c" class="kb-key" type="submit" name="key" value="kb-c">C</button>
+          <button id="kb-v" class="kb-key" type="submit" name="key" value="kb-v">V</button>
+          <button id="kb-b" class="kb-key" type="submit" name="key" value="kb-b">B</button>
+          <button id="kb-n" class="kb-key" type="submit" name="key" value="kb-n">N</button>
+          <button id="kb-m" class="kb-key" type="submit" name="key" value="kb-m">M</button>
+          <button id="kb-comma" class="kb-key" type="submit" name="key" value="kb-comma">,</button>
+          <button id="kb-period" class="kb-key" type="submit" name="key" value="kb-period">.</button>
+          <button id="kb-slash" class="kb-key" type="submit" name="key" value="kb-slash">/</button>
+          <button id="kb-ctrl" class="kb-key kb-mod" type="submit" name="key" value="kb-ctrl">Ctrl</button>
+          <button id="kb-space" class="kb-key kb-space" type="submit" name="key" value="kb-space">&#x2423;</button>
         </div>
         <div class="kb-right-stack">
-          <label id="kb-hold" class="kb-key kb-mod" for="kb-holdmode" title="The next key pressed stays held">Hold a key...</label>
-          <label id="kb-unhold" class="kb-key kb-mod" for="kb-nohold" title="Cancel / release the held key"></label>
+          <label id="kb-hold" class="kb-key kb-mod" for="kb-holdmode" title="Hold mode: while on, pressing a key holds it and pressing it again releases it; tap to exit"></label>
           <div class="kb-arrows">
-            <button id="kb-up" class="kb-key kb-arrow kb-up" type="submit" name="key" value="kb-up" aria-label="Up"><span></span></button><input type="radio" id="kb-up-hold" class="kb-pin" name="held" value="kb-up" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-            <button id="kb-left" class="kb-key kb-arrow kb-left" type="submit" name="key" value="kb-left" aria-label="Left"><span></span></button><input type="radio" id="kb-left-hold" class="kb-pin" name="held" value="kb-left" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-            <button id="kb-down" class="kb-key kb-arrow kb-down" type="submit" name="key" value="kb-down" aria-label="Down"><span></span></button><input type="radio" id="kb-down-hold" class="kb-pin" name="held" value="kb-down" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
-            <button id="kb-right" class="kb-key kb-arrow kb-right" type="submit" name="key" value="kb-right" aria-label="Right"><span></span></button><input type="radio" id="kb-right-hold" class="kb-pin" name="held" value="kb-right" title="Hold this key"><label class="kb-unpin" for="kb-nohold" title="Press again to release"></label>
+            <button id="kb-up" class="kb-key kb-arrow kb-up" type="submit" name="key" value="kb-up" aria-label="Up"><span></span></button>
+            <button id="kb-left" class="kb-key kb-arrow kb-left" type="submit" name="key" value="kb-left" aria-label="Left"><span></span></button>
+            <button id="kb-down" class="kb-key kb-arrow kb-down" type="submit" name="key" value="kb-down" aria-label="Down"><span></span></button>
+            <button id="kb-right" class="kb-key kb-arrow kb-right" type="submit" name="key" value="kb-right" aria-label="Right"><span></span></button>
           </div>
         </div>
       </form>
@@ -500,16 +508,5 @@
     <span class="skey"><b>Esc</b>=Cancel</span>
     <span class="skey" style="margin-left:auto">CALCITE</span>
   </div>
-  <!-- kbd-autosubmit -->
-  <script>
-    // The one script in this file (raw-regen strips it; raw.html stays
-    // script-free — its cabinet reads the hold radios directly). A
-    // radio flip doesn't submit a GET form on its own, so mirror every
-    // hold-state change to the bridge the same way key presses travel:
-    // form GET into the sink iframe, service worker forwards it.
-    const kbForm = document.querySelector('form.keyboard');
-    kbForm.addEventListener('change', () => kbForm.requestSubmit());
-  </script>
-  <!-- /kbd-autosubmit -->
 </body>
 </html>
