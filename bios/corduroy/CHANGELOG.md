@@ -13,6 +13,17 @@ is baked into any given `.css`:
 head -5 cabinet.css
 ```
 
+## 0.3.0 — 2026-07-06
+
+- INT 09h `scancode2ascii` gains the digit row (`1`–`0`, scancodes
+  0x02–0x0B) and the `,` `.` `/` cluster (0x33–0x35). These keys exist
+  on the player keyboard and kiln emits their `--keyboard` values, but
+  the table mapped them to ASCII 0 — INT 16h handed DOS a dead key, so
+  typing `edit readme.txt` at the prompt silently dropped the dot (and
+  every digit). F1–F10 / arrows are unchanged: ASCII 0 is correct for
+  extended keys; DOS-side behaviour (e.g. F3 template recall) already
+  worked.
+
 ## 0.2.0 — 2026-04-19
 
 - INT 10h AH=00h accepts mode `0x01` (CGA 40×25 colour text) and
