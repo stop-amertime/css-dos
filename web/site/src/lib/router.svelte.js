@@ -59,8 +59,13 @@ class Nav {
     scrollTop();
   }
 
-  // Play unlocks once a cabinet exists.
-  get canPlay() { return build.done; }
+  // Play unlocks once a cabinet exists — built this session, or restored
+  // from Cache Storage after a reload.
+  get canPlay() { return build.done || build.restored; }
+
+  // A #play deep link that arrived before the cabinet-restore probe
+  // resolved; replayed by the 'cssdos-cabinet-restored' listener below.
+  #wantedPlay = false;
 
   get atStart() { return this.step === ABOUT && this.sub === 1; }
   get isLast() { return this.step === PLAY; }
@@ -80,9 +85,16 @@ class Nav {
   }
 
   go(step) {
+    this.#wantedPlay = false; // any navigation cancels a pending replay
     if (step === PLAY && !this.canPlay) step = BUILD; // locked Play → Build
     this.step = Math.max(ABOUT, Math.min(PLAY, step));
     scrollTop();
+  }
+
+  // Called when the restore probe finds a cabinet: honour a #play link
+  // that was redirected to Build only because the probe hadn't resolved.
+  replayWantedPlay() {
+    if (this.#wantedPlay && this.canPlay) this.go(PLAY);
   }
 
   // Free to jump backward; forward to Build always, Play only when built.
@@ -147,7 +159,9 @@ class Nav {
     const target = stepNames[s0];
     if (!target) return;
     if (target === PLAY && !this.canPlay) {
-      // Locked Play link/refresh → Build, not the start.
+      // Locked Play link/refresh → Build, not the start. If the restore
+      // probe later finds a cabinet, it sends us back to Play.
+      this.#wantedPlay = true;
       this.step = BUILD;
       return;
     }
@@ -184,6 +198,7 @@ export const nav = new Nav();
 
 if (typeof window !== 'undefined') {
   window.addEventListener('hashchange', () => { if (!guard) nav.applyHash(); });
+  window.addEventListener('cssdos-cabinet-restored', () => nav.replayWantedPlay());
   nav.applyHash();
 
   // Any navigation state change writes the canonical hash — including

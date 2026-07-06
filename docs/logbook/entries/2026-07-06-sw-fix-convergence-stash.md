@@ -12,5 +12,5 @@ built cabinet from Cache Storage (`cssdos-cabinets-v2`) via
 `cabinet-blob-lazy` on page load, so a reloaded builder tab doesn't
 strand the player; requires dropping the deliberate pagehide
 `purgeCabinets()` ("cabinets are ephemeral", builder.svelte.js).
-Owner decision pending. Preserved as CSS-DOS `stash@{0}`
-("SW hang-recovery + cabinet cache rehydration …").
+→ Resolved same day: owner opted to integrate; rehydration landed
+(see `2026-07-06-cabinet-rehydration.md`) and the stash was dropped.

@@ -2,8 +2,10 @@
 // The player's <link href="/cabinet.css"> is intercepted by sw.js, which
 // reads from this cache — both must agree on CACHE_NAME.
 //
-// Cabinets are ephemeral: purged at build start, on tab unload, and any
-// time the service worker notices stale entries from a previous version.
+// Cabinets are purged at build start (at most one exists) but survive
+// page reloads: calcite-bridge-boot.js rehydrates the bridge worker from
+// this cache on load, so an F5 / HMR / discarded mobile tab doesn't lose
+// the build or strand an open player.
 // The bump from v1 → v2 one-time-evicts pre-flat-shape cabinets that
 // existing users had lying around.
 const CACHE_NAME = 'cssdos-cabinets-v2';
@@ -36,8 +38,7 @@ export async function deleteCabinet(url = CURRENT_URL) {
 }
 
 /// Wipe every cabinet in every known cache (current + legacy).
-/// Call at build start and on page unload so nothing persists beyond
-/// the active build→play session.
+/// Called at build start, so the new build never races a stale cabinet.
 export async function purgeCabinets() {
   const names = [CACHE_NAME, ...LEGACY_CACHE_NAMES];
   await Promise.all(names.map((name) => caches.delete(name).catch(() => false)));

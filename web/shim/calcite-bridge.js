@@ -261,7 +261,11 @@ async function compileCabinetBytes(arrayBuffer) {
 // registering watches, guaranteeing the (single) reset already happened.
 function startRunning(preserveWatches = false) {
   if (running) {
-    postStatus('startRunning called while already running — no-op');
+    // Expected whenever a second caller races a live run (another
+    // /_stream/fb viewer, bench-run vs viewer-connected). Debug-level:
+    // at status level it stuck in the player's status bar looking
+    // like an error.
+    postDebug('startRunning called while already running — no-op');
     return;
   }
   postStatus(preserveWatches
@@ -944,8 +948,11 @@ self.onmessage = (ev) => {
               await compileCabinetBytes(buf);
             } catch (e) {
               postStatus('compile error: ' + (e.message || e));
-              return;
             }
+            // compileCabinetBytes already fired startRunning via its
+            // viewerWaiting hook — calling it again here just tripped
+            // the running-guard on every lazy build.
+            return;
           }
           if (engine) {
             startRunning();

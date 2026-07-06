@@ -51,7 +51,7 @@
     items={STRIP}
     current={nav.step}
     onjump={(n) => nav.jump(n)}
-    disabled={(n) => n === 3 && !build.done}
+    disabled={(n) => n === 3 && !nav.canPlay}
   />
 {/snippet}
 

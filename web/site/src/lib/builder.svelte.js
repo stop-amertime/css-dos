@@ -3,14 +3,15 @@
 // The manifest construction mirrors the old build.js exactly so cabinet
 // output stays byte-identical.
 import { buildCabinetInBrowser } from '/browser-builder/main.mjs';
-import { saveCabinet, purgeCabinets } from '/browser-builder/storage.mjs';
+import { saveCabinet, getCabinet, purgeCabinets } from '/browser-builder/storage.mjs';
 import { mergeManifest } from './manifest.js';
 
-// Cabinets are ephemeral: evict on tab unload so nothing persists across
-// sessions. pagehide covers close + bfcache; purge is fire-and-forget.
-if (typeof window !== 'undefined') {
-  window.addEventListener('pagehide', () => { purgeCabinets(); });
-}
+// The built cabinet persists in Cache Storage until the next build starts
+// (purgeCabinets() in build()). That is what lets a reloaded tab recover:
+// calcite-bridge-boot.js re-feeds the bridge worker from the cache on page
+// load, and the restore probe below re-unlocks Play. (Cabinets were
+// previously purged on pagehide, which made any reload — F5, Vite HMR, a
+// discarded mobile tab — silently strand the player and lose the build.)
 
 const PRESET_LABELS = {
   'dos-corduroy': 'DOS + Corduroy BIOS',
@@ -53,6 +54,7 @@ class Build {
   status = $state('Ready.');
   busy = $state(false);
   done = $state(false);
+  restored = $state(false); // a cabinet from a previous page lifetime is playable
   progressLog = $state('');
   progressStages = $state(0);
   cabinetBlob = $state(null);
@@ -259,6 +261,7 @@ class Build {
 
     this.busy = true;
     this.done = false;
+    this.restored = false; // the purge below evicts any previous cabinet
     this.status = 'Building…';
     this.progressLog = '';
     this.progressStages = 0;
@@ -342,3 +345,19 @@ class Build {
 }
 
 export const build = new Build();
+
+// Restore probe: a cabinet left by a previous page lifetime unlocks Play
+// without a rebuild (the bridge itself is re-fed by calcite-bridge-boot.js;
+// this only flips the UI state). Metadata comes from the cached response's
+// headers — the blob is never materialised here.
+if (typeof window !== 'undefined') {
+  getCabinet().then((hit) => {
+    if (!hit || build.busy || build.done) return;
+    build.restored = true;
+    const mb = Number(hit.headers.get('Content-Length') || 0) / 1024 / 1024;
+    build.status = mb >= 0.1
+      ? `Restored your last cabinet (${mb.toFixed(1)} MB).`
+      : 'Restored your last cabinet.';
+    window.dispatchEvent(new CustomEvent('cssdos-cabinet-restored'));
+  }).catch(() => {});
+}

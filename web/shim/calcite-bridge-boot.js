@@ -85,6 +85,23 @@
     window.__calciteBridge = bridge;
     announce('spawned');
     console.log('[calcite-bridge] worker spawned, SW port registered');
+
+    // Rehydrate: a cabinet built in a previous page lifetime (reload,
+    // dev-server HMR, a discarded mobile tab) is still in Cache Storage
+    // — cabinets are only purged when the next build starts. Hand it to
+    // the bridge lazily so a still-open player recovers and Play works
+    // without a rebuild; a build in this lifetime simply replaces it.
+    // Cache name/URL must match web/browser-builder/storage.mjs.
+    try {
+      const cache = await caches.open('cssdos-cabinets-v2');
+      const hit = await cache.match('/cabinet.css');
+      if (hit) {
+        const blob = await hit.blob();
+        bridge.postMessage({ type: 'cabinet-blob-lazy', blob });
+        console.log('[calcite-bridge] cabinet restored from cache ('
+          + (blob.size / 1024 / 1024).toFixed(1) + ' MB, lazy)');
+      }
+    } catch {}
   } catch (e) {
     console.error('[calcite-bridge] boot failed:', e);
     announce('failed', e?.message || String(e));
