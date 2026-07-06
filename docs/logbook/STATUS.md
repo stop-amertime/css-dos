@@ -188,6 +188,10 @@ LOGBOOK 2026-06-11). Single healthy-host run
 flapped healthy↔3×-degraded that day, so a clean 3-run median is
 still owed — but ticks are deterministic (boot→ingame 13.5–13.7M on
 every run/transport) and within-state wall pairs agree to ±1%.
+**NOTE 2026-07-06:** the splash-hold BIOS change (LOGBOOK) adds
+~+750K boot ticks to every Corduroy cabinet — boot-milestone tick
+constants (incl. the 13.5–13.7M above and tick-benchmarks.md) are
+stale until re-measured; dosBoot wall gains ~+1–2 s.
 
 | Phase | Wall | | Phase | Wall |
 |---|--:|---|---|--:|

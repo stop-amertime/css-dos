@@ -30,6 +30,9 @@ static const unsigned char cga_dac[16][3] = {
 static void outb(unsigned int port, unsigned char val);
 #pragma aux outb = "out dx, al" parm [dx] [al] modify exact [];
 
+static void sti(void);
+#pragma aux sti = "sti" modify exact [];
+
 static void int10_ax(unsigned int ax);
 #pragma aux int10_ax = "int 0x10" parm [ax] modify exact [ax bx cx dx];
 
@@ -112,36 +115,44 @@ static void draw_text(unsigned int x, unsigned int y, const char *s, unsigned ch
 #define BDA_MEMORY_SIZE 0x0013u
 
 static unsigned long read_ticks(void) {
-    unsigned char __far *p = (unsigned char __far *)((unsigned long)BDA_SEG_LOCAL << 16);
-    unsigned int lo = *(unsigned int __far *)(p + BDA_TICKS_LO);
-    unsigned int hi = *(unsigned int __far *)(p + BDA_TICKS_LO + 2);
+    volatile unsigned int __far *p =
+        (volatile unsigned int __far *)(((unsigned long)BDA_SEG_LOCAL << 16) + BDA_TICKS_LO);
+    unsigned int lo = p[0];
+    unsigned int hi = p[1];
     return ((unsigned long)hi << 16) | lo;
 }
 
-/* Splash pacing used to be a nested volatile busy-wait. At ~1 CSS tick
-   per inner iteration and ~900,000 inner iterations per splash_show(),
-   it was accounting for >90% of splash wall time. Gutted.
+/* Pace the splash on the real BDA tick counter — 18.2 Hz, advanced by
+   the INT 08h ISR now that install_pit() arms PIT ch0 at POST and
+   splash_show() executes STI before the first wait.
 
-   A proper implementation will reintroduce pacing once the PIT is
-   programmed and INT 08h advances BDA ticks — at that point wait_until()
-   can HLT-loop on the real tick counter, which costs ~0 CSS ticks. */
-static void wait_ticks(unsigned int n) {
-    (void)n;
-}
-
+   A poll loop, not HLT: this machine's IRQ frame pushes the CURRENT
+   IP, so an interrupted HLT resumes AT the HLT and re-halts forever —
+   and at 2 cycles per re-executed HLT it would also burn ~5x more CSS
+   ticks per guest second than polling (~10 cycles/instruction). The
+   2 s minimum below costs roughly 1M CSS ticks ≈ a second or two of
+   wall time under calcite — deliberate: at full speed the splash was
+   gone before anyone saw it. */
 static void wait_until(unsigned long target_tick) {
-    (void)target_tick;
+    while (read_ticks() < target_tick) { }
 }
 
+static void wait_ticks(unsigned int n) {
+    wait_until(read_ticks() + n);
+}
+
+/* This BIOS runs with SS (0x0030 stack) != DS (BIOS data), so a stack
+   buffer must never be passed as a near `char *` — the callee reads it
+   via DS and sees garbage (the original buf[32] version of this drew
+   nothing, silently, since day one). Literals live in DS and are fine;
+   digits are drawn by value via draw_char. */
 static void draw_memory_line(unsigned int x, unsigned int y, unsigned char color) {
     unsigned char __far *p = (unsigned char __far *)((unsigned long)BDA_SEG_LOCAL << 16);
     unsigned int kb = *(unsigned int __far *)(p + BDA_MEMORY_SIZE);
-    char buf[32];
-    const char *prefix = "MEMORY ....... ";
-    unsigned int i = 0, j;
     char digits[8];
-    unsigned int dlen = 0;
-    while (prefix[i]) { buf[i] = prefix[i]; i++; }
+    unsigned int dlen = 0, j;
+    draw_text(x, y, "MEMORY ....... ", color);
+    x += 15 * FONT_WIDTH;
     if (kb == 0) {
         digits[dlen++] = '0';
     } else {
@@ -150,15 +161,14 @@ static void draw_memory_line(unsigned int x, unsigned int y, unsigned char color
             kb /= 10u;
         }
     }
-    for (j = 0; j < dlen; j++) buf[i++] = digits[dlen - 1 - j];
-    buf[i++] = 'K';
-    buf[i] = 0;
-    draw_text(x, y, buf, color);
+    for (j = 0; j < dlen; j++) {
+        draw_char(x, y, digits[dlen - 1 - j], color);
+        x += FONT_WIDTH;
+    }
+    draw_char(x, y, 'K', color);
 }
 
 void splash_show(void) {
-    unsigned long start_tick;
-
     set_mode_13h();
     set_palette();
 
@@ -172,21 +182,30 @@ void splash_show(void) {
     draw_text(140, 52, "CSS-DOS",       15);
     draw_text(140, 64, "CSS-BIOS V0.1",  7);
 
-    start_tick = read_ticks();
+    /* IVT, BDA, PIC and PIT are all installed by now — let the timer
+       tick so the waits below advance. entry.asm's own STI after
+       bios_init returns is then a no-op. */
+    sti();
 
+    /* 12px line pitch (8px glyphs + 4px gap), matching the title block. */
     draw_text(140,  80, "IVT ........... OK", 7);
     wait_ticks(5);
-    draw_text(140,  88, "BDA ........... OK", 7);
+    draw_text(140,  92, "BDA ........... OK", 7);
     wait_ticks(5);
-    draw_memory_line(140, 96, 7);
+    draw_memory_line(140, 104, 7);
     wait_ticks(5);
-    draw_text(140, 104, "KEYBOARD ...... OK", 7);
+    draw_text(140, 116, "KEYBOARD ...... OK", 7);
     wait_ticks(5);
-    draw_text(140, 112, "VIDEO ......... OK", 7);
-    wait_ticks(5);
+    draw_text(140, 128, "VIDEO ......... OK", 7);
 
-    /* Enforce 2s minimum (36 ticks @ 18.2 Hz). */
-    wait_until(start_tick + 36);
+    /* Hold the finished splash. The waits are guest-time-anchored: the
+       four 5-tick pauses between POST lines plus this hold total 55
+       BDA ticks ≈ 3 guest seconds at 18.2 Hz — what a real 8086 would
+       show. Under calcite one BDA tick of polling ≈ 10K CSS ticks
+       (262,140 cycles at ~26 cycles per poll instruction), so the 55
+       ticks come to ~570K CSS ticks — around a second of wall time on
+       a fast host, longer on slower ones. */
+    wait_ticks(35);
 
     set_mode_text();
 }

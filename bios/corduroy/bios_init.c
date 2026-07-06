@@ -175,9 +175,23 @@ static void install_pic(void) {
     out_byte(0x21, 0xFC);
 }
 
+/* Program PIT channel 0 to the standard ~18.2 Hz system tick (mode 3,
+   square wave). Real POST uses reload 0 (= 65536); the CSS PIT model
+   treats reload 0 as disarmed, so use 65535 — 18.207 Hz, 0.0015% fast,
+   invisible at BDA-tick granularity. Without this IRQ 0 never fires
+   and the BDA tick count at 0040:006C stays 0 until a program (e.g.
+   doom's i_taskmn) arms the PIT itself; the splash pacing and INT 1Ah
+   both need the clock running from POST like on a real PC. */
+static void install_pit(void) {
+    out_byte(0x43, 0x36);  /* ch0, lo/hi byte, mode 3, binary */
+    out_byte(0x40, 0xFF);  /* reload lo */
+    out_byte(0x40, 0xFF);  /* reload hi */
+}
+
 void bios_init(void) {
     install_ivt();
     install_bda();
     install_pic();
+    install_pit();
     splash_show();
 }
