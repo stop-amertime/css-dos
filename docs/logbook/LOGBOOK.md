@@ -4,7 +4,7 @@ Chronological work entries. Newest first. The durable handbook
 (current state, sentinels, gotchas, how to test) is in
 [`STATUS.md`](STATUS.md).
 
-Last updated: 2026-07-05
+Last updated: 2026-07-06
 
 Entries are individual files in [`entries/`](entries/). This page is
 the **index only** — read the tag + one-line summary, open the 1–3
@@ -22,6 +22,7 @@ See [`PROTOCOL.md`](PROTOCOL.md).
 
 | Date | Tag | Entry |
 |------|-----|-------|
+| 2026-07-06 | FINDING | [Second machine's convergent (uncommitted) SW hang fix superseded by 94e35dd; stashed + fast-forwarded. Unique piece parked in stash@{0}: cabinet rehydration from Cache Storage on page load (would need dropping the deliberate pagehide purge) — owner decision pending](entries/2026-07-06-sw-fix-convergence-stash.md) |
 | 2026-07-05 | LANDED | [Hold-a-key: per-key pin checkboxes. Kiln emits `#kb-X-hold:checked` rules beside `:active`; player keyboard becomes a script-free GET form (keys = submit buttons, pins ride as `held=` params); bridge latches via the 'checked' pseudo-class (no calcite change). Works in raw CSS and calcite; pinned key highlighted. One held key at a time — no chords (single --keyboard wire)](entries/2026-07-05-hold-key-pins.md) |
 | 2026-07-05 | LANDED | [PoP ground-touch freeze fixed: OUT 0x43 ch2 speaker control word was zeroing PIT ch0 reload, killing IRQ 0; emitIO now decodes channel-select. PoP runs/jumps/falls past landings](entries/2026-07-05-pop-pit-ch2-freeze.md) |
 | 2026-07-04 | LANDED | [Play hang-forever root-caused + fixed: SW idle-restart wipes bridgePort and nothing re-registered it — new cssdos-need-bridge recovery handshake (SW asks, boot shim re-hands a fresh port, waiting stream gets its viewer-connected). CDP-verified. Trap: web/site/sw.js was a dead duplicate of public/sw.js (deleted; public/ canonical). Also: player loading text 50-100MB→~300 MB; phone margins rethought, playing surface 304→368px at 390w](entries/2026-07-04-sw-idle-restart-hang.md) |
