@@ -3,7 +3,7 @@
   "name": "DOS Shell",
   "description": "A bare EDR-DOS prompt with nine classic FreeDOS utilities on the floppy. Type HELP-style commands at A:\\> - EDIT, DEBUG, MEM, TREE and friends.",
   "display": {
-    "accent": "#0000AA",
+    "accent": "#141414",
     "bullets": [
       "EDIT - text editor",
       "EDLIN - line editor",
