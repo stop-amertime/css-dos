@@ -70,13 +70,18 @@ proven by the A/B).
    Final lineup, smoke-list update + website presentation pass are
    owner-collab. (Website itself now a Svelte 5 static app — see
    below.)
-2. **Programs cart line (2026-07-06).** Stage 1 LANDED:
-   `carts/dos-shell` — nine FreeDOS utilities, boots to `A:\>`;
-   site grew the cover-less text card (`display.bullets`/`accent`)
-   and the wide "load your own" bar (LOGBOOK 2026-07-06). The
-   programs themselves are owner-tested, not agent-verified.
-   Stage 2 = INT 13h write path (session-lifetime disk writes),
-   stage 3 = boot real MS-DOS 4.0 from its MIT source. Plan:
+2. **Programs cart line (2026-07-06).** Stage 1 LANDED
+   (`carts/dos-shell`, cover-less site card — LOGBOOK 2026-07-06).
+   **Stage 2 LANDED same day: session-writable disk** —
+   `disk.writable` shadow cells + Corduroy 0.4.0 INT 13h AH=03h/04h
+   + calcite windowed packed backing (LOGBOOK
+   2026-07-06-writable-disk-stage2; calcite log same date).
+   dos-shell is now writable (EDIT can save); reload = factory
+   floppy. New regression gate: `node tests/harness/run.mjs
+   writable`. **Keep writable carts ≤ 720K** — Chrome rounds
+   computed numeric custom properties to ~6 significant digits
+   (memory-layout.md "1e6 precision rule"). Stage 3 = boot real
+   MS-DOS 4.0 from its MIT source. Plan:
    `../plans/2026-07-06-dos-shell-writability-msdos.md`.
    (Website Svelte 5 port itself LANDED 2026-07-01 — see LOGBOOK
    + `web/site/README.md`; old `build.html`/`split.html` kept for

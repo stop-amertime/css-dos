@@ -16,6 +16,17 @@ const BIOS_SEG = 0xF000;
 export const DAC_LINEAR = 0x100000;
 export const DAC_BYTES  = 768;
 
+// Writable-disk shadow (`disk.writable` carts): the whole floppy image
+// lives as ordinary packed memory cells at a linear base outside the 1 MB
+// 8086 space (same trick as the DAC). Cell initial values are the factory
+// floppy; INT 13h AH=03h writes reach the cells via the per-slot window
+// remap (--_dskAddrN, see emit-css.mjs emitDiskWriteRemap), and reads flow
+// through --readDiskByte arms that reference the cells instead of literals.
+// Session-lifetime by construction: reload = @property initial values =
+// factory floppy. 0x200000 leaves the DAC shadow (0x100000) clear and
+// keeps cell values within i32 for the max 16-bit-LBA disk (~32 MB).
+export const DISK_SHADOW_LINEAR = 0x200000;
+
 // Number of parallel memory write slots.
 // Each slot carries a width flag (1 or 2 bytes): width=2 packs an
 // addr/addr+1 byte pair into one slot. The worst-case writer is INT
@@ -297,6 +308,32 @@ export function emitWriteSlotProperties() {
   syntax: '<integer>';
   inherits: true;
   initial-value: 0;
+}`);
+  }
+  return lines.join('\n\n');
+}
+
+/**
+ * Writable-disk carts: register the per-slot window-write remap properties
+ * (--_dskInN / --_dskOffN, see emit-css.mjs emitDiskWriteRemap).
+ * Registration makes the calc() values compute to real <integer>s so
+ * style() equality queries and --applySlot arguments both see a number,
+ * exactly like --memAddrN. Values stay < 1e6 (disk-local byte offsets) —
+ * Chrome's computed numeric properties only carry ~6 significant digits.
+ */
+export function emitDiskAddrProperties() {
+  const lines = [];
+  for (let i = 0; i < NUM_WRITE_SLOTS; i++) {
+    lines.push(`@property --_dskIn${i} {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --_dskOff${i} {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: -1;
 }`);
   }
   return lines.join('\n\n');

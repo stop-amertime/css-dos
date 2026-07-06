@@ -12,7 +12,7 @@
 // Output: writes CSS to `output` (any object with a .write(string) method).
 
 import { emitCSS } from '../../kiln/emit-css.mjs';
-import { comMemoryZones, dosMemoryZones, buildIVTData } from '../../kiln/memory.mjs';
+import { comMemoryZones, dosMemoryZones, buildIVTData, DISK_SHADOW_LINEAR } from '../../kiln/memory.mjs';
 import { resolveMemorySize, autofitDosMem, DOS_MAX_MEM } from '../lib/sizes.mjs';
 
 const KERNEL_LINEAR = 0x600; // DOS kernel load address
@@ -176,6 +176,15 @@ function runKilnDos({ bios, floppy, manifest, kernelBytes, output, header }) {
   // embeddedData is reserved for legacy "embedded disk" mode; with
   // the default rom-disk path, disk bytes come in via opts.diskBytes.
   const embData = [];
+  // Writable disk: the whole floppy image also becomes ordinary memory
+  // cells at DISK_SHADOW_LINEAR (their @property initial values are the
+  // factory floppy). emitCSS's writableDisk opt reroutes the window's
+  // read arms + write cascade at those cells. Opt-in only — the shadow
+  // roughly doubles a big cabinet's cell count, so game carts don't pay.
+  const wantsWritable = manifest.disk?.writable === true;
+  if (wantsWritable) {
+    embData.push({ addr: DISK_SHADOW_LINEAR, bytes: floppy.bytes });
+  }
   const memoryZones = dosMemoryZones(kernelBytes, KERNEL_LINEAR, memBytes, embData, prune);
 
   emitCSS({
@@ -184,6 +193,9 @@ function runKilnDos({ bios, floppy, manifest, kernelBytes, output, header }) {
     memoryZones,
     embeddedData:  embData,
     diskBytes:     floppy.bytes,
+    writableDisk:  wantsWritable
+      ? { base: DISK_SHADOW_LINEAR, length: floppy.bytes.length }
+      : null,
     programOffset: KERNEL_LINEAR,
     initialCS:     bios.entrySegment,
     initialIP:     bios.entryOffset,

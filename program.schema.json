@@ -58,8 +58,8 @@
             },
             "writable": {
               "type": "boolean",
-              "default": true,
-              "description": "Whether INT 13h can write to the disk. Writes go to a RAM shadow; nothing persists across sessions. NOT YET IMPLEMENTED — today INT 13h has no write path in any BIOS."
+              "default": false,
+              "description": "Whether INT 13h can write to the disk (Corduroy AH=03h). Writes live in shadow cells for the lifetime of the tab; reloading resets to the factory floppy. Opt-in: the shadow adds one memory cell per disk byte, growing the cabinet by roughly the disk size in cells — game carts should leave it off."
             },
             "files": {
               "type": "array",

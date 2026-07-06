@@ -11,8 +11,9 @@ import {
   emitKeyboardRules,
 } from './template.mjs';
 import { emitPixelPaintRules } from './pixels.mjs';
-import { emitWriteSlotProperties, buildInitialMemory, buildAddressSet, NUM_WRITE_SLOTS,
-         PACK_SIZE, buildCellSet, buildInitialMemoryPacked, cellIdxOf, cellOffOf } from './memory.mjs';
+import { emitWriteSlotProperties, emitDiskAddrProperties, buildInitialMemory, buildAddressSet,
+         NUM_WRITE_SLOTS, PACK_SIZE, buildCellSet, buildInitialMemoryPacked,
+         cellIdxOf, cellOffOf, cellBase } from './memory.mjs';
 import { emitFlagFunctions } from './patterns/flags.mjs';
 
 // Opcode emitters
@@ -638,7 +639,7 @@ function isAddrPlusOneAtomic(loAddr, hiAddr) {
  */
 export function emitCSS(opts, writeStream) {
   const { programBytes, biosBytes, memoryZones, embeddedData, programOffset,
-          initialCS, initialIP, diskBytes, header } = opts;
+          initialCS, initialIP, diskBytes, writableDisk, header } = opts;
 
   // Build sorted address array from zones (or fall back to legacy contiguous range)
   let addresses;
@@ -650,7 +651,7 @@ export function emitCSS(opts, writeStream) {
     for (let i = 0; i < memSize; i++) addresses.push(i);
   }
 
-  const memOpts = { addresses, programBytes, biosBytes, embeddedData, programOffset, diskBytes };
+  const memOpts = { addresses, programBytes, biosBytes, embeddedData, programOffset, diskBytes, writableDisk };
   // templateOpts.memSize is used for SP init — derive from the top of the lowest zone
   // (conventional memory area, which is always zones[0] by convention)
   const convEnd = memoryZones ? memoryZones[0][1] : (opts.memSize || 0x10000);
@@ -738,6 +739,11 @@ export function emitCSS(opts, writeStream) {
                     // the release tick), it reads scancode 0 and never
                     // sees the release. DOOM's key-held state then sticks.
                     'kbdScancodeLatch',
+                    // Hold-wire held set: scancodes latched while --kbdHold
+                    // was up, drained as break codes when it drops. See
+                    // kiln/patterns/misc.mjs emitIRQCompute.
+                    'kbdHeld0', 'kbdHeld1', 'kbdHeld2', 'kbdHeld3',
+                    'kbdHeld4', 'kbdHeld5', 'kbdHeld6', 'kbdHeld7',
                     // VGA DAC state machines — write side updated by OUT
                     // 0x3C8 / 0x3C9, read side updated by OUT 0x3C7 / IN 0x3C9.
                     // See kiln/patterns/misc.mjs emitIO() for protocol.
@@ -758,9 +764,20 @@ export function emitCSS(opts, writeStream) {
     kbdScancodeLatch: `if(
       style(--_kbdPress: 1): --rightShift(var(--keyboard), 8);
       style(--_kbdRelease: 1): --or(--rightShift(var(--__1prevKeyboard), 8), 128);
+      style(--_kbdDrain: 1): calc(var(--_kbdPopSc) + 128);
       else: var(--__1kbdScancodeLatch)
     )`,
   };
+  // Hold-wire held set: append the latched scancode into this slot when
+  // its --_kbdApp flag fires, clear it when its --_kbdPop flag fires
+  // (drain), otherwise carry. Flags come from emitIRQCompute.
+  for (let i = 0; i < 8; i++) {
+    customDefaults[`kbdHeld${i}`] = `if(
+      style(--_kbdApp${i}: 1): var(--_kbdLatchSc);
+      style(--_kbdPop${i}: 1): 0;
+      else: var(--__1kbdHeld${i})
+    )`;
+  }
   for (const reg of regOrder) {
     const defaultExpr = customDefaults[reg] ?? `var(--__1${reg})`;
     writeStream.write(dispatch.emitRegisterDispatch(reg, defaultExpr) + '\n');
@@ -772,6 +789,9 @@ export function emitCSS(opts, writeStream) {
   writeStream.write(dispatch.emitMemoryWriteSlots() + '\n\n');
   writeStream.write(dispatch.emitSlotLiveGates() + '\n\n');
   writeStream.write(dispatch.emitWriteWidthGate() + '\n\n');
+  if (writableDisk) {
+    writeStream.write(emitDiskWriteRemap(writableDisk) + '\n\n');
+  }
 
   // 6. Debug display
   w('}');
@@ -797,6 +817,7 @@ export function emitCSS(opts, writeStream) {
   // Memory properties — emit in chunks to avoid huge strings
   emitMemoryPropertiesStreaming(memOpts, writeStream);
   w(emitWriteSlotProperties());
+  if (writableDisk) w(emitDiskAddrProperties());
 
   // readMem @function (large — one branch per memory byte)
   w('/* ===== MEMORY READ ===== */');
@@ -838,6 +859,69 @@ export function emitCSS(opts, writeStream) {
 
 const CHUNK = 8192; // lines per write() call
 
+// Rom-disk window (guest side): 512 bytes at linear 0xD0000. Reads are
+// dispatched through --readDiskByte; on writable carts, writes are remapped
+// into the disk-shadow cells by --_dskAddrN below.
+const DISK_WINDOW_BASE = 0xD0000;
+const DISK_WINDOW_SIZE = 512;
+
+// The LBA register is a normal writable word at linear 0x4F0 (see the
+// 0x4F0 pitfall in docs/memory-layout.md). Compose it as low + high*256
+// from the current PACK_SIZE's storage — shared by the window read arms
+// and the write remap.
+function lbaByteExprs() {
+  const lo = PACK_SIZE === 1
+    ? `var(--__1m1264)`
+    : `mod(var(--__1mc${cellIdxOf(0x4F0)}), 256)`;
+  const hi = PACK_SIZE === 1
+    ? `var(--__1m1265)`
+    : `round(down, var(--__1mc${cellIdxOf(0x4F1)}) / 256)`;
+  return { lo, hi };
+}
+
+/**
+ * Writable disk: per-slot window-write remap.
+ *
+ * The disk shadow lives as ordinary packed cells whose NAMES sit at
+ * writableDisk.base (outside the 1 MB guest space), but every COMPUTED
+ * value in the write path stays in disk-local byte units (0..diskLen).
+ * That bound matters: Chrome stores computed numeric custom-property
+ * values with only ~6 significant digits, so any computed value ≥ 1e6
+ * silently loses precision (verified in Chromium — see LOGBOOK
+ * 2026-07-06). Big constants may live in property names and in literal
+ * arm keys, never in computed values.
+ *
+ * Per write slot:
+ *   --_dskIn N  = 1 when memAddrN is inside the rom-disk window, else 0
+ *                 (product of two clamp(0,...,1) step functions).
+ *   --_dskOffN  = lba*512 + (memAddrN - 0xD0000) when inside — the
+ *                 disk-local byte offset of the write — and -1 outside.
+ *
+ * Disk cells key their --applySlot cascade on --_dskOffN with disk-local
+ * cell indices; RAM cells keep --memAddrN untouched. A write lands in
+ * exactly one family: inside the window no RAM cell exists, and outside
+ * the window --_dskOffN is -1 which matches no disk cell.
+ */
+function emitDiskWriteRemap(writableDisk) {
+  const { lo, hi } = lbaByteExprs();
+  const winLo = DISK_WINDOW_BASE;            // first window byte
+  const winEnd = DISK_WINDOW_BASE + DISK_WINDOW_SIZE; // one past last
+  const lines = ['  /* ===== WRITABLE-DISK WRITE REMAP (--_dskInN / --_dskOffN) ===== */'];
+  for (let i = 0; i < NUM_WRITE_SLOTS; i++) {
+    lines.push(
+      `  --_dskIn${i}: calc(` +
+      `clamp(0, var(--memAddr${i}) - ${winLo - 1}, 1) * ` +
+      `clamp(0, ${winEnd} - var(--memAddr${i}), 1));`
+    );
+    lines.push(
+      `  --_dskOff${i}: calc(var(--_dskIn${i}) * ` +
+      `(var(--memAddr${i}) - ${winLo} + (${lo} + ${hi} * 256) * 512) ` +
+      `+ var(--_dskIn${i}) - 1);`
+    );
+  }
+  return lines.join('\n');
+}
+
 function emitMemoryPropertiesStreaming(opts, ws) {
   const { addresses } = opts;
   if (PACK_SIZE === 1) {
@@ -866,13 +950,19 @@ function emitMemoryPropertiesStreaming(opts, ws) {
 }
 
 function emitReadMemStreaming(opts, ws) {
-  const { addresses, biosBytes, diskBytes } = opts;
+  const { addresses, biosBytes, diskBytes, writableDisk } = opts;
   ws.write(`@function --readMem(--at <integer>) returns <integer> {\n  result: if(\n`);
   let buf = '';
   let count = 0;
   // Writable memory region
   // Addresses 0x0500-0x0501 (1280-1281) bridge to --keyboard for BIOS INT 16h
   for (const addr of addresses) {
+    // Disk-shadow cells are not guest-addressable — the CPU can only reach
+    // them through the 0xD0000 window (whose arms are emitted below). Skip
+    // their --readMem arms; they'd never match and only bloat the dispatch.
+    if (writableDisk && addr >= writableDisk.base && addr < writableDisk.base + writableDisk.length) {
+      continue;
+    }
     if (addr === 0x0500) {
       buf += `    style(--at: 1280): --lowerBytes(var(--__1keyboard), 8);\n`;
     } else if (addr === 0x0501) {
@@ -910,14 +1000,16 @@ function emitReadMemStreaming(opts, ws) {
   //           halves — extract with mod/round-down-div, same shape as the
   //           read dispatch above.
   if (diskBytes) {
-    const lbaLowExpr = PACK_SIZE === 1
-      ? `var(--__1m1264)`
-      : `mod(var(--__1mc${cellIdxOf(0x4F0)}), 256)`;
-    const lbaHighExpr = PACK_SIZE === 1
-      ? `var(--__1m1265)`
-      : `round(down, var(--__1mc${cellIdxOf(0x4F1)}) / 256)`;
-    for (let i = 0; i < 512; i++) {
-      const addr = 0xD0000 + i;
+    const { lo: lbaLowExpr, hi: lbaHighExpr } = lbaByteExprs();
+    // The key is the plain disk byte index (lba*512 + offset) in both rom
+    // and writable modes. It must stay a SMALL computed value: Chrome's
+    // computed numeric custom properties only carry ~6 significant digits,
+    // so keying on the shadow's high linear address would corrupt every
+    // dispatch in a spec-compliant evaluator. (Disk indices themselves
+    // stay exact up to ~1e6, i.e. ~1 MB of disk — a pre-existing bound
+    // shared with rom mode.)
+    for (let i = 0; i < DISK_WINDOW_SIZE; i++) {
+      const addr = DISK_WINDOW_BASE + i;
       buf += `    style(--at: ${addr}): --readDiskByte(calc((${lbaLowExpr} + ${lbaHighExpr} * 256) * 512 + ${i}));\n`;
       if (buf.length > 8192) { ws.write(buf); buf = ''; }
     }
@@ -925,23 +1017,50 @@ function emitReadMemStreaming(opts, ws) {
   if (buf) ws.write(buf);
   ws.write(`  else: 0);\n}\n\n`);
 
-  // Emit the --readDiskByte @function — one branch per non-zero disk byte.
+  // Emit the --readDiskByte @function — one branch per non-zero disk byte
+  // (rom disks), or one branch per disk byte reading the shadow cells
+  // (writable disks).
   if (diskBytes) {
-    emitReadDiskByteStreaming(diskBytes, ws);
+    emitReadDiskByteStreaming(diskBytes, ws, writableDisk);
   }
 }
 
-function emitReadDiskByteStreaming(diskBytes, ws) {
-  // Sector-based dispatch: --lba selects a 512-byte sector, --off selects
-  // the byte within. One branch per non-zero disk byte. Calcite flattens
-  // this dispatch into a byte-array lookup.
+function emitReadDiskByteStreaming(diskBytes, ws, writableDisk) {
+  // --idx = lba*512 + offset (disk byte index) in both modes.
+  // Rom disks: one branch per non-zero byte, literal result — calcite
+  // flattens this dispatch into a byte-array lookup.
+  // Writable disks: one branch per byte (zero bytes included — any free
+  // sector can be written then read back), each reading its shadow cell.
+  // The arm shape is byte extraction on --__1mc<(base+idx)/PACK_SIZE> —
+  // the same extraction --readMem's packed arms use, with a constant
+  // offset between the key space and the cell-name space (the shadow's
+  // high name base never appears as a computed value — Chrome only keeps
+  // ~6 significant digits on those).
   ws.write(`@function --readDiskByte(--idx <integer>) returns <integer> {\n  result: if(\n`);
   let buf = '';
-  for (let idx = 0; idx < diskBytes.length; idx++) {
-    const b = diskBytes[idx];
-    if (b !== 0) {
-      buf += `    style(--idx: ${idx}): ${b};\n`;
+  if (writableDisk) {
+    const { base } = writableDisk;
+    for (let idx = 0; idx < diskBytes.length; idx++) {
+      const nameAddr = base + idx;
+      let expr;
+      if (PACK_SIZE === 1) {
+        expr = `var(--__1m${nameAddr})`;
+      } else {
+        const cell = cellIdxOf(nameAddr);
+        expr = cellOffOf(nameAddr) === 0
+          ? `mod(var(--__1mc${cell}), 256)`
+          : `round(down, var(--__1mc${cell}) / 256)`;
+      }
+      buf += `    style(--idx: ${idx}): ${expr};\n`;
       if (buf.length > 8192) { ws.write(buf); buf = ''; }
+    }
+  } else {
+    for (let idx = 0; idx < diskBytes.length; idx++) {
+      const b = diskBytes[idx];
+      if (b !== 0) {
+        buf += `    style(--idx: ${idx}): ${b};\n`;
+        if (buf.length > 8192) { ws.write(buf); buf = ''; }
+      }
     }
   }
   if (buf) ws.write(buf);
@@ -989,7 +1108,15 @@ function emitMemoryWriteRulesStreaming(opts, ws) {
   // the whole shape to a gated address-table lookup, skipping the entire
   // table when the gate reads 0 — see
   // calcite/crates/calcite-core/src/pattern/packed_broadcast_write.rs.
-  const { addresses } = opts;
+  const { addresses, writableDisk } = opts;
+  // Disk-shadow cells form their own write family keyed on --_dskOffN
+  // (the disk-local byte offset of a window write; -1 otherwise), with
+  // disk-local cell indices in the offset arithmetic. RAM cells keep
+  // --memAddrN and guest-linear indices, byte-identical to rom builds.
+  // The two families have disjoint cell sets and each write matches at
+  // most one — see emitDiskWriteRemap.
+  const isDiskCell = (byteAddr) =>
+    writableDisk && byteAddr >= writableDisk.base && byteAddr < writableDisk.base + writableDisk.length;
   if (PACK_SIZE === 1) {
     // Per byte at address A, each slot can hit two ways:
     //   (1) memAddrN == A             : slot's lo half lands here.
@@ -999,12 +1126,18 @@ function emitMemoryWriteRulesStreaming(opts, ws) {
     let count = 0;
     for (const addr of addresses) {
       const hold = `var(--__1m${addr})`;
+      // Disk bytes compare --_dskOffN against their DISK-LOCAL offset
+      // (small, Chrome-exact); RAM bytes compare --memAddrN against their
+      // guest-linear address.
+      const disk = isDiskCell(addr);
+      const av = disk ? '--_dskOff' : '--memAddr';
+      const key = disk ? addr - writableDisk.base : addr;
       const branches = [];
       for (let i = 0; i < NUM_WRITE_SLOTS; i++) {
         // (1) lo/byte half at addr.
-        branches.push(`    style(--_slot${i}Live: 1) and style(--memAddr${i}: ${addr}): if(style(--_writeWidth: 2): --lowerBytes(var(--memVal${i}), 8); else: var(--memVal${i}));`);
+        branches.push(`    style(--_slot${i}Live: 1) and style(${av}${i}: ${key}): if(style(--_writeWidth: 2): --lowerBytes(var(--memVal${i}), 8); else: var(--memVal${i}));`);
         // (2) hi half at addr (slot's pair is at addr-1..addr).
-        branches.push(`    style(--_slot${i}Live: 1) and style(--memAddr${i}: ${addr - 1}) and style(--_writeWidth: 2): --rightShift(var(--memVal${i}), 8);`);
+        branches.push(`    style(--_slot${i}Live: 1) and style(${av}${i}: ${key - 1}) and style(--_writeWidth: 2): --rightShift(var(--memVal${i}), 8);`);
       }
       buf += `  --m${addr}: if(\n${branches.join('\n')}\n    else: ${hold});\n`;
       if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
@@ -1032,15 +1165,24 @@ function emitMemoryWriteRulesStreaming(opts, ws) {
   const cells = buildCellSet(addresses);
   let buf = '';
   let count = 0;
+  const diskBaseCell = writableDisk ? cellIdxOf(writableDisk.base) : -1;
   for (const idx of cells) {
     // Build the cascade inside-out: start with __1mcIDX, then slot N-1, ..., slot 0.
     // The `${idx} * ${PACK_SIZE}` arithmetic (rather than the pre-folded
     // `${cellBase(idx)}`) is deliberate: it keeps the per-cell digit run
     // equal to the cell index, so the parser fast-path classifies it as
     // an Addr hole (not a Free hole) and can template the whole run.
+    //
+    // Disk cells key on --_dskOffN with DISK-LOCAL cell indices (idx -
+    // diskBaseCell): every computed value in the comparison stays below
+    // Chrome's ~6-significant-digit precision cliff; only the property
+    // NAME carries the high base.
+    const disk = isDiskCell(cellBase(idx));
+    const av = disk ? '--_dskOff' : '--memAddr';
+    const key = disk ? idx - diskBaseCell : idx;
     let expr = `var(--__1mc${idx})`;
     for (let slot = NUM_WRITE_SLOTS - 1; slot >= 0; slot--) {
-      expr = `--applySlot(${expr}, var(--_slot${slot}Live), calc(var(--memAddr${slot}) - ${idx} * ${PACK_SIZE}), calc(var(--memAddr${slot}) + 1 - ${idx} * ${PACK_SIZE}), var(--memVal${slot}), var(--_writeWidth))`;
+      expr = `--applySlot(${expr}, var(--_slot${slot}Live), calc(var(${av}${slot}) - ${key} * ${PACK_SIZE}), calc(var(${av}${slot}) + 1 - ${key} * ${PACK_SIZE}), var(--memVal${slot}), var(--_writeWidth))`;
     }
     buf += `  --mc${idx}: ${expr};\n`;
     if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }

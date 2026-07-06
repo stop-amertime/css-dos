@@ -21,6 +21,7 @@
     "textVga": true
   },
   "disk": {
+    "writable": true,
     "files": [
       { "name": "README.TXT", "source": "README.TXT" },
       { "name": "EDIT.EXE", "source": "EDIT.EXE" },

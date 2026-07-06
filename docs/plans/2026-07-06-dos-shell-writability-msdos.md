@@ -3,10 +3,22 @@
 Owner intent: one cart that is *programs, not games* (`carts/dos-shell`,
 stage 1, LANDED 2026-07-06 — see LOGBOOK). Stage 2 makes it a usable
 machine (editors can save); stage 3 boots real MS-DOS on the same
-hardware. Stages are independent — either can land first — but 2-then-3
-gives a *usable* MS-DOS.
+hardware.
 
-Delete this file when both stages ship (or die); history → LOGBOOK.
+**Stage 2 LANDED 2026-07-06** (same day — LOGBOOK
+`2026-07-06-writable-disk-stage2` + calcite log 2026-07-06). The
+detailed stage-2 section below is kept only as design history; the
+as-built design diverged in two ways worth knowing before stage 3:
+(a) no two-key guarded write — the disk is ordinary packed cells at a
+high NAME base with a per-slot window remap (`--_dskInN`/`--_dskOffN`)
+into a second write family; (b) Chrome rounds computed numeric custom
+properties to ~6 significant digits, so every computed value stays
+< diskLen and **writable disks must stay ≤ 720K** (memory-layout.md
+"1e6 precision rule"). That bound also constrains stage 3: MS-DOS 4.0
+on a writable disk must fit in 720K, or ship read-only on a bigger
+floppy.
+
+Delete this file when stage 3 ships (or dies); history → LOGBOOK.
 
 ## Stage 2 — INT 13h write path ("session-writable disk")
 

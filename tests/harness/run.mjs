@@ -44,6 +44,8 @@ Presets:
                 some tick count. Fastest, widest coverage.
   conformance   Run fulldiff on every reference cart for --max-ticks=N
                 instructions. Pass = no divergence against JS reference.
+  writable      Build the writable-disk e2e cart (dos-writable), boot it,
+                and assert its batch-written file TYPEs back on screen.
   visual        --mode=verify: check each cart's screenshots against a
                 recorded baseline. --mode=record: create new baselines.
   full          smoke + conformance + visual(verify), in sequence.
@@ -228,6 +230,39 @@ async function runVisual() {
   return { preset: 'visual', mode, carts: results, allOk: results.every(r => r.ok) };
 }
 
+// --- writable preset ----------------------------------------------------
+
+// End-to-end writable-disk check. carts/test-carts/dos-writable boots to
+// COMMAND.COM and runs WRTEST.BAT: `ECHO HELLO FROM SHADOW>T.TXT` then
+// `TYPE T.TXT`. The echoed line only reaches the screen if the INT 13h
+// AH=03h write landed in the shadow-disk cells AND the subsequent reads
+// (FAT chain, dir entry, data sector) see it. fast-shoot at a
+// post-batch tick and assert the sentinel text.
+const WRITABLE_CART = 'carts/test-carts/dos-writable';
+const WRITABLE_SENTINEL = 'HELLO FROM SHADOW';
+const WRITABLE_SHOT_TICK = 4_800_000; // boot (~4M incl. splash hold) + batch
+
+async function runWritable() {
+  log(`writable: ${WRITABLE_CART}`);
+  const cabinet = join(HARNESS_ROOT, 'cache', 'dos-writable.css');
+  const build = await runPipeline('build', resolve(REPO_ROOT, WRITABLE_CART), `--out=${cabinet}`);
+  if (!build.result.ok) {
+    return { preset: 'writable', ok: false, allOk: false, stage: 'build', error: build.result.error };
+  }
+  const shot = await runPipeline('fast-shoot', cabinet, `--tick=${WRITABLE_SHOT_TICK}`,
+    `--out=${join(HARNESS_ROOT, 'cache', 'dos-writable.png')}`);
+  const text = shot.result?.shot?.text ?? '';
+  const ok = text.includes(WRITABLE_SENTINEL);
+  return {
+    preset: 'writable',
+    ok,
+    allOk: ok,
+    buildMs: build.result.buildMs,
+    sentinel: WRITABLE_SENTINEL,
+    screenTail: text.split('\n').filter(l => l.trim()).slice(-3),
+  };
+}
+
 // --- full preset --------------------------------------------------------
 
 async function runFull() {
@@ -261,6 +296,7 @@ async function main() {
     switch (preset) {
       case 'smoke':        report = await runSmoke();        break;
       case 'conformance':  report = await runConformance();  break;
+      case 'writable':     report = await runWritable();     break;
       case 'visual':       report = await runVisual();       break;
       case 'full':         report = await runFull();         break;
       default:

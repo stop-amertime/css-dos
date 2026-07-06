@@ -61,16 +61,48 @@ segment-relative), which sits at absolute 0x4F0–0x4FF.
 Future BIOS work touching INT 13h: use `xor ax, ax; mov ds, ax`
 before addressing the LBA register. Don't use `BDA_SEG`.
 
-## Writable disk (aspirational)
+## Writable disk (`disk.writable`, landed 2026-07-06)
 
-Session-writable disk is designed but not yet implemented. When it
-lands, INT 13h write calls will go to a RAM shadow sized by
-`disk.size`. Writes live for the lifetime of the tab; reloading the
-player resets to the factory floppy. No cross-session persistence —
-that's a deliberate v1 decision.
+Opt-in per cart (`"disk": { "writable": true }`). The whole floppy
+image becomes ordinary packed memory cells at `DISK_SHADOW_LINEAR =
+0x200000` (outside the 1 MB guest space, same trick as the DAC
+shadow). Cell `@property` initial values are the factory floppy, so
+writes live for the lifetime of the tab and a reload resets to
+factory. No cross-session persistence — deliberate v1 decision.
 
-See `docs/cart-format.md` for the schema field (`disk.writable`) and
-the aspirational tag.
+Mechanics (all in `kiln/emit-css.mjs`, gated on `writableDisk`):
+
+- **Reads** — `--readDiskByte(idx)` arms stop being literals; each arm
+  reads its shadow cell: `style(--idx: N): mod(var(--__1mc<C>), 256)`
+  with `C = (0x200000 + N) / 2`. Every byte gets an arm (free sectors
+  must read back after a write).
+- **Writes** — per write slot, two derived props:
+  `--_dskInN` (1 iff `memAddrN` is inside the 0xD0000 window) and
+  `--_dskOffN` (`lba*512 + (memAddrN - 0xD0000)` inside, −1 outside).
+  Disk cells run the normal `--applySlot` cascade keyed on
+  `--_dskOffN` with **disk-local** cell indices; RAM cells keep
+  `--memAddrN` untouched.
+- **BIOS** — Corduroy INT 13h AH=03h mirrors AH=02h with the copy
+  reversed (`REP MOVSW` into the window per sector, LBA++); AH=04h
+  verify always succeeds.
+
+**The 1e6 precision rule.** Chrome stores computed numeric custom
+properties with only ~6 significant digits — any computed value
+≥ 1,000,000 silently loses precision (verified in Chromium, LOGBOOK
+2026-07-06; an idealised spec evaluator would be exact, but the
+cardinal rule's reference is what Chrome actually computes). That is
+why the shadow's high base appears only in property NAMES and literal
+arm keys, never in a computed value: disk offsets (`--_dskOffN`,
+`--readDiskByte` keys) stay < diskLen. Corollary: on disks over
+~1 MB, reads/writes beyond byte index 999,999 are Chrome-imprecise —
+a bound **shared with rom mode** (rom `--readDiskByte` keys are
+`lba*512+off` too, and `--memAddrN` at DAC addresses ≥ 0x100000 has
+the same exposure). Calcite evaluates these exactly either way. Keep
+writable carts on ≤ 720K floppies to stay inside the
+everything-agrees region.
+
+Cost: one packed cell per disk byte pair — a 360K floppy adds ~184K
+cells (~120 MB of CSS text). Game carts must leave `writable` off.
 
 ## Conventional RAM sizing caveat
 

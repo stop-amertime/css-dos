@@ -81,8 +81,8 @@ When `program.json` is missing or sparse, the builder fills in:
 | `memory.gfx` | `true` |
 | `memory.textVga` | `true` |
 | `disk.mode` | `rom` |
-| `disk.size` | `1440K` |
-| `disk.writable` | `true` |
+| `disk.size` | `autofit` |
+| `disk.writable` | `false` |
 | `disk.files` | every non-`program.json` file in the cart folder |
 | `boot.runCommand` | the single `.COM`/`.EXE` in the cart (name, no extension), or `""` (drop to prompt) if there are multiple |
 
@@ -109,7 +109,6 @@ When `program.json` is missing or sparse, the builder fills in:
   "disk": {
     "mode": "rom",
     "size": "1440K",
-    "writable": true,
     "files": [
       { "name": "BOOTLE.COM", "source": "bootle.com" }
     ]
@@ -251,13 +250,21 @@ linearly: at 32 (16 KB clusters) a 1.5 MB file is ~94 links instead of
 ~1500. Cost: more slack per file (avg SPC×256 bytes), irrelevant on a
 fixed-size image with few files.
 
-#### `disk.writable` · aspirational
+#### `disk.writable`
 
-When `true`, INT 13h accepts writes. Writes go to a RAM shadow; nothing
-persists across cabinet reloads. Default `true`.
+When `true`, INT 13h accepts writes (Corduroy AH=03h; AH=04h verify).
+The whole floppy image becomes shadow memory cells whose initial values
+are the factory floppy — writes live for the lifetime of the tab, and
+reloading resets to factory. Nothing persists across sessions.
 
-**Not yet implemented:** today INT 13h is read-only in all three BIOSes.
-The schema accepts the field; the write path is a follow-up.
+Default `false`, and deliberately opt-in: the shadow adds one packed
+cell per disk byte pair, growing the cabinet by roughly 120 MB per
+360K of floppy and slowing calcite ticks ~2× on the writable cart.
+Keep it off on game carts. Keep writable carts on ≤ 720K floppies —
+see the precision note in
+[`memory-layout.md`](memory-layout.md#writable-disk-diskwritable-landed-2026-07-06).
+Gossamer and Muslin have no write path (writes vanish, adapter-ROM
+style).
 
 #### `disk.files` · implemented
 
@@ -357,9 +364,9 @@ preferred default so future builder/player wiring can pick it up.
 ```json
 {
   "bios": "corduroy",
-  "memory":  { "conventional": "640K", "gfx": true, "textVga": true },
-  "disk":    { "mode": "rom", "size": "1440K", "writable": true },
-  "boot":    { "args": "" }
+  "memory":  { "conventional": "autofit", "gfx": true, "textVga": true, "cgaGfx": false },
+  "disk":    { "mode": "rom", "size": "autofit", "writable": false },
+  "boot":    {}
 }
 ```
 

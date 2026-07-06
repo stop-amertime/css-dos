@@ -13,6 +13,16 @@ is baked into any given `.css`:
 head -5 cabinet.css
 ```
 
+## 0.4.0 — 2026-07-06
+
+- INT 13h gains AH=03h (write sectors) and AH=04h (verify sectors).
+  Write mirrors the AH=02h read: per sector it latches the LBA word at
+  linear 0x4F0, then `REP MOVSW` 256 words from the caller's ES:BX
+  *into* the window at D000:0000. On `disk.writable` cabinets the CSS
+  routes window writes into shadow-disk cells; on rom cabinets the
+  bytes vanish (adapter-ROM semantics). Verify always succeeds — the
+  disk is CSS properties, there is no medium.
+
 ## 0.3.0 — 2026-07-06
 
 - INT 09h `scancode2ascii` gains the digit row (`1`–`0`, scancodes

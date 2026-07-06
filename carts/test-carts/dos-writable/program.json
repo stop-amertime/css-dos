@@ -1,0 +1,7 @@
+{
+  "name": "DOS writable-disk smoke",
+  "description": "Boots to COMMAND.COM and runs WRTEST.BAT: echo a line into T.TXT (INT 13h AH=03h via the shadow disk), then TYPE it back. The harness asserts the typed-back text is on screen.",
+  "preset": "dos-corduroy",
+  "disk": { "writable": true },
+  "boot": { "runCommand": "WRTEST" }
+}

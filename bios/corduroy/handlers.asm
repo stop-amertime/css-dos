@@ -977,6 +977,10 @@ int13h_handler:
     je .disk_reset
     cmp ah, 0x02
     je .disk_read
+    cmp ah, 0x03
+    je .disk_write
+    cmp ah, 0x04
+    je .disk_verify
     cmp ah, 0x08
     je .disk_params
     cmp ah, 0x15
@@ -988,6 +992,14 @@ int13h_handler:
 
 .disk_reset:
     xor ah, ah
+    clc
+    iret
+
+.disk_verify:
+    ; AH=04h: Verify sectors. The disk is CSS properties — there is no
+    ; medium to develop errors. Report success, AL = sectors verified
+    ; (unchanged from input).
+    mov ah, 0
     clc
     iret
 
@@ -1114,6 +1126,93 @@ int13h_handler:
     clc
     pop di
     pop si
+    pop ds
+    pop bp
+    iret
+
+.disk_write:
+    ; AH=03h: Write sectors via the rom-disk window.
+    ; AL=count, CH=cylinder, CL=sector(1-based), DH=head, DL=drive, ES:BX=src
+    ;
+    ; Mirror of .disk_read with the copy reversed: for each sector, write
+    ; the current LBA word to linear [0x4F0], then REP MOVSW 256 words from
+    ; the caller's ES:BX into the window at D000:0000. On writable cabinets
+    ; the CSS routes window writes into shadow-disk cells keyed by that LBA;
+    ; on rom cabinets the window has no backing cells and the bytes vanish
+    ; (same as writing adapter ROM on real hardware). We report success
+    ; either way — the BIOS can't tell the flavors apart, and DOS re-reads
+    ; what it wrote rather than checking.
+    push bp
+    mov bp, sp
+    push ds                ; [bp-2]
+    push es                ; [bp-4]
+    push si                ; [bp-6]
+    push di                ; [bp-8]
+    push bx                ; [bp-10] caller BX = source offset
+    push ax                ; [bp-12] AL = sector count (for return)
+
+    ; Compute LBA = (cyl * heads + head) * spt + (sector - 1) into AX.
+    ; Same geometry math as .disk_read: BX scratch, DX preserved around MUL.
+    mov al, ch
+    xor ah, ah             ; AX = cyl
+    xor bh, bh
+    mov bl, [cs:disk_geometry_heads]
+    push dx
+    mul bx                 ; AX = cyl * heads
+    pop dx
+    xor bh, bh
+    mov bl, dh
+    add ax, bx             ; AX = cyl*heads + head
+    xor bh, bh
+    mov bl, [cs:disk_geometry_spt]
+    push dx
+    mul bx                 ; AX = (cyl*heads + head) * spt
+    pop dx
+    xor ch, ch
+    dec cl                 ; sector is 1-based
+    add ax, cx             ; AX = starting LBA
+    mov bx, ax             ; BX = LBA (loop counter)
+
+    mov ax, [bp-12]
+    xor ah, ah
+    mov cx, ax             ; CX = sector count
+    mov si, [bp-10]        ; SI = source offset (caller BX)
+
+    ; Segments for MOVSW: DS:SI = caller buffer, ES:DI = disk window.
+    mov ax, es
+    mov ds, ax             ; DS = caller ES
+    mov ax, DISK_SEG
+    mov es, ax             ; ES = window segment
+
+.write_sector_loop:
+    ; Write BX (LBA) to linear [0x4F0] as a word via segment 0.
+    push ds
+    xor di, di
+    mov ds, di             ; DS = 0
+    mov [disk_lba], bx     ; word write: low at 0x4F0, high at 0x4F1
+    pop ds
+
+    ; Copy 256 words from DS:SI (caller buffer) to ES:DI=0 (window).
+    ; SI advances 512 bytes per sector, exactly the caller-buffer stride.
+    xor di, di
+    push cx
+    mov cx, 256
+    cld
+    rep movsw
+    pop cx
+
+    inc bx                 ; next LBA
+    dec cx
+    jnz .write_sector_loop
+
+    ; Success: AL = sectors written, AH = 0, CF clear.
+    pop ax                 ; original count
+    xor ah, ah
+    clc
+    pop bx
+    pop di
+    pop si
+    pop es
     pop ds
     pop bp
     iret

@@ -175,7 +175,15 @@ export function createRefMachine(sidecars, { initialCS, initialIP, peripherals =
   // `--readDiskByte` dispatch so DOS programs that page sectors via INT 13h
   // (e.g. doom8088 at 2.88MB, well beyond the 1MB linear RAM) work without
   // memmapping the whole disk.
-  const diskBytes = sidecars.disk;
+  //
+  // Writable carts (`disk.writable` in the manifest): window WRITES land in
+  // a session copy of the disk image at the same lba*512+offset mapping —
+  // the JS twin of the cabinet's shadow-disk cells. Non-writable carts drop
+  // window writes, matching CSS (no cells behind the window → write lost).
+  const diskWritable = sidecars.meta?.disk?.writable === true;
+  const diskBytes = sidecars.disk && diskWritable
+    ? Uint8Array.from(sidecars.disk)
+    : sidecars.disk;
   const read = (addr) => {
     if (diskBytes && addr >= DISK_WINDOW_BASE && addr < DISK_WINDOW_END) {
       const lba = mem[DISK_LBA_LATCH] | (mem[DISK_LBA_LATCH + 1] << 8);
@@ -186,6 +194,13 @@ export function createRefMachine(sidecars, { initialCS, initialIP, peripherals =
     return mem[addr];
   };
   const write = (addr, val) => {
+    if (diskBytes && addr >= DISK_WINDOW_BASE && addr < DISK_WINDOW_END) {
+      if (!diskWritable) return; // rom disk: window writes are dropped
+      const lba = mem[DISK_LBA_LATCH] | (mem[DISK_LBA_LATCH + 1] << 8);
+      const off = lba * DISK_SECTOR_SIZE + (addr - DISK_WINDOW_BASE);
+      if (off < diskBytes.length) diskBytes[off] = val & 0xFF;
+      return;
+    }
     if (addr < 0 || addr >= mem.length) return;
     mem[addr] = val & 0xFF;
     if (writeLog) writeLog.push({ addr, value: val & 0xFF });
