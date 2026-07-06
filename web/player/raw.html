@@ -381,7 +381,10 @@
        file stays script-free. */
     .embed-anchor { display: none; }
     body:has(#embed:target) {
-      background: var(--edit-gray);
+      /* #d6d6d6 = the SITE's dialog gray (web/site global.css --edit-gray),
+         not this file's EGA #aaaaaa — the iframe must be invisible against
+         the window that hosts it. Separate documents, so no shared var. */
+      background: #d6d6d6;
       padding: 4px 0;
       min-height: 0;
     }
@@ -394,6 +397,7 @@
       box-shadow: none;
       border: none;
       max-width: 100%;
+      background: #d6d6d6; /* same host-window gray as the body above */
     }
     body:has(#embed:target) .window-body { padding: 8px 6px; }
   </style>

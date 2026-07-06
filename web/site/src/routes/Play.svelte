@@ -51,16 +51,36 @@
       const h = frame.contentDocument?.body?.scrollHeight;
       if (h) frameH = h + 2; // hairline slack: keep borders from clipping
     };
-    const onload = () => {
+    const attach = () => {
       measure();
+      // The observer must be created by the IFRAME's window, not ours: a
+      // parent-window ResizeObserver watching a child-document body does
+      // not fire reliably in Chrome (the frame stayed 610px tall after
+      // the keyboard reflowed to 421px at phone width). Re-created on
+      // every load — the old one dies with the old document.
+      const win = frame.contentWindow;
       const body = frame.contentDocument?.body;
-      if (body && typeof ResizeObserver !== 'undefined') {
-        ro = new ResizeObserver(measure);
+      ro?.disconnect();
+      ro = null;
+      if (win?.ResizeObserver && body) {
+        ro = new win.ResizeObserver(measure);
         ro.observe(body);
       }
     };
-    frame.addEventListener('load', onload);
-    return { destroy() { frame.removeEventListener('load', onload); ro?.disconnect(); } };
+    frame.addEventListener('load', attach);
+    // A cached/SW-served document can finish loading before this action
+    // attaches — then 'load' never fires and the frame would sit on the
+    // CSS fallback height forever (the "huge gap under the keyboard").
+    if (frame.contentDocument?.readyState === 'complete') attach();
+    // Belt-and-braces: our own resizes always reflow the embed.
+    window.addEventListener('resize', measure);
+    return {
+      destroy() {
+        frame.removeEventListener('load', attach);
+        window.removeEventListener('resize', measure);
+        ro?.disconnect();
+      },
+    };
   }
 
   // Back to the Build step's cart picker.

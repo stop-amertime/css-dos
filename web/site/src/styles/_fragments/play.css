@@ -18,8 +18,7 @@
 .inline-player {
   margin-top: 0;
   border: 1px solid var(--edit-black);
-  box-shadow: 4px 4px 0 var(--edit-blue);
-  background: var(--edit-white);
+  background: var(--edit-gray);
 }
 .inline-player-bar {
   display: flex;
@@ -62,8 +61,9 @@
   display: block;
   width: 100%;
   /* Sized to the embed document by Play.svelte (same-origin measure);
-     this is only the pre-measure fallback. */
-  height: min(78dvh, 700px);
+     this is only the pre-measure fallback, kept close to the real
+     content height (~610px at full width) so nothing jumps. */
+  height: min(78dvh, 620px);
   border: 0;
   background: var(--edit-gray);
 }
