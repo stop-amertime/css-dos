@@ -1,19 +1,19 @@
-// Wizard navigation as reactive state. Three steps (About / Build /
-// Play); About has 6 sub-pages, Build has 3. The URL hash addresses
-// the exact page — `#step/subpage[/section]`, names not numbers, so
-// deep links survive reordering and a refresh keeps your spot.
-// Legacy one-word hashes (#about, #build, #play, #how) still land on
-// the right step. Play is gated behind a finished build; a locked
-// Play link redirects to Build, not the start.
+// Wizard navigation as reactive state. Four steps (Home / Build /
+// Play / About); Build has 3 sub-pages, About has 6. The URL hash
+// addresses the exact page — `#step/subpage[/section]`, names not
+// numbers, so deep links survive reordering and a refresh keeps your
+// spot. Legacy one-word hashes (#about, #build, #play, #how) still
+// land on the right step. Play is gated behind a finished build; a
+// locked Play link redirects to Build, not the start.
 import { build } from './builder.svelte.js';
 
-export const STEPS = ['about', 'build', 'play'];
-const ABOUT = 1, BUILD = 2, PLAY = 3;
-export const ABOUT_SUBPAGES = 7;
+export const STEPS = ['home', 'build', 'play', 'about'];
+const HOME = 1, BUILD = 2, PLAY = 3, ABOUT = 4;
+export const ABOUT_SUBPAGES = 6;
 const BUILD_PICK = 1, BUILD_CONFIG = 2;
 
 // Named sub-pages (index = sub - 1).
-const ABOUT_SUBS = ['intro', 'how', 'file', 'calcite', 'faqs', 'why', 'credits'];
+const ABOUT_SUBS = ['how', 'file', 'calcite', 'faqs', 'why', 'credits'];
 const BUILD_SUBS = ['pick', 'configure', 'result'];
 // The How-it-works carousel: the map/overview page, then the file's
 // sections in file order (mirrors anatomy/groups.js).
@@ -22,6 +22,7 @@ export const FILE_SECTIONS = ['map', 'util', 'cpu', 'keys', 'screen', 'decl', 'm
 export const ABOUT_FILE_SUB = ABOUT_SUBS.indexOf('file') + 1;
 
 const stepNames = {
+  home: HOME, intro: HOME,
   about: ABOUT, how: ABOUT, howitworks: ABOUT,
   build: BUILD, games: BUILD, play: PLAY,
 };
@@ -29,14 +30,14 @@ const stepNames = {
 let guard = false; // suppress the hashchange our own hash write triggers
 
 class Nav {
-  step = $state(ABOUT);
+  step = $state(HOME);
   sub = $state(1);       // About sub-page 1..ABOUT_SUBPAGES
   buildSub = $state(1);  // Build sub-page 1..3
   section = $state('map');   // current section on the About/file carousel
   sectionDir = $state(1);    // slide direction of the last section change
-  // Next is held on the carousel's map page until the reader has moved
-  // the carousel at least once (arrows, bar click, or a section deep
-  // link) — proof they've found the navigation before skipping the tour.
+  // The carousel's first-visit hint (the "this bar is a map" bubble)
+  // shows until the reader has moved the carousel once (arrows, bar
+  // click, a section deep link) or dismissed the bubble itself.
   carouselSeen = $state(false);
 
   sectionIdx() { return FILE_SECTIONS.indexOf(this.section); }
@@ -67,17 +68,13 @@ class Nav {
   // resolved; replayed by the 'cssdos-cabinet-restored' listener below.
   #wantedPlay = false;
 
-  get atStart() { return this.step === ABOUT && this.sub === 1; }
-  get isLast() { return this.step === PLAY; }
+  get atStart() { return this.step === HOME; }
+  get isLast() { return this.step === ABOUT && this.sub === ABOUT_SUBPAGES; }
 
   // Next is blocked on the Build step until the gate for the current
   // sub-page is met (pick → need a cart; configure → need a finished
-  // build), and on the carousel's map page until the carousel has been
-  // used once.
+  // build).
   get nextDisabled() {
-    if (this.step === ABOUT) {
-      return this.sub === ABOUT_FILE_SUB && this.section === 'map' && !this.carouselSeen;
-    }
     if (this.step !== BUILD) return false;
     if (this.buildSub === BUILD_PICK) return !build.hasSource;
     if (this.buildSub === BUILD_CONFIG) return !build.done;
@@ -87,7 +84,7 @@ class Nav {
   go(step) {
     this.#wantedPlay = false; // any navigation cancels a pending replay
     if (step === PLAY && !this.canPlay) step = BUILD; // locked Play → Build
-    this.step = Math.max(ABOUT, Math.min(PLAY, step));
+    this.step = Math.max(HOME, Math.min(ABOUT, step));
     scrollTop();
   }
 
@@ -97,56 +94,59 @@ class Nav {
     if (this.#wantedPlay && this.canPlay) this.go(PLAY);
   }
 
-  // Free to jump backward; forward to Build always, Play only when built.
-  jump(step) {
-    if (step === this.step) return;
-    if (step < this.step || step === BUILD || (step === PLAY && this.canPlay)) this.go(step);
-  }
-
-  // Forward one logical page. Within About/Build, walk sub-pages first;
-  // only cross to the next step from the last (unlocked) sub-page.
-  next() {
-    if (this.step === PLAY) { this.restart(); return; }
-    if (this.step === ABOUT) {
-      if (this.sub < ABOUT_SUBPAGES) { this.sub += 1; scrollTop(); return; }
-      this.go(BUILD);
-      return;
-    }
-    // Build step
-    if (this.nextDisabled) return;
-    if (this.buildSub < BUILD_CONFIG) { this.buildSub += 1; scrollTop(); return; }
-    if (this.buildSub === BUILD_CONFIG) { this.go(PLAY); return; } // built → Play
-    this.go(PLAY);
-  }
-
-  // Backward one logical page, mirroring next().
-  prev() {
-    if (this.step === ABOUT) { if (this.sub > 1) { this.sub -= 1; scrollTop(); } return; }
-    if (this.step === BUILD) {
-      if (this.buildSub > BUILD_PICK) { this.buildSub -= 1; scrollTop(); return; }
-      this.sub = ABOUT_SUBPAGES;
-      this.go(ABOUT);
-      return;
-    }
+  // Called from the Play page when its cabinet probe comes up empty
+  // (cache evicted, SW purge, …): fall back to the Build step's picker.
+  bounceFromPlay() {
+    this.buildSub = BUILD_PICK;
     this.go(BUILD);
   }
 
-  restart() {
-    this.sub = 1;
-    this.buildSub = 1;
-    this.section = 'map';
-    this.go(ABOUT);
+  // Free to jump backward; forward to Build/About always, Play only
+  // when built.
+  jump(step) {
+    if (step === this.step) return;
+    if (step < this.step || step !== PLAY || this.canPlay) this.go(step);
+  }
+
+  // Forward one logical page. Within Build/About, walk sub-pages first;
+  // only cross to the next step from the last (unlocked) sub-page.
+  next() {
+    if (this.step === HOME) { this.go(BUILD); return; }
+    if (this.step === BUILD) {
+      if (this.nextDisabled) return;
+      if (this.buildSub < BUILD_CONFIG) { this.buildSub += 1; scrollTop(); return; }
+      this.go(PLAY); // configure (built) or result → Play
+      return;
+    }
+    if (this.step === PLAY) { this.go(ABOUT); return; }
+    // About step
+    if (this.sub < ABOUT_SUBPAGES) { this.sub += 1; scrollTop(); }
+  }
+
+  // Backward one logical page, mirroring next(). Backing out of About
+  // goes through go(PLAY), which itself falls back to Build when no
+  // cabinet exists.
+  prev() {
+    if (this.step === ABOUT) {
+      if (this.sub > 1) { this.sub -= 1; scrollTop(); return; }
+      this.go(PLAY);
+      return;
+    }
+    if (this.step === PLAY) { this.go(BUILD); return; }
+    if (this.step === BUILD) {
+      if (this.buildSub > BUILD_PICK) { this.buildSub -= 1; scrollTop(); return; }
+      this.go(HOME);
+    }
   }
 
   // The canonical hash for the current state.
   hashFor() {
-    if (this.step === ABOUT) {
-      let h = `about/${ABOUT_SUBS[this.sub - 1]}`;
-      if (this.sub === ABOUT_FILE_SUB) h += `/${this.section}`;
-      return h;
-    }
+    if (this.step === HOME) return 'home';
     if (this.step === BUILD) return `build/${BUILD_SUBS[this.buildSub - 1]}`;
-    return 'play';
+    if (this.step === PLAY) return 'play';
+    let h = `about/${ABOUT_SUBS[this.sub - 1]}`;
+    if (this.sub === ABOUT_FILE_SUB) h += `/${this.section}`;
+    return h;
   }
 
   applyHash() {
@@ -156,7 +156,8 @@ class Nav {
     // land like a page turn, not mid-scroll.
     scrollTop();
     const [s0, s1, s2] = raw.split('/');
-    const target = stepNames[s0];
+    // Legacy '#about/intro' → the intro now lives on Home.
+    const target = s0 === 'about' && s1 === 'intro' ? HOME : stepNames[s0];
     if (!target) return;
     if (target === PLAY && !this.canPlay) {
       // Locked Play link/refresh → Build, not the start. If the restore
@@ -167,8 +168,9 @@ class Nav {
     }
     this.step = target;
     if (target === ABOUT) {
-      // Legacy '#how' / '#howitworks' → the "How is this possible?" page.
-      const subName = s1 ?? (s0 === 'about' ? 'intro' : 'how');
+      // Legacy '#how' / '#howitworks' / bare '#about' → "How is this
+      // possible?", the first About page.
+      const subName = s1 ?? 'how';
       const i = ABOUT_SUBS.indexOf(subName);
       this.sub = i >= 0 ? i + 1 : 1;
       if (this.sub === ABOUT_FILE_SUB && FILE_SECTIONS.includes(s2)) {

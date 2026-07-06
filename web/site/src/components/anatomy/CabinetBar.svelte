@@ -1,22 +1,21 @@
 <script>
   // CabinetBar — the whole 309 MB cabinet drawn to scale as a
-  // clickable bar, in file order, coloured by section group; sticky
-  // at the top of the wizard's scroll band so the map stays visible
-  // while a section is read. The three sections too small to see at
-  // true scale (utilities / CPU / keyboard — 319 KB together) are a
-  // single 2px sliver on the bar; the zoom box below expands them
-  // into clickable segments. The current section's title sits in the
-  // header row, tied to its segment by a coloured tick; hovering any
-  // segment shows a cursor tooltip (title + size), clicking jumps
-  // there. Groups can span non-adjacent segments (the clock appears
-  // twice in the file).
+  // clickable bar, in file order, coloured by section group; a white
+  // full-width topper pinned to the top of the wizard's scroll band so
+  // the map stays visible while a section is read. Tall narrow
+  // prev/next arrows flank the bar and step the carousel. The three
+  // sections too small to see at true scale (utilities / CPU /
+  // keyboard — 319 KB together) are a single 2px sliver on the bar;
+  // the zoom box below expands them into clickable segments. The
+  // current section's title sits in the header row, tied to its
+  // segment by a coloured tick; hovering any segment shows a cursor
+  // tooltip (title + size), clicking jumps there. Groups can span
+  // non-adjacent segments (the clock appears twice in the file).
   import '../../styles/_fragments/cabinet-bar.css';
   import { GROUPS, SEGS, TINY, ZOOM } from './groups.js';
-  import tippy from 'tippy.js';
-  import 'tippy.js/dist/tippy.css';
   import IconCursor from '~icons/pixelarticons/cursor-minimal';
 
-  let { selected = null, count = '', hint = false, onselect } = $props();
+  let { selected = null, count = '', hint = false, onselect, onprev, onnext, ondismiss } = $props();
   let hovered = $state(null);
   let tip = $state(null); // cursor position for the tooltip
   let rowW = $state(0), labelW = $state(0); // measured: title row + label
@@ -41,82 +40,66 @@
     Math.max(0, Math.min((rowW * tickPct) / 100 - labelW / 2, rowW - labelW - 64)));
 
   function track(e) { tip = { x: e.clientX, y: e.clientY }; }
-
-  // First-visit hint: a tippy bubble under the bar telling the reader
-  // it's clickable. Shown while `hint` is true (map page, carousel
-  // untouched); any click or using the carousel dismisses it.
-  let barEl, hintEl;
-  let hintTip = null;
-  $effect(() => {
-    if (hint && barEl && hintEl && !hintTip) {
-      hintTip = tippy(barEl, {
-        content: hintEl,
-        theme: 'dos',
-        placement: 'bottom',
-        trigger: 'manual',
-        hideOnClick: true,
-        maxWidth: 360,
-        zIndex: 25,
-      });
-      hintTip.show();
-    } else if (!hint && hintTip) {
-      hintTip.destroy();
-      hintTip = null;
-    }
-    return () => { hintTip?.destroy(); hintTip = null; };
-  });
 </script>
 
-<div class="cab-bar">
-  <div class="bar-title" bind:clientWidth={rowW}>
-    {#if cur}
-      <span class="t-tick" style="left:{tickPct}%; background:{cur.c}"></span>
-      <h2 class="t-text" bind:clientWidth={labelW} style="left:{titleLeft}px">
-        {cur.label} <span class="sz">{cur.size}</span>
-      </h2>
-    {:else}
-      <h2 class="t-text t-map">The whole 309&nbsp;MB file</h2>
-    {/if}
-    {#if count}<span class="t-count">{count}</span>{/if}
-  </div>
+<div class="cab-bar" class:hint-live={hint}>
+  <div class="cab-grid">
+    <button class="sec-arrow sec-prev" onclick={() => onprev?.()}
+            aria-label="Previous section" title="Previous section">&#9668;</button>
+    <div class="cab-mid">
+      <div class="bar-title" bind:clientWidth={rowW}>
+        {#if cur}
+          <span class="t-tick" style="left:{tickPct}%; background:{cur.c}"></span>
+          <h2 class="t-text" bind:clientWidth={labelW} style="left:{titleLeft}px">
+            {cur.label} <span class="sz">{cur.size}</span>
+          </h2>
+        {:else}
+          <h2 class="t-text t-map">The whole 309&nbsp;MB file</h2>
+        {/if}
+        {#if count}<span class="t-count">{count}</span>{/if}
+      </div>
 
-  <svg bind:this={barEl} viewBox="0 0 700 100" role="img" onmousemove={track}
-       onmouseleave={() => (hovered = null)}
-       aria-label="The 309 megabyte cabinet file drawn to scale as a bar. Memory write rules take over half; the utilities, CPU and keyboard are together a 2 pixel sliver at the left edge, expanded below in a 350 times zoom box.">
-    {#each SEGS as s}
-      <rect class="seg" class:dim={active && active !== s.g}
-            class:sel={selected === s.g}
-            x={s.x} y="2" width={s.w} height="44" fill={colour(s.g)}
-            role="button" tabindex="-1"
-            onclick={() => onselect?.(s.g)}
-            onmouseenter={() => (hovered = s.g)}
-            onmouseleave={() => (hovered = null)} />
-    {/each}
-    <!-- utilities + CPU + keyboard: one to-scale sliver (319 KB —
-         even 2px flatters it); the zoom box below is the click
-         target. Coloured as the CPU, 80% of the sliver's bytes. -->
-    <rect class:dim={active && !TINY.includes(active)}
-          x="10" y="2" width="2" height="44" fill="#aa0000"
-          pointer-events="none" />
-    <rect x="10" y="2" width="680" height="44" fill="none"
-          stroke="var(--edit-black)" stroke-width="1.5" pointer-events="none"/>
-    <!-- zoom box: the sliver expanded ~350× -->
-    <line x1="10" y1="46" x2="10" y2="68" stroke="var(--edit-black)" stroke-width="1"/>
-    <line x1="12" y1="46" x2="250" y2="68" stroke="var(--edit-black)" stroke-width="1"/>
-    {#each ZOOM as z}
-      <rect class="seg" class:dim={active && active !== z.g}
-            class:sel={selected === z.g}
-            x={z.x} y="68" width={z.w} height="26" fill={colour(z.g)}
-            role="button" tabindex="-1"
-            onclick={() => onselect?.(z.g)}
-            onmouseenter={() => (hovered = z.g)}
-            onmouseleave={() => (hovered = null)} />
-    {/each}
-    <rect x="10" y="68" width="240" height="26" fill="none"
-          stroke="var(--edit-black)" stroke-width="1.5" pointer-events="none"/>
-    <text class="zoom-label" x="258" y="86"
-          pointer-events="none">~350&times; zoom &mdash; 0.1% of the file</text>
-  </svg>
+      <svg viewBox="0 0 700 100" role="img" onmousemove={track}
+           onmouseleave={() => (hovered = null)}
+           aria-label="The 309 megabyte cabinet file drawn to scale as a bar. Memory write rules take over half; the utilities, CPU and keyboard are together a 2 pixel sliver at the left edge, expanded below in a 350 times zoom box.">
+        {#each SEGS as s}
+          <rect class="seg" class:dim={active && active !== s.g}
+                class:sel={selected === s.g}
+                x={s.x} y="2" width={s.w} height="44" fill={colour(s.g)}
+                role="button" tabindex="-1"
+                onclick={() => onselect?.(s.g)}
+                onmouseenter={() => (hovered = s.g)}
+                onmouseleave={() => (hovered = null)} />
+        {/each}
+        <!-- utilities + CPU + keyboard: one to-scale sliver (319 KB —
+             even 2px flatters it); the zoom box below is the click
+             target. Coloured as the CPU, 80% of the sliver's bytes. -->
+        <rect class:dim={active && !TINY.includes(active)}
+              x="10" y="2" width="2" height="44" fill="#aa0000"
+              pointer-events="none" />
+        <rect x="10" y="2" width="680" height="44" fill="none"
+              stroke="var(--edit-black)" stroke-width="1.5" pointer-events="none"/>
+        <!-- zoom box: the sliver expanded ~350× -->
+        <line x1="10" y1="46" x2="10" y2="68" stroke="var(--edit-black)" stroke-width="1"/>
+        <line x1="12" y1="46" x2="250" y2="68" stroke="var(--edit-black)" stroke-width="1"/>
+        {#each ZOOM as z}
+          <rect class="seg" class:dim={active && active !== z.g}
+                class:sel={selected === z.g}
+                x={z.x} y="68" width={z.w} height="26" fill={colour(z.g)}
+                role="button" tabindex="-1"
+                onclick={() => onselect?.(z.g)}
+                onmouseenter={() => (hovered = z.g)}
+                onmouseleave={() => (hovered = null)} />
+        {/each}
+        <rect x="10" y="68" width="240" height="26" fill="none"
+              stroke="var(--edit-black)" stroke-width="1.5" pointer-events="none"/>
+        <text class="zoom-label" x="258" y="86"
+              pointer-events="none">~350&times; zoom &mdash; 0.1% of the file</text>
+      </svg>
+    </div>
+    <button class="sec-arrow sec-next" onclick={() => onnext?.()}
+            aria-label="Next section" title="Next section">&#9658;</button>
+  </div>
 
   {#if hoverG && tip}
     <div class="cab-tip" style="left:{tip.x + 14}px; top:{tip.y + 16}px">
@@ -126,18 +109,21 @@
     </div>
   {/if}
 
-  <div hidden>
-    <div class="bar-hint" bind:this={hintEl}>
-      <IconCursor class="bar-hint-icon" aria-hidden="true" />
-      <div>
+  {#if hint}
+    <div class="hint-pop" role="dialog" aria-label="How to use the map">
+      <button class="hint-x" aria-label="Dismiss" onclick={() => ondismiss?.()}>&times;</button>
+      <div class="bar-hint">
+        <IconCursor class="bar-hint-icon" aria-hidden="true" />
         <div>
-          This bar is the map &mdash; <b>click any stripe</b> to find
-          out how that part of the file works.
-        </div>
-        <div class="bar-hint-promise">
-          If you enjoy silly code hacks, this is top shelf stuff, I promise.
+          <div>
+            This bar is the map &mdash; <b>click any stripe</b> to find
+            out how that part of the file works.
+          </div>
+          <div class="bar-hint-promise">
+            If you enjoy silly code hacks, this is top shelf stuff, I promise.
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  {/if}
 </div>

@@ -1,11 +1,16 @@
 <script>
   import '../styles/_fragments/cart-grid.css';
   import { build } from '../lib/builder.svelte.js';
+  import { nav } from '../lib/router.svelte.js';
   import CartCard from './CartCard.svelte';
 
-  function pick(id) {
-    if (id === 'custom') build.selectCustom();
-    else build.selectCart(id);
+  // Picking a cart is the whole decision on this page — go straight to
+  // the configure sub-page once its files are in. Custom stays: it
+  // needs the upload panel first.
+  async function pick(id) {
+    if (id === 'custom') { build.selectCustom(); return; }
+    await build.selectCart(id);
+    if (nav.buildSub === 1) nav.next();
   }
 </script>
 

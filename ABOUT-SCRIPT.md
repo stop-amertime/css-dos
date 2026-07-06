@@ -124,7 +124,20 @@ Site shape: **3 wizard steps — About / Build / Play.** The separate
 8-page How-it-works route is stashed in `web/site/src/attic/` (not
 mounted) so its copy and widgets can be recycled.
 
-## Step 1: About — SEVEN pages (Calcite added 2026-07-04 evening)
+## 2026-07-06: About moved to step 4; Intro promoted to a Home step
+
+The site is now four sections — **Home / Build / Play / About** — so
+the info pages read as an epilogue after building and playing (owner
+call; copy pass to follow, owner-written). The Intro page is now the
+standalone **Home** step (`routes/Home.svelte`); About keeps the
+remaining SIX pages (how / file / calcite / faqs / why / credits) at
+`#about/<name>`, and `#about/intro` redirects to `#home`. Same day,
+the How-it-works hub lost its `<h1>` — the bar is a full-width white
+topper with flanking prev/next arrows, the section below sits in a
+white box, and the first-visit hint became a dismissable spotlight
+(dim overlay + X) instead of a Next-button gate.
+
+## Step 4 (was 1): About — SEVEN pages (Calcite added 2026-07-04 evening)
 
 Page 4 is now **Calcite** (`#about/calcite`): the Play step's intro
 prose plus the "Is this cheating?" argument promoted out of its fold.

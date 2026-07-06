@@ -1,9 +1,9 @@
 <script>
-  // About — six short pages: the claim, how it's possible (the
-  // one-tool idea + the mechanisms), the How-it-works carousel (the
-  // file dissected, with a map/overview landing page), the FAQs, the
-  // why as an epilogue, and the credits. Copy register per
-  // ABOUT-SCRIPT.md.
+  // About — the info pages, read after Build/Play: how it's possible
+  // (the one-tool idea + the mechanisms), the How-it-works carousel
+  // (the file dissected, with a map/overview landing page), Calcite,
+  // the FAQs, the why as an epilogue, and the credits. The intro hero
+  // lives on Home. Copy register per ABOUT-SCRIPT.md.
   import { fly } from 'svelte/transition';
   import '../styles/_fragments/about.css';
   import '../styles/_fragments/anatomy.css';
@@ -41,9 +41,11 @@
   const MAP_GROUP = { id: 'map', label: 'The whole file', size: '309 MB', c: '#555555' };
   const curGroup = $derived(GROUPS.find((x) => x.id === nav.section) ?? MAP_GROUP);
   const CurSection = $derived(SECTIONS[nav.section]);
+  // First-visit hint: shown on the carousel's map page until the
+  // reader uses the carousel or dismisses the bubble.
+  const hintLive = $derived(nav.section === 'map' && !nav.carouselSeen);
 
   const SUBPAGES = [
-    { label: 'Intro' },
     { label: 'How is this possible?' },
     { label: 'How it works' },
     { label: 'Calcite' },
@@ -58,52 +60,11 @@
 {/snippet}
 
 <Wizard {strip} {subhead} nav={wizNav}>
-  <section class="step learn-step" data-step="1">
+  <section class="step learn-step" data-step="4">
 
   {#if nav.sub === 1}
-    <!-- Intro -->
-    <div class="subpage subpage-intro" data-subpage="1">
-      <div class="intro-hero">
-        <div class="intro-logo">
-          <img src="/assets/css-dos-logo-narrow.png" alt="CSS-DOS">
-        </div>
-        <div class="intro-text">
-          <h1>A complete 1980s PC, in a stylesheet.</h1>
-          <p class="lede">
-            An IBM PC compatible &mdash;
-            <Term t="i8086">8086</Term> processor, 640&nbsp;KB of
-            RAM, floppy drive, keyboard, VGA screen, and various
-            less-memorable support chips &mdash; in one CSS file.
-          </p>
-          <p class="lede">
-            It boots real <b>DOS</b> (the precursor to Windows) from an
-            emulated <Term t="floppy">floppy</Term> and runs unmodified
-            1980s software.
-          </p>
-          <p class="lede">Yes, it runs <b>Doom</b><span class="flair-star">*</span></p>
-          <div class="flair-burst">
-            <div class="flair-text">
-              <span>The first time real programs have run in CSS!</span>
-            </div>
-          </div>
-          <p class="intro-fn small">
-            <span class="fn-star">*</span> barely.
-          </p>
-          <p class="lede">
-            The file that does all this is about <b>300&nbsp;MB of plain
-            text</b>. Every line is spec-compliant
-            <Term t="css">CSS</Term>, albeit abused beyond recognition.
-          </p>
-          <p class="intro-gh">
-            <a href="https://github.com/stop-amertime/css-dos" class="ext-link"
-               target="_blank" rel="noopener">&#9733; View the source on GitHub</a>
-          </p>
-        </div>
-      </div>
-    </div>
-  {:else if nav.sub === 2}
     <!-- How is this possible? -->
-    <div class="subpage" data-subpage="2">
+    <div class="subpage" data-subpage="1">
       <h1>How is this possible?</h1>
       <p>
         Everything in the machine is made of
@@ -174,20 +135,25 @@
         </p>
       </div>
     </div>
-  {:else if nav.sub === 3}
+  {:else if nav.sub === 2}
     <!-- How it works — the bar as map, the sections as a carousel -->
-    <div class="subpage" data-subpage="3">
-      <h1>How it works</h1>
-
+    <div class="subpage" data-subpage="2">
+      {#if hintLive}
+        <!-- First-visit spotlight: dims everything except the topper
+             (and its bubble); clicking the dim dismisses. A sibling of
+             the bar, NOT a child — Chrome clips fixed descendants of a
+             sticky element to its layer. -->
+        <div class="hint-overlay" role="presentation"
+             onclick={() => (nav.carouselSeen = true)}></div>
+      {/if}
       <CabinetBar selected={nav.section === 'map' ? null : nav.section}
                   count="{nav.sectionIdx() + 1} / {FILE_SECTIONS.length}"
-                  hint={nav.section === 'map' && !nav.carouselSeen}
-                  onselect={(g) => nav.sectionJump(g)} />
+                  hint={hintLive}
+                  onselect={(g) => nav.sectionJump(g)}
+                  onprev={() => nav.sectionStep(-1)}
+                  onnext={() => nav.sectionStep(1)}
+                  ondismiss={() => (nav.carouselSeen = true)} />
 
-      <button class="sec-arrow sec-prev" onclick={() => nav.sectionStep(-1)}
-              aria-label="Previous section" title="Previous section">&#9668;</button>
-      <button class="sec-arrow sec-next" onclick={() => nav.sectionStep(1)}
-              aria-label="Next section" title="Next section">&#9658;</button>
       <div class="anatomy-pane" style="--pane-c:{curGroup.c}">
         {#key nav.section}
           <div class="sec-body" in:fly={{ x: 44 * nav.sectionDir, duration: 180 }}>
@@ -196,9 +162,9 @@
         {/key}
       </div>
     </div>
-  {:else if nav.sub === 4}
+  {:else if nav.sub === 3}
     <!-- Calcite — how the file actually runs (moved from the Play page) -->
-    <div class="subpage" data-subpage="4">
+    <div class="subpage" data-subpage="3">
       <h1>Calcite</h1>
       <p>
         You can <i>try</i> to load a 300&nbsp;MB
@@ -260,9 +226,9 @@
         would, that would be a bug in Calcite &mdash; not a feature.
       </p>
     </div>
-  {:else if nav.sub === 5}
+  {:else if nav.sub === 4}
     <!-- FAQs -->
-    <div class="subpage" data-subpage="5">
+    <div class="subpage" data-subpage="4">
       <h1>FAQs</h1>
 
       <div class="faq-list">
@@ -358,9 +324,9 @@
         </Foldable>
       </div>
     </div>
-  {:else if nav.sub === 6}
+  {:else if nav.sub === 5}
     <!-- Why? -->
-    <div class="subpage" data-subpage="6">
+    <div class="subpage" data-subpage="5">
       <h1>Why?</h1>
       <blockquote class="epigraph">
         <p>&ldquo;Because it&rsquo;s there&rdquo;</p>
@@ -381,9 +347,9 @@
         foolish and the brave recklessly in.
       </p>
     </div>
-  {:else if nav.sub === 7}
+  {:else if nav.sub === 6}
     <!-- Credits (restored 2026-07-04 from the retired How-it-works route) -->
-    <div class="subpage" data-subpage="7">
+    <div class="subpage" data-subpage="6">
       <h1>Credits &amp; thanks</h1>
       <p>
         CSS-DOS stands on the shoulders of people who proved, piece by

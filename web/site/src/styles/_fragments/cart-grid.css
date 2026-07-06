@@ -128,6 +128,8 @@
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
+/* A real <button> (it .click()s the hidden input) — reset the native
+   chrome, keep the dashed drop-target look. */
 .custom-choice {
   display: flex;
   flex-direction: column;
@@ -139,6 +141,8 @@
   background: var(--edit-gray);
   cursor: pointer;
   user-select: none;
+  font: inherit;
+  width: 100%;
 }
 .custom-choice:hover { background: #ddddff; }
 .custom-choice-glyph { font-size: 40px; line-height: 1; }

@@ -6,15 +6,17 @@
    page / this modal.) */
 
 /* ===== Step 3 — Play ===== */
-/* Top-left escape hatch back to the Build step's cart picker. */
-.play-back { margin-bottom: 16px; }
+/* Every vertical pixel counts here: the goal is screen + keyboard +
+   the Calcite note all visible with no scrolling. Tighter top padding
+   than the prose steps. */
+.window.wizard .window-body:has(.inline-player) { padding: 10px 16px 6px; }
 
 /* Inline player — /player/calcite.html#embed iframed into this page.
    Keeps the bridge worker's tab in the foreground; mobile Chrome
    freezes background tabs, so the old two-tab flow starved the frame
    stream on phones. */
 .inline-player {
-  margin-top: 16px;
+  margin-top: 0;
   border: 1px solid var(--edit-black);
   box-shadow: 4px 4px 0 var(--edit-blue);
   background: var(--edit-white);
@@ -28,9 +30,21 @@
   color: var(--edit-black);
   border-bottom: 1px solid var(--edit-black);
 }
-.inline-player-title { font-weight: bold; }
-/* Live engine status (compiling / running / errors) — the only feedback
-   during the 10–25s cabinet compile, and the on-page error surface. */
+/* "Change program" — deliberately quiet next to the playing surface:
+   flat, no drop shadow, dim text that wakes up on hover. */
+.soft-btn {
+  background: transparent;
+  color: #444;
+  border: 1px solid #888;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 16px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.soft-btn:hover { background: var(--edit-white); color: var(--edit-black); border-color: var(--edit-black); }
+/* Engine errors are the one status worth surfacing on the bar (console
+   is invisible on mobile). */
 .inline-player-status {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -47,7 +61,8 @@
 .inline-player-frame {
   display: block;
   width: 100%;
-  /* #embed mode is chrome-less: screen (≤400px) + keyboard + padding. */
+  /* Sized to the embed document by Play.svelte (same-origin measure);
+     this is only the pre-measure fallback. */
   height: min(78dvh, 700px);
   border: 0;
   background: var(--edit-gray);
@@ -57,7 +72,7 @@
 
 /* The note under the player: Calcite credit + the raw-CSS escape hatch. */
 .play-note {
-  margin: 12px 0 0;
+  margin: 8px 0 0;
   font-size: 15px;
   color: var(--edit-black);
 }
@@ -100,15 +115,13 @@
 /* Phone: the player is the page — full-bleed to the dialog edge
    (cancels the wizard body's 10px side padding), thinner chrome. */
 @media (max-width: 640px) {
-  .play-back { margin-bottom: 8px; }
   .inline-player {
-    margin: 10px -10px 0;
+    margin: 4px -10px 0;
     border-left: none;
     border-right: none;
     box-shadow: none;
   }
   .inline-player-bar { gap: 10px; padding: 4px 8px; font-size: 14px; }
-  .inline-player-title { display: none; }
   .inline-player-frame { height: min(70dvh, 620px); }
   .play-note { font-size: 14px; }
 }

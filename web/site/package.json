@@ -12,7 +12,6 @@
     "@sveltejs/vite-plugin-svelte": "^5.0.3",
     "prismjs": "^1.30.0",
     "svelte": "^5.19.0",
-    "tippy.js": "^6.3.7",
     "unplugin-icons": "^23.0.1",
     "vite": "^6.0.7"
   }

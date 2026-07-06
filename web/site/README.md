@@ -22,8 +22,11 @@ copy is served). See the repo `CLAUDE.md`.
 
 - **`src/`** — the app. `lib/builder.svelte.js` (`Build` class, `$state`)
   and `lib/router.svelte.js` (`Nav` class) back the UI reactively;
-  `routes/` are the three wizard steps, `components/` the shared pieces.
-  Hash routing (`#about`/`#build`/`#play`) so refresh/deep-links work.
+  `routes/` are the four wizard steps (Home / Build / Play / About —
+  the info pages come *after* the build/play flow), `components/` the
+  shared pieces. Hash routing (`#home`/`#build`/`#play`/`#about`) so
+  refresh/deep-links work; legacy hashes (`#about/intro`, `#how`)
+  still resolve.
 - **The build runs in the browser.** `builder.svelte.js` imports the
   `/browser-builder/main.mjs` graph as native ESM and calls
   `buildCabinetInBrowser(...)` — the same kiln/builder code the Node

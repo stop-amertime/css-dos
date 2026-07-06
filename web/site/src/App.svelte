@@ -2,16 +2,18 @@
   import { nav, FILE_SECTIONS, ABOUT_FILE_SUB } from './lib/router.svelte.js';
   import { build } from './lib/builder.svelte.js';
   import StepDots from './components/StepDots.svelte';
+  import Home from './routes/Home.svelte';
   import About from './routes/About.svelte';
   import Build from './routes/Build.svelte';
   import Play from './routes/Play.svelte';
 
   const STRIP = [
-    { label: 'About' },
+    { label: 'Home' },
     { label: 'Build' },
     { label: 'Play' },
+    { label: 'About' },
   ];
-  const TITLES = ['About', 'Build cabinet', 'Play'];
+  const TITLES = ['Home', 'Build cabinet', 'Play', 'About'];
 
   $effect(() => { document.title = `CSS-DOS — ${TITLES[nav.step - 1]}`; });
 
@@ -19,7 +21,7 @@
     if (e.target?.matches?.('input, textarea, select, [contenteditable]')) return;
     // On the How-it-works carousel, left/right step sections; at either
     // end they fall through to normal page turns (no wrap-around trap).
-    const inFileMap = nav.step === 1 && nav.sub === ABOUT_FILE_SUB;
+    const inFileMap = nav.step === 4 && nav.sub === ABOUT_FILE_SUB;
     if (e.key === 'ArrowRight') {
       e.preventDefault();
       if (inFileMap && nav.sectionIdx() < FILE_SECTIONS.length - 1) nav.sectionStep(1);
@@ -70,11 +72,13 @@
 {/snippet}
 
 {#if nav.step === 1}
-  <About {strip} {wizNav} />
+  <Home {strip} {wizNav} />
 {:else if nav.step === 2}
   <Build {strip} {wizNav} />
-{:else}
+{:else if nav.step === 3}
   <Play {strip} {wizNav} />
+{:else}
+  <About {strip} {wizNav} />
 {/if}
 
 <div class="status-line">
