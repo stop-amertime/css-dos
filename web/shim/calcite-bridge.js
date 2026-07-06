@@ -128,9 +128,9 @@ let currentGapBatches = 0;      // > 0 during the trailing 0-tick gap
 let currentActiveSelector = ''; // non-empty while pulsing a pseudo-class edge
 const KEY_HOLD_BATCHES = 8;
 const KEY_GAP_BATCHES = 2;
-// Hold-latch state. The player's per-key "pin" checkboxes are the source
-// of truth: every key submission carries the checked-pin set (held=...),
-// and we reconcile the engine's latch to it. The cabinet has a single
+// Hold-latch state. The player's hold-state radio group is the source
+// of truth: every submission carries the held key (held=kb-X, or ''
+// for none), and we reconcile the engine's latch to it. The cabinet has a single
 // --keyboard wire (one key down at a time — see kiln/template.mjs
 // emitKeyboardRules), so at most one key is latched; while it is, plain
 // key pulses are dropped (they'd be edge-invisible to the machine, and
@@ -952,34 +952,33 @@ bus.onmessage = (ev) => {
       }
     }
   } else if (mm.type === 'kbd-event' && engine) {
-    // Player keyboard form submission: `key` is the clicked key,
-    // `held` is the full checked-pin set. Reconcile the engine's
-    // latch to the pins, then handle the click:
-    //  - clicked key is pinned → latch it (releasing any other latch)
-    //  - latch's pin was unchecked → release it (the click that
-    //    carried the uncheck is the apply gesture, not a pulse)
+    // Player keyboard form submission. `held` mirrors the player's
+    // hold-state radio group (at most one key; '' = idle/armed) and
+    // is present on every submission; `key` is the clicked submit
+    // button, absent when the hold auto-submit shim fired the form.
+    // Reconcile the engine's latch to `held` first — no key click
+    // required, the "Hold a key..." → key gesture must latch at the
+    // moment of the catch click — then handle the click:
     //  - plain click, nothing latched → normal pulse
     //  - plain click while latched → dropped: the machine's single
     //    --keyboard wire can't see a second key while one is held
     //    (no 0↔non-zero edge), same as in the raw CSS player.
     const key = String(mm.key || '');
-    const held = new Set((mm.held || []).map(String));
-    if (kbdTraceEnabled) kbdTrace(`[kbd-trace] recv key=${key} held=[${[...held]}] latched=${latchTarget} qlen=${keyQueue.length}`);
+    const want = (mm.held || []).map(String).filter(Boolean)[0] || '';
+    if (kbdTraceEnabled) kbdTrace(`[kbd-trace] recv key=${key} held=${want || '-'} latched=${latchTarget} qlen=${keyQueue.length}`);
     let releasedNow = '';
-    if (latchTarget && !held.has(latchTarget)) {
+    if (latchTarget && latchTarget !== want) {
       keyQueue.push({ op: 'unlatch', sel: latchTarget });
       releasedNow = latchTarget;
       latchTarget = '';
     }
-    if (key) {
-      if (held.has(key)) {
-        if (latchTarget !== key) {
-          if (latchTarget) keyQueue.push({ op: 'unlatch', sel: latchTarget });
-          keyQueue.push({ op: 'latch', sel: key });
-          latchTarget = key;
-        }
-      } else if (key === releasedNow) {
-        // Click applied the unpin — swallow the pulse.
+    if (want && want !== latchTarget) {
+      keyQueue.push({ op: 'latch', sel: want });
+      latchTarget = want;
+    }
+    if (key && key !== latchTarget) {
+      if (key === releasedNow) {
+        // Click rode along with the release — not a new press.
       } else if (latchTarget) {
         if (kbdTraceEnabled) kbdTrace(`[kbd-trace] drop key=${key} (latched=${latchTarget})`);
       } else {

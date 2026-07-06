@@ -40,7 +40,9 @@ const CHROME_CANDIDATES = [
   '/opt/pw-browsers/chromium',
 ].filter(Boolean);
 const SYS_CHROME = CHROME_CANDIDATES.find((p) => existsSync(p));
-const BASE = 'http://localhost:5173';
+// BASE env override: the legacy dev server this test needs may have to
+// dodge a Vite dev server already on :5173 (PORT=5273 node web/scripts/dev.mjs).
+const BASE = process.env.BASE || 'http://localhost:5173';
 // Doom8088 sentinels (linear addresses, docs/logbook/STATUS.md — re-derive
 // from the .map if the doom8088 cart or memory layout changes).
 const G_GAMESTATE = 0x3a3c4, G_MENUACTIVE = 0x3ac62, G_USERGAME = 0x3a5af;
@@ -173,15 +175,14 @@ if (!userGame) {
 // Loading → in-game (gamestate 0 = GS_LEVEL).
 const ingame = await waitFor('ingame (gamestate=LEVEL)', async () => (await peekByte(G_GAMESTATE)) === 0 && (await peekByte(G_USERGAME)) === 1, 180000, 2000);
 
-// Hold-key phase: pin LEFT (turn key), press it to apply the latch, and
+// Hold-key phase: arm ("Hold a key..."), catch LEFT (turn key), and
 // verify --keyboard stays at LEFT's make value (0x4B00 = 19200) instead
-// of pulsing back to 0. Then unpin + press to release.
+// of pulsing back to 0. Then re-press LEFT (its release overlay) to let go.
 let holdOk = false;
 if (ingame) {
-  log('hold phase: pinning LEFT');
-  await player.click('#kb-hold');       // reveal pins (pure CSS toggle)
-  await player.click('#kb-left-hold');  // check LEFT's pin
-  await player.click('#kb-left');       // submit → bridge latches
+  log('hold phase: arming + catching LEFT');
+  await player.click('#kb-hold');       // arm: next key pressed holds
+  await player.click('#kb-left-hold');  // catch LEFT (radio overlay; auto-submits)
   const latched = await waitFor('latched --keyboard=19200', async () => (await peekVar('keyboard')) === 19200, 20000);
   let sustained = false;
   if (latched) {
@@ -189,8 +190,7 @@ if (ingame) {
     sustained = (await peekVar('keyboard')) === 19200;
     log(`latch sustained after 3s: ${sustained}`);
   }
-  await player.click('#kb-left-hold');  // uncheck the pin
-  await player.click('#kb-left');       // submit → bridge releases
+  await player.click('#kb-left-hold + .kb-unpin'); // re-press LEFT → release
   const released = await waitFor('released --keyboard=0', async () => (await peekVar('keyboard')) === 0, 20000);
   holdOk = latched && sustained && released;
 }
