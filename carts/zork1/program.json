@@ -2,8 +2,17 @@
   "schema": "cart@1",
   "name": "Zork I",
   "description": "Infocom Zork I (DOS, Infocom z-machine interpreter)",
-  "display": { "cover": "zork1-alt.jpg" },
+  "display": {
+    "cover": "zork-79.jpg"
+  },
   "preset": "dos-corduroy",
-  "memory": { "conventional": "640K", "gfx": true, "cgaGfx": false, "textVga": true },
-  "boot": { "runCommand": "_ZORK1" }
+  "memory": {
+    "conventional": "640K",
+    "gfx": true,
+    "cgaGfx": false,
+    "textVga": true
+  },
+  "boot": {
+    "runCommand": "_ZORK1"
+  }
 }

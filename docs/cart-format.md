@@ -310,7 +310,8 @@ exclusive with `boot.runCommand`. Required on hack carts.
 
 ### `display.cover` · implemented (website)
 
-Boxart filename for the landing-page cart grid, e.g. `"doom-alt.jpg"`.
+Boxart filename for the landing-page cart grid, e.g. `"doom-79.jpg"`
+(covers are 700×900, 7:9 portrait).
 Resolved by the site against its own boxart directory
 (`web/site/public/assets/boxart/`) — it is **not** a path inside the cart
 and never lands on the floppy. Presence of this field is also what opts a

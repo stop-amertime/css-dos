@@ -38,8 +38,8 @@
 }
 
 .cart-cover {
-  /* PC-game-box ratio: ~3:4 portrait */
-  aspect-ratio: 3 / 4;
+  /* Boxart master ratio: all covers are 700×900 (7:9) portrait */
+  aspect-ratio: 7 / 9;
   background: var(--edit-black);
   border-bottom: 1px solid var(--edit-black);
   overflow: hidden;
