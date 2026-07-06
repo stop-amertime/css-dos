@@ -69,17 +69,21 @@ class Build {
   get hasSource() { return this.source !== null; }
   get canBuild() { return this.hasSource && !this.busy; }
 
-  // Landing grid: a cart opts in by declaring display.cover in its
-  // program.json. name/description come from the same program.json — no
-  // second frontend manifest. The synthetic "custom" upload card is appended.
+  // Landing grid: a cart opts in by declaring display.cover (boxart) OR
+  // display.bullets (cover-less text card) in its program.json.
+  // name/description come from the same program.json — no second frontend
+  // manifest. The synthetic "custom" upload card is appended (rendered by
+  // CartGrid as the wide "load your own" box, not a grid cell).
   get featuredCarts() {
     const carts = this.serverCarts
-      .filter((c) => c.program?.display?.cover)
+      .filter((c) => c.program?.display?.cover || c.program?.display?.bullets)
       .map((c) => ({
         id: c.name,
         name: c.program.name || c.name,
         desc: c.program.description || '',
-        cover: `/assets/boxart/${c.program.display.cover}`,
+        cover: c.program.display.cover ? `/assets/boxart/${c.program.display.cover}` : null,
+        bullets: c.program.display.bullets || null,
+        accent: c.program.display.accent || null,
       }));
     carts.push({ id: 'custom', name: 'Custom Program', custom: true });
     return carts;

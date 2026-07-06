@@ -84,7 +84,7 @@ When `program.json` is missing or sparse, the builder fills in:
 | `disk.size` | `1440K` |
 | `disk.writable` | `true` |
 | `disk.files` | every non-`program.json` file in the cart folder |
-| `boot.autorun` | the single `.COM`/`.EXE` in the cart, or `null` (drop to prompt) if there are multiple |
+| `boot.runCommand` | the single `.COM`/`.EXE` in the cart (name, no extension), or `""` (drop to prompt) if there are multiple |
 
 ## The manifest
 
@@ -116,8 +116,7 @@ When `program.json` is missing or sparse, the builder fills in:
   },
 
   "boot": {
-    "autorun": "BOOTLE.COM",
-    "args": ""
+    "runCommand": "BOOTLE"
   }
 }
 ```
@@ -272,38 +271,42 @@ except `program.json` is added, uppercased.
 
 `KERNEL.SYS`, `ANSI.SYS`, `COMMAND.COM`, and `CONFIG.SYS` are always
 added by the builder (the first three sourced from `dos/bin/`,
-`CONFIG.SYS` synthesized from `boot.autorun`/`boot.args`). You don't
-list these yourself. COMMAND.COM is included even when `boot.autorun`
-points at a real program, so the autorun can shell out / EXIT back to
-a prompt and so users can override with `boot.autorun: "COMMAND.COM"`
-to drop straight to DOS.
+`CONFIG.SYS` synthesized from `boot.runCommand`). You don't list these
+yourself — COMMAND.COM is always the shell, so the program can EXIT
+back to a prompt, and an empty `runCommand` drops straight to DOS.
 
 If the cart already supplies a `COMMAND.COM` (e.g. you're testing your
 own shell, or running a bare `command.com` straight as a cart), the
 builder skips the bundled one — duplicate root-dir entries break the
 FAT12 lookup and DOS reports "Bad or missing command interpreter".
 
-### `boot.autorun` · implemented
+### `boot.runCommand` · implemented
 
-DOS carts only. Either a filename on the floppy or `null`.
+DOS carts only. The exact command line COMMAND.COM runs at boot.
+`CONFIG.SYS` always emits `SHELL=\COMMAND.COM /P /K <runCommand>` — the
+cart program never runs as the shell directly.
 
-- Filename → `CONFIG.SYS` gets `SHELL=\<FILENAME> <args>`. The program
-  runs on boot.
-- `null` → `CONFIG.SYS` gets `SHELL=\COMMAND.COM`. The cabinet drops to
-  the DOS prompt.
+- `"DOOM -noxms -nosound"` → COMMAND.COM runs it, and you get a prompt
+  back when it exits.
+- `""` (empty) → plain `A:\>` prompt, nothing auto-runs.
 
-Default: filename if the cart has exactly one `.COM`/`.EXE`; `null`
-otherwise.
+Default: if the cart contains exactly one `.COM`/`.EXE`, its name
+(without extension); otherwise empty.
 
-### `boot.args` · implemented
+> The pre-2026-04-27 fields `boot.autorun` / `boot.args` were removed;
+> the builder rejects them with a migration hint. Fold both into the
+> single `boot.runCommand` string.
 
-DOS carts only. String appended to the `SHELL=` line. Example: `"ZORK1.Z3"`
-for a cart with `FROTZ.EXE` becomes `SHELL=\FROTZ.EXE ZORK1.Z3`.
+### `boot.ems` · implemented
+
+DOS carts only, default `false`. When `true`, load the fake EMS device
+driver (`EMSDRV.SYS`) so programs that detect EMS via
+`open("EMMXXXX0")` see it as present. Gates only — no real EMS pages.
 
 ### `boot.raw` · implemented
 
 Hack carts only. Filename of the `.COM` to load raw at `0x100`. Mutually
-exclusive with `boot.autorun`. Required on hack carts.
+exclusive with `boot.runCommand`. Required on hack carts.
 
 ### `display.cover` · implemented (website)
 
@@ -316,6 +319,15 @@ still build (via `/build` and the picker), they just aren't showcased on
 the front page. The card's title and blurb come from the cart's own
 `name` / `description` — the website holds no per-cart metadata of its own.
 Ignored by the builder.
+
+### `display.bullets` / `display.accent` · implemented (website)
+
+The cover-less alternative to `display.cover`: an array of short lines
+the site renders as a text card — the cart's `name`, the word "with:",
+then the bullets — on the `display.accent` background colour (any CSS
+colour; default `#0000AA`). Like `cover`, the presence of `bullets`
+opts the cart into the featured landing grid. Used by `carts/dos-shell`
+("DOS Shell with: EDIT — text editor, …"). Both ignored by the builder.
 
 ### `display.vsyncMode` · aspirational
 
@@ -378,9 +390,9 @@ No `program.json`. The builder infers everything. Equivalent to writing:
 
 ```json
 {
-  "preset": "dos-muslin",
+  "preset": "dos-corduroy",
   "disk":   { "files": [{ "name": "BOOTLE.COM", "source": "BOOTLE.COM" }] },
-  "boot":   { "autorun": "BOOTLE.COM" }
+  "boot":   { "runCommand": "BOOTLE" }
 }
 ```
 
@@ -396,7 +408,7 @@ zork/
 ```json
 {
   "preset": "dos-muslin",
-  "boot":   { "autorun": "FROTZ.EXE", "args": "ZORK1.Z3" }
+  "boot":   { "runCommand": "FROTZ ZORK1.Z3" }
 }
 ```
 
@@ -416,8 +428,9 @@ shareware-pack/
 }
 ```
 
-With multiple programs and no `boot.autorun`, the builder sets
-`boot.autorun: null` and adds `COMMAND.COM` to the floppy.
+With multiple programs and no `boot.runCommand`, the builder defaults
+it to `""` — the cabinet drops to the `A:\>` prompt. `carts/dos-shell`
+(the featured "DOS Shell" utilities cart) is exactly this shape.
 
 ### Small hack cart
 
@@ -464,8 +477,7 @@ hello/
   },
 
   "boot": {
-    "autorun": "BOOTLE.COM",
-    "args":    ""
+    "runCommand": "BOOTLE"
   }
 }
 ```
@@ -479,8 +491,10 @@ it finds. Specifically rejects:
 - `source` paths that escape the cart root.
 - `preset: "hack"` combined with `bios: "muslin"|"corduroy"`.
 - `preset: "hack"` with a non-null `disk`.
-- `boot.raw` and `boot.autorun` both set.
+- `boot.raw` and a non-empty `boot.runCommand` both set.
 - `boot.raw` on a non-hack preset.
+- The removed `boot.autorun` / `boot.args` fields (migration hint
+  points at `boot.runCommand`).
 - `version` not matching semver.
 - Aspirational fields with specific unsupported values (with a message
   pointing at the follow-up issue).
@@ -500,7 +514,7 @@ Every built cabinet's `.css` file starts with a comment block:
  *
  * Disk layout:
  *   KERNEL.SYS   102400 bytes  (dos/bin/kernel.sys)
- *   CONFIG.SYS       17 bytes  (synthesized: SHELL=\BOOTLE.COM)
+ *   CONFIG.SYS       35 bytes  (synthesized: SHELL=\COMMAND.COM /P /K BOOTLE)
  *   BOOTLE.COM     2048 bytes  (bootle/BOOTLE.COM)
  *
  * BIOS: Muslin BIOS, 1520 bytes

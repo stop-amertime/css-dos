@@ -1,0 +1,40 @@
+{
+  "schema": "cart@1",
+  "name": "DOS Shell",
+  "description": "A bare EDR-DOS prompt with nine classic FreeDOS utilities on the floppy. Type HELP-style commands at A:\\> - EDIT, DEBUG, MEM, TREE and friends.",
+  "display": {
+    "accent": "#0000AA",
+    "bullets": [
+      "EDIT - text editor",
+      "EDLIN - line editor",
+      "DEBUG - poke memory",
+      "MEM - memory map",
+      "TREE - directory tree",
+      "FIND / SORT / MORE",
+      "CHOICE - batch prompts"
+    ]
+  },
+  "preset": "dos-corduroy",
+  "memory": {
+    "conventional": "640K",
+    "gfx": false,
+    "textVga": true
+  },
+  "disk": {
+    "files": [
+      { "name": "README.TXT", "source": "README.TXT" },
+      { "name": "EDIT.EXE", "source": "EDIT.EXE" },
+      { "name": "EDLIN.EXE", "source": "EDLIN.EXE" },
+      { "name": "DEBUG.COM", "source": "DEBUG.COM" },
+      { "name": "MEM.EXE", "source": "MEM.EXE" },
+      { "name": "TREE.COM", "source": "TREE.COM" },
+      { "name": "FIND.COM", "source": "FIND.COM" },
+      { "name": "MORE.EXE", "source": "MORE.EXE" },
+      { "name": "SORT.EXE", "source": "SORT.EXE" },
+      { "name": "CHOICE.EXE", "source": "CHOICE.EXE" }
+    ]
+  },
+  "boot": {
+    "runCommand": ""
+  }
+}

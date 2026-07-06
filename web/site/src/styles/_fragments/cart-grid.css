@@ -102,6 +102,62 @@
   color: #555;
 }
 
+/* Text card — a featured cart with no box art (display.bullets):
+   "NAME with: <list>" in white on the cart's accent colour, set in the
+   machine's own font. */
+.cart-cover-text {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  padding: 12px 10px;
+  gap: 6px;
+  font-family: 'WebVGA', monospace;
+  color: #fff;
+  text-align: left;
+}
+.cart-cover-text .ct-name {
+  font-size: 20px;
+  line-height: 22px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.cart-cover-text .ct-with { font-size: 12px; line-height: 12px; opacity: 0.8; }
+.cart-cover-text .ct-list {
+  list-style: none;
+  margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.cart-cover-text .ct-list li {
+  font-size: 10.5px;
+  line-height: 12px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cart-cover-text .ct-list li::before { content: '> '; opacity: 0.7; }
+
+/* Wide "load your own" bar — replaces the old sixth-cell custom card.
+   Same width cap as the grid, same dashed language as the old cover. */
+.cart-wide-custom {
+  max-width: 540px;
+  margin: 12px auto 0;
+  border: 2px dashed #8a8a8a;
+  background: #ededed;
+  color: #444;
+  cursor: pointer;
+  user-select: none;
+  display: flex; align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+}
+.cart-wide-custom:hover { background: #ddddff; }
+.cart-wide-custom.selected { outline: 3px solid #1faa1f; outline-offset: -2px; }
+.cart-wide-custom .ph-glyph {
+  font-size: 34px;
+  line-height: 1;
+  font-weight: bold;
+  color: #8a8a8a;
+}
+.cart-wide-custom .ph-name { font-size: 17px; line-height: 20px; color: #222; }
+.cart-wide-custom .ph-sub { font-size: 12px; line-height: 15px; color: #555; margin-top: 3px; }
+
 /* Custom-program upload panel — surfaced only when the Custom card is
    selected. A substantial bordered panel, not a one-line link. */
 .custom-panel {

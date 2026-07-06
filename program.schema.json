@@ -83,6 +83,19 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "cover": {
+          "type": "string",
+          "description": "Website only. Boxart filename resolved against the site's boxart directory (web/site/public/assets/boxart/) — not a path inside the cart, never lands on the floppy. Presence opts the cart into the featured landing grid. Ignored by the builder."
+        },
+        "bullets": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Website only. Cover-less featured card: the site renders 'NAME with:' followed by these lines on the accent colour. Presence (like cover) opts the cart into the featured landing grid. Ignored by the builder."
+        },
+        "accent": {
+          "type": "string",
+          "description": "Website only. CSS background colour for the cover-less text card (default #0000AA). Ignored by the builder."
+        },
         "vsyncMode": {
           "enum": ["sim", "wall", "turbo"],
           "default": "sim",

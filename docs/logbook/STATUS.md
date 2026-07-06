@@ -57,9 +57,9 @@ proven by the A/B).
 ## Active work (detail in `../plans/`; done/dead → LOGBOOK only)
 
 1. **Release cleanup (2026-06-12, in progress).** Cart re-cut state:
-   previous session's deletions sit uncommitted (see Git state);
-   owner paused further cart deletions — zork1 + prince-of-persia
-   stay for now. Replacements verified booting via fast-shoot:
+   the re-cut is landed on master (working tree clean — see Git
+   state); owner paused further cart deletions — zork1 +
+   prince-of-persia stay for now. Replacements verified booting via fast-shoot:
    rogue1_0 (title + name prompt), pop1_4 (PoP title; needed the
    INT 10h AH=1Ah BIOS fix, sound drivers renamed `.BAK`, two
    press-any-key dialogs at boot — see LOGBOOK 2026-06-12).
@@ -70,19 +70,17 @@ proven by the A/B).
    Final lineup, smoke-list update + website presentation pass are
    owner-collab. (Website itself now a Svelte 5 static app — see
    below.)
-2. **Website Svelte 5 static port — LANDED 2026-07-01 (master
-   `ad3c3e0`).** `web/site/` is now a Svelte 5 (runes) app that
-   `vite build`s to a plain static `dist/` (any HTTPS static host;
-   COOP/COEP emitted as `vercel.json`/`_headers` but OPTIONAL —
-   nothing needs SAB, verified 2026-07-04, LOGBOOK FINDING).
-   No runtime dev server: one `RUNTIME_COPIES` table
-   (`web/site/scripts/runtime-assets.mjs`) drives dev-serve + build-copy
-   of the browser-builder ESM graph, kiln/builder/tools, presets,
-   dos/bin, prebake, shim, player, calcite WASM, carts. Root
-   `npm run dev`→Vite; `dev:legacy`→old `web/scripts/dev.mjs`, still
-   needed by the two old-DOM Playwright harnesses. Old site files
-   (`build.html`/`split.html`/`assets/*.js`) NOT yet deleted (would
-   break those harnesses). See LOGBOOK 2026-07-01, `web/site/README.md`.
+2. **Programs cart line (2026-07-06).** Stage 1 LANDED:
+   `carts/dos-shell` — nine FreeDOS utilities, boots to `A:\>`;
+   site grew the cover-less text card (`display.bullets`/`accent`)
+   and the wide "load your own" bar (LOGBOOK 2026-07-06). The
+   programs themselves are owner-tested, not agent-verified.
+   Stage 2 = INT 13h write path (session-lifetime disk writes),
+   stage 3 = boot real MS-DOS 4.0 from its MIT source. Plan:
+   `../plans/2026-07-06-dos-shell-writability-msdos.md`.
+   (Website Svelte 5 port itself LANDED 2026-07-01 — see LOGBOOK
+   + `web/site/README.md`; old `build.html`/`split.html` kept for
+   the two legacy Playwright harnesses.)
 3. **Raw player paintable — LANDED 2026-06-30.** `raw.html` now
    mirrors `calcite.html` chrome (derived by `raw-regen.mjs`) with a
    64,000-element CSS pixel grid in place of the `<img>`; new
@@ -102,13 +100,10 @@ proven by the A/B).
    `__I4D` is ~22% and the **EDR-DOS kernel is ~49% of doomLoad**.
    Plan (correction note added):
    `../plans/2026-05-12-routine-semantic-substitution.md`.
-6. **doomLoad kernel side — RESOLVED 2026-06-11.** Characterised to
-   EDR-DOS routine level (`fatptr` FAT chain walk = 21% of doomLoad
-   alone) and fixed via new `disk.sectorsPerCluster` cart option
-   (doom8088 → 32, 16K clusters): **doomLoad ticks −68.7%
-   (29.55M→9.25M), web 59.6→19.1 s** (LOGBOOK 2026-06-11).
-   Follow-ups: apply to zork-big / prince-of-persia; remaining
-   per-read syscall overhead (fdrw div64s, deblock copies).
+(doomLoad kernel-side fix RESOLVED 2026-06-11 via
+`disk.sectorsPerCluster` — moved to LOGBOOK 2026-06-11; open
+follow-ups there: apply SPC to zork-big / prince-of-persia,
+per-read syscall overhead.)
 
 ## Git state (verified 2026-07-05)
 
