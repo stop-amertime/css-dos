@@ -14,12 +14,16 @@
       "MODE 40 - big chunky 40-column text",
       "CHKDSK / TREE / MEM / XCOPY / COMP",
       "FIND / SORT / MORE / FC / LABEL"
+    ],
+    "playTips": [
+      "Type 'edit readme.txt' for more info on commands you can run.",
+      "Run 'DIR' to see all the files on the floppy disk."
     ]
   },
   "preset": "dos-corduroy",
   "memory": {
     "conventional": "640K",
-    "gfx": false,
+    "gfx": true,
     "textVga": true
   },
   "disk": {
