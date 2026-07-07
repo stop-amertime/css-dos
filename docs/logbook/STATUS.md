@@ -71,9 +71,12 @@ inside the ±1% gate).
    toolset (FreeDOS EDIT + authentic ATTRIB/MODE/XCOPY/COMP/EXE2BIN)
    and a boxart cover. Floppy shrunk 720K → 480K (custom geometry)
    after the 720K writable cabinet hit **Chrome's V8 max-string cap
-   (~536 MB — see Gotchas)**; now ~464 MB, ~100K free on disk.
-   Whether it supersedes dos-shell is an open owner decision. Plan
-   file deleted (all 3 stages shipped). **Site regression fixed
+   (~536 MB — see Gotchas)**; ~100K free on disk. 2026-07-07:
+   `gfx: true` restored the BIOS boot splash (it previously drew into
+   the pruned Mode 13h zone — invisible); cabinet now ~467 MB, msdos
+   gate PASS. Owner decided msdos4 **supersedes dos-shell on the
+   site**: dos-shell's display block removed (cart kept, buildable).
+   Plan file deleted (all 3 stages shipped). **Site regression fixed
    2026-07-07:** msdos4 failed on the site with `compile error:
    unreachable` — stale vendored wasm (see Gotchas); re-vendored from
    calcite `2f0d012`, web boot verified (LOGBOOK 2026-07-07).
