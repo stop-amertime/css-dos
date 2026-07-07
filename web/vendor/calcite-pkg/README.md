@@ -30,7 +30,13 @@ cp ../calcite/web/pkg/calcite_wasm_bg.wasm.d.ts web/vendor/calcite-pkg/
 cp ../calcite/web/pkg/package.json             web/vendor/calcite-pkg/
 ```
 
-Then update the commit hash above. ~770 KB; plain git, no LFS needed.
+Then update the commit hash above (~770 KB; plain git, no LFS needed)
+and run the web-path boot gate — it is the only test that executes
+this bundle (all other gates drive calcite-cli):
+
+```sh
+node tests/harness/run.mjs websmoke
+```
 
 ## Note for calcite hackers
 

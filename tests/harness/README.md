@@ -108,7 +108,8 @@ they're the visual oracle for future agents.
 | `pipeline.mjs baseline-record` | Freeze a cart's current state at chosen ticks. |
 | `pipeline.mjs baseline-verify` | Compare current cart state to its frozen baseline. |
 | `pipeline.mjs consistency <cabinet> --tick=N` | Run compare-paths (compiled vs interpreter) at a tick. *Note: limited after seek — see "compare_paths caveat" below.* |
-| `run.mjs <preset>` | Run one of smoke/conformance/visual/full. Report at `tests/harness/results/latest.json`. |
+| `run.mjs <preset>` | Run one of smoke/conformance/writable/msdos/websmoke/visual/full. Report at `tests/harness/results/latest.json`. |
+| `web-boot.playwright.mjs` | Boot one cabinet through the real web path (headless Chromium, bridge worker, **vendored** wasm) and assert a screen sentinel. The `websmoke` preset drives it; the only coverage of the engine bundle the site ships. |
 
 ## Budgets, not hopes — every command needs an explicit ≤2-minute cap
 
@@ -229,7 +230,8 @@ hashes and human sanity-checks.
 ## Files
 
 - `pipeline.mjs` — single-command entrypoint with subcommands
-- `run.mjs` — preset-level runner (`smoke`, `conformance`, `visual`, `full`)
+- `run.mjs` — preset-level runner (`smoke`, `conformance`, `writable`, `msdos`, `websmoke`, `visual`, `full`)
+- `web-boot.playwright.mjs` — web-path boot check against the vendored wasm (used by `websmoke`)
 - `fulldiff.mjs` — streaming calcite-vs-ref divergence finder
 - `lib/debugger-client.mjs` — harness-facing wrapper around the MCP debugger. See [Agent-oriented tooling](../../../calcite/docs/debugger.md#agent-oriented-tooling) in the calcite docs for the full tool surface (`inspect_packed_cell`, `compare_paths`, `watchpoint`, async `run_until`, multi-session diffs, `trace_property`, `execution_summary`, etc.).
 - `lib/mcp-client.mjs` — raw MCP over child-stdio or TCP

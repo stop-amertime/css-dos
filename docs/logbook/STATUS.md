@@ -191,7 +191,11 @@ unaffected.
 
 **Regression gate:** `node tests/harness/run.mjs smoke` (6 carts) +
 `node tests/harness/run.mjs writable` (writable-disk e2e) +
-`node tests/harness/run.mjs msdos` (MS-DOS 4.00 boot e2e).
+`node tests/harness/run.mjs msdos` (MS-DOS 4.00 boot e2e) +
+`node tests/harness/run.mjs websmoke` (same boots through the real
+web path against the **vendored** wasm — the only gate that runs the
+engine the site ships; mandatory after re-vendoring or landing
+engine-behaviour changes).
 
 **Architecture:** V4 single-cycle, one instruction per CSS tick,
 3-word-slot scheme default. Default BIOS: Corduroy.
@@ -276,7 +280,9 @@ shift with anything that moves data.
   trap). Re-vendor per the vendor README when engine behaviour a
   cabinet needs lands on calcite main; a deploy machine with a built
   sibling `../calcite/web/pkg` serves *that* instead — keep it fresh
-  too. Bit msdos4 2026-07-07 (LOGBOOK).
+  too. Bit msdos4 2026-07-07 (LOGBOOK). Coverage since same day:
+  `node tests/harness/run.mjs websmoke` boots rom + writable +
+  msdos4 cabinets in headless Chromium against the vendored bundle.
 - Don't run the player interactively to "check if loaded" — build or
   use a measurement tool.
 - Don't trust the visible halt opcode — the CPU was redirected
