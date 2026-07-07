@@ -4,7 +4,15 @@ Prebuilt calcite WASM bundle so CSS-DOS runs **without the calcite repo or a
 Rust toolchain**. A plain user clones CSS-DOS, starts the dev server, and it
 works — this is the artifact that makes that possible.
 
-- **Built from calcite commit:** `4bad19e` (perf improvements)
+- **Built from calcite commit:** `2f0d012` (rep Copy per-tick fallback;
+  includes the writable packed-cell window backing `a44d2ab` — required
+  by writable cabinets like msdos4/dos-shell)
+- **Build note (2026-07-07):** this cut was made with `wasm-bindgen`
+  0.2.126 directly, **without wasm-opt** (~889 KB instead of ~770 KB) —
+  the build host only had binaryen 108, whose wasm-opt corrupts the
+  funcref table limits (`WebAssembly.Table.grow(): failed to grow table
+  by 4` at boot). A wasm-pack re-cut with a current binaryen is a safe
+  follow-up if the size/perf delta matters.
 - **Served at:** `/calcite/pkg/` by the dev server, *unless* a built sibling
   calcite repo is present (see `web/scripts/dev.mjs` → `resolveCalcitePkgDir`).
 

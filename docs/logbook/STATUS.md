@@ -93,7 +93,10 @@ proven by the A/B).
    after the 720K writable cabinet hit **Chrome's V8 max-string cap
    (~536 MB — see Gotchas)**; now ~464 MB, ~100K free on disk.
    Whether it supersedes dos-shell is an open owner decision. Plan
-   file deleted (all 3 stages shipped).
+   file deleted (all 3 stages shipped). **Site regression fixed
+   2026-07-07:** msdos4 failed on the site with `compile error:
+   unreachable` — stale vendored wasm (see Gotchas); re-vendored from
+   calcite `2f0d012`, web boot verified (LOGBOOK 2026-07-07).
    (Website Svelte 5 port itself LANDED 2026-07-01 — see LOGBOOK
    + `web/site/README.md`; old `build.html`/`split.html` kept for
    the two legacy Playwright harnesses.)
@@ -265,6 +268,15 @@ shift with anything that moves data.
   Discovered 2026-07-07 when the 720K-writable msdos4 cabinet hit
   562 MB. Writable shadow costs ~0.42 MB per KB of floppy — size
   writable floppies to keep total cabinet ≤ ~500 MB.
+- **The browser runs the *vendored* engine** (`web/vendor/
+  calcite-pkg/`), not calcite `main` — every native gate (smoke /
+  writable / msdos) drives calcite-cli and stays green while the
+  site's wasm is stale. A cabinet that needs newer engine work fails
+  in-browser as `compile error: unreachable` (Rust panic = wasm
+  trap). Re-vendor per the vendor README when engine behaviour a
+  cabinet needs lands on calcite main; a deploy machine with a built
+  sibling `../calcite/web/pkg` serves *that* instead — keep it fresh
+  too. Bit msdos4 2026-07-07 (LOGBOOK).
 - Don't run the player interactively to "check if loaded" — build or
   use a measurement tool.
 - Don't trust the visible halt opcode — the CPU was redirected
