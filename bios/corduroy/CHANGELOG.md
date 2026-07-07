@@ -25,9 +25,10 @@ head -5 cabinet.css
   Ctrl+C works; Ctrl+Enter=LF, Ctrl+Bksp=DEL, Ctrl+6=RS), Alt
   buffers ASCII 0 with the scancode preserved. Break codes of
   non-modifier keys are still dropped (the buffer wants makes only).
-  Combos arrive via the player's hold wire or multitouch; programs
-  that hook INT 9 themselves (Prince of Persia) always saw raw
-  make/break and are unaffected.
+  Combos must arrive via the player's hold wire (simultaneous
+  `:active` presses don't chord — the single-valued wire never fires
+  the second make); programs that hook INT 9 themselves (Prince of
+  Persia) always saw raw make/break and are unaffected.
 
 ## 0.5.0 — 2026-07-06
 

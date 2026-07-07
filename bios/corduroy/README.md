@@ -44,11 +44,14 @@ Character keys translate through the flag-selected table — Shift gives
 uppercase/US symbols, Ctrl gives control codes (Ctrl+C = 0x03, so the
 DOS break shortcut works; Ctrl+Enter = LF, Ctrl+Bksp = DEL), Alt
 buffers ASCII 0 with the scancode preserved. Break codes of normal
-keys are dropped (the ring buffer wants makes only). The on-screen
-keyboard can't physically chord, so combos arrive via the player's
-hold wire (held modifier make, break deferred to hold-off) or
-multitouch; programs that hook INT 9 themselves (Prince of Persia,
-Doom8088) read raw make/break off port 0x60 and bypass all of this.
+keys are dropped (the ring buffer wants makes only). Combos must
+arrive via the player's hold wire (held modifier make, break deferred
+to hold-off): simultaneous `:active` presses do NOT chord — the
+`--keyboard` wire is single-valued and a second key's make edge never
+fires while another key is down (verified 2026-07-07). Programs that
+hook INT 9 themselves (Prince of Persia, Doom8088) read raw
+make/break off port 0x60 and bypass the translation, but the same
+one-wire rule applies to how their input arrives.
 
 ### Supported video modes (INT 10h AH=00h)
 
