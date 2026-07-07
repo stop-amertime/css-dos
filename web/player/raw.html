@@ -232,7 +232,8 @@
     #kb-period { grid-row: 5; grid-column: 10; }
     #kb-slash { grid-row: 5; grid-column: 11; }
     #kb-ctrl { grid-row: 6; grid-column: 1; }
-    #kb-space { grid-row: 6; grid-column: 2 / -1; }
+    #kb-alt { grid-row: 6; grid-column: 2; }
+    #kb-space { grid-row: 6; grid-column: 3 / -1; }
     .kb-arrows {
       display: grid;
       grid-template-columns: repeat(3, 40px);
@@ -266,7 +267,7 @@
     .kb-enter { background: #ffff55; font-size: 16px; }
     .kb-space { height: 22px; }
     .kb-mod, .kb-fn { font-size: 11px; }
-    #kb-ctrl  { height: 22px; }
+    #kb-ctrl, #kb-alt { height: 22px; }
     /* CSS-drawn arrow (2px shaft + head), one shape rotated per
        direction. A font glyph sits off-centre in its character cell, so
        each rotation drifted a different way; a clipped square centres
@@ -290,18 +291,26 @@
     .kb-left  { grid-column: 1; grid-row: 2; }
     .kb-down  { grid-column: 2; grid-row: 2; }
     .kb-right { grid-column: 3; grid-row: 2; }
-    /* Hold a key — identical in both players, zero <script>. The
-       #kb-hold label toggles the hidden #kb-holdmode checkbox. The
-       checkbox IS the machine input: the cabinet's
-       `&:has(#kb-holdmode:checked) { --kbdHold: 1 }` rule raises the
-       hold wire, and while it is up the MACHINE latches key releases —
-       every key pressed stays down (chords); toggling the mode off
-       releases them all (kiln/patterns/misc.mjs emitIRQCompute). The
-       raw player needs nothing else. In calcite mode the checkbox also
-       rides on every key submission (name=holdmode) and the bridge
-       mirrors it onto the wire. The page cannot know which keys the
-       machine is holding, so held keys are not recoloured — the
-       machine's behavior is the feedback. */
+    /* Hold a key — zero <script> in both players, different plumbing.
+
+       CALCITE (this file): #kb-hold is a SUBMIT button like every
+       other key (key=kb-hold). The bridge owns the mode: each kb-hold
+       press toggles it and mirrors it onto the cabinet's --kbdHold
+       wire immediately — so turning the mode OFF releases every held
+       key right away, no follow-up key press needed. While the wire
+       is up the MACHINE latches key releases (presses accumulate as
+       chords); when it drops the machine drains the break codes
+       (kiln/patterns/misc.mjs emitIRQCompute). The page holds no mode
+       state; the lamp dot on the button is an <img> streamed by the
+       bridge (/_screen/holdlamp) showing the machine's ACTUAL wire
+       state — green = holding, black = off.
+
+       RAW (raw.html, derived by web/scripts/raw-regen.mjs): the
+       button becomes a label toggling the hidden #kb-holdmode
+       checkbox, which the cabinet reads directly via
+       `&:has(#kb-holdmode:checked) { --kbdHold: 1 }` — immediate by
+       construction — and the :checked rules below light the key.
+       Those rules are inert in this file (no checkbox here). */
     .kb-state {
       appearance: none;
       position: absolute;
@@ -314,20 +323,32 @@
       width: 128px; /* 3×40px arrows + 2×4px gaps */
       height: 26px;
       font-style: italic;
+      gap: 6px;
     }
-    #kb-hold::before { content: "Hold a key..."; }
-    /* Mode on: the button stays down and lit. */
+    #kb-hold::before { content: "Hold keys"; }
+    /* The hold-mode lamp (calcite only): fed by the bridge's
+       /_screen/holdlamp multipart stream — same mechanism as the
+       screen <img>. The black background reads as "off" until
+       (unless) the stream delivers, so a dead bridge shows mode off. */
+    #kb-hold .kb-lamp {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      border: 1px solid var(--edit-black);
+      background: #000000;
+    }
+    /* Mode on (raw player only — needs the checkbox): the key stays
+       down and lit. */
     .keyboard:has(#kb-holdmode:checked) #kb-hold {
       transform: translate(3px, 3px);
       box-shadow: none;
       background: #ffff55;
     }
-    .keyboard:has(#kb-holdmode:checked) #kb-hold::before { content: "hold mode on"; }
+    .keyboard:has(#kb-holdmode:checked) #kb-hold::before { content: "holding..."; }
     /* The sink iframe swallows every keyboard form submission so the
        page doesn't navigate. 0px/hidden keeps it invisible. The
-       keyboard is a GET form: each key is a submit button (name=key)
-       and the hold-mode checkbox rides along (holdmode=1 while on),
-       so the bridge knows whether a press means type or hold. */
+       keyboard is a GET form: each key is a submit button (name=key);
+       kb-hold is just another key value, one the bridge treats as the
+       hold-mode toggle instead of a keypress. */
 
     .kbd-sink { width: 0; height: 0; border: 0; position: absolute; visibility: hidden; }
 
@@ -600,11 +621,6 @@
 </div>
       </div>
       <form class="keyboard" action="/_kbd" method="get" target="kbd-sink">
-        <!-- Hold mode: a checkbox toggled by the #kb-hold label. While
-             checked it rides on every key submission (name=holdmode)
-             and the bridge treats those presses as hold/release
-             toggles. See the hold CSS block. -->
-        <input type="checkbox" id="kb-holdmode" class="kb-state" name="holdmode" value="1" aria-label="Hold mode: while on, pressing a key holds it and pressing it again releases it">
         <div class="kb-main">
           <button id="kb-f1" class="kb-key kb-fn" type="submit" name="key" value="kb-f1">F1</button>
           <button id="kb-f2" class="kb-key kb-fn" type="submit" name="key" value="kb-f2">F2</button>
@@ -662,10 +678,11 @@
           <button id="kb-period" class="kb-key" type="submit" name="key" value="kb-period">.</button>
           <button id="kb-slash" class="kb-key" type="submit" name="key" value="kb-slash">/</button>
           <button id="kb-ctrl" class="kb-key kb-mod" type="submit" name="key" value="kb-ctrl">Ctrl</button>
+          <button id="kb-alt" class="kb-key kb-mod" type="submit" name="key" value="kb-alt">Alt</button>
           <button id="kb-space" class="kb-key kb-space" type="submit" name="key" value="kb-space">&#x2423;</button>
         </div>
         <div class="kb-right-stack">
-          <label id="kb-hold" class="kb-key kb-mod" for="kb-holdmode" title="Hold mode: while on, pressing a key holds it and pressing it again releases it; tap to exit"></label>
+          <input type="checkbox" id="kb-holdmode" class="kb-state" aria-label="Hold mode: while on, pressed keys stay held (chords); toggle off to release them all"><label id="kb-hold" class="kb-key kb-mod" for="kb-holdmode" title="Hold mode: while on, pressed keys stay held (chords); tap again to turn off and release them all"></label>
           <div class="kb-arrows">
             <button id="kb-up" class="kb-key kb-arrow kb-up" type="submit" name="key" value="kb-up" aria-label="Up"><span></span></button>
             <button id="kb-left" class="kb-key kb-arrow kb-left" type="submit" name="key" value="kb-left" aria-label="Left"><span></span></button>

@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import {
   readFileSync, readdirSync, existsSync, statSync,
 } from 'node:fs';
+import { createHash } from 'node:crypto';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const siteRoot = resolve(here, '..');       // web/site/
@@ -25,10 +26,27 @@ const calciteRoot = process.env.CALCITE_REPO
   : resolve(repoRoot, '..', 'calcite');
 
 // Prefer a freshly-built sibling calcite pkg; fall back to the vendored copy.
+// When the sibling wins AND its engine differs from the vendored bundle,
+// warn loudly: this table also drives the PROD dist/ copy, so a stale (or
+// experimental) sibling build ships to users while the reviewed, committed
+// engine sits unused in web/vendor/. `npm run revendor` re-syncs them.
 function calcitePkgDir() {
   const sibling = resolve(calciteRoot, 'web', 'pkg');
-  if (existsSync(resolve(sibling, 'calcite_wasm.js'))) return sibling;
-  return resolve(webRoot, 'vendor', 'calcite-pkg');
+  const vendored = resolve(webRoot, 'vendor', 'calcite-pkg');
+  if (!existsSync(resolve(sibling, 'calcite_wasm.js'))) return vendored;
+  try {
+    const hash = (p) => createHash('sha256').update(readFileSync(p)).digest('hex');
+    if (hash(resolve(sibling, 'calcite_wasm_bg.wasm'))
+        !== hash(resolve(vendored, 'calcite_wasm_bg.wasm'))) {
+      console.warn(
+        '[runtime-assets] WARNING: serving the sibling calcite build '
+        + `(${sibling}), which DIFFERS from the vendored bundle the site `
+        + 'ships (web/vendor/calcite-pkg/). A prod build from this machine '
+        + 'ships the sibling engine. Run `npm run revendor` to sync, or '
+        + 'delete the sibling web/pkg to use the vendored one.');
+    }
+  } catch { /* hash check is best-effort */ }
+  return sibling;
 }
 
 // [urlPath, srcAbsDir]. Order doesn't matter; prefixes don't overlap.

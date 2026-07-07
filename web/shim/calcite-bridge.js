@@ -106,7 +106,7 @@ let batchMsEma = TARGET_MS;
 //   {op:'pulse', sel:'kb-x'}   — momentary press. The drainer walks it
 //     through set_pseudo_class_active('active','kb-x',true) → hold N
 //     batches → (...false) → gap M batches.
-//   {op:'holdwire', v:0|1}     — mirror the player's hold-mode checkbox
+//   {op:'holdwire', v:0|1}     — mirror the bridge-owned hold mode
 //     onto the cabinet's #kb-holdmode 'checked' pseudo-state (the
 //     --kbdHold wire). The MACHINE does the holding: while the wire is
 //     up it latches key releases (presses accumulate as held keys —
@@ -129,9 +129,12 @@ let currentGapBatches = 0;      // > 0 during the trailing 0-tick gap
 let currentActiveSelector = ''; // non-empty while pulsing a pseudo-class edge
 const KEY_HOLD_BATCHES = 8;
 const KEY_GAP_BATCHES = 2;
-// Last hold-wire state sent to the engine, so kbd-events only queue a
-// holdwire op on change. Reset alongside the engine (see reset path).
-let holdWireSent = false;
+// Hold mode — owned HERE, not by the page. The player's hold key is a
+// plain submit button (key=kb-hold); each press toggles this flag,
+// queues the wire flip, and re-broadcasts the lamp. The script-free
+// player can't hold state of its own; its lamp <img> streams whatever
+// we broadcast (see emitHoldLamp). Reset alongside the engine.
+let holdMode = false;
 // Trace toggle. Off by default — Playwright tests flip it on via the
 // 'kbd-trace' message type. Logs on (a) message receipt, (b) drainer
 // dispatch, (c) drainer release. Lets you measure click→engine.set_pseudo_class_active
@@ -179,7 +182,7 @@ function setPseudoActive(pseudo, selector, value) {
 // Cache-busting canary — bump this when you change this file so you can
 // confirm the browser is serving the new version (it appears in the
 // status line and the bridge-info reply).
-const BRIDGE_VERSION = 'bridge-2';
+const BRIDGE_VERSION = 'bridge-3';
 
 async function boot() {
   postStatus(`bridge boot ${BRIDGE_VERSION}`);
@@ -348,10 +351,10 @@ function resetMachine(preserveWatches = false) {
   currentGapBatches = 0;
   currentActiveSelector = '';
   // engine.reset() rebuilds State from scratch (pseudo_active empties),
-  // so the hold wire is down engine-side; drop our mirror. The page's
-  // hold-mode checkbox may still be checked — the next key press
-  // resubmits holdmode=1 and the wire is re-raised before the pulse.
-  holdWireSent = false;
+  // so the hold wire is down engine-side; hold mode restarts OFF and
+  // the lamp is told so.
+  holdMode = false;
+  emitHoldLamp();
   // Tear down the existing stats interval so no stale stats sample
   // (with the previous run's cycleCount) leaks through to a viewer
   // that reconnects on top of an existing bridge. startStatsInterval
@@ -406,7 +409,7 @@ function tickLoop() {
   } else if (keyQueue.length > 0) {
     const { op, sel, v } = keyQueue.shift();
     if (op === 'holdwire') {
-      // Mirror the player's hold-mode checkbox onto the --kbdHold wire.
+      // Mirror the bridge-owned hold mode onto the --kbdHold wire.
       // The trailing gap keeps the next op's edge on its own tick, so a
       // wire raise always lands before the press it gates.
       setPseudoActive('checked', 'kb-holdmode', !!v);
@@ -694,6 +697,49 @@ function maybeEmitFrame() {
   bus.postMessage({ type: 'frame', bytes: fileBytes.buffer, width: w, height: h, mime: 'image/bmp' });
 }
 
+// ---------- Hold-mode lamp ----------
+//
+// The player's hold key carries an <img src="/_screen/holdlamp"> dot.
+// The page is script-free and holds no mode state, so the lamp shows
+// whatever we broadcast: a tiny solid-colour BMP, re-sent on every
+// mode change, on machine reset, and on 'lamp-viewer' (a player just
+// opened the stream). Green = holding, black = off. Same multipart
+// plumbing as the framebuffer, message type 'lamp'.
+const LAMP_SIZE = 10;
+const lampCache = new Map(); // 'on'/'off' → complete BMP bytes
+function lampBmp(on) {
+  const key = on ? 'on' : 'off';
+  let bytes = lampCache.get(key);
+  if (!bytes) {
+    const [r, g, b] = on ? [0x55, 0xFF, 0x55] : [0x00, 0x00, 0x00];
+    // buildBmpHeader's single-slot geometry cache flips back on the
+    // next screen frame — a 122-byte rebuild, noise. Full lamp BMPs
+    // are cached here, so this runs at most twice.
+    const header = buildBmpHeader(LAMP_SIZE, LAMP_SIZE);
+    bytes = new Uint8Array(BMP_HEADER_SIZE + LAMP_SIZE * LAMP_SIZE * 4);
+    bytes.set(header, 0);
+    for (let i = BMP_HEADER_SIZE; i < bytes.length; i += 4) {
+      bytes[i] = r; bytes[i + 1] = g; bytes[i + 2] = b; bytes[i + 3] = 0xFF;
+    }
+    lampCache.set(key, bytes);
+  }
+  return bytes;
+}
+function emitHoldLamp() {
+  if (muted) return;
+  // postMessage structured-clones the buffer (no transfer), so the
+  // cached bytes stay intact. Sent TWICE: Chrome's multipart <img>
+  // pipeline only paints part N once part N+1 starts streaming in
+  // (measured 2026-07-07 — the 30Hz screen never notices, a
+  // rare-frame lamp shows the previous state). The duplicate makes
+  // the fresh state paint immediately; the 1 Hz re-emit in
+  // startStatsInterval covers every remaining edge (new viewer,
+  // dropped frame) within a second.
+  const msg = { type: 'lamp', bytes: lampBmp(holdMode).buffer, mime: 'image/bmp' };
+  bus.postMessage(msg);
+  bus.postMessage(msg);
+}
+
 let frameCount = 0;
 let lastReportFrames = 0;
 let lastFrameBytes = 0;
@@ -710,6 +756,8 @@ const bridgeStartMs = performance.now();
 function startStatsInterval() {
   if (statsIntervalId) return;
   statsIntervalId = setInterval(() => {
+    // Lamp keepalive — see emitHoldLamp for why re-emitting matters.
+    emitHoldLamp();
     const delta = frameCount - lastReportFrames;
     lastReportFrames = frameCount;
     const cycles = engine ? (engine.get_state_var('cycleCount') >>> 0) : 0;
@@ -943,22 +991,27 @@ bus.onmessage = (ev) => {
       keyQueue.push({ op: 'pulse', sel });
     }
   } else if (mm.type === 'kbd-event' && engine) {
-    // Player keyboard form submission: `key` is the clicked key,
-    // `holdmode` is the player's hold-mode checkbox riding along. The
-    // MACHINE does the holding (--kbdHold wire, kiln emitIRQCompute):
-    // the bridge mirrors the checkbox onto the wire when it changes,
-    // then pulses the key. While the wire is up, releases latch (keys
-    // accumulate as held — chords); when it drops, the machine drains
-    // the break codes. A hold left over from a mode exit (or a page
-    // reload) therefore releases on the next plain press's submission.
+    // Player keyboard form submission: `key` is the clicked key.
+    // kb-hold is the hold-mode toggle — flip the mode and mirror it
+    // onto the --kbdHold wire NOW. The MACHINE does the holding (kiln
+    // emitIRQCompute): while the wire is up, releases latch (keys
+    // accumulate as held — chords); the moment it drops the machine
+    // drains the break codes, so turning the mode off releases every
+    // held key immediately, no follow-up key press needed.
     const key = String(mm.key || '');
-    const holdmode = !!mm.holdmode;
-    if (kbdTraceEnabled) kbdTrace(`[kbd-trace] recv key=${key} holdmode=${holdmode} qlen=${keyQueue.length}`);
-    if (holdmode !== holdWireSent) {
-      keyQueue.push({ op: 'holdwire', v: holdmode });
-      holdWireSent = holdmode;
+    if (kbdTraceEnabled) kbdTrace(`[kbd-trace] recv key=${key} qlen=${keyQueue.length}`);
+    if (key === 'kb-hold') {
+      holdMode = !holdMode;
+      keyQueue.push({ op: 'holdwire', v: holdMode });
+      emitHoldLamp();
+    } else if (key) {
+      keyQueue.push({ op: 'pulse', sel: key });
     }
-    if (key) keyQueue.push({ op: 'pulse', sel: key });
+  } else if (mm.type === 'lamp-viewer') {
+    // A player opened the holdlamp stream — (re-)send the current
+    // state so the lamp is right from the first paint. Meaningful
+    // even with no engine yet: hold mode is simply off.
+    emitHoldLamp();
   } else if (mm.type === 'cabinet-updated') {
     onCabinetUpdated(!!mm.eager);
   } else if (mm.type === 'viewer-connected') {

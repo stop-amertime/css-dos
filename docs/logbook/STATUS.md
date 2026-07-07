@@ -23,36 +23,16 @@ central problem. As of 2026-06-10 the gate is met for the rep path
 
 ## The ship-blocker — RESOLVED 2026-06-10
 
-**The rep_fast_forward cheat is gone from calcite `main`.** Merge
-`cc729b2` (pushed) deletes the ~341-line hardcoded x86 string-op
-table; the post-tick dispatcher routes purely through the structural
-recogniser (`pattern/loop_descriptor.rs`) → `BulkClass` appliers
-(`pattern/rep_applier.rs`). Before merging, the 2026-06-09 review
-warts were fixed (`b2dc52d`): IP/cycle commits go through
-descriptor-carried names (`ip_property`, `CycleCharge.property` —
-no literal "IP"/"cycleCount"), dispatch routing uses each
-descriptor's `key_property` (no literal `--opcode`), and the
-panic/diag tables are descriptor-driven (x86 opname decode deleted).
-**Zero literal cabinet-property names remain in the generic rep
-path** — a `--pc_y`/`--zorch`-named cabinet commits to its own slots
-(tested).
-
-**Verification.** Pre-merge on the branch: 288 unit tests;
-calcite-cli A/B vs main **byte-identical** (cycles+IP, 7 smoke carts
-× 2M ticks); smoke 7/7; 3-run `doom-all --headed` medians **+0.50%
-wall / −1.49% t/s / +0.85% doomLoad** vs fresh main baseline (inside
-gate/noise; JSONs `docs/benches/doom-all-2026-06-09-*`). Post-merge
-from `main`: 288 tests, smoke 7/7, doom8088 title via fast-shoot
-@6M ticks.
-
-**Remaining genericity residue: NONE in code (2026-06-12).**
-`column_drawer_fast_forward` + `COLUMN_DRAWER_BODY` was **deleted**
-from calcite `main` (`788389d`, −308 lines incl. CLI diag hooks;
-calcite log 2026-06-12). A release-audit sweep found no other
-upstream knowledge outside comments/test fixtures — the cardinal
-rule now holds tree-wide. LODS-shape `Full` commit still refuses
-loudly (accumulator not modelled; unreached by any current cart,
-proven by the A/B).
+The rep_fast_forward cheat is gone from calcite `main` (merge
+`cc729b2`; descriptor-driven generic rep path, zero literal
+cabinet-property names — tested with a `--pc_y`/`--zorch` cabinet).
+Genericity residue: **NONE in code** since 2026-06-12
+(`column_drawer_fast_forward` deleted, `788389d`; release-audit
+sweep clean — the cardinal rule holds tree-wide). LODS-shape `Full`
+commit still refuses loudly (unreached by any current cart, proven
+by A/B). Full verification numbers: calcite log 2026-06-09/10/12 +
+LOGBOOK same dates (byte-identical A/B, smoke 7/7, doom-all medians
+inside the ±1% gate).
 
 ## Active work (detail in `../plans/`; done/dead → LOGBOOK only)
 
@@ -93,12 +73,17 @@ proven by the A/B).
    after the 720K writable cabinet hit **Chrome's V8 max-string cap
    (~536 MB — see Gotchas)**; now ~464 MB, ~100K free on disk.
    Whether it supersedes dos-shell is an open owner decision. Plan
-   file deleted (all 3 stages shipped). **Writable-cabinet wasm
-   compile wall FIXED 2026-07-07** (calcite `AddrOffset` fast-path;
-   calcite log same date): msdos4 web compile 105s → 10.8s median,
-   time-to-prompt ~18s; emulated boot itself is only 1.45M ticks.
-   New bench profile `msdos-boot` measures the compile/run split
-   (LOGBOOK 2026-07-07-msdos4-compile-wall).
+   file deleted (all 3 stages shipped). **Site regression fixed
+   2026-07-07:** msdos4 failed on the site with `compile error:
+   unreachable` — stale vendored wasm (see Gotchas); re-vendored from
+   calcite `2f0d012`, web boot verified (LOGBOOK 2026-07-07).
+   **Writable-cabinet wasm compile wall FIXED same day** (calcite
+   `AddrOffset` fast-path, calcite `3f788c4` + log): msdos4 web
+   compile 105s → 10.8s median, time-to-prompt ~18s; emulated boot
+   itself is only 1.45M ticks. New bench profile `msdos-boot`
+   measures the compile/run split (LOGBOOK
+   2026-07-07-msdos4-compile-wall). Needs a re-vendor to reach the
+   site (vendored bundle is `2f0d012`, pre-fix).
    (Website Svelte 5 port itself LANDED 2026-07-01 — see LOGBOOK
    + `web/site/README.md`; old `build.html`/`split.html` kept for
    the two legacy Playwright harnesses.)
@@ -193,7 +178,11 @@ unaffected.
 
 **Regression gate:** `node tests/harness/run.mjs smoke` (6 carts) +
 `node tests/harness/run.mjs writable` (writable-disk e2e) +
-`node tests/harness/run.mjs msdos` (MS-DOS 4.00 boot e2e).
+`node tests/harness/run.mjs msdos` (MS-DOS 4.00 boot e2e) +
+`node tests/harness/run.mjs websmoke` (same boots through the real
+web path against the **vendored** wasm — the only gate that runs the
+engine the site ships; mandatory after re-vendoring or landing
+engine-behaviour changes).
 
 **Architecture:** V4 single-cycle, one instruction per CSS tick,
 3-word-slot scheme default. Default BIOS: Corduroy.
@@ -270,6 +259,18 @@ shift with anything that moves data.
   Discovered 2026-07-07 when the 720K-writable msdos4 cabinet hit
   562 MB. Writable shadow costs ~0.42 MB per KB of floppy — size
   writable floppies to keep total cabinet ≤ ~500 MB.
+- **The browser runs the *vendored* engine** (`web/vendor/
+  calcite-pkg/`), not calcite `main` — every native gate (smoke /
+  writable / msdos) drives calcite-cli and stays green while the
+  site's wasm is stale. A cabinet that needs newer engine work fails
+  in-browser as `compile error: unreachable` (Rust panic = wasm
+  trap). `npm run revendor` re-syncs it (copies the sibling pkg,
+  stamps `VENDOR-INFO.json`, runs websmoke — fails if the bundle
+  doesn't boot); dev servers + site prod build warn when a sibling
+  `../calcite/web/pkg` differs by hash from the vendored bundle.
+  Bit msdos4 2026-07-07 (LOGBOOK). Gate:
+  `node tests/harness/run.mjs websmoke` boots rom + writable +
+  msdos4 cabinets in headless Chromium against the vendored bundle.
 - Don't run the player interactively to "check if loaded" — build or
   use a measurement tool.
 - Don't trust the visible halt opcode — the CPU was redirected

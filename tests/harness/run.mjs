@@ -48,6 +48,10 @@ Presets:
                 and assert its batch-written file TYPEs back on screen.
   msdos         Build carts/msdos4 (real MS-DOS 4.00 via INT 19h boot),
                 boot it, and assert the version banner reaches the screen.
+  websmoke      Boot hello-text + dos-writable + msdos4 through the REAL
+                web path (headless Chromium, bridge worker, the VENDORED
+                wasm bundle). The only gate that runs the engine the site
+                ships — run after re-vendoring web/vendor/calcite-pkg/.
   visual        --mode=verify: check each cart's screenshots against a
                 recorded baseline. --mode=record: create new baselines.
   full          smoke + conformance + visual(verify), in sequence.
@@ -296,6 +300,85 @@ async function runMsdos() {
   };
 }
 
+// --- websmoke preset ----------------------------------------------------
+
+// Boot cabinets through the REAL web path — dev server, Cache Storage,
+// bridge worker, the *vendored* calcite-wasm bundle — and assert a
+// screen sentinel. This is the only gate that executes the engine the
+// site ships: smoke/writable/msdos all drive calcite-cli and stay green
+// when web/vendor/calcite-pkg/ is stale (the exact failure of LOGBOOK
+// 2026-07-07: site msdos4 'compile error: unreachable'). Run this after
+// re-vendoring the wasm and after landing engine-behaviour changes a
+// cabinet depends on. One target per engine class: rom-backed,
+// writable shadow disk, and the shipped msdos4 cart itself.
+const WEBSMOKE_TARGETS = [
+  { cart: 'carts/test-carts/hello-text',   sentinel: 'HELLO, CSS-DOS!',     capMs: 90_000 },
+  { cart: 'carts/test-carts/dos-writable', sentinel: 'HELLO FROM SHADOW',   capMs: 240_000 },
+  { cart: 'carts/msdos4',                  sentinel: 'MS-DOS Version 4.00', capMs: 300_000 },
+];
+
+// Spawn web-boot.playwright.mjs and collect its single-line JSON result
+// (same contract as runPipeline: accept ok:false JSON as a test failure).
+function runWebBoot(cabinet, sentinel, capMs) {
+  return new Promise((resolvePromise, reject) => {
+    const child = spawn(process.execPath, [
+      join(HARNESS_ROOT, 'web-boot.playwright.mjs'),
+      `--cabinet=${cabinet}`, `--sentinel=${sentinel}`, `--cap-ms=${capMs}`,
+      // --engine=sibling tests a freshly built ../calcite/web/pkg
+      // before vendoring; default is the vendored bundle.
+      ...(flags.engine ? [`--engine=${flags.engine}`] : []),
+    ], { stdio: ['ignore', 'pipe', 'pipe'] });
+    let out = '';
+    let err = '';
+    child.stdout.on('data', d => { out += d.toString(); });
+    child.stderr.on('data', d => { err += d.toString(); });
+    child.on('close', code => {
+      const last = out.trim().split('\n').filter(Boolean).at(-1) ?? '';
+      let parsed = null;
+      try { parsed = JSON.parse(last); } catch { /* ignore */ }
+      if (parsed == null) {
+        reject(new Error(`web-boot produced no JSON: exit=${code}\nstderr tail: ${err.slice(-400)}`));
+        return;
+      }
+      resolvePromise({ exitCode: code, result: parsed });
+    });
+    child.on('error', reject);
+  });
+}
+
+async function runWebsmoke() {
+  const targets = WEBSMOKE_TARGETS
+    .filter(t => existsSync(resolve(REPO_ROOT, t.cart)))
+    .filter(t => !flags.only || flags.only.split(',').includes(basename(t.cart)));
+  log(`websmoke: ${targets.length} cabinets vs the vendored wasm bundle`);
+  const results = [];
+  for (const t of targets) {
+    const cartName = basename(t.cart);
+    log(`  ${cartName}...`);
+    const cabinet = join(HARNESS_ROOT, 'cache', `${cartName}.css`);
+    try {
+      const build = await runPipeline('build', resolve(REPO_ROOT, t.cart), `--out=${cabinet}`);
+      if (!build.result.ok) {
+        results.push({ cart: t.cart, ok: false, stage: 'build', error: build.result.error });
+        continue;
+      }
+      const boot = await runWebBoot(cabinet, t.sentinel, t.capMs);
+      results.push({
+        cart: t.cart,
+        ok: boot.result.ok === true,
+        buildMs: build.result.buildMs,
+        compileMs: boot.result.compileMs ?? null,
+        wallMs: boot.result.wallMs,
+        error: boot.result.error ?? undefined,
+        statusTail: boot.result.statusTail,
+      });
+    } catch (err) {
+      results.push({ cart: t.cart, ok: false, error: String(err?.message ?? err) });
+    }
+  }
+  return { preset: 'websmoke', carts: results, allOk: results.length > 0 && results.every(r => r.ok) };
+}
+
 // --- full preset --------------------------------------------------------
 
 async function runFull() {
@@ -331,6 +414,7 @@ async function main() {
       case 'conformance':  report = await runConformance();  break;
       case 'writable':     report = await runWritable();     break;
       case 'msdos':        report = await runMsdos();        break;
+      case 'websmoke':     report = await runWebsmoke();     break;
       case 'visual':       report = await runVisual();       break;
       case 'full':         report = await runFull();         break;
       default:

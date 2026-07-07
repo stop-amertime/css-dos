@@ -34,6 +34,7 @@ const { chromium } = pw;
 // Browser resolution: CHROME_BIN env → system Chrome (Windows) →
 // Playwright-managed chromium (PLAYWRIGHT_BROWSERS_PATH / default).
 import { existsSync } from 'node:fs';
+import { pngCenterPixel } from './helpers/png-pixel.mjs';
 const CHROME_CANDIDATES = [
   process.env.CHROME_BIN,
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
@@ -175,28 +176,45 @@ if (!userGame) {
 // Loading → in-game (gamestate 0 = GS_LEVEL).
 const ingame = await waitFor('ingame (gamestate=LEVEL)', async () => (await peekByte(G_GAMESTATE)) === 0 && (await peekByte(G_USERGAME)) === 1, 180000, 2000);
 
-// Hold-wire phase: hold mode on (#kb-holdmode checkbox → the cabinet's
-// --kbdHold wire; the mode rides along with the next key submission).
-// While the wire is up the MACHINE suppresses key release edges and
-// latches each released key's scancode into the kbdHeld* slots — so
-// pressing LEFT then CTRL builds a chord (the guest saw two makes, no
-// breaks). Mode off + one more key press drops the wire and drains the
-// slots back out as break codes.
+// Hold-wire phase: hold mode is a bridge-owned toggle — #kb-hold is a
+// plain submit key whose press flips the cabinet's --kbdHold wire
+// immediately. While the wire is up the MACHINE suppresses key release
+// edges and latches each released key's scancode into the kbdHeld*
+// slots — pressing LEFT, CTRL, ALT builds a chord (three makes, no
+// breaks). Clicking #kb-hold again drops the wire and the machine
+// drains the slots back out as break codes ON ITS OWN — asserting the
+// 2026-07-07 fix: no follow-up key press is needed to release.
+// The hold key's lamp dot is an <img> fed by the bridge's
+// /_screen/holdlamp stream. Assert on ELEMENT SCREENSHOTS (compositor
+// truth): in-page canvas drawImage of a multipart <img> returns a
+// stale frame (multi-frame image sources draw their first/previous
+// frame), so a pixel readback lies even while the display is correct.
+// Read the dot's CENTRE pixel from the screenshot — corner pixels mix
+// with the button background (hover/AA) and aren't stable.
+const lampCenter = async () =>
+  pngCenterPixel(await player.locator('#kb-hold .kb-lamp').screenshot());
+const lampLit = async () => { const c = await lampCenter(); return c.r < 120 && c.g > 200 && c.b < 120; };  // #55ff55 green
+const lampDark = async () => { const c = await lampCenter(); return c.r < 60 && c.g < 60 && c.b < 60; };    // #000000 black
+
 let holdOk = false;
 if (ingame) {
-  log('hold phase: mode on, chord LEFT+CTRL');
-  await player.click('#kb-hold');       // hold mode on (pure CSS checkbox)
-  await player.click('#kb-left');       // press LEFT → holdwire(1) + pulse → latch 0x4B
+  log('hold phase: mode on, chord LEFT+CTRL+ALT');
+  await player.click('#kb-hold');       // hold mode on → wire up now
+  const lampOn = await waitFor('hold lamp lit (green on display)', lampLit, 15000);
+  await player.click('#kb-left');       // press LEFT → latch 0x4B on release
   const left = await waitFor('kbdHeld0=75 (LEFT latched)', async () => (await peekVar('kbdHeld0')) === 75, 20000);
   await player.click('#kb-ctrl');       // press CTRL → latch 0x1D alongside
   const ctrl = await waitFor('kbdHeld1=29 (CTRL latched)', async () => (await peekVar('kbdHeld1')) === 29, 20000);
-  const wireIdle = (await peekVar('keyboard')) === 0; // wire pulses back to 0; the HOLD is in the slots
-  log(`chord latched: LEFT=${left} CTRL=${ctrl} keyboard idle=${wireIdle}`);
-  await player.click('#kb-hold');       // hold mode off (wire drops with the next key event)
-  await player.click('#kb-right');      // any key → holdwire(0) first → slots drain
-  const drained = await waitFor('kbdHeld slots drained', async () =>
-    (await peekVar('kbdHeld0')) === 0 && (await peekVar('kbdHeld1')) === 0, 20000);
-  holdOk = left && ctrl && wireIdle && drained;
+  await player.click('#kb-alt');        // press ALT (2026-07-07 key) → latch 0x38
+  const alt = await waitFor('kbdHeld2=56 (ALT latched)', async () => (await peekVar('kbdHeld2')) === 56, 20000);
+  const wireIdle = (await peekVar('keyboard')) === 0; // pulses pass through 0; the HOLD is in the slots
+  log(`chord latched: LEFT=${left} CTRL=${ctrl} ALT=${alt} keyboard idle=${wireIdle}`);
+  await player.click('#kb-hold');       // hold mode off — must drain with NO further key press
+  const drained = await waitFor('kbdHeld slots drained (no follow-up key)', async () =>
+    (await peekVar('kbdHeld0')) === 0 && (await peekVar('kbdHeld1')) === 0 && (await peekVar('kbdHeld2')) === 0, 20000);
+  const lampOff = await waitFor('hold lamp back off (black on display)', lampDark, 15000);
+  holdOk = left && ctrl && alt && wireIdle && drained && lampOn && lampOff;
+  log(`lamp: on=${lampOn} off=${lampOff}`);
 }
 
 const traces = await buildPage.evaluate(() => window.__kbdTraces);
