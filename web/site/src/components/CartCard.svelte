@@ -1,7 +1,8 @@
 <script>
   // One cart card: cover art (with placeholder fallback) + name/desc. A
-  // cart with display.bullets instead of a cover renders as a text card —
-  // "NAME with: <list>" on the cart's accent colour.
+  // cart without a cover (or with a broken cover image) falls back to its
+  // display.bullets text card — "NAME with: <list>" on the accent colour.
+  // Cover wins when both are declared.
   let { cart, selected, onpick } = $props();
   let broken = $state(false);
 </script>
@@ -22,6 +23,8 @@
         <div class="ph-name">Load your own program</div>
         <div class="ph-sub">A single .COM or .EXE, or a whole folder mounted as a floppy.</div>
       </div>
+    {:else if cart.cover && !broken}
+      <img src={cart.cover} alt={cart.name} onerror={() => (broken = true)} />
     {:else if cart.bullets}
       <div class="cart-cover-text" style:background={cart.accent ?? '#0000AA'}>
         <div class="ct-name">{cart.name}</div>
@@ -30,8 +33,6 @@
           {#each cart.bullets as b}<li>{b}</li>{/each}
         </ul>
       </div>
-    {:else if cart.cover && !broken}
-      <img src={cart.cover} alt={cart.name} onerror={() => (broken = true)} />
     {:else}
       <div class="cart-cover-placeholder"><div class="ph-name">{cart.name}</div></div>
     {/if}
