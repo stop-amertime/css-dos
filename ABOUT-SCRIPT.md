@@ -137,6 +137,19 @@ topper with flanking prev/next arrows, the section below sits in a
 white box, and the first-visit hint became a dismissable spotlight
 (dim overlay + X) instead of a Next-button gate.
 
+## 2026-07-07: back to THREE sections — About / Build / Play
+
+Owner call: the standalone Home step folded back in. The site is
+**About / Build / Play**; About is now SEVEN pages —
+**Home / Why? / how / file / calcite / faqs / credits** — with the
+intro hero as `#home` (About page 1) and **Why? promoted from
+epilogue to page 2**, ending in two buttons: "TRY IT OUT IMMEDIATELY
+(for the impatient)" → Build, and "FIND OUT HOW IT WORKS
+(recommended)" → `#about/how`. Play is the flow's last step; its nav
+button reads "How it Works »" and lands on `#about/how` — the page
+the impatient skipped to Build from. `routes/Home.svelte` deleted
+(hero markup lives in About page 1).
+
 ## Step 4 (was 1): About — SEVEN pages (Calcite added 2026-07-04 evening)
 
 Page 4 is now **Calcite** (`#about/calcite`): the Play step's intro

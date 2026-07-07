@@ -1,27 +1,27 @@
 <script>
-  import { nav, FILE_SECTIONS, ABOUT_FILE_SUB } from './lib/router.svelte.js';
+  import { nav, ABOUT, PLAY, FILE_SECTIONS, ABOUT_FILE_SUB } from './lib/router.svelte.js';
   import { build } from './lib/builder.svelte.js';
   import StepDots from './components/StepDots.svelte';
-  import Home from './routes/Home.svelte';
   import About from './routes/About.svelte';
   import Build from './routes/Build.svelte';
   import Play from './routes/Play.svelte';
 
   const STRIP = [
-    { label: 'Home' },
+    { label: 'About' },
     { label: 'Build' },
     { label: 'Play' },
-    { label: 'About' },
   ];
-  const TITLES = ['Home', 'Build cabinet', 'Play', 'About'];
+  const TITLES = ['About', 'Build cabinet', 'Play'];
 
-  $effect(() => { document.title = `CSS-DOS — ${TITLES[nav.step - 1]}`; });
+  $effect(() => {
+    document.title = nav.atStart ? 'CSS-DOS' : `CSS-DOS — ${TITLES[nav.step - 1]}`;
+  });
 
   function onkeydown(e) {
     if (e.target?.matches?.('input, textarea, select, [contenteditable]')) return;
     // On the How-it-works carousel, left/right step sections; at either
     // end they fall through to normal page turns (no wrap-around trap).
-    const inFileMap = nav.step === 4 && nav.sub === ABOUT_FILE_SUB;
+    const inFileMap = nav.step === ABOUT && nav.sub === ABOUT_FILE_SUB;
     if (e.key === 'ArrowRight') {
       e.preventDefault();
       if (inFileMap && nav.sectionIdx() < FILE_SECTIONS.length - 1) nav.sectionStep(1);
@@ -53,7 +53,7 @@
     items={STRIP}
     current={nav.step}
     onjump={(n) => nav.jump(n)}
-    disabled={(n) => n === 3 && !nav.canPlay}
+    disabled={(n) => n === PLAY && !nav.canPlay}
   />
 {/snippet}
 
@@ -63,7 +63,13 @@
       « <span class="hot">B</span>ack
     </button>
     <span class="wiz-nav-spacer"></span>
-    {#if !nav.isLast}
+    {#if nav.step === PLAY}
+      <!-- Play is the flow's end: forward goes to the info pages, landing
+           where the Why? page's skip button would have left you. -->
+      <button class="btn primary" onclick={() => nav.goHowItWorks()}>
+        How it <span class="hot">W</span>orks »
+      </button>
+    {:else}
       <button class="btn primary" disabled={nav.nextDisabled} onclick={() => nav.next()}>
         <span class="hot">N</span>ext »
       </button>
@@ -71,14 +77,12 @@
   </div>
 {/snippet}
 
-{#if nav.step === 1}
-  <Home {strip} {wizNav} />
+{#if nav.step === ABOUT}
+  <About {strip} {wizNav} />
 {:else if nav.step === 2}
   <Build {strip} {wizNav} />
-{:else if nav.step === 3}
-  <Play {strip} {wizNav} />
 {:else}
-  <About {strip} {wizNav} />
+  <Play {strip} {wizNav} />
 {/if}
 
 <div class="status-line">

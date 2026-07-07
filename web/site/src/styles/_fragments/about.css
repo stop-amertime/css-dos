@@ -303,6 +303,29 @@
 .epigraph p { margin: 0 0 2px; font-style: italic; }
 .epigraph cite { font-style: normal; font-size: 13px; color: #555; }
 
+/* The Why? page's fork: skip straight to Build, or read on. Stacked,
+   matching widths, so the choice reads as THE call to action. */
+.why-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 24px;
+}
+.why-cta-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 20px;
+  min-width: min(360px, 100%);
+}
+.why-cta-sub {
+  font-size: 12px;
+  line-height: 14px;
+  opacity: 0.75;
+}
+
 .skip-note { margin: 0 0 14px; }
 .skip-note button {
   font: inherit;

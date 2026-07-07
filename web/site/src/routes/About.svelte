@@ -1,13 +1,13 @@
 <script>
-  // About — the info pages, read after Build/Play: how it's possible
-  // (the one-tool idea + the mechanisms), the How-it-works carousel
-  // (the file dissected, with a map/overview landing page), Calcite,
-  // the FAQs, the why as an epilogue, and the credits. The intro hero
-  // lives on Home. Copy register per ABOUT-SCRIPT.md.
+  // About — the landing hero (Home) plus the info pages: Why? (with
+  // its skip-ahead/read-on buttons), how it's possible (the one-tool
+  // idea + the mechanisms), the How-it-works carousel (the file
+  // dissected, with a map/overview landing page), Calcite, the FAQs,
+  // and the credits. Copy register per ABOUT-SCRIPT.md.
   import { fly } from 'svelte/transition';
   import '../styles/_fragments/about.css';
   import '../styles/_fragments/anatomy.css';
-  import { nav, FILE_SECTIONS } from '../lib/router.svelte.js';
+  import { nav, BUILD, FILE_SECTIONS } from '../lib/router.svelte.js';
   import StepDots from '../components/StepDots.svelte';
   import Term from '../components/Term.svelte';
   import Wizard from '../components/Wizard.svelte';
@@ -46,11 +46,12 @@
   const hintLive = $derived(nav.section === 'map' && !nav.carouselSeen);
 
   const SUBPAGES = [
+    { label: 'Home' },
+    { label: 'Why?' },
     { label: 'How is this possible?' },
     { label: 'How it works' },
     { label: 'Calcite' },
     { label: 'FAQs' },
-    { label: 'Why?' },
     { label: 'Credits' },
   ];
 </script>
@@ -60,11 +61,85 @@
 {/snippet}
 
 <Wizard {strip} {subhead} nav={wizNav}>
-  <section class="step learn-step" data-step="4">
+  <section class="step learn-step" data-step="1">
 
   {#if nav.sub === 1}
+    <!-- Home — the landing hero (the site's front page) -->
+    <div class="subpage subpage-intro" data-subpage="1">
+      <div class="intro-hero">
+        <div class="intro-logo">
+          <img src="/assets/css-dos-logo-narrow.png" alt="CSS-DOS">
+        </div>
+        <div class="intro-text">
+          <h1>A complete 1980s PC, in a stylesheet.</h1>
+          <p class="lede">
+            An IBM PC compatible &mdash;
+            <Term t="i8086">8086</Term> processor, 640&nbsp;KB of
+            RAM, floppy drive, keyboard, VGA screen, and various
+            less-memorable support chips &mdash; in one CSS file.
+          </p>
+          <p class="lede">
+            It boots real <b>DOS</b> (the precursor to Windows) from an
+            emulated <Term t="floppy">floppy</Term> and runs unmodified
+            1980s software.
+          </p>
+          <p class="lede">Yes, it runs <b>Doom</b><span class="flair-star">*</span></p>
+          <div class="flair-burst">
+            <div class="flair-text">
+              <span>The first time real programs have run in CSS!</span>
+            </div>
+          </div>
+          <p class="intro-fn small">
+            <span class="fn-star">*</span> barely.
+          </p>
+          <p class="lede">
+            The file that does all this is about <b>300&nbsp;MB of plain
+            text</b>. Every line is spec-compliant
+            <Term t="css">CSS</Term>, albeit abused beyond recognition.
+          </p>
+          <p class="intro-gh">
+            <a href="https://github.com/stop-amertime/css-dos" class="ext-link"
+               target="_blank" rel="noopener">&#9733; View the source on GitHub</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  {:else if nav.sub === 2}
+    <!-- Why? -->
+    <div class="subpage" data-subpage="2">
+      <h1>Why?</h1>
+      <blockquote class="epigraph">
+        <p>&ldquo;Because it&rsquo;s there&rdquo;</p>
+        <cite>&mdash; George Mallory, when asked why he climbed Everest.</cite>
+      </blockquote>
+      <!-- TODO(owner): link the Dark Souls bongos run -->
+      <p>
+        Cave paintings started with some spare blood being misused to
+        represent a deer. Ten thousand years later, someone beat Dark
+        Souls using the Bongo Drums controller from a Donkey Kong rhythm
+        game, which only has three buttons and a microphone.
+      </p>
+      <p>
+        I&rsquo;m under no illusion here: this project was excruciating
+        to create and serves no practical benefit whatsoever. But it sits
+        in that special nook between &lsquo;might be technically
+        possible&rsquo; and &lsquo;impossible&rsquo; that draws the
+        foolish and the brave recklessly in.
+      </p>
+      <div class="why-cta">
+        <button class="btn why-cta-btn" onclick={() => nav.go(BUILD)}>
+          TRY IT OUT IMMEDIATELY
+          <span class="why-cta-sub">(for the impatient)</span>
+        </button>
+        <button class="btn primary why-cta-btn" onclick={() => nav.goHowItWorks()}>
+          FIND OUT HOW IT WORKS
+          <span class="why-cta-sub">(recommended)</span>
+        </button>
+      </div>
+    </div>
+  {:else if nav.sub === 3}
     <!-- How is this possible? -->
-    <div class="subpage" data-subpage="1">
+    <div class="subpage" data-subpage="3">
       <h1>How is this possible?</h1>
       <p>
         Everything in the machine is made of
@@ -135,9 +210,9 @@
         </p>
       </div>
     </div>
-  {:else if nav.sub === 2}
+  {:else if nav.sub === 4}
     <!-- How it works — the bar as map, the sections as a carousel -->
-    <div class="subpage" data-subpage="2">
+    <div class="subpage" data-subpage="4">
       {#if hintLive}
         <!-- First-visit spotlight: dims everything except the topper
              (and its bubble); clicking the dim dismisses. A sibling of
@@ -162,9 +237,9 @@
         {/key}
       </div>
     </div>
-  {:else if nav.sub === 3}
+  {:else if nav.sub === 5}
     <!-- Calcite — how the file actually runs (moved from the Play page) -->
-    <div class="subpage" data-subpage="3">
+    <div class="subpage" data-subpage="5">
       <h1>Calcite</h1>
       <p>
         You can <i>try</i> to load a 300&nbsp;MB
@@ -226,9 +301,9 @@
         would, that would be a bug in Calcite &mdash; not a feature.
       </p>
     </div>
-  {:else if nav.sub === 4}
+  {:else if nav.sub === 6}
     <!-- FAQs -->
-    <div class="subpage" data-subpage="4">
+    <div class="subpage" data-subpage="6">
       <h1>FAQs</h1>
 
       <div class="faq-list">
@@ -324,32 +399,9 @@
         </Foldable>
       </div>
     </div>
-  {:else if nav.sub === 5}
-    <!-- Why? -->
-    <div class="subpage" data-subpage="5">
-      <h1>Why?</h1>
-      <blockquote class="epigraph">
-        <p>&ldquo;Because it&rsquo;s there&rdquo;</p>
-        <cite>&mdash; George Mallory, when asked why he climbed Everest.</cite>
-      </blockquote>
-      <!-- TODO(owner): link the Dark Souls bongos run -->
-      <p>
-        Cave paintings started with some spare blood being misused to
-        represent a deer. Ten thousand years later, someone beat Dark
-        Souls using the Bongo Drums controller from a Donkey Kong rhythm
-        game, which only has three buttons and a microphone.
-      </p>
-      <p>
-        I&rsquo;m under no illusion here: this project was excruciating
-        to create and serves no practical benefit whatsoever. But it sits
-        in that special nook between &lsquo;might be technically
-        possible&rsquo; and &lsquo;impossible&rsquo; that draws the
-        foolish and the brave recklessly in.
-      </p>
-    </div>
-  {:else if nav.sub === 6}
+  {:else if nav.sub === 7}
     <!-- Credits (restored 2026-07-04 from the retired How-it-works route) -->
-    <div class="subpage" data-subpage="6">
+    <div class="subpage" data-subpage="7">
       <h1>Credits &amp; thanks</h1>
       <p>
         CSS-DOS stands on the shoulders of people who proved, piece by
