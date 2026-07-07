@@ -329,14 +329,17 @@
       width: 128px; /* 3×40px arrows + 2×4px gaps */
       height: 26px;
       font-style: italic;
-      gap: 6px;
+      position: relative; /* anchors the corner lamp */
     }
     #kb-hold::before { content: "Hold Mode"; }
     /* The hold-mode lamp (calcite only): fed by the bridge's
        /_screen/holdlamp multipart stream — same mechanism as the
-       screen <img>. The black background reads as "off" until
-       (unless) the stream delivers, so a dead bridge shows mode off. */
+       screen <img>. Tucked into the button's top-right corner; the
+       black background reads as "off" until (unless) the stream
+       delivers, so a dead bridge shows mode off. */
     #kb-hold .kb-lamp {
+      position: absolute;
+      top: 2px; right: 2px;
       width: 10px; height: 10px;
       border-radius: 50%;
       border: 1px solid var(--edit-black);
