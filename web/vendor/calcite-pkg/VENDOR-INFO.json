@@ -1,10 +1,10 @@
 {
-  "calciteCommit": "2f0d012",
-  "calciteDirty": false,
-  "vendoredAt": "2026-07-07T13:06:58.070Z",
+  "calciteCommit": "3f788c4",
+  "calciteDirty": true,
+  "vendoredAt": "2026-07-07T14:27:10.284Z",
   "sha256": {
-    "calcite_wasm.js": "993e8df904ae15cd9f40d6f3bafa61af2e210db7ebcbbd5d9419e184edb0c20b",
-    "calcite_wasm_bg.wasm": "983b557a9043fa177a866fa9befa333bcdb653b587197dfe2153b598d73f667b",
+    "calcite_wasm.js": "ad75285dbc029c300eff334b6a7b4d9e96b94896e29bd79a12a906926b3c71d9",
+    "calcite_wasm_bg.wasm": "7710de31a04f213444252665c2de34672db458275a1c543294fe5abcf153d1e3",
     "calcite_wasm.d.ts": "8ceac17fceb4ae367ec9491268a17a5fd8ac0ad452ecae02ac1bcccf64e3be80",
     "calcite_wasm_bg.wasm.d.ts": "de89d7c8fd361727d2ad47ee92dfaa6d3d7d5bee4330302d9226b6be5cd936c3"
   }
