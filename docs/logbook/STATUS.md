@@ -23,36 +23,16 @@ central problem. As of 2026-06-10 the gate is met for the rep path
 
 ## The ship-blocker — RESOLVED 2026-06-10
 
-**The rep_fast_forward cheat is gone from calcite `main`.** Merge
-`cc729b2` (pushed) deletes the ~341-line hardcoded x86 string-op
-table; the post-tick dispatcher routes purely through the structural
-recogniser (`pattern/loop_descriptor.rs`) → `BulkClass` appliers
-(`pattern/rep_applier.rs`). Before merging, the 2026-06-09 review
-warts were fixed (`b2dc52d`): IP/cycle commits go through
-descriptor-carried names (`ip_property`, `CycleCharge.property` —
-no literal "IP"/"cycleCount"), dispatch routing uses each
-descriptor's `key_property` (no literal `--opcode`), and the
-panic/diag tables are descriptor-driven (x86 opname decode deleted).
-**Zero literal cabinet-property names remain in the generic rep
-path** — a `--pc_y`/`--zorch`-named cabinet commits to its own slots
-(tested).
-
-**Verification.** Pre-merge on the branch: 288 unit tests;
-calcite-cli A/B vs main **byte-identical** (cycles+IP, 7 smoke carts
-× 2M ticks); smoke 7/7; 3-run `doom-all --headed` medians **+0.50%
-wall / −1.49% t/s / +0.85% doomLoad** vs fresh main baseline (inside
-gate/noise; JSONs `docs/benches/doom-all-2026-06-09-*`). Post-merge
-from `main`: 288 tests, smoke 7/7, doom8088 title via fast-shoot
-@6M ticks.
-
-**Remaining genericity residue: NONE in code (2026-06-12).**
-`column_drawer_fast_forward` + `COLUMN_DRAWER_BODY` was **deleted**
-from calcite `main` (`788389d`, −308 lines incl. CLI diag hooks;
-calcite log 2026-06-12). A release-audit sweep found no other
-upstream knowledge outside comments/test fixtures — the cardinal
-rule now holds tree-wide. LODS-shape `Full` commit still refuses
-loudly (accumulator not modelled; unreached by any current cart,
-proven by the A/B).
+The rep_fast_forward cheat is gone from calcite `main` (merge
+`cc729b2`; descriptor-driven generic rep path, zero literal
+cabinet-property names — tested with a `--pc_y`/`--zorch` cabinet).
+Genericity residue: **NONE in code** since 2026-06-12
+(`column_drawer_fast_forward` deleted, `788389d`; release-audit
+sweep clean — the cardinal rule holds tree-wide). LODS-shape `Full`
+commit still refuses loudly (unreached by any current cart, proven
+by A/B). Full verification numbers: calcite log 2026-06-09/10/12 +
+LOGBOOK same dates (byte-identical A/B, smoke 7/7, doom-all medians
+inside the ±1% gate).
 
 ## Active work (detail in `../plans/`; done/dead → LOGBOOK only)
 
