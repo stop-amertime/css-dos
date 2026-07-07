@@ -50,7 +50,10 @@ const gridStyle = `  <style>
   </style>
 `;
 
-let html = readFileSync(calcitePath, 'utf8');
+// Normalize to LF: editors on Windows (git autocrlf checkouts) can
+// leave calcite.html CRLF, which silently breaks the `\n`-anchored
+// regexes below and would churn raw.html's line endings.
+let html = readFileSync(calcitePath, 'utf8').replace(/\r\n/g, '\n');
 
 // (1) Replace the <img> screen with the pixel grid.
 //     The img tag in calcite.html:
@@ -94,8 +97,8 @@ html = html.replace('</head>', `${gridStyle}</head>`);
   const btnRe = /<!-- Hold-mode toggle:[\s\S]*?<button id="kb-hold"[\s\S]*?<\/button>/;
   if (!btnRe.test(html)) throw new Error('raw-regen: calcite #kb-hold button not found');
   html = html.replace(btnRe,
-    `<input type="checkbox" id="kb-holdmode" class="kb-state" aria-label="Hold mode: while on, pressed keys stay held (chords); toggle off to release them all">`
-    + `<label id="kb-hold" class="kb-key kb-mod" for="kb-holdmode" title="Hold mode: while on, pressed keys stay held (chords); tap again to turn off and release them all"></label>`);
+    `<input type="checkbox" id="kb-holdmode" class="kb-state" aria-label="Hold Mode: while on, pressed keys stay held (chords); toggle off to release them all">`
+    + `<label id="kb-hold" class="kb-key kb-mod" for="kb-holdmode" title="Hold Mode: while on, pressed keys stay held (chords); tap again to turn off and release them all"></label>`);
 }
 // (7) Drop the SW-heartbeat iframe: the raw player uses no service
 //     worker streams, and without a dev server the refresh loop would

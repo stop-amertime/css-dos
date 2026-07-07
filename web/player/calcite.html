@@ -300,15 +300,18 @@
        is up the MACHINE latches key releases (presses accumulate as
        chords); when it drops the machine drains the break codes
        (kiln/patterns/misc.mjs emitIRQCompute). The page holds no mode
-       state; the lamp dot on the button is an <img> streamed by the
-       bridge (/_screen/holdlamp) showing the machine's ACTUAL wire
-       state — green = holding, black = off.
+       state (a zero-JS click can't both flip page state and submit),
+       so the label can't swap with the mode here; the lamp dot on the
+       button is an <img> streamed by the bridge (/_screen/holdlamp)
+       showing the machine's ACTUAL wire state — green = holding,
+       black = off.
 
        RAW (raw.html, derived by web/scripts/raw-regen.mjs): the
        button becomes a label toggling the hidden #kb-holdmode
        checkbox, which the cabinet reads directly via
        `&:has(#kb-holdmode:checked) { --kbdHold: 1 }` — immediate by
-       construction — and the :checked rules below light the key.
+       construction — and the :checked rules below light the key and
+       swap its text (page state is real there, so pure CSS can).
        Those rules are inert in this file (no checkbox here). */
     .kb-state {
       appearance: none;
@@ -324,7 +327,7 @@
       font-style: italic;
       gap: 6px;
     }
-    #kb-hold::before { content: "Hold keys"; }
+    #kb-hold::before { content: "Hold Mode"; }
     /* The hold-mode lamp (calcite only): fed by the bridge's
        /_screen/holdlamp multipart stream — same mechanism as the
        screen <img>. The black background reads as "off" until
@@ -336,7 +339,7 @@
       background: #000000;
     }
     /* Mode on (raw player only — needs the checkbox): the key stays
-       down and lit. */
+       down, lights up, and says so. */
     .keyboard:has(#kb-holdmode:checked) #kb-hold {
       transform: translate(3px, 3px);
       box-shadow: none;
@@ -474,7 +477,7 @@
                releases all held keys the moment the mode turns off.
                The lamp <img> is streamed by the bridge — see the hold
                CSS block. -->
-          <button id="kb-hold" class="kb-key kb-mod" type="submit" name="key" value="kb-hold" title="Hold mode: while the lamp is lit, pressed keys stay held (chords); tap again to turn off and release them all"><img class="kb-lamp" src="/_screen/holdlamp" alt="" width="10" height="10"></button>
+          <button id="kb-hold" class="kb-key kb-mod" type="submit" name="key" value="kb-hold" title="Hold Mode: while the lamp is lit, pressed keys stay held (chords); tap again to turn off and release them all"><img class="kb-lamp" src="/_screen/holdlamp" alt="" width="10" height="10"></button>
           <div class="kb-arrows">
             <button id="kb-up" class="kb-key kb-arrow kb-up" type="submit" name="key" value="kb-up" aria-label="Up"><span></span></button>
             <button id="kb-left" class="kb-key kb-arrow kb-left" type="submit" name="key" value="kb-left" aria-label="Left"><span></span></button>
