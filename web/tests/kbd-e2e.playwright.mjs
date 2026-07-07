@@ -175,26 +175,28 @@ if (!userGame) {
 // Loading → in-game (gamestate 0 = GS_LEVEL).
 const ingame = await waitFor('ingame (gamestate=LEVEL)', async () => (await peekByte(G_GAMESTATE)) === 0 && (await peekByte(G_USERGAME)) === 1, 180000, 2000);
 
-// Hold-key phase: hold mode on ("Hold a key..." label — pure CSS, no
-// submission), press LEFT (turn key) → the bridge latches it; verify
-// --keyboard stays at LEFT's make value (0x4B00 = 19200) instead of
-// pulsing back to 0. Press LEFT again → release. Then exit the mode.
+// Hold-wire phase: hold mode on (#kb-holdmode checkbox → the cabinet's
+// --kbdHold wire; the mode rides along with the next key submission).
+// While the wire is up the MACHINE suppresses key release edges and
+// latches each released key's scancode into the kbdHeld* slots — so
+// pressing LEFT then CTRL builds a chord (the guest saw two makes, no
+// breaks). Mode off + one more key press drops the wire and drains the
+// slots back out as break codes.
 let holdOk = false;
 if (ingame) {
-  log('hold phase: mode on + holding LEFT');
-  await player.click('#kb-hold');       // hold mode on (lit)
-  await player.click('#kb-left');       // press LEFT → key=kb-left&holdmode=1 → latch
-  const latched = await waitFor('latched --keyboard=19200', async () => (await peekVar('keyboard')) === 19200, 20000);
-  let sustained = false;
-  if (latched) {
-    await new Promise(r => setTimeout(r, 3000));
-    sustained = (await peekVar('keyboard')) === 19200;
-    log(`latch sustained after 3s: ${sustained}`);
-  }
-  await player.click('#kb-left');       // press LEFT again → release
-  const released = await waitFor('released --keyboard=0', async () => (await peekVar('keyboard')) === 0, 20000);
-  await player.click('#kb-hold');       // hold mode off
-  holdOk = latched && sustained && released;
+  log('hold phase: mode on, chord LEFT+CTRL');
+  await player.click('#kb-hold');       // hold mode on (pure CSS checkbox)
+  await player.click('#kb-left');       // press LEFT → holdwire(1) + pulse → latch 0x4B
+  const left = await waitFor('kbdHeld0=75 (LEFT latched)', async () => (await peekVar('kbdHeld0')) === 75, 20000);
+  await player.click('#kb-ctrl');       // press CTRL → latch 0x1D alongside
+  const ctrl = await waitFor('kbdHeld1=29 (CTRL latched)', async () => (await peekVar('kbdHeld1')) === 29, 20000);
+  const wireIdle = (await peekVar('keyboard')) === 0; // wire pulses back to 0; the HOLD is in the slots
+  log(`chord latched: LEFT=${left} CTRL=${ctrl} keyboard idle=${wireIdle}`);
+  await player.click('#kb-hold');       // hold mode off (wire drops with the next key event)
+  await player.click('#kb-right');      // any key → holdwire(0) first → slots drain
+  const drained = await waitFor('kbdHeld slots drained', async () =>
+    (await peekVar('kbdHeld0')) === 0 && (await peekVar('kbdHeld1')) === 0, 20000);
+  holdOk = left && ctrl && wireIdle && drained;
 }
 
 const traces = await buildPage.evaluate(() => window.__kbdTraces);
@@ -203,6 +205,6 @@ console.log('keyboard-broken status present:', (await buildPage.evaluate(() => w
 await browser.close();
 const pass = ingame && holdOk;
 log(pass
-  ? 'PASS: full flow build→title→menu→ingame + hold-latch via on-screen keyboard'
+  ? 'PASS: full flow build→title→menu→ingame + hold-wire chord via on-screen keyboard'
   : `FAIL: ingame=${ingame} holdOk=${holdOk}`);
 process.exit(pass ? 0 : 1);

@@ -553,22 +553,79 @@ export function emitIRQCompute() {
     style(--__1prevKeyboard: 0): 1;
     else: 0
   )`;
-  const kbdRelease = `if(
+  // Raw wire transition back to 0. While the hold wire (--kbdHold) is 1
+  // it is LATCHED, not delivered: the scancode joins the held set and no
+  // break code reaches the guest — the key stays down (chords). While
+  // the hold wire is 0 it is a normal delivered release.
+  const kbdRawRelease = `if(
     style(--__1prevKeyboard: 0): 0;
     style(--keyboard: 0): 1;
     else: 0
   )`;
+  const kbdRelease = `if(
+    style(--_kbdRawRelease: 0): 0;
+    style(--kbdHold: 1): 0;
+    else: 1
+  )`;
+  const kbdLatch = `if(
+    style(--_kbdRawRelease: 0): 0;
+    style(--kbdHold: 1): 1;
+    else: 0
+  )`;
+  // Held-set slot flags. Append (on a latch tick) into the lowest empty
+  // slot; drain (one per drain tick) from the highest occupied slot.
+  // Duplicates are allowed (re-pressing a held key latches it twice; the
+  // extra break on drain is harmless) — they just spend slots.
+  const SLOTS = 8;
+  const appFlags = [];
+  const popFlags = [];
+  for (let i = 0; i < SLOTS; i++) {
+    const lowerFull = Array.from({ length: i }, (_, j) =>
+      `    style(--__1kbdHeld${j}: 0): 0;`).join('\n');
+    appFlags.push(`  --_kbdApp${i}: if(
+    style(--_kbdLatch: 0): 0;
+${lowerFull ? lowerFull + '\n' : ''}    style(--__1kbdHeld${i}: 0): 1;
+    else: 0
+  );`);
+    const top = i < SLOTS - 1
+      ? `    style(--__1kbdHeld${i + 1}: 0): 1;\n    else: 0`
+      : `    else: 1`;
+    popFlags.push(`  --_kbdPop${i}: if(
+    style(--_kbdDrain: 0): 0;
+    style(--__1kbdHeld${i}: 0): 0;
+${top}
+  );`);
+  }
+  const anyHeld = `--or(--or(--or(var(--__1kbdHeld0), var(--__1kbdHeld1)), --or(var(--__1kbdHeld2), var(--__1kbdHeld3))), --or(--or(var(--__1kbdHeld4), var(--__1kbdHeld5)), --or(var(--__1kbdHeld6), var(--__1kbdHeld7))))`;
+  // Drain: with the hold wire down and held slots occupied, emit one
+  // synthesized break code per eligible tick. Eligible = no real key
+  // edge this tick (real events own port 0x60) and the previous
+  // keyboard IRQ fully consumed (pending bit clear, nothing in
+  // service) — this self-paces the drain to the guest ISR's speed so
+  // no break code is overwritten before it is read.
+  const kbdDrain = `if(
+    style(--kbdHold: 1): 0;
+    style(--_kbdAnyHeld: 0): 0;
+    style(--_kbdPress: 1): 0;
+    style(--_kbdRawRelease: 1): 0;
+    style(--_kbdPicKbdBit: 1): 0;
+    style(--__1picInService: 0): 1;
+    else: 0
+  )`;
+  const popSc = Array.from({ length: SLOTS }, (_, i) =>
+    `var(--__1kbdHeld${i}) * var(--_kbdPop${i})`).join(' + ');
   // Port 0x60 returns the most recent scancode (make or break) until the
-  // next edge. On the edge tick itself, we compute the new value directly;
-  // off-edge ticks fall through to --__1kbdScancodeLatch, which the
-  // register-dispatch default updates with the same edge logic so the
-  // latch and the live port read agree. Without the latch the break code
-  // is only readable on the single _kbdRelease tick — if the ISR runs
+  // next event. On the event tick itself, we compute the new value
+  // directly; off-event ticks fall through to --__1kbdScancodeLatch,
+  // which the register-dispatch default updates with the same logic so
+  // the latch and the live port read agree. Without the latch the break
+  // code is only readable on the single event tick — if the ISR runs
   // even one tick later (CLI clear gap, nested IRQ pending, etc.) it
   // reads scancode 0 and DOOM's key-held state never clears.
   const kbdPort60 = `if(
     style(--_kbdPress: 1): --rightShift(var(--keyboard), 8);
     style(--_kbdRelease: 1): --or(--rightShift(var(--__1prevKeyboard), 8), 128);
+    style(--_kbdDrain: 1): calc(var(--_kbdPopSc) + 128);
     else: var(--__1kbdScancodeLatch)
   )`;
   const picEffective = `if(
@@ -578,8 +635,17 @@ export function emitIRQCompute() {
   return [
     `  /* IRQ delivery state */`,
     `  --_kbdPress: ${kbdPress};`,
+    `  --_kbdRawRelease: ${kbdRawRelease};`,
     `  --_kbdRelease: ${kbdRelease};`,
-    `  --_kbdEdge: --or(var(--_kbdPress), var(--_kbdRelease));`,
+    `  --_kbdLatch: ${kbdLatch};`,
+    `  --_kbdLatchSc: --rightShift(var(--__1prevKeyboard), 8);`,
+    ...appFlags,
+    `  --_kbdAnyHeld: ${anyHeld};`,
+    `  --_kbdPicKbdBit: --bit(var(--__1picPending), 1);`,
+    `  --_kbdDrain: ${kbdDrain};`,
+    ...popFlags,
+    `  --_kbdPopSc: calc(${popSc});`,
+    `  --_kbdEdge: --or(--or(var(--_kbdPress), var(--_kbdRelease)), var(--_kbdDrain));`,
     `  --_kbdPort60: ${kbdPort60};`,
     `  --_picEffective: ${picEffective};`,
     `  --_ifFlag: --bit(var(--__1flags), 9);`,

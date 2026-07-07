@@ -48,42 +48,39 @@ value=kb-X`), so a click navigates the hidden sink iframe to
 `/_kbd?key=kb-X[&holdmode=1]` and the service worker forwards it to
 the bridge.
 
-### Hold a key
+### Hold a key (chords)
 
-Zero-JS constraint: one click can either flip page state (what CSS
-can colour) or submit the form (what the bridge can hear) — never
-both. So the two players implement hold differently, each fully
-inside pure HTML+CSS:
+**"Hold a key..."** is a label on a hidden checkbox (`#kb-holdmode`,
+`name=holdmode`); while checked the button stays lit ("hold mode on").
+The checkbox is wired straight into the machine: the cabinet's
+`&:has(#kb-holdmode:checked) { --kbdHold: 1 }` rule raises a second
+keyboard wire, and while it is up the machine *suppresses key release
+edges* — each released key's scancode is latched into one of eight
+`kbdHeld*` state-var slots instead of delivering a break code. The
+guest therefore sees makes without breaks: press LEFT then CTRL in
+hold mode and the game sees both held at once — chords. Unchecking
+the box drops the wire and the machine drains the slots back out as
+break codes, one per keyboard-IRQ-idle tick (so the guest ISR keeps
+up), releasing everything.
 
-- **Calcite player — hold mode.** **"Hold a key..."** is a label on a
-  hidden checkbox (`name=holdmode`); while checked the button stays
-  lit ("hold mode on") and the checkbox rides on every key
-  submission. The *bridge* keeps the state: a press with `holdmode=1`
-  latches the key (via `set_pseudo_class_active('checked',
-  'kb-X-hold', …)`), pressing it again releases, pressing another key
-  switches. Tap the button to exit the mode; a stale latch left
-  behind (mode exited while holding, or a reload) is released by the
-  next plain key press, which then types normally. The page can't
-  know which key the bridge holds, so the held key isn't coloured —
-  the machine's behavior is the feedback.
-- **Raw player — one-shot catch.** raw-regen swaps the checkbox for a
-  radio group (`#kb-holdmode` = armed, `#kb-nohold` = idle, injected
-  per-key `#kb-X-hold` pins = held) and injects an invisible pin
-  radio + release label into every key cell. Arming reveals the pins
-  over their keys; the next press checks that key's radio — radio
-  exclusivity un-arms in the same click — and the cabinet's
-  `&:has(#kb-X-hold:checked) { --keyboard: V }` rule (Kiln emits one
-  per key beside `:active`) holds the key directly. The held key is
-  painted red; re-pressing it (its `.kb-unpin` label → `#kb-nohold`)
-  releases. The styling for all of this sits inert in calcite.html's
-  stylesheet; regen only adds the elements it selects on.
+Because the hold state lives in the machine, both players get
+identical behavior from identical markup — raw-regen does nothing to
+the keyboard. In the calcite player the wire state rides along with
+the next key submission (`/_kbd?key=kb-X&holdmode=1`) and the bridge
+mirrors it onto the `checked` pseudo-class before pulsing the key;
+consequences: toggling the mode takes effect at the *next* key press,
+and the page can't colour held keys (it doesn't know which are held —
+the lit mode button and the machine's behavior are the feedback). In
+the raw player Chrome evaluates the `:has()` directly, so the wire is
+live the instant the box is checked.
 
-One key at a time: `--keyboard` is a single cascade-resolved value and
-the cabinet's press/release edges fire only on 0 ↔ non-zero
-transitions, so while a key is held other presses are invisible to the
-machine (the bridge drops them; in the raw player the cascade eats
-them). Chords (held Shift + another key) would need a second keyboard
-wire in the cabinet — not built.
+Details: `--keyboard` is still a single cascade-resolved value (one
+key *transitions* at a time — fine, since holding is what the slots
+are for); the slots cap at 8 held keys, duplicates allowed;
+Shift/Ctrl stay usable as ordinary tap keys outside hold mode. Emit
+side: `kiln/patterns/misc.mjs` `emitIRQCompute()` (latch/drain) +
+`kiln/template.mjs` (wire + slots). Regression:
+`web/tests/kbd-e2e.playwright.mjs` chords LEFT+CTRL in-game.
 
 ## Not to be confused with
 

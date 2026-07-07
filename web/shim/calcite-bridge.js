@@ -102,23 +102,24 @@ let batchMsEma = TARGET_MS;
 // hold; KEY_GAP_BATCHES is the trailing 0-tick gap before the next
 // queued press fires (must be ≥ 1 so the edge detector resets).
 //
-// Queue entries are {op, sel} objects:
+// Queue entries are {op, ...} objects:
 //   {op:'pulse', sel:'kb-x'}   — momentary press. The drainer walks it
 //     through set_pseudo_class_active('active','kb-x',true) → hold N
 //     batches → (...false) → gap M batches.
-//   {op:'latch', sel:'kb-x'}   — hold the key: ('checked','kb-x-hold',
-//     true), then a gap. No release is scheduled — the key stays down
-//     until an unlatch op.
-//   {op:'unlatch', sel:'kb-x'} — release a held key: ('checked',
-//     'kb-x-hold', false), then a gap.
+//   {op:'holdwire', v:0|1}     — mirror the player's hold-mode checkbox
+//     onto the cabinet's #kb-holdmode 'checked' pseudo-state (the
+//     --kbdHold wire). The MACHINE does the holding: while the wire is
+//     up it latches key releases (presses accumulate as held keys —
+//     chords); when it drops it drains break codes back out. See
+//     kiln/patterns/misc.mjs emitIRQCompute.
 // The gaps guarantee every make/break lands on its own tick so the
 // cabinet's 0 ↔ non-zero edge detector sees each transition.
 //
 // The cabinet's `&:has(#SEL:active) { --PROP: V }` and
-// `&:has(#SEL-hold:checked) { --PROP: V }` rules produce V via calcite's
-// input-edge recogniser; the host only flips the gates. (calcite's old
-// `set_keyboard` host API is gone — it was an x86-aware side-channel,
-// retired with the keyboard rework.)
+// `&:has(#kb-holdmode:checked) { --kbdHold: 1 }` rules produce the
+// values via calcite's input-edge recogniser; the host only flips the
+// gates. (calcite's old `set_keyboard` host API is gone — it was an
+// x86-aware side-channel, retired with the keyboard rework.)
 //
 // Driven off tickLoop instead of setTimeout because build.html is a
 // background tab and Chrome throttles setTimeout there to ~1 Hz.
@@ -128,16 +129,9 @@ let currentGapBatches = 0;      // > 0 during the trailing 0-tick gap
 let currentActiveSelector = ''; // non-empty while pulsing a pseudo-class edge
 const KEY_HOLD_BATCHES = 8;
 const KEY_GAP_BATCHES = 2;
-// Hold-latch state. The bridge is the source of truth: key presses
-// arriving with holdmode=1 (the player's hold-mode checkbox rides on
-// every submission) toggle the latch; plain presses release any stale
-// latch, then pulse. The cabinet has a single
-// --keyboard wire (one key down at a time — see kiln/template.mjs
-// emitKeyboardRules), so at most one key is latched; while it is, plain
-// key pulses are dropped (they'd be edge-invisible to the machine, and
-// overlapping active edges are exactly the case where calcite's
-// summed-edges apply could diverge from Chrome's cascade).
-let latchTarget = '';           // key id whose pin latch is applied/queued
+// Last hold-wire state sent to the engine, so kbd-events only queue a
+// holdwire op on change. Reset alongside the engine (see reset path).
+let holdWireSent = false;
 // Trace toggle. Off by default — Playwright tests flip it on via the
 // 'kbd-trace' message type. Logs on (a) message receipt, (b) drainer
 // dispatch, (c) drainer release. Lets you measure click→engine.set_pseudo_class_active
@@ -354,10 +348,10 @@ function resetMachine(preserveWatches = false) {
   currentGapBatches = 0;
   currentActiveSelector = '';
   // engine.reset() rebuilds State from scratch (pseudo_active empties),
-  // so any latched pin is already gone engine-side; drop our mirror.
-  // The page's pin checkboxes may still be checked — the next key press
-  // resubmits the held set and the latch is re-applied.
-  latchTarget = '';
+  // so the hold wire is down engine-side; drop our mirror. The page's
+  // hold-mode checkbox may still be checked — the next key press
+  // resubmits holdmode=1 and the wire is re-raised before the pulse.
+  holdWireSent = false;
   // Tear down the existing stats interval so no stale stats sample
   // (with the previous run's cycleCount) leaks through to a viewer
   // that reconnects on top of an existing bridge. startStatsInterval
@@ -410,14 +404,14 @@ function tickLoop() {
   } else if (currentGapBatches > 0) {
     currentGapBatches--;
   } else if (keyQueue.length > 0) {
-    const { op, sel } = keyQueue.shift();
-    if (op === 'latch' || op === 'unlatch') {
-      // Pin latch: flip the 'checked' pseudo-class of the key's pin
-      // element. No hold countdown — a latch stays until unlatched.
-      // The trailing gap keeps the next op's edge on its own tick.
-      setPseudoActive('checked', sel + '-hold', op === 'latch');
+    const { op, sel, v } = keyQueue.shift();
+    if (op === 'holdwire') {
+      // Mirror the player's hold-mode checkbox onto the --kbdHold wire.
+      // The trailing gap keeps the next op's edge on its own tick, so a
+      // wire raise always lands before the press it gates.
+      setPseudoActive('checked', 'kb-holdmode', !!v);
       currentGapBatches = KEY_GAP_BATCHES;
-      if (kbdTraceEnabled) kbdTrace(`[kbd-trace] ${op} checked=${sel}-hold wallMs=${performance.now().toFixed(1)} qlen=${keyQueue.length}`);
+      if (kbdTraceEnabled) kbdTrace(`[kbd-trace] holdwire=${v ? 1 : 0} wallMs=${performance.now().toFixed(1)} qlen=${keyQueue.length}`);
     } else {
       setPseudoActive('active', sel, true);
       currentActiveSelector = sel;
@@ -767,9 +761,9 @@ self.onmessage = (ev) => {
     }
     return;
   }
-  // Debug peek-var: read a state var by bare name (e.g. 'keyboard').
-  // Used by Playwright tests to verify the hold-latch path — --keyboard
-  // stays at the key's value while its pin is latched.
+  // Debug peek-var: read a state var by bare name (e.g. 'keyboard' or
+  // 'kbdHeld0'). Used by Playwright tests to verify the hold-wire path —
+  // a latched key's scancode sits in the kbdHeld* slots while held.
   if (d.type === 'peek-var' && engine && ev.ports && ev.ports[0]) {
     try {
       ev.ports[0].postMessage({ ok: true, value: engine.get_state_var(String(d.name)) | 0 });
@@ -946,44 +940,25 @@ bus.onmessage = (ev) => {
     const sel = String(mm.selector || '');
     if (sel) {
       if (kbdTraceEnabled) kbdTrace(`[kbd-trace] recv active=${sel} wallMs=${performance.now().toFixed(1)} qlen=${keyQueue.length}`);
-      if (latchTarget) {
-        if (kbdTraceEnabled) kbdTrace(`[kbd-trace] drop active=${sel} (latched=${latchTarget})`);
-      } else {
-        keyQueue.push({ op: 'pulse', sel });
-      }
+      keyQueue.push({ op: 'pulse', sel });
     }
   } else if (mm.type === 'kbd-event' && engine) {
     // Player keyboard form submission: `key` is the clicked key,
-    // `holdmode` is the player's hold-mode checkbox riding along.
-    //  - holdmode press → toggle the latch: press a key to hold it,
-    //    press it again to release it, press another to switch.
-    //  - plain press with a stale latch (mode was exited, or the page
-    //    reloaded, with a key still held) → release it first, then
-    //    pulse the pressed key as normal.
-    //  - plain press, nothing latched → normal pulse.
-    // While a key is held, other presses can't reach the machine
-    // anyway (single --keyboard wire, edges fire only on 0↔non-zero),
-    // so releasing before pulsing is what the user means.
+    // `holdmode` is the player's hold-mode checkbox riding along. The
+    // MACHINE does the holding (--kbdHold wire, kiln emitIRQCompute):
+    // the bridge mirrors the checkbox onto the wire when it changes,
+    // then pulses the key. While the wire is up, releases latch (keys
+    // accumulate as held — chords); when it drops, the machine drains
+    // the break codes. A hold left over from a mode exit (or a page
+    // reload) therefore releases on the next plain press's submission.
     const key = String(mm.key || '');
     const holdmode = !!mm.holdmode;
-    if (kbdTraceEnabled) kbdTrace(`[kbd-trace] recv key=${key} holdmode=${holdmode} latched=${latchTarget} qlen=${keyQueue.length}`);
-    if (!key) return;
-    if (holdmode) {
-      if (latchTarget === key) {
-        keyQueue.push({ op: 'unlatch', sel: key });
-        latchTarget = '';
-      } else {
-        if (latchTarget) keyQueue.push({ op: 'unlatch', sel: latchTarget });
-        keyQueue.push({ op: 'latch', sel: key });
-        latchTarget = key;
-      }
-    } else {
-      if (latchTarget) {
-        keyQueue.push({ op: 'unlatch', sel: latchTarget });
-        latchTarget = '';
-      }
-      keyQueue.push({ op: 'pulse', sel: key });
+    if (kbdTraceEnabled) kbdTrace(`[kbd-trace] recv key=${key} holdmode=${holdmode} qlen=${keyQueue.length}`);
+    if (holdmode !== holdWireSent) {
+      keyQueue.push({ op: 'holdwire', v: holdmode });
+      holdWireSent = holdmode;
     }
+    if (key) keyQueue.push({ op: 'pulse', sel: key });
   } else if (mm.type === 'cabinet-updated') {
     onCabinetUpdated(!!mm.eager);
   } else if (mm.type === 'viewer-connected') {

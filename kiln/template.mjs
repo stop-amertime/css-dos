@@ -56,6 +56,20 @@ export const STATE_VARS = [
   // tracking never sees release events).
   { name: 'kbdScancodeLatch', init: 0, debug: false },
 
+  // Hold-wire held set — scancodes whose release was latched while
+  // --kbdHold was 1 (0 = empty slot). Filled lowest-slot-first; drained
+  // highest-slot-first as synthesized break codes once --kbdHold drops.
+  // 8 slots; presses beyond that still deliver their make code but the
+  // break is lost (stuck key until re-press) — see emitIRQCompute.
+  { name: 'kbdHeld0', init: 0, debug: false },
+  { name: 'kbdHeld1', init: 0, debug: false },
+  { name: 'kbdHeld2', init: 0, debug: false },
+  { name: 'kbdHeld3', init: 0, debug: false },
+  { name: 'kbdHeld4', init: 0, debug: false },
+  { name: 'kbdHeld5', init: 0, debug: false },
+  { name: 'kbdHeld6', init: 0, debug: false },
+  { name: 'kbdHeld7', init: 0, debug: false },
+
   // VGA DAC state — see patterns/misc.mjs emitIO().
   // dacWriteIndex: which of the 256 DAC registers is currently being written
   //   (set by OUT 0x3C8; auto-increments after every 3 writes to 0x3C9).
@@ -89,6 +103,11 @@ export function emitPropertyDecls(opts) {
   initial-value: 0;
 }`);
   lines.push(`@property --keyboard {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`);
+  lines.push(`@property --kbdHold {
   syntax: '<integer>';
   inherits: true;
   initial-value: 0;
@@ -303,31 +322,31 @@ const KEYBOARD_KEYS = [
  * Uses ID selectors (#kb-X) so HTML layout is free — button order in the
  * DOM does not need to match KEYBOARD_KEYS order.
  *
- * Two rules per key:
- *   #kb-X:active        — momentary press (mouse held down on the key).
- *   #kb-X-hold:checked  — the key's "pin" checkbox: while checked, the
- *                         key is held. This is what makes hold-a-key
- *                         possible in a pure-CSS player (raw.html): the
- *                         checkbox IS the key-held state. The calcite
- *                         player mirrors the same pin via
- *                         set_pseudo_class_active('checked', ...).
+ *   #kb-X:active         — momentary press (mouse held down on the key).
+ *   #kb-holdmode:checked — the hold wire (--kbdHold). While it is 1 the
+ *                          machine LATCHES key releases instead of
+ *                          delivering them: presses accumulate as held
+ *                          keys (chords), and when the wire drops every
+ *                          latched key's break code is drained back out.
+ *                          See patterns/misc.mjs emitIRQCompute. In the
+ *                          raw player the player's hold-mode checkbox
+ *                          drives this directly; the calcite bridge
+ *                          mirrors it via set_pseudo_class_active.
  *
  * Emitted as separate rules (not a selector list) — calcite's input-edge
  * recogniser matches one `&:has(#ID:pseudo) { ... }` per rule.
  *
- * --keyboard is a single cascade-resolved value, and the press/release
- * edge detectors fire only on 0 ↔ non-zero transitions (patterns/
- * misc.mjs emitIRQCompute). One key on the wire at a time: while a key
- * is held, other key presses produce no edges and are invisible to the
- * machine. Chords (held modifier + second key) need a second wire.
+ * --keyboard is a single cascade-resolved value carrying serial press
+ * PULSES (each press passes through 0). Simultaneity lives guest-side:
+ * makes without breaks = keys down together.
  */
 export function emitKeyboardRules() {
   const lines = ['.cpu {'];
   for (const key of KEYBOARD_KEYS) {
     const value = (key.scancode << 8) | key.ascii;
     lines.push(`  &:has(#${key.id}:active) { --keyboard: ${value}; } /* ${key.label} */`);
-    lines.push(`  &:has(#${key.id}-hold:checked) { --keyboard: ${value}; } /* ${key.label} held */`);
   }
+  lines.push(`  &:has(#kb-holdmode:checked) { --kbdHold: 1; } /* hold wire */`);
   lines.push('}');
   return lines.join('\n');
 }
