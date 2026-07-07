@@ -21,6 +21,8 @@ branch (`buildMsdos4FloppyInBrowser`, `/assets/msdos4` runtime copy,
 disk.files honoured) — browser-path cabinet verified booting to A>.
 Owner follow-up: cart made writable + full toolset (FreeDOS EDIT
 runs full-screen; authentic ATTRIB/MODE/XCOPY/COMP/EXE2BIN; LABEL→
-VOL shadow-write roundtrip verified); ~562 MB cabinet. New gate:
+VOL shadow-write roundtrip verified); floppy 480K custom geometry —
+720K-writable hit Chrome's ~536 MB V8 string cap (STATUS gotcha);
+cabinet now ~464 MB. New gate:
 `node tests/harness/run.mjs msdos`. Smoke 6/6, writable, msdos,
 conformance 6/6 green post-change.

@@ -89,7 +89,9 @@ proven by the A/B).
    registers"). Owner follow-up same day: cart is now **writable**
    (LABEL/VOL roundtrip verified on calcite), carries the full fun
    toolset (FreeDOS EDIT + authentic ATTRIB/MODE/XCOPY/COMP/EXE2BIN)
-   and a boxart cover; ~562 MB cabinet (720K writable shadow).
+   and a boxart cover. Floppy shrunk 720K → 480K (custom geometry)
+   after the 720K writable cabinet hit **Chrome's V8 max-string cap
+   (~536 MB — see Gotchas)**; now ~464 MB, ~100K free on disk.
    Whether it supersedes dos-shell is an open owner decision. Plan
    file deleted (all 3 stages shipped).
    (Website Svelte 5 port itself LANDED 2026-07-01 — see LOGBOOK
@@ -257,6 +259,12 @@ shift with anything that moves data.
 
 ## Gotchas
 
+- **Cabinets must stay under ~536 MB** (V8's max string length,
+  2^29−24 bytes): the browser load path materialises the CSS as one
+  JS string, so a bigger cabinet *silently never loads* in Chrome.
+  Discovered 2026-07-07 when the 720K-writable msdos4 cabinet hit
+  562 MB. Writable shadow costs ~0.42 MB per KB of floppy — size
+  writable floppies to keep total cabinet ≤ ~500 MB.
 - Don't run the player interactively to "check if loaded" — build or
   use a measurement tool.
 - Don't trust the visible halt opcode — the CPU was redirected

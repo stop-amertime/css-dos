@@ -136,7 +136,13 @@ writable carts on ≤ 720K floppies to stay inside the
 everything-agrees region.
 
 Cost: one packed cell per disk byte pair — a 360K floppy adds ~184K
-cells (~120 MB of CSS text). Game carts must leave `writable` off.
+cells (~120 MB of CSS text; measured end-to-end the shadow costs
+~0.42 MB of cabinet per KB of floppy). Game carts must leave
+`writable` off. Second hard bound besides the precision rule:
+**the whole cabinet must stay under ~536 MB** (V8's max string
+length — Chrome silently fails to load anything bigger; STATUS
+gotcha 2026-07-07). A 720K writable floppy already breaks this;
+msdos4 ships 480K (custom geometry) for that reason.
 
 ## Conventional RAM sizing caveat
 

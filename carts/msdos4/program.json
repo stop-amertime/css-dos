@@ -23,7 +23,7 @@
     "textVga": true
   },
   "disk": {
-    "size": "720K",
+    "size": 491520,
     "writable": true,
     "files": [
       { "name": "README.TXT", "source": "README.TXT" },
