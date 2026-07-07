@@ -63,6 +63,7 @@ methodology has to be consistent or those comparisons are noise.
 | `doom-loading`     | Boot through six stages → in-game           | "How fast does the cabinet boot?" Reports `runMsToInGame`, `ticksToInGame`, `ticksPerSecAvg`, `stages`. ~80 s. |
 | `doom-ingame-fps`  | Steady-state in-game FPS while holding Left | "How does it feel mid-gameplay?" 8 s warmup (menu slide-off, view fade-in, cache warmup) → 20 s measurement. Hashes the full 320×200 framebuffer; each distinct hash is one user-visible frame. ~107 s. |
 | `doom-all`         | doom-loading **and** doom-ingame-fps in one boot | **The default for any non-trivial perf measurement.** Same wall as `doom-ingame-fps` alone (both share the boot). Reports phase substeps (compile / dosBoot / doomTitle / doomMenuDelay / doomLoad / warmup / measure). |
+| `msdos-boot`       | MS-DOS 4.00 (carts/msdos4) boot to the VER banner | "Why is the writable cabinet slow to load?" Reports the compile-vs-run split: `compileMs`/`fetchMs`/`saveMs` (page envelope) vs `runMsToPrompt`/`ticksToPrompt`, plus `phaseReport` (per-phase wasm compile breakdown from `engine.compile_phase_report()`). ~40 s. |
 
 ### What "doom-all" reports (read this so you know what to cite)
 

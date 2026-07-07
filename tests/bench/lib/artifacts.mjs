@@ -111,6 +111,7 @@ function cabinet(cartName, opts = {}) {
 
 cabinet('doom8088');
 cabinet('zork1');
+cabinet('msdos4');
 
 // Re-export the convenience helper so callers can do a single import.
 export { ensureArtifact } from './ensure-fresh.mjs';

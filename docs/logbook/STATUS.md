@@ -93,7 +93,12 @@ proven by the A/B).
    after the 720K writable cabinet hit **Chrome's V8 max-string cap
    (~536 MB — see Gotchas)**; now ~464 MB, ~100K free on disk.
    Whether it supersedes dos-shell is an open owner decision. Plan
-   file deleted (all 3 stages shipped).
+   file deleted (all 3 stages shipped). **Writable-cabinet wasm
+   compile wall FIXED 2026-07-07** (calcite `AddrOffset` fast-path;
+   calcite log same date): msdos4 web compile 105s → 10.8s median,
+   time-to-prompt ~18s; emulated boot itself is only 1.45M ticks.
+   New bench profile `msdos-boot` measures the compile/run split
+   (LOGBOOK 2026-07-07-msdos4-compile-wall).
    (Website Svelte 5 port itself LANDED 2026-07-01 — see LOGBOOK
    + `web/site/README.md`; old `build.html`/`split.html` kept for
    the two legacy Playwright harnesses.)

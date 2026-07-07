@@ -129,7 +129,8 @@
       throw new Error(err);
     }
     const blob = await r.blob();
-    log(`fetched ${(blob.size / 1024 / 1024).toFixed(1)} MB cabinet`);
+    const fetchMs = performance.now() - compileT0;
+    log(`fetched ${(blob.size / 1024 / 1024).toFixed(1)} MB cabinet in ${Math.round(fetchMs)} ms`);
 
     // Put the cabinet into Cache Storage at /cabinet.css — its only
     // home: the bridge compiles from there, and the iframed player's
@@ -138,11 +139,14 @@
     // A failed save must be FATAL — a stale cabinet from a previous
     // run could be sitting at that key, and benching the wrong cabinet
     // is worse than no bench.
+    let saveMs;
     try {
       const { purgeCabinets, saveCabinet } = await import('/browser-builder/storage.mjs');
+      const saveT0 = performance.now();
       await purgeCabinets();
       await saveCabinet(blob);
-      log('cabinet stored in Cache Storage at /cabinet.css');
+      saveMs = performance.now() - saveT0;
+      log(`cabinet stored in Cache Storage at /cabinet.css in ${Math.round(saveMs)} ms`);
     } catch (e) {
       const err = `saveCabinet failed: ${e.message}`;
       log(err, 'err');
@@ -164,7 +168,7 @@
         const d = ev.data;
         if (d?.type === 'compile-done') {
           ch.close();
-          compileInfo = { compileMs: d.compileMs, cabinetBytes: d.cabinetBytes };
+          compileInfo = { compileMs: d.compileMs, cabinetBytes: d.cabinetBytes, fetchMs, saveMs };
           log(`compile-done in ${Math.round(d.compileMs)} ms (cabinetBytes=${d.cabinetBytes})`);
           resolve();
         }
