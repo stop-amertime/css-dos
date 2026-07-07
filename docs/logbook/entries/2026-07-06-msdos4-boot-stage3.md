@@ -16,8 +16,11 @@ calcite: rep-Copy from ROM/virtual source now per-tick falls back
 date. Found + fixed en route: stale hardcoded gossamer IVT offsets
 (dead INT 16h/1Ah/20h/21h since the June CGA/DAC shift) — now read
 from an 'IVTG' anchor in the image, ref-machine + kiln share it.
-Site: msdos4 shows as a text card (display.bullets); browser builder
-grew the msdos4 branch (`buildMsdos4FloppyInBrowser`, `/assets/msdos4`
-runtime copy) — browser-path cabinet verified booting to A> via
-fast-shoot. New gate: `node tests/harness/run.mjs msdos`. Smoke 6/6,
-writable, msdos green post-change.
+Site: msdos4 card (boxart cover); browser builder grew the msdos4
+branch (`buildMsdos4FloppyInBrowser`, `/assets/msdos4` runtime copy,
+disk.files honoured) — browser-path cabinet verified booting to A>.
+Owner follow-up: cart made writable + full toolset (FreeDOS EDIT
+runs full-screen; authentic ATTRIB/MODE/XCOPY/COMP/EXE2BIN; LABEL→
+VOL shadow-write roundtrip verified); ~562 MB cabinet. New gate:
+`node tests/harness/run.mjs msdos`. Smoke 6/6, writable, msdos,
+conformance 6/6 green post-change.

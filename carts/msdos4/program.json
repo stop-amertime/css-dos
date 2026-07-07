@@ -1,15 +1,18 @@
 {
   "schema": "cart@1",
   "name": "MS-DOS 4.00",
-  "description": "Real MS-DOS 4.00 (Microsoft's MIT-licensed 1988 source), booted from its own boot sector. EDLIN, DEBUG, CHKDSK and friends on the floppy.",
+  "description": "Real MS-DOS 4.00 (Microsoft's MIT-licensed 1988 source), booted from its own boot sector. A writable floppy loaded with EDIT, DEBUG, EDLIN and the classic toolbox.",
   "display": {
+    "cover": "msdos4-79.jpg",
     "accent": "#000982",
     "bullets": [
       "The real thing - IO.SYS, MSDOS.SYS, COMMAND.COM",
       "Boots via its 1988 MSBOOT boot sector",
-      "EDLIN - line editor",
-      "DEBUG - poke memory",
-      "CHKDSK / TREE / MEM",
+      "EDIT - full-screen editor (saves work!)",
+      "EDLIN / DEBUG / EXE2BIN - the 1988 toolchain",
+      "ATTRIB - unhide IO.SYS and MSDOS.SYS",
+      "MODE 40 - big chunky 40-column text",
+      "CHKDSK / TREE / MEM / XCOPY / COMP",
       "FIND / SORT / MORE / FC / LABEL"
     ]
   },
@@ -21,10 +24,17 @@
   },
   "disk": {
     "size": "720K",
+    "writable": true,
     "files": [
       { "name": "README.TXT", "source": "README.TXT" },
+      { "name": "EDIT.EXE", "source": "EDIT.EXE" },
       { "name": "EDLIN.COM", "source": "EDLIN.COM" },
       { "name": "DEBUG.COM", "source": "DEBUG.COM" },
+      { "name": "ATTRIB.EXE", "source": "ATTRIB.EXE" },
+      { "name": "MODE.COM", "source": "MODE.COM" },
+      { "name": "XCOPY.EXE", "source": "XCOPY.EXE" },
+      { "name": "COMP.COM", "source": "COMP.COM" },
+      { "name": "EXE2BIN.EXE", "source": "EXE2BIN.EXE" },
       { "name": "CHKDSK.COM", "source": "CHKDSK.COM" },
       { "name": "TREE.COM", "source": "TREE.COM" },
       { "name": "MORE.COM", "source": "MORE.COM" },

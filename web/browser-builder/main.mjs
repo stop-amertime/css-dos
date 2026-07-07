@@ -195,12 +195,25 @@ export async function buildCabinetInBrowser({
     onProgress({ stage: 'floppy', message: 'Assembling bootable MS-DOS floppy...' });
     await new Promise(resolve => setTimeout(resolve, 0));
 
+    // Honour an explicit disk.files list (order + selection — repo carts
+    // keep license texts in the cart folder but off the floppy, and the
+    // Node builder uses disk.files verbatim). Fall back to every uploaded
+    // file for bare folder uploads.
+    const declared = manifest.disk?.files;
+    const msdosFiles = declared?.length
+      ? declared.map(df => {
+          const f = cartFileList.find(c => c.name === df.name.toUpperCase());
+          if (!f) throw new Error(`disk.files entry "${df.name}" not found in cart files`);
+          return { name: f.name, bytes: f.bytes, source: df.source ?? 'user upload' };
+        })
+      : cartFileList.map(f => ({ name: f.name, bytes: f.bytes, source: 'user upload' }));
+
     const floppy = buildMsdos4FloppyInBrowser({
       ioBytes: ioArr,
       msdosBytes: msdosArr,
       commandBytes: msCommandArr,
       bootSectorBytes: msbootArr,
-      programFiles: cartFileList.map(f => ({ name: f.name, bytes: f.bytes, source: 'user upload' })),
+      programFiles: msdosFiles,
       runCommand: manifest.boot?.runCommand ?? '',
       sizeRequest: manifest.disk?.size ?? '720K',
       sectorsPerCluster: manifest.disk?.sectorsPerCluster,

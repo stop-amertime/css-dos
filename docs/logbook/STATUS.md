@@ -86,9 +86,12 @@ proven by the A/B).
    keyboard verified on calcite; new gate `node tests/harness/run.mjs
    msdos` (LOGBOOK 2026-07-06-msdos4-boot-stage3). Keyboard MMIO
    bridge moved 0x500 → 0x4F4 (memory-layout.md "Platform
-   registers"). msdos4 cart is read-only; flipping it writable +
-   site presentation are owner decisions. Plan file deleted (all 3
-   stages shipped).
+   registers"). Owner follow-up same day: cart is now **writable**
+   (LABEL/VOL roundtrip verified on calcite), carries the full fun
+   toolset (FreeDOS EDIT + authentic ATTRIB/MODE/XCOPY/COMP/EXE2BIN)
+   and a boxart cover; ~562 MB cabinet (720K writable shadow).
+   Whether it supersedes dos-shell is an open owner decision. Plan
+   file deleted (all 3 stages shipped).
    (Website Svelte 5 port itself LANDED 2026-07-01 — see LOGBOOK
    + `web/site/README.md`; old `build.html`/`split.html` kept for
    the two legacy Playwright harnesses.)
