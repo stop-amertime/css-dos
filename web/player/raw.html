@@ -17,7 +17,11 @@
        Self-hosted; license + attribution in /player/fonts/. */
     @font-face {
       font-family: 'WebVGA';
-      src: url('/player/fonts/Web437_IBM_VGA_8x16.woff') format('woff');
+      /* Relative, not /player/fonts/…: resolves the same when served
+         (this file lives at /player/), and ALSO when the page is
+         opened straight from disk — the raw player is meant to run
+         with no server at all. */
+      src: url('fonts/Web437_IBM_VGA_8x16.woff') format('woff');
       font-display: block;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
