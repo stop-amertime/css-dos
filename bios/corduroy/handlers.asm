@@ -1405,6 +1405,17 @@ int08h_handler:
 ; (scancode<<8 | ascii) into the low word: port 0x60 IN returns the scancode
 ; (high byte), and we look up ASCII via scancode2ascii[] since we can't read
 ; the low byte directly from the port.
+;
+; Modifiers (Shift 2A/36, Ctrl 1D, Alt 38) are STATE, not keys: their
+; make/break updates the BDA shift-flag byte at 0040:0017 (so INT 16h
+; AH=02h and DOS see them live) and they are never buffered. Character
+; keys translate through the flag-selected table: shift → shifted
+; ASCII, ctrl → control codes (letters &0x1F, Enter→LF), alt → ASCII 0
+; with the scancode preserved. Break codes of normal keys are dropped
+; (only the flags byte cares about releases). The on-screen keyboard
+; can't physically chord, so combos arrive via the hold wire (held
+; modifier make, no break until hold-off) or multitouch — both just
+; look like "flag set while another key's make arrives" here.
 ; ============================================================
 int09h_handler:
     push ax
@@ -1415,17 +1426,50 @@ int09h_handler:
     mov ds, ax
 
     ; Read scancode from keyboard port.
-    in al, 0x60            ; AL = scancode
-    mov ah, al             ; keep a copy in AH for BDA word high byte
+    in al, 0x60            ; AL = scancode (bit 7 set = break)
+    mov ah, al
+    and ah, 0x7F           ; AH = base scancode
+
+    ; Modifier keys → update kbd_flags_1 (0040:0017), never buffered.
+    mov cl, 0x02           ; left Shift  → bit 1
+    cmp ah, 0x2A
+    je .modifier
+    mov cl, 0x01           ; right Shift → bit 0 (no key on screen; wire-safe)
+    cmp ah, 0x36
+    je .modifier
+    mov cl, 0x04           ; Ctrl → bit 2
+    cmp ah, 0x1D
+    je .modifier
+    mov cl, 0x08           ; Alt  → bit 3
+    cmp ah, 0x38
+    je .modifier
+
+    test al, 0x80
+    jnz .ack               ; break of a normal key — nothing to buffer
+
+    ; Make of a normal key: translate via the modifier-selected table.
+    mov ah, al             ; AH = scancode (high byte of the key word)
     xor bh, bh
-    mov bl, al             ; BX = scancode (for ASCII LUT)
-    cmp bl, 0x80
-    jae .ack               ; break code (high bit set) — don't buffer
-
-    ; Look up ASCII in table; entries are 1 byte each, indexed by scancode.
+    mov bl, al             ; BX = scancode (LUT index)
+    mov cl, [kbd_flags_1]
+    test cl, 0x08
+    jnz .alt_key
+    test cl, 0x04
+    jnz .ctrl_key
+    test cl, 0x03
+    jnz .shift_key
     mov al, [cs:scancode2ascii + bx]
-    ; AH = scancode, AL = ASCII → AX = BIOS key word.
+    jmp .buffer
+.shift_key:
+    mov al, [cs:scancode2ascii_shift + bx]
+    jmp .buffer
+.ctrl_key:
+    mov al, [cs:scancode2ascii_ctrl + bx]
+    jmp .buffer
+.alt_key:
+    xor al, al             ; Alt+key: ASCII 0, scancode preserved
 
+.buffer:
     ; Append to BDA ring buffer if there's space.
     mov bx, [kbd_buffer_tail]
     mov cx, bx
@@ -1438,6 +1482,16 @@ int09h_handler:
     je .ack                ; buffer full — drop the key
     mov [bx], ax
     mov [kbd_buffer_tail], cx
+    jmp .ack
+
+.modifier:
+    test al, 0x80
+    jnz .mod_break
+    or [kbd_flags_1], cl   ; make → set flag
+    jmp .ack
+.mod_break:
+    not cl
+    and [kbd_flags_1], cl  ; break → clear flag
 
 .ack:
     ; Ack keyboard controller: pulse port 0x61 bit 7 high then low. Real PCs
@@ -1900,6 +1954,37 @@ scancode2ascii:
     db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00   ; 48 Up, 4B Left, 4D Right (all ASCII=0)
     db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00   ; 50 Down
     times 0x80 - ($ - scancode2ascii) db 0x00
+
+; Shift-selected variant (kbd_flags_1 & 0x03): uppercase letters, US
+; digit-row symbols, < > ? on comma/period/slash. Shift+Tab is 0x00
+; (back-tab: scancode 0x0F, no ASCII — matches real BIOS). Same
+; scancodes; only the ASCII byte changes.
+scancode2ascii_shift:
+    db 0x00, 0x1B, 0x21, 0x40, 0x23, 0x24, 0x25, 0x5E   ; 01 Esc, 02-07 !@#$%^
+    db 0x26, 0x2A, 0x28, 0x29, 0x00, 0x00, 0x08, 0x00   ; 08-0B &*(), 0E Bksp, 0F back-tab
+    db 0x51, 0x57, 0x45, 0x52, 0x54, 0x59, 0x55, 0x49   ; 10-17 QWERTYUI
+    db 0x4F, 0x50, 0x00, 0x00, 0x0D, 0x00, 0x41, 0x53   ; 18 O, 19 P, 1C Enter, 1E A, 1F S
+    db 0x44, 0x46, 0x47, 0x48, 0x4A, 0x4B, 0x4C, 0x00   ; 20-27 DFGHJKL
+    db 0x00, 0x00, 0x00, 0x00, 0x5A, 0x58, 0x43, 0x56   ; 2C-2F ZXCV
+    db 0x42, 0x4E, 0x4D, 0x3C, 0x3E, 0x3F, 0x00, 0x00   ; 30-32 BNM, 33 '<' 34 '>' 35 '?'
+    db 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00   ; 39 Space
+    times 0x80 - ($ - scancode2ascii_shift) db 0x00
+
+; Ctrl-selected variant (kbd_flags_1 & 0x04): letters become control
+; codes (ASCII & 0x1F — Ctrl+C = 0x03 so DOS break works), Ctrl+Enter
+; = LF, Ctrl+Bksp = DEL, Ctrl+6 = RS (0x1E, the one digit real BIOS
+; maps). Keys with no control meaning report ASCII 0 (scancode still
+; buffered, like arrow keys).
+scancode2ascii_ctrl:
+    db 0x00, 0x1B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1E   ; 01 Esc, 07 Ctrl+6 = RS
+    db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7F, 0x00   ; 0E Ctrl+Bksp = DEL
+    db 0x11, 0x17, 0x05, 0x12, 0x14, 0x19, 0x15, 0x09   ; 10-17 ^Q^W^E^R^T^Y^U^I
+    db 0x0F, 0x10, 0x00, 0x00, 0x0A, 0x00, 0x01, 0x13   ; 18 ^O, 19 ^P, 1C Ctrl+Enter=LF, 1E ^A, 1F ^S
+    db 0x04, 0x06, 0x07, 0x08, 0x0A, 0x0B, 0x0C, 0x00   ; 20-27 ^D^F^G^H^J^K^L
+    db 0x00, 0x00, 0x00, 0x00, 0x1A, 0x18, 0x03, 0x16   ; 2C-2F ^Z^X^C^V
+    db 0x02, 0x0E, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00   ; 30-32 ^B^N^M
+    db 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00   ; 39 Space
+    times 0x80 - ($ - scancode2ascii_ctrl) db 0x00
 
 ; ============================================================
 ; CGA 8x8 ROM font for graphics-mode teletype (modes 04/05).

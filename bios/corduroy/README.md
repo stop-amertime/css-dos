@@ -35,6 +35,21 @@ Since 0.5.0, two boot paths, selected by the build-time-patched
   for any drive but 0 — MS-DOS depends on all of it (see
   `CHANGELOG.md` 0.5.0).
 
+### Keyboard (INT 09h / INT 16h)
+
+Since 0.6.0, INT 09h is modifier-aware: Shift (2A/36), Ctrl (1D) and
+Alt (38) make/break update the BDA shift-flag byte at `0040:0017`
+(live via INT 16h AH=02h/12h) and are never buffered as key events.
+Character keys translate through the flag-selected table — Shift gives
+uppercase/US symbols, Ctrl gives control codes (Ctrl+C = 0x03, so the
+DOS break shortcut works; Ctrl+Enter = LF, Ctrl+Bksp = DEL), Alt
+buffers ASCII 0 with the scancode preserved. Break codes of normal
+keys are dropped (the ring buffer wants makes only). The on-screen
+keyboard can't physically chord, so combos arrive via the player's
+hold wire (held modifier make, break deferred to hold-off) or
+multitouch; programs that hook INT 9 themselves (Prince of Persia,
+Doom8088) read raw make/break off port 0x60 and bypass all of this.
+
 ### Supported video modes (INT 10h AH=00h)
 
 | Mode | Kind | Clear behaviour |

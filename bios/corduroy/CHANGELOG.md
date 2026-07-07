@@ -13,6 +13,22 @@ is baked into any given `.css`:
 head -5 cabinet.css
 ```
 
+## 0.6.0 — 2026-07-07
+
+- INT 09h now tracks modifier state: Shift (0x2A/0x36), Ctrl (0x1D)
+  and Alt (0x38) make/break update the BDA shift-flag byte at
+  0040:0017 (so INT 16h AH=02h/12h and DOS finally see them), and
+  modifier keys are no longer buffered as bogus ASCII-0 key events.
+- INT 09h translation is modifier-aware: Shift selects a shifted
+  table (uppercase letters, US digit-row symbols, `<` `>` `?`,
+  back-tab), Ctrl selects control codes (letters → ASCII&0x1F —
+  Ctrl+C works; Ctrl+Enter=LF, Ctrl+Bksp=DEL, Ctrl+6=RS), Alt
+  buffers ASCII 0 with the scancode preserved. Break codes of
+  non-modifier keys are still dropped (the buffer wants makes only).
+  Combos arrive via the player's hold wire or multitouch; programs
+  that hook INT 9 themselves (Prince of Persia) always saw raw
+  make/break and are unaffected.
+
 ## 0.5.0 — 2026-07-06
 
 - INT 13h AH=08h/15h now fail for any drive but 0 (AH=08h: CF set,
