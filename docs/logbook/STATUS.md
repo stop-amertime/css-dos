@@ -82,8 +82,8 @@ inside the ±1% gate).
    compile 105s → 10.8s median, time-to-prompt ~18s; emulated boot
    itself is only 1.45M ticks. New bench profile `msdos-boot`
    measures the compile/run split (LOGBOOK
-   2026-07-07-msdos4-compile-wall). Needs a re-vendor to reach the
-   site (vendored bundle is `2f0d012`, pre-fix).
+   2026-07-07-msdos4-compile-wall). Re-vendored to the site same day
+   (`f160144`, websmoke 3/3 PASS).
    (Website Svelte 5 port itself LANDED 2026-07-01 — see LOGBOOK
    + `web/site/README.md`; old `build.html`/`split.html` kept for
    the two legacy Playwright harnesses.)
