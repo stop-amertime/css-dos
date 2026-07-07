@@ -42,8 +42,20 @@ const calciteRoot = process.env.CALCITE_REPO
 const vendoredCalcitePkg = resolve(__dirname, '..', 'vendor', 'calcite-pkg');
 function resolveCalcitePkgDir() {
   const siblingPkg = resolve(calciteRoot, 'web', 'pkg');
-  if (existsSync(resolve(siblingPkg, 'calcite_wasm.js'))) return siblingPkg;
-  return vendoredCalcitePkg;
+  if (!existsSync(resolve(siblingPkg, 'calcite_wasm.js'))) return vendoredCalcitePkg;
+  // Sibling wins — but if its engine differs from the vendored bundle the
+  // site ships, say so: everything tested here runs an engine users don't
+  // have (and vice versa). `npm run revendor` re-syncs them.
+  try {
+    const hash = (p) => createHash('sha256').update(readFileSync(p)).digest('hex');
+    if (hash(resolve(siblingPkg, 'calcite_wasm_bg.wasm'))
+        !== hash(resolve(vendoredCalcitePkg, 'calcite_wasm_bg.wasm'))) {
+      console.warn('[dev] WARNING: serving sibling calcite build; it DIFFERS '
+        + 'from the vendored bundle the site ships (web/vendor/calcite-pkg/). '
+        + 'Run `npm run revendor` to sync.');
+    }
+  } catch { /* best-effort */ }
+  return siblingPkg;
 }
 const calcitePkgDir = resolveCalcitePkgDir();
 

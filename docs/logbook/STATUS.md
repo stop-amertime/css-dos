@@ -257,10 +257,11 @@ shift with anything that moves data.
   writable / msdos) drives calcite-cli and stays green while the
   site's wasm is stale. A cabinet that needs newer engine work fails
   in-browser as `compile error: unreachable` (Rust panic = wasm
-  trap). Re-vendor per the vendor README when engine behaviour a
-  cabinet needs lands on calcite main; a deploy machine with a built
-  sibling `../calcite/web/pkg` serves *that* instead — keep it fresh
-  too. Bit msdos4 2026-07-07 (LOGBOOK). Coverage since same day:
+  trap). `npm run revendor` re-syncs it (copies the sibling pkg,
+  stamps `VENDOR-INFO.json`, runs websmoke — fails if the bundle
+  doesn't boot); dev servers + site prod build warn when a sibling
+  `../calcite/web/pkg` differs by hash from the vendored bundle.
+  Bit msdos4 2026-07-07 (LOGBOOK). Gate:
   `node tests/harness/run.mjs websmoke` boots rom + writable +
   msdos4 cabinets in headless Chromium against the vendored bundle.
 - Don't run the player interactively to "check if loaded" — build or
