@@ -8,14 +8,14 @@
 // 1. /cabinet.css — serve from Cache Storage. The browser-side builder
 //    writes into this cache; the player reads a fixed URL.
 //
-// 2. /_screen/framebuffer and /_kbd — the calcite-bridge pipeline.
-//    Frames arrive from the bridge worker over the 'cssdos-bridge'
-//    BroadcastChannel; each open /_screen/framebuffer response holds
-//    its own channel subscription and feeds the frames into a
-//    multipart/x-mixed-replace body. /_kbd submissions are rebroadcast
-//    on the same channel. This lets player/calcite.html be a pure
-//    HTML+CSS runner: the <img src="/_screen/framebuffer"> pulls a
-//    live stream with no page-side JS.
+// 2. /_screen/framebuffer, /_screen/holdlamp and /_kbd — the
+//    calcite-bridge pipeline. Frames (and hold-lamp dots) arrive from
+//    the bridge worker over the 'cssdos-bridge' BroadcastChannel; each
+//    open stream response holds its own channel subscription and feeds
+//    the bytes into a multipart/x-mixed-replace body. /_kbd
+//    submissions are rebroadcast on the same channel. This lets
+//    player/calcite.html be a pure HTML+CSS runner: its <img> tags
+//    pull live streams with no page-side JS.
 //
 // Deliberately stateless: this SW holds no cross-request state. The
 // browser idle-kills service workers and restarts them with empty
@@ -30,6 +30,7 @@ const CACHE_NAME = 'cssdos-cabinets-v2';
 const LEGACY_CACHE_NAMES = ['cssdos-cabinets-v1'];
 const CABINET_URL = '/cabinet.css';
 const STREAM_URL = '/_screen/framebuffer';
+const LAMP_URL = '/_screen/holdlamp';
 const KBD_URL = '/_kbd';
 
 // Origin-wide bus shared with the bridge worker (frames, viewer
@@ -76,6 +77,10 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(handleStream());
     return;
   }
+  if (url.pathname === LAMP_URL) {
+    event.respondWith(handleLamp());
+    return;
+  }
   if (url.pathname === KBD_URL) {
     event.respondWith(handleKbd(url));
     return;
@@ -112,48 +117,49 @@ async function handleCabinet() {
   });
 }
 
-function handleStream() {
-  // Each stream owns its own channel subscription; fan-out to multiple
-  // viewers is the broadcast itself, not a shared controller set.
+// Shared multipart machinery: subscribe to one broadcast message type
+// and feed each payload's bytes into a multipart/x-mixed-replace body.
+// Each stream owns its own channel subscription; fan-out to multiple
+// viewers is the broadcast itself, not a shared controller set.
+function multipartStream(msgType, onOpen, onClose) {
   let sub = null;
   const stream = new ReadableStream({
     start(controller) {
-      // Opening preamble — Firefox likes a leading boundary before the
+      // Opening delimiter — Firefox likes a leading boundary before the
       // first part. Chrome accepts either way.
       controller.enqueue(ENC.encode(`--${BOUNDARY}\r\n`));
       sub = new BroadcastChannel(CHANNEL_NAME);
       sub.onmessage = (ev) => {
         const m = ev.data;
-        if (!m || m.type !== 'frame' || !m.bytes) return;
+        if (!m || m.type !== msgType || !m.bytes) return;
         const bytes = new Uint8Array(m.bytes);
         const header = ENC.encode(
-          `--${BOUNDARY}\r\n` +
           `Content-Type: ${m.mime || 'image/bmp'}\r\n` +
           `Content-Length: ${bytes.byteLength}\r\n\r\n`
         );
         try {
           controller.enqueue(header);
           controller.enqueue(bytes);
-          controller.enqueue(ENC.encode(`\r\n`));
+          // Terminate THIS part with the next delimiter right away.
+          // Chrome's multipart parser only paints a part once it sees
+          // the following boundary (Content-Length is not enough), so
+          // trailing the delimiter makes every frame render on arrival.
+          // With leading boundaries instead, each frame showed only
+          // when the NEXT one arrived — invisible at the screen's
+          // 30 Hz, but the hold lamp (rare frames) lagged one toggle.
+          controller.enqueue(ENC.encode(`\r\n--${BOUNDARY}\r\n`));
         } catch {
           // Controller closed underneath us (client disconnected).
           sub.close();
           sub = null;
         }
       };
-      activeStreams++;
-      // New viewer — tell the bridge to (compile if needed and) start.
-      // Idempotent bridge-side: a second viewer on a running machine is
-      // a no-op via the running-guard.
-      ctl.postMessage({ type: 'viewer-connected' });
+      if (onOpen) onOpen();
     },
     cancel() {
       // Client closed the img connection (navigation, tab close).
       if (sub) { sub.close(); sub = null; }
-      activeStreams = Math.max(0, activeStreams - 1);
-      if (activeStreams === 0) {
-        ctl.postMessage({ type: 'viewer-disconnected' });
-      }
+      if (onClose) onClose();
     },
   });
   return new Response(stream, {
@@ -169,13 +175,40 @@ function handleStream() {
   });
 }
 
+function handleStream() {
+  return multipartStream('frame',
+    () => {
+      activeStreams++;
+      // New viewer — tell the bridge to (compile if needed and) start.
+      // Idempotent bridge-side: a second viewer on a running machine is
+      // a no-op via the running-guard.
+      ctl.postMessage({ type: 'viewer-connected' });
+    },
+    () => {
+      activeStreams = Math.max(0, activeStreams - 1);
+      if (activeStreams === 0) {
+        ctl.postMessage({ type: 'viewer-disconnected' });
+      }
+    });
+}
+
+function handleLamp() {
+  // The player's hold-mode lamp <img>: the bridge broadcasts a tiny
+  // solid-colour BMP whenever the --kbdHold wire changes. Lamp viewers
+  // don't count toward activeStreams — a lamp alone must not keep the
+  // engine running. On open, ask the bridge to (re-)send the current
+  // state so the lamp is right immediately.
+  return multipartStream('lamp',
+    () => { ctl.postMessage({ type: 'lamp-viewer' }); },
+    null);
+}
+
 function handleKbd(url) {
   // Two forms:
   //
-  // /_kbd?key=kb-X[&holdmode=1] — the player keyboard's GET form.
-  // `key` is the clicked key; `holdmode=1` rides along while the
-  // player's hold-mode checkbox is on, telling the bridge the press
-  // is a hold/release toggle rather than a type-a-key pulse.
+  // /_kbd?key=kb-X — the player keyboard's GET form. `key` is the
+  // clicked key; the bridge treats kb-hold as the hold-mode toggle
+  // and everything else as a keypress pulse.
   //
   // /_kbd?class=kb-X — legacy single-key link form (experiments, old
   // pages): pulse the (active, kb-X) pseudo-class edge.
@@ -185,10 +218,9 @@ function handleKbd(url) {
   // only flips the gates. Rebroadcast unconditionally — no port to be
   // missing, so no key is ever lost to an SW restart.
   const key = url.searchParams.get('key');
-  const holdmode = url.searchParams.get('holdmode') === '1';
   const klass = url.searchParams.get('class');
   if (key) {
-    ctl.postMessage({ type: 'kbd-event', key, holdmode });
+    ctl.postMessage({ type: 'kbd-event', key });
   } else if (klass) {
     ctl.postMessage({ type: 'kbd-active', selector: klass });
   }

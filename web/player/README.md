@@ -9,6 +9,7 @@ Static HTML shells for running a cabinet in Chrome. No build step.
 | `calcite.html` | The main player. Pure HTML + CSS, zero `<script>`. In CSS mode the cabinet evaluates itself; in Calcite mode the bridge worker posts framebuffer bitmaps for it to render. |
 | `calcite-canvas.html` | Calcite player variant rendering into a `<canvas>` instead of styled DOM nodes. Lower DOM cost when the bridge is producing many frames. |
 | `raw.html` | The "theoretical" player. Mirrors `calcite.html`'s chrome exactly (it's **derived** from it by `web/scripts/raw-regen.mjs`) but replaces the `<img>` screen with a 320×200 = 64,000-element CSS pixel grid (`<i id=pN>`) and loads `/cabinet.css` as a real `<link rel="stylesheet">`. The cabinet's `kiln/pixels.mjs` rules paint each pixel from the Mode 13h framebuffer via `@function --paletteRGB()` over the live DAC — spec-correct for a compliant CSS evaluator. In practice Chrome crashes/hangs on the cabinet's (and grid's) sheer size; that's the point. Regenerate with `node web/scripts/raw-regen.mjs`. |
+| `heartbeat.html` | Hidden-iframe SW keepalive: self-refreshes every 20s so each navigation is a fetch event and Chrome's ~30s service-worker idle-kill never fires — without it the screen/lamp multipart streams die (frame broadcasts are not SW events) and the player freezes for a user who just watches. Calcite player only (raw-regen strips it). |
 | `turbo-meter.html` | Pure-CSS player with a fast clock animation + Hz meter overlay. No bridge. |
 | `bench.html` | Browser-side bench rig used by `tests/harness/bench-web.mjs`. Spawns the bridge worker, surfaces stage timings in a small JSON panel. |
 | `serve.mjs` | Tiny standalone static server for ad-hoc `calcite.html` runs without the full dev server. |
@@ -45,42 +46,45 @@ array.
 The keyboard is one GET `<form action="/_kbd" target="kbd-sink">`
 (still zero `<script>`): each key is a submit button (`name=key
 value=kb-X`), so a click navigates the hidden sink iframe to
-`/_kbd?key=kb-X[&holdmode=1]` and the service worker forwards it to
-the bridge.
+`/_kbd?key=kb-X` and the service worker forwards it to the bridge.
 
 ### Hold a key (chords)
 
-**"Hold a key..."** is a label on a hidden checkbox (`#kb-holdmode`,
-`name=holdmode`); while checked the button stays lit ("hold mode on").
-The checkbox is wired straight into the machine: the cabinet's
+The machine side is shared: the cabinet's
 `&:has(#kb-holdmode:checked) { --kbdHold: 1 }` rule raises a second
 keyboard wire, and while it is up the machine *suppresses key release
 edges* — each released key's scancode is latched into one of eight
 `kbdHeld*` state-var slots instead of delivering a break code. The
 guest therefore sees makes without breaks: press LEFT then CTRL in
-hold mode and the game sees both held at once — chords. Unchecking
-the box drops the wire and the machine drains the slots back out as
-break codes, one per keyboard-IRQ-idle tick (so the guest ISR keeps
-up), releasing everything.
+hold mode and the game sees both held at once — chords. The moment
+the wire drops, the machine drains the slots back out as break
+codes, one per keyboard-IRQ-idle tick (so the guest ISR keeps up),
+releasing everything — no further input needed.
 
-Because the hold state lives in the machine, both players get
-identical behavior from identical markup — raw-regen does nothing to
-the keyboard. In the calcite player the wire state rides along with
-the next key submission (`/_kbd?key=kb-X&holdmode=1`) and the bridge
-mirrors it onto the `checked` pseudo-class before pulsing the key;
-consequences: toggling the mode takes effect at the *next* key press,
-and the page can't colour held keys (it doesn't know which are held —
-the lit mode button and the machine's behavior are the feedback). In
-the raw player Chrome evaluates the `:has()` directly, so the wire is
-live the instant the box is checked.
+The page side differs per player (raw-regen swaps the control):
+
+- **Calcite player:** the **"Hold keys"** button is a submit key like
+  any other (`key=kb-hold`). The *bridge* owns the mode: each press
+  toggles it and mirrors it onto the wire immediately, so turning the
+  mode off releases all held keys right away. The page is script-free
+  and holds no state; the lamp dot on the button is an `<img>` fed by
+  the bridge's `/_screen/holdlamp` multipart stream (same mechanism
+  as the screen) showing the machine's actual wire state — green =
+  holding, black = off. The page can't colour individual held keys (it
+  doesn't know which are held); the lamp and the machine's behavior
+  are the feedback.
+- **Raw player:** the button is a label on a hidden checkbox
+  (`#kb-holdmode`) that Chrome wires straight into the `:has()` rule
+  — live the instant the box is checked, lit via `:checked` styling.
 
 Details: `--keyboard` is still a single cascade-resolved value (one
 key *transitions* at a time — fine, since holding is what the slots
 are for); the slots cap at 8 held keys, duplicates allowed;
-Shift/Ctrl stay usable as ordinary tap keys outside hold mode. Emit
-side: `kiln/patterns/misc.mjs` `emitIRQCompute()` (latch/drain) +
-`kiln/template.mjs` (wire + slots). Regression:
-`web/tests/kbd-e2e.playwright.mjs` chords LEFT+CTRL in-game.
+Shift/Ctrl/Alt stay usable as ordinary tap keys outside hold mode.
+Emit side: `kiln/patterns/misc.mjs` `emitIRQCompute()` (latch/drain)
++ `kiln/template.mjs` (wire + slots). Regression:
+`web/tests/kbd-e2e.playwright.mjs` chords LEFT+CTRL+ALT in-game and
+asserts the mode-off drain needs no follow-up key press.
 
 ## Not to be confused with
 

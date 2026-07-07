@@ -294,6 +294,7 @@ const KEYBOARD_KEYS = [
   { id: 'kb-period', label: '.',     scancode: 0x34, ascii: 0x2E },
   { id: 'kb-slash',  label: '/',     scancode: 0x35, ascii: 0x2F },
   { id: 'kb-ctrl',  label: 'Ctrl',   scancode: 0x1D, ascii: 0x00 },
+  { id: 'kb-alt',   label: 'Alt',    scancode: 0x38, ascii: 0x00 },
   { id: 'kb-space', label: '\u2423', scancode: 0x39, ascii: 0x20 },
   { id: 'kb-esc',   label: 'Esc',    scancode: 0x01, ascii: 0x1B },
   { id: 'kb-left',  label: '\u2190', scancode: 0x4B, ascii: 0x00 }, // ←
