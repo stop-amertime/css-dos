@@ -9,7 +9,26 @@
 /* Every vertical pixel counts here: the goal is screen + keyboard +
    the Calcite note all visible with no scrolling. Tighter top padding
    than the prose steps. */
-.window.wizard .window-body:has(.inline-player) { padding: 10px 16px 6px; }
+.window.wizard .window-body:has(.inline-player) {
+  padding: 10px 16px 6px;
+  /* Flex column stretched to the band: the auto margin on .play-note
+     (below) is the "spacer" that keeps the small text at the bottom of
+     the page and swallows any leftover height, so the player always
+     sits with a small, consistent margin. */
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+/* While the player is live the window takes the full viewport-fit
+   height (same value as its usual max-height cap) instead of sizing to
+   content — a FIXED scroll band the squish-to-fit maths in Play.svelte
+   can size against without feedback. */
+.window.wizard:has(.inline-player) {
+  height: calc(100dvh - 96px);
+  min-height: 0;
+}
+.window-body:has(.inline-player) .play-note { margin-top: auto; padding-top: 6px; }
 
 /* Inline player — /player/calcite.html#embed iframed into this page.
    Keeps the bridge worker's tab in the foreground; mobile Chrome
@@ -57,6 +76,9 @@
   white-space: normal;
 }
 .inline-player-pop { color: var(--edit-blue); margin-left: auto; flex-shrink: 0; }
+/* Clips the squish-to-fit transform (Play.svelte) to the scaled height;
+   at scale 1 it is exactly the iframe's own box. */
+.inline-player-viewport { overflow: hidden; }
 .inline-player-frame {
   display: block;
   width: 100%;
@@ -66,6 +88,7 @@
   height: min(78dvh, 620px);
   border: 0;
   background: var(--edit-gray);
+  transform-origin: top center;
 }
 
 .play-restart { margin-top: 16px; }
@@ -87,6 +110,49 @@
   color: var(--edit-blue);
   text-decoration: underline;
   cursor: pointer;
+}
+
+/* ── Per-cart hints toast (display.playTips) — a small DOS dialog
+   pinned to the corner over the player. Dismissible; per-cart. ── */
+.play-toast {
+  position: fixed;
+  right: 16px;
+  bottom: 28px;   /* clear the fixed status line */
+  z-index: 40;
+  width: 380px;
+  max-width: calc(100vw - 24px);
+  margin: 0;
+  box-shadow: 4px 4px 0 var(--edit-black);
+  background: #ffffcc;   /* a note, not another gray dialog */
+}
+.play-toast-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffcc;
+  text-align: left;
+}
+.play-toast-close {
+  background: none;
+  border: none;
+  padding: 0 2px;
+  font: inherit;
+  font-size: 16px;
+  line-height: 16px;
+  color: var(--edit-black);
+  cursor: pointer;
+}
+.play-toast-close:hover { background: var(--edit-black); color: #ffffcc; }
+.play-toast .window-body {
+  padding: 10px 12px;
+  font-size: 14px;
+  line-height: 18px;
+}
+.play-toast p { margin: 0 0 8px; }
+.play-toast p:last-child { margin-bottom: 0; }
+.play-toast a { color: var(--edit-blue); }
+@media (max-width: 640px) {
+  .play-toast { left: 8px; right: 8px; width: auto; bottom: 24px; }
 }
 
 /* ── The raw-CSS warning modal — a DOS dialog over a dimmed desktop. ── */
@@ -112,16 +178,16 @@
   margin-top: 14px;
 }
 
-/* Phone: the player is the page — full-bleed to the dialog edge
-   (cancels the wizard body's 10px side padding), thinner chrome. */
+/* Phone: the player is the page — nearly full-bleed, but keep a small
+   even margin around the frame (the wizard body pads 10px; -6px leaves
+   4px each side to match the 4px top gap). Thinner chrome. */
 @media (max-width: 640px) {
   .inline-player {
-    margin: 4px -10px 0;
-    border-left: none;
-    border-right: none;
+    margin: 4px -6px 0;
     box-shadow: none;
   }
   .inline-player-bar { gap: 10px; padding: 4px 8px; font-size: 14px; }
   .inline-player-frame { height: min(70dvh, 620px); }
-  .play-note { font-size: 14px; }
+  .play-note { font-size: 14px; margin: 6px 0 0; }
+  .window.wizard:has(.inline-player) { height: calc(100dvh - 72px); }
 }

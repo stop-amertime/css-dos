@@ -63,6 +63,35 @@
   words on a screen &mdash; still comes out around 300&nbsp;MB.
 </p>
 
+<h3 class="anatomy-head">Writable disks</h3>
+<p>
+  Everything above is read-only &mdash; each disk byte is a literal
+  baked into an <code>if()</code> arm, and there is nothing to write
+  <i>to</i>. Fine for games; useless for saving your work. So a cart
+  can opt in to a second mode (the &ldquo;Writable&rdquo; checkbox on
+  the Build page): every byte of the floppy also becomes an ordinary
+  memory cell &mdash; the same kind that holds RAM &mdash; whose
+  starting value is the factory disk. Reads stop consulting the baked
+  table and ask the cells instead, and the write machinery that
+  already serves RAM now serves the floppy too. Save a file in the
+  MS-DOS&nbsp;4.00 cart&rsquo;s EDIT and <code>DIR</code> shows it;
+  the disk lives exactly as long as the tab, and a reload is a fresh
+  factory floppy.
+</p>
+<p>
+  It isn&rsquo;t free. A byte that can change needs a cell
+  declaration, a read formula and a write formula &mdash; roughly ten
+  times the text of a byte that just <i>is</i>, about 0.4&nbsp;MB of
+  cabinet per KB of floppy. Flip the switch on Sokoban&rsquo;s
+  720&nbsp;K floppy and the cabinet gains ~270&nbsp;MB, landing near
+  <b>570&nbsp;MB</b> &mdash; past the ~536&nbsp;MB where
+  Chrome refuses to hold the file in one string at all, so a writable
+  Sokoban literally cannot ship. Ticks slow about 2&times; too (more
+  cells to consider). That&rsquo;s why it&rsquo;s opt-in per cart, and
+  why the writable MS-DOS&nbsp;4.00 floppy is a deliberately small
+  480&nbsp;K.
+</p>
+
 <Foldable>
   {#snippet summary()}A real, bootable floppy{/snippet}
   <p>

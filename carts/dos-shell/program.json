@@ -1,19 +1,7 @@
 {
   "schema": "cart@1",
   "name": "DOS Shell",
-  "description": "A bare EDR-DOS prompt with nine classic FreeDOS utilities on the floppy. Type HELP-style commands at A:\\> - EDIT, DEBUG, MEM, TREE and friends.",
-  "display": {
-    "accent": "#141414",
-    "bullets": [
-      "EDIT - text editor",
-      "EDLIN - line editor",
-      "DEBUG - poke memory",
-      "MEM - memory map",
-      "TREE - directory tree",
-      "FIND / SORT / MORE",
-      "CHOICE - batch prompts"
-    ]
-  },
+  "description": "A bare EDR-DOS prompt with nine classic FreeDOS utilities on the floppy. Type HELP-style commands at A:\\> - EDIT, DEBUG, MEM, TREE and friends. No display block: superseded on the site by carts/msdos4 (2026-07-07), kept buildable for posterity.",
   "preset": "dos-corduroy",
   "memory": {
     "conventional": "640K",

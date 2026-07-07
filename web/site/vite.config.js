@@ -94,7 +94,9 @@ const externalRuntimeBuilder = {
 export default defineConfig({
   plugins: [svelte(), Icons({ compiler: 'svelte' }), externalRuntimeBuilder, devRuntime, buildRuntime],
   server: {
-    port: 5173,
+    // PORT env wins so harnesses (preview tools, parallel agents) can pin
+    // a free port; humans keep the 5173 default.
+    port: Number(process.env.PORT) || 5173,
     fs: { allow: [repoRoot, calciteRoot] },
     headers: COI_HEADERS,
   },

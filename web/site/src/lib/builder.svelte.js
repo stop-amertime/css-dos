@@ -50,6 +50,7 @@ class Build {
     textVga: true,
     gfx: true,
     cgaGfx: false,
+    writable: false,          // disk.writable — session-writable floppy
     runCommand: '',
     bootMode: 'program',      // 'program' | 'shell'
     eagerCompile: false,
@@ -121,6 +122,10 @@ class Build {
     if (!this.isDos) return 'n/a (hack: bare .com)';
     return this.options.runCommand.trim() || 'auto (from program.json)';
   }
+  get specDisk() {
+    if (!this.isDos) return 'none (hack: bare .com)';
+    return this.options.writable ? 'floppy, writable (this session)' : 'floppy, read-only';
+  }
 
   async loadServerCarts() {
     try {
@@ -153,6 +158,10 @@ class Build {
     if (typeof mem.textVga === 'boolean') this.options.textVga = mem.textVga;
     if (typeof mem.gfx === 'boolean') this.options.gfx = mem.gfx;
     if (typeof mem.cgaGfx === 'boolean') this.options.cgaGfx = mem.cgaGfx;
+    // Unlike the fields above this one RESETS when unspecified: a stale
+    // `true` leaking from a previously-picked cart quietly balloons the
+    // next cabinet by hundreds of MB.
+    this.options.writable = program.disk?.writable === true;
     if (typeof program.boot?.runCommand === 'string') {
       this.options.runCommand = program.boot.runCommand;
       this.options.bootMode = program.boot.runCommand ? 'program' : 'shell';
@@ -193,6 +202,7 @@ class Build {
     this.cart = null;
     this.#invalidateBuild();
     this.options.runCommand = '';
+    this.options.writable = false;
     this.#suggestRunCommand();
     this.status = `File loaded: ${file.name}`;
   }
@@ -212,6 +222,7 @@ class Build {
       });
     } else {
       this.options.runCommand = '';
+      this.options.writable = false;
       this.#suggestRunCommand();
     }
     this.status = `Folder loaded: ${fileList.length} files.`;
@@ -284,9 +295,12 @@ class Build {
       memoryOverride.gfx = this.options.gfx;
       memoryOverride.cgaGfx = this.options.cgaGfx;
     }
-    // Form overrides win over the cart's program.json.
+    // Form overrides win over the cart's program.json. disk.writable is
+    // always stated for DOS carts (the checkbox can turn a cart's default
+    // off as well as on); hack carts must not get a disk object at all.
     const extraManifest = mergeManifest(cartProgram ?? {}, {
       ...(Object.keys(memoryOverride).length ? { memory: memoryOverride } : {}),
+      ...(this.isDos ? { disk: { writable: this.options.writable } } : {}),
     });
     // preset + runCommand are passed as their own params; strip to avoid
     // double-binding.

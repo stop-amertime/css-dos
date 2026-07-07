@@ -169,6 +169,13 @@
           "type": "string",
           "description": "Website only. CSS background colour for the cover-less text card (default #0000AA). Ignored by the builder."
         },
+        "playTips": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Website only. Per-cart hints shown as a dismissible toast on the Play page, one paragraph per line. Markdown links ([text](url)) are rendered. Ignored by the builder."
+        },
         "vsyncMode": {
           "enum": [
             "sim",

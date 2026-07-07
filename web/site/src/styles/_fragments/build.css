@@ -32,7 +32,7 @@
    as Learn's sub-pages. */
 .subpage[data-build-subpage] { margin-top: 4px; }
 
-.boot-mode-row { margin: 16px 0; }
+.boot-mode-row { margin: 20px 0 16px; }
 .build-row {
   align-items: center;
   gap: 12px;
@@ -101,28 +101,67 @@
 }
 .spec-table td { background: var(--edit-white); }
 
-/* "Advanced configuration" fold — themed on top of the shared .foldable
+/* "Configuration" fold — themed on top of the shared .foldable
    (foldable.css). Gray body to match the surrounding config panel. */
 .foldable.advanced { margin-top: 8px; }
-.foldable.advanced .fold-body { background: var(--edit-gray); padding: 12px; }
-.foldable.advanced .fold-body .row:last-child { margin-bottom: 0; }
+.foldable.advanced .fold-body { background: var(--edit-gray); padding: 14px 12px; }
+
+/* ── Option sets (Configuration fold + the Boot-into radio) ──
+   One labelled set per block: the label on its own line, the options
+   stacked under it, generous air between sets. The markers get a white
+   chip so ( ) / [ ] read as controls against the gray panel. */
+.opt-set { margin-bottom: 18px; }
+.opt-set:last-child { margin-bottom: 0; }
+.opt-set > label {
+  display: block;
+  margin-bottom: 6px;
+  color: #333;
+}
+.opt-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.machine-specs .radio-group { gap: 6px; }
+.machine-specs .radio .marker,
+.machine-specs .check .marker {
+  background: var(--edit-white);
+  padding: 0 3px;
+}
+.machine-specs .radio input:checked ~ .marker { background: var(--edit-white); }
+.opt-warn {
+  margin: 8px 0 0;
+  max-width: 420px;
+  line-height: 15px !important;
+}
 
 /* ===== build-progress wrapper (layout only; bar/log internals live in
    build-progress.css) ===== */
 #build-progress-wrap { margin-top: 12px; }
 
-/* ===== result row — small floppy on the left, "CSS file built" heading and
-   the optional-download line stacked to its right. Kept compact so the tall
-   source viewer below gets the vertical room. ===== */
+/* ===== result row — tiny floppy on the left, the green "✓ CSS file
+   built" success line and the optional-download link to its right.
+   Deliberately low-profile (no box chrome) so the tall source viewer
+   below gets the vertical room. ===== */
 .result-row {
   display: flex;
   align-items: center;
-  gap: 18px;
-  border: 1px solid var(--edit-black);
-  background: var(--edit-gray);
-  padding: 12px 16px;
+  gap: 14px;
+  padding: 2px 0 10px;
 }
-.result-floppy { flex: none; }
+/* The drawn floppy is authored at 96px (result-floppy.css); show it at
+   60% rather than re-plotting every absolute px inside it. */
+.result-floppy {
+  flex: none;
+  width: 60px;
+  height: 60px;
+}
+.result-floppy .floppy {
+  transform: scale(0.6);
+  transform-origin: top left;
+}
+.result-ok { color: var(--edit-green); }
+.result-tick { margin-right: 2px; }
 /* min-width:0 lets the info column shrink below its content's min-content
    width (the download line is long) instead of forcing the flex row —
    and the whole window — wider than a phone viewport. */
@@ -160,11 +199,17 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  flex-wrap: wrap;
+  /* Never wraps: the buttons are bare «/» glyphs and the label drops
+     out on narrow phones (below), so the row always fits one line. */
+  flex-wrap: nowrap;
   margin-bottom: 8px;
   color: var(--edit-black);
 }
-.pager-label { font-size: 16px; line-height: 16px; }
+.pager-label { font-size: 16px; line-height: 16px; white-space: nowrap; }
+@media (max-width: 480px) {
+  .pager-controls { gap: 8px; }
+  .pager-label { display: none; }
+}
 .pager-page {
   display: inline-flex;
   align-items: center;

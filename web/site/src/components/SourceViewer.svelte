@@ -67,14 +67,16 @@
 <section class="source-viewer-block">
   <div class="pager-controls">
     <span class="pager-label">Source Code:</span>
-    <button class="pager-btn" disabled={page <= 1} onclick={() => render(page - 1)}>&#171; Prev</button>
+    <button class="pager-btn" disabled={page <= 1} aria-label="Previous page"
+            onclick={() => render(page - 1)}>&#171;</button>
     <span class="pager-page">
       Page
       <input class="field page-jump-input" type="number" min="1" value={page}
              onchange={(e) => render(Math.max(1, parseInt(e.currentTarget.value, 10) || 1))} />
       of {totalLabel}
     </span>
-    <button class="pager-btn" disabled={atEnd} onclick={() => render(page + 1)}>Next &#187;</button>
+    <button class="pager-btn" disabled={atEnd} aria-label="Next page"
+            onclick={() => render(page + 1)}>&#187;</button>
   </div>
   <pre class="source-pre"><code bind:this={codeEl} class="language-css"></code></pre>
 </section>

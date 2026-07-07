@@ -3,7 +3,12 @@
   "name": "Doom8088 (Mode 13h, low detail)",
   "description": "FrenkelS/Doom8088 v20260304 - MCGA 320x200 256-color, 8088 low-detail build (D8M13L.EXE). WAD: shareware DOOM1.",
   "display": {
-    "cover": "doom-79.jpg"
+    "cover": "doom-79.jpg",
+    "playTips": [
+      "Press Enter a few times on the boot splash and difficulty settings to get in-game.",
+      "This game takes around 30 seconds to load from that menu with no feedback.",
+      "Arrows to move, CTRL to fire."
+    ]
   },
   "preset": "dos-corduroy",
   "memory": {

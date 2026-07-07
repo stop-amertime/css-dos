@@ -20,6 +20,28 @@
   let rawModal = $state(false);
   const playing = $derived(health.canRun && !stopped);
 
+  // Per-cart hints toast — display.playTips in the cart's program.json
+  // (see docs/cart-format.md). Only a cart picked this session carries
+  // tips; a cabinet restored after a reload has no cart metadata, so no
+  // toast. Dismissal is remembered per cart, not globally, so building
+  // a different cart shows its own tips.
+  let tipsDismissedFor = $state(null);
+  const tips = $derived(build.cart?.program?.display?.playTips ?? null);
+  const tipsOpen = $derived(!!tips?.length && tipsDismissedFor !== build.cart?.name);
+
+  // Minimal inline markdown: '[text](url)' → link segments.
+  function mdSegments(line) {
+    const out = [];
+    let rest = line, m;
+    while ((m = rest.match(/\[([^\]]+)\]\(([^)]+)\)/))) {
+      if (m.index > 0) out.push({ text: rest.slice(0, m.index) });
+      out.push({ text: m[1], href: m[2] });
+      rest = rest.slice(m.index + m[0].length);
+    }
+    if (rest) out.push({ text: rest });
+    return out;
+  }
+
   // This page re-verifies its own precondition: the cabinet must be in
   // Cache Storage (the bridge streams it from there), and a reload, SW
   // update, or cache eviction can drop it while the route still says
@@ -88,9 +110,56 @@
     nav.buildSub = 1;
     nav.go(2);
   }
+
+  // Squish-to-fit: on short viewports the full-size embed (screen +
+  // keyboard) can be taller than the band between the wizard's pinned
+  // chrome, leaving the page scrolling and the note off-screen. Scale
+  // the iframe down (transform, top-center origin — layout width is
+  // untouched, so the embed never reflows and the measurement can't
+  // feed back) until player + note fit with a small margin all round.
+  //
+  // Geometry: play.css gives the Play window a FIXED viewport-fit
+  // height and bottom-pins the note with an auto margin, so the scroll
+  // band's clientHeight is a constant we can size against; the flex
+  // gap between player and note is measured and excluded so the
+  // "everything but the player" number is scale-independent.
+  let viewH = $state(typeof window !== 'undefined' ? window.innerHeight : 800);
+  let availH = $state(0);
+  function measureAvail() {
+    const scroll = document.querySelector('.wiz-scroll');
+    const vp = document.querySelector('.inline-player-viewport');
+    const player = document.querySelector('.inline-player');
+    const note = document.querySelector('.play-note');
+    if (!scroll || !vp || !player || !note) return;
+    const gap = Math.max(0, note.getBoundingClientRect().top - player.getBoundingClientRect().bottom);
+    const nonPlayer = scroll.scrollHeight - vp.offsetHeight - gap;
+    availH = scroll.clientHeight - nonPlayer;
+  }
+  $effect(() => {
+    playing; frameH; viewH; // re-measure whenever the layout could move
+    measureAvail();         // effects run post-DOM-update
+    // …and once more after late reflows (font loads) settle. setTimeout,
+    // not rAF: rAF never fires in a background tab.
+    const t = setTimeout(measureAvail, 300);
+    return () => clearTimeout(t);
+  });
+  // Belt-and-braces for band size changes that arrive without a window
+  // resize event (URL bar collapse, emulated viewports, split screen).
+  $effect(() => {
+    if (!playing || !window.ResizeObserver) return;
+    const scroll = document.querySelector('.wiz-scroll');
+    if (!scroll) return;
+    const ro = new ResizeObserver(measureAvail);
+    ro.observe(scroll);
+    return () => ro.disconnect();
+  });
+  const scale = $derived.by(() => {
+    if (!frameH || !availH) return 1;
+    return Math.max(0.45, Math.min(1, availH / frameH));
+  });
 </script>
 
-<svelte:window onkeydown={(e) => e.key === 'Escape' && (rawModal = false)} />
+<svelte:window bind:innerHeight={viewH} onkeydown={(e) => e.key === 'Escape' && (rawModal = false)} />
 
 <Wizard {strip} nav={wizNav}>
 <EnvNotice />
@@ -105,10 +174,28 @@
     <a class="inline-player-pop" href="/player/calcite.html" target="_blank" rel="noopener">Pop out &#8599;</a>
     <button class="btn inline-player-stop" onclick={() => stopped = true}>Stop</button>
   </div>
-  <iframe class="inline-player-frame" use:fitToContent
-          style={frameH ? `height:${frameH}px` : ''}
-          src="/player/calcite.html#embed" title="CSS-DOS player"></iframe>
+  <div class="inline-player-viewport"
+       style={frameH ? `height:${Math.round(frameH * scale)}px` : ''}>
+    <iframe class="inline-player-frame" use:fitToContent
+            style={frameH ? `height:${frameH}px; transform:scale(${scale});` : ''}
+            src="/player/calcite.html#embed" title="CSS-DOS player"></iframe>
+  </div>
 </div>
+
+{#if tipsOpen}
+<div class="window play-toast" role="status" aria-label="Hints for this program">
+  <div class="title-bar play-toast-title">
+    <span>HINTS</span>
+    <button class="play-toast-close" aria-label="Dismiss hints"
+            onclick={() => tipsDismissedFor = build.cart?.name}>&times;</button>
+  </div>
+  <div class="window-body">
+    {#each tips as line (line)}
+      <p>{#each mdSegments(line) as seg, i (i)}{#if seg.href}<a href={seg.href} target="_blank" rel="noopener">{seg.text}</a>{:else}{seg.text}{/if}{/each}</p>
+    {/each}
+  </div>
+</div>
+{/if}
 {:else if health.canRun}
 <button class="btn play-restart" onclick={() => stopped = false}>&#9654; Start the player</button>
 {/if}

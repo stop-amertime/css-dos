@@ -46,6 +46,7 @@
   --edit-red:     #aa0000;   /* alt accent (Default / Help in EDIT) */
   --edit-yellow:  #ffff55;
   --edit-cyan:    #55ffff;
+  --edit-green:   #00aa00;   /* success (EGA green) */
 
   /* The 8x16 grid the font is locked to. */
   --cell-w: 8px;

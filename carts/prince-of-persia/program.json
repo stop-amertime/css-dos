@@ -3,7 +3,13 @@
   "name": "Prince of Persia",
   "description": "Prince of Persia 1.0 (1989). Classic platformer. Original DOS release.",
   "display": {
-    "cover": "pop-79.jpg"
+    "cover": "pop-79.jpg",
+    "playTips": [
+      "Press Space to skip the title screen.",
+      "Hold Right and Up using the hold mode to make longer jumps.",
+      "This will be horrible to control - I will give anyone £20 if they successfully complete the game using this player.",
+      "Find the game's manual [here](https://www.retrogames.cz/manualy/DOS/Prince_of_Persia_Manual.pdf)."
+    ]
   },
   "preset": "dos-corduroy",
   "memory": {

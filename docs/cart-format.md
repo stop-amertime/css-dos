@@ -363,8 +363,18 @@ The cover-less alternative to `display.cover`: an array of short lines
 the site renders as a text card — the cart's `name`, the word "with:",
 then the bullets — on the `display.accent` background colour (any CSS
 colour; default `#0000AA`). Like `cover`, the presence of `bullets`
-opts the cart into the featured landing grid. Used by `carts/dos-shell`
-("DOS Shell with: EDIT — text editor, …"). Both ignored by the builder.
+opts the cart into the featured landing grid. Both ignored by the
+builder. (No cart currently uses a cover-less card — `carts/dos-shell`
+did until it was superseded on the site by `carts/msdos4`.)
+
+### `display.playTips` · implemented (website)
+
+An array of strings shown as a dismissible "HINTS" toast on the site's
+Play page when this cart is running — one paragraph per line, with
+markdown links (`[text](url)`) rendered. Does **not** opt the cart into
+the featured grid, and does not imply `cover`/`bullets`. Only carts
+picked in the current session show tips (a cabinet restored from cache
+after a reload has no cart metadata). Ignored by the builder.
 
 ### `display.vsyncMode` · aspirational
 

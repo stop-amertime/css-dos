@@ -89,38 +89,60 @@
         <SpecTable />
 
         <Foldable class="advanced">
-          {#snippet summary()}<span class="hot">A</span>dvanced configuration{/snippet}
-          <div class="row">
+          {#snippet summary()}<span class="hot">C</span>onfiguration{/snippet}
+          <div class="opt-set">
             <label>Preset:</label>
-            <RadioGroup name="preset" options={PRESETS} bind:value={build.options.preset} />
+            <RadioGroup name="preset" options={PRESETS} inline={false} bind:value={build.options.preset} />
           </div>
           {#if build.isDos}
-            <div class="row">
+            <div class="opt-set">
               <label>Memory:</label>
-              <RadioGroup name="memory" options={MEMORY} bind:value={build.options.memory} />
+              <RadioGroup name="memory" options={MEMORY} inline={false} bind:value={build.options.memory} />
             </div>
-            <div class="row">
+            <div class="opt-set">
               <label>Video:</label>
-              <CheckRow bind:checked={build.options.textVga} label="Text (B8000)" />
-              <CheckRow bind:checked={build.options.gfx} label="Mode 13h (A0000)" />
-              <CheckRow bind:checked={build.options.cgaGfx} label="CGA 0x04 (B8000)" />
+              <div class="opt-stack">
+                <CheckRow bind:checked={build.options.textVga} label="Text (B8000)" />
+                <CheckRow bind:checked={build.options.gfx} label="Mode 13h (A0000)" />
+                <CheckRow bind:checked={build.options.cgaGfx} label="CGA 0x04 (B8000)" />
+              </div>
+            </div>
+            <div class="opt-set">
+              <label>Floppy disk:</label>
+              <div class="opt-stack">
+                <CheckRow
+                  bind:checked={build.options.writable}
+                  label="Writable (saves last until you close the tab)"
+                  title="When on, programs can write to the floppy — saved files last until the tab closes; reloading resets to the factory disk."
+                />
+              </div>
+              <p class="opt-warn dim small">
+                Warning: a writable disk grows the cabinet and its
+                compile time substantially (~0.4&nbsp;MB per KB of
+                floppy &mdash; often 50&ndash;90%), and can push large
+                carts past what Chrome will load at all.
+              </p>
             </div>
           {/if}
-          <div class="row">
-            <CheckRow
-              bind:checked={build.options.eagerCompile}
-              label="Compile in background after build"
-              title="When on, the cabinet starts parsing/compiling in the background as soon as it's built. When off (default), compile is deferred until you open the player."
-            />
+          <div class="opt-set">
+            <label>Build:</label>
+            <div class="opt-stack">
+              <CheckRow
+                bind:checked={build.options.eagerCompile}
+                label="Compile in background after build"
+                title="When on, the cabinet starts parsing/compiling in the background as soon as it's built. When off (default), compile is deferred until you open the player."
+              />
+            </div>
           </div>
         </Foldable>
 
         {#if build.isDos}
-          <div class="row boot-mode-row">
+          <div class="opt-set boot-mode-row">
             <label>Boot into:</label>
             <RadioGroup
               name="boot-mode"
               options={BOOT_MODES}
+              inline={false}
               value={build.options.bootMode}
               onchange={(m) => build.setBootMode(m)}
             />
