@@ -109,7 +109,7 @@ source: web/site/src/routes/About.svelte (sub 2)
 > *— George Mallory, when asked why he climbed Everest.*
 > 
 
-Cave paintings started when some spare blood was misused to represent a deer. Fifty thousand years later, someone beat *Dark Souls* using the bongo drums controller from Gamecube rhythm game *Donkey Konga*, which has only three buttons and a microphone.
+Cave paintings started when some spare blood was misused to represent a deer. Fifty thousand years later, someone beat *Dark Souls* using the bongo drums controller from Gamecube rhythm game *Donkey Konga*, which has three buttons and a microphone.
 
 **I’m under no illusion: this project was excruciating to create and serves no practical benefit whatsoever.** But it sits in that mysterious nook between ‘might be technically possible’ and ‘impossible’ that draws the foolish and the brave recklessly in.
 
