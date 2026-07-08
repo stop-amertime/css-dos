@@ -121,22 +121,24 @@ source: web/site/src/routes/About.svelte (sub 3)
 
 # How is this possible?
 
-CSS is designed to style elements on websites e.g. making a box a specific size and colour) and was never designed to compute anything. 
+CSS is designed to style elements on websites (e.g. making a box a specific size and colour) and was never designed to compute anything. 
 
 Basic tools have trickled into CSS as websites have become more complex: 
 
 [Demonstrations of CSS - these should go back to how they were, as tabbed switchable demonstrations, but: bullet points are in a dotted timeline connected by a vertical line, with a year and they are clickable to see a demo of that particular feature, wrapping on mobile]
 
 - 1996 - Set a property (e.g. make a box blue)
-- 2012 - Variables as --var(x) only
-- 2014 - Simple Calculations
-- 2023 - Remainders and Rounding
+- 2011 - Simple calculations with calc()
+- 2014 - Variables, as var(--x) only
+- 2022 - Remainders and rounding
 - 2025 - Ask yes/no questions with if()
 - 2025 - Re-use a block of code with @function
 
-Those last two in Oct 2025 made this entire project possible. And yet, it is still a pitifully small set of tools for such a large job. 
+[note: years = first shipped in any browser — calc() IE9 2011; custom properties Firefox 2014 (Chrome 2016); mod()/round() Safari 2022 (Chrome only 2024); if() Chrome 137, May 2025; @function Chrome 139, Aug 2025 — worth one final double-check before ship]
 
-We smack every problem with those tools until it’s fixed. Some problems would be solved in one hit with a very slightly better tool for the job. Instead, they are brute forced with 750,000 hits from a tool we do have. Each whack is a line of code  — thus, the file ends up an appalling 300+ MB of text:
+Those last two, arriving within months of each other in 2025, made this entire project possible. And yet, it is still a pitifully small set of tools for such a large job. 
+
+We smack every problem with those tools until it’s fixed. Some problems would be solved in one hit with a very slightly better tool for the job. Instead, they are brute forced with millions of hits from a tool we do have. Each whack is a line of code — 5.9 million lines later, the file ends up an appalling 300+ MB of text:
 
 EARTHMOON~60%
 
@@ -159,24 +161,27 @@ This sounds a bizarre detour, but: a CPU is a fixed circuit whose outputs are al
 
 And so, we embark on a rollercoaster journey: mimicking the processor hardware and all its foibles 1:1, reinventing logical operations like AND, OR and NOT in CSS, re-creating the RAM, the clock, the PIT (timer) and PIC (interrupt controller), hacking in a screen, and so on and so forth. We might genuinely hit *another* problem we can’t solve along the way - the only way to really tell in advance is to try to do it. 
 
-*FUN FACT: Early experiments in CSS computation required the user to actually click a button to advance processor cycles, until a trick was discovered: using CSS animations and @keyframes to drive a clock instead.* 
+*FUN FACT: The earliest experiments in CSS computation had no way to make time pass — the user had to repeatedly press keys or hold the mouse down to advance the machine one cycle at a time, until a trick was found: using CSS animations and @keyframes to drive a clock instead.* 
 
-### Just a taste: the ADD function
+### Just a taste: the AND function
 
-Lets sink our teeth into one of the simplest helper functions- AND - in CSS. The function checks if both X and Y are 1. This is all real spec-compliant CSS from the cabinet. 
+Lets sink our teeth into one of the simplest helper functions - AND - in CSS. AND combines two numbers bit by bit: the result has a 1 only where *both* numbers have a 1. Every other language on earth does it with one built-in operator: `a & b`. CSS has no bitwise operators at all — so we rebuild Boolean logic out of arithmetic. On single bits, AND is just multiplication (1×1 is 1, everything else is 0), OR is min(1, a+b), and NOT is 1−a. The same job transistors do with voltage, done with calc() — the ‘reinventing logic gates’ promised above, made literal.
 
-Bear in mind: **this isn’t a CPU instruction - its just one helper @*function.*** The actual ADD X,Y instruction is implemented in across many CPU registers, which each individually compute what happens to them if and when the current CPU instruction is ‘ADD X,Y’. But let’s not worry about that yet - it’s tackled in the next ‘problem’ section. 
+That trick only works one bit at a time, though. So to AND two 16-bit numbers, the function must first shred both into their sixteen separate bits — sixteen divide-and-round-down extractions each — multiply the pairs, then reassemble the answers into a number. Thirty-odd lines of long division to do what `&` does anywhere else. This is all real spec-compliant CSS from the cabinet.
 
-- [EXPANDABLE] The full ADD machinery - get ready to scroll…
+Bear in mind: **this isn’t a CPU instruction - it’s just one helper @*function.*** The actual AND X,Y *instruction* is implemented across many CPU registers, which each individually compute what happens to them if and when the current CPU instruction is ‘AND X,Y’. But let’s not worry about that yet - it’s tackled in the next ‘problem’ section. 
 
-[EXPANDABLE: An explanation of what this is doing] 
+- [EXPANDABLE] The full AND machinery - get ready to scroll… (the verbatim exhibit at the end of this page)
+
+- [EXPANDABLE: What you’re scrolling past] The little helpers at the top (--lowerBytes, --rightShift, --bit) are the crowbar set — chop-to-N-bits, shift, extract-one-bit — each built from division and remainder. Then --and itself: thirty-two bit extractions, sixteen multiplications, one weighted sum. Below it, --parity: the 8086 reports whether a result has an even number of 1-bits, and nothing in CSS can count bits, so all 256 possible answers were worked out in advance and written into a 256-arm if(). Last, --andFlags16 — the bookkeeping a real chip does as a free side effect of its silicon (did the result hit zero? go negative?), reconstructed as arithmetic. 
 
 [TABLE]
 
 - **Clock: a**n animation ticks a counter, and every formula in the file re-evaluates each tick.
 - **CPU Registers:** each a set of formulas including every possible processor instruction that could change them, and how to calculate their resultant value. Those instructions are cobbled together with a combination of if() statements, calc, mod (remainder) and round.
-- **RAM:** a titanic list of hundreds of thousands of variables, declared one-by-one, then each having two further formulas which figure out whether it has been read or written to and acts accordingly.
-- **Floppy disk:** another huge list where each individual byte is pre-set, one byte per line. There isn’t space to go into how we make these writable.
+- **RAM:** a titanic list of hundreds of thousands of variables, declared one-by-one, each with a formula asking, every single tick: ‘did this instruction just write to *my* address?’. Reading them back is its own nightmare — CSS gives no way to get from an address (a number) to a variable (a name), so reads go through one colossal lookup function with one arm per address: ‘is it address 0? is it address 1?…’, 743,948 arms long.
+
+[note: the Floppy disk row moved down into the ‘No inputs and outputs’ problem]
 
 [CALLOUT] Lyra Rebane first built an [x86 CPU in CSS](https://lyra.horse/x86css/) with a limited instruction set — this extends that work to a full machine running an unmodified OS and real programs.
 
@@ -196,49 +201,67 @@ Instead, each CSS property - from the RAM to the CPU registers - has to be writt
 We end up with gigantic if() statements which cover every possible state that a variable could be in: 
 
 - CPU registers cover every possible CPU instruction that could change them, and the resultant value of doing so
-- Bytes of RAM each need to check, every cycle, whether they were edited and if not, set themselves back to their previous value.
-- Some more good examples here…?
+- Bytes of RAM each ask, every cycle, whether this tick’s instruction wrote to their address — and when it didn’t, their formula simply answers with last tick’s value, unchanged.
 
-<please fill in a bit here on how exactly this works, in brief, from the files e.g. memory write rules, etc. - perhaps include one memory read and write rule..? Or a CPU register..?> 
+Here is the register AX — structurally exact from the cabinet, arithmetic elided:
+
+```css
+--AX: if(
+    style(--opcode: 0): …;    /* ADD, one flavour */
+    style(--opcode: 1): …;    /* ADD, another */
+    …                         /* every opcode that can touch AX */
+    else: var(--snapshot-AX));   /* untouched: keep the old value */
+```
+
+One table, keyed on the current instruction, with a row for everything that could ever happen to AX — and that final `else` is this whole problem in one line of CSS: a variable’s single, permanent definition has to end with *“otherwise, I am what I was.”* Fourteen of these tables, one per register, are the machine’s entire brain.
+
+Memory gets the same treatment at scale. Each tick, the current instruction broadcasts “I am writing value V to address N” into three small shared variables (the **write slots**), and all 368,256 memory-cell formulas compare the slots against their own address. When an instruction writes nothing — most don’t — a 0-or-1 ‘live’ flag on each slot lets every formula short-circuit at once. 
 
 ### Problem 3: CSS variables can’t reference themselves
 
-<is this technically true? am i mixing up the word property and variable? in fact I may be doing that throughout…> 
+In any programming language, you increment a variable using `x=x+1` . In CSS, that’s off the table: a variable whose definition mentions itself is a *circular reference*, and CSS rejects it outright. 
 
-In any programming language, you increment a variable using `x=x+1` . In CSS, that’s off the table. 
+This one is simple to solve - just keep a *complete second set* of all variables that *could* change - a ‘snapshot’ - from which you can copy variables as required. So, each variable actually needs two copies - what it is *now* and what it was *before.* Since at most 3 of the machine’s 368,256 memory cells change in any given cycle, over 99.999% of this copying is redundant. 
 
-This one is simple to solve - just keep a *complete second set* of all variables that *could* change - a ‘snapshot’ - from which you can copy variables as required. So, each property actually needs two variables - what it is *now* and what it was *before.* Since only a couple of variables change between cycles, 99.9995% <whats the real percentage..?> of this work is redundant. 
+Except that’s actually still not quite enough. Every formula must read the frozen *before*-picture while the *after*-picture is being computed — if new values landed the moment they were ready, half the machine would calculate from the old state and half from the new, and the state would be scrambled beyond repair. 
 
-Except that’s actually still not quite enough, because we can’t be changing the values of some variables when others haven’t updated yet - the state would become mixed up. <is this is confusingly worded? please help me sort this sentence out>
+That one is simple to solve too: create *another complete copy* of all variables as a buffer between the two. New values are parked there, then handed over all at once, on a beat of the clock, when nothing is reading. (In the real file every memory cell ends up as **four** variables. If you know electronics or graphics, yes: we have just reinvented the flip-flop — the CSS-as-circuits analogy holding up worryingly well — or, if you prefer, double-buffering.) 
 
-That one is simple to solve too: create *another complete copy* of all variables as a buffer between the two, from which values can safely be edited without ruining the current state or the snapshot. 
+### Problems 4-7: No inputs and outputs.
 
-### Problems 3-6: No inputs and outputs.
+A computer you can’t feed programs into, see, or touch isn’t much of a computer. CSS can’t read files, can’t take input from your keyboard, and can’t draw to the screen — so we cobble every one of these together:
 
-CSS can’t read files, so everything has to be one file. Fine, simple. It also can’t take input directly from your keyboard/mouse, or output to the screen directly. So, we cobble those together:
-
-- **The screen:** 64,000 `<div>`s are assembled in a 320x200 grid and individually coloured based on a byte of video RAM (skipping over the complexity of various video modes - Text, CGA, Mode13h…)
-- **A keyboard** is hacked together **using a set of on-screen buttons** by checking when each button is clicked.
+- **The floppy disk:** CSS can’t open anything at runtime — no files, no requests, no loading — so the entire floppy is baked into the stylesheet in advance, byte by byte, one if() arm per byte. (Byte zero of the disk is `235` — the x86 jump instruction every boot sector begins with.) DOS asks the drive for one 512-byte sector at a time, so the machine keeps a 512-byte *window* in memory whose contents aren’t stored anywhere: those addresses read straight through to the disk table, at ‘requested sector × 512 + offset’. DOS writes a sector number into memory and the window instantly shows a different slice of the disk — it never learns the floppy is a fiction. (Making disks *writable* — saving your work into a stylesheet — is its own adventure, covered on the next page.)
+- **The screen:** 64,000 `<div>`s are assembled in a 320x200 grid, each with a rule that colours it from its own byte of video RAM (skipping over the complexity of various video modes - Text, CGA, Mode13h…). This is, note, the only place in 300 MB where CSS is doing its actual day job — reading a value and colouring a box. Everything else is smuggling; the screen is the sliver of honest work at the end. What a pity we’re still abusing it with sixty-four thousand elements.
+- **A keyboard:** CSS cannot see your keyboard — no selector reacts to a real keypress. The *one* thing it can perceive about a human is whether an element is being pressed at this exact moment: the `:active` selector. So the machine’s keyboard is a set of real on-screen buttons, each carrying a rule — ‘while I am held, the keyboard variable holds my key’s code’ — wired into the two bytes of memory where the BIOS expects keyboard hardware. It is the single aperture through which the physical world enters the computation.
 - **Sound** just has no way to work, really. Except possibly displaying the sound wave visually..? Perhaps that’s future work.
 
-### Problem 7: This runs absurdly slowly, if it runs at all.
+### Problem 8: Nobody could write this all out
+
+One last practical matter: no human wrote these 5.9 million lines, and no human could. The file is cooked up by a generator script called **Kiln**, written in an ordinary programming language (JavaScript), which works out every register table, every memory formula, every one of the 743,948 read arms — and writes them all down. 
+
+This isn’t cheating: the finished source code is still plain CSS, and the browser is what runs it — we’ve just automated the pen. A novelist who dictates has still written a novel. (Likewise, using an LLM to help write CSS doesn’t make the result any less CSS.) 
+
+### Problem 9: This runs absurdly slowly, if it runs at all.
 
 - [EXPANDABLE Why it’s so slow]
-    - RAM variables all need to re-check whether they’ve been edited, every tick.
-    - CPU instructions which normally run *in hardware* at up to TRILLIONS of CPU
+    - All 368,256 RAM cells re-check ‘was I just written to?’ every single tick — even though, at most, 3 of them were. In a normal computer the cost of a step is proportional to what *changes*; in this machine it is proportional to what *exists*.
+    - CPU instructions that normally run *in hardware* — silicon executing billions of them per second — are here re-derived as long chains of arithmetic (remember the AND function above), which the browser has to grind through symbolically, every tick.
+    - (A thought for the technical: the file is a computer *unrolled* — every loop a normal language would run is written out, in full, as its iterations.)
 
 A browser really will evaluate all of this — at about two *instructions* per second. Not 2 fps. Two *instructions - a*dd, multiply, etc. To put it in perspective how slow that is: 
 
 [Component: grid of boxes with large numbers in them and text underneath]
 
-- 1.5 years - to boot DOS
-- 0.00001 fps - framerate in DOOM.
+- ~3 weeks - to boot DOS
+- ~3 months - for DOOM to load into a level
+- 0.00001 fps - framerate once you’re playing.
 
 This is all assuming your browser doesn’t crash from trying to load a 300+ MB .css file, which it absolutely will in 2026. 
 
 The solution is to do what every other programming language does (including Javascript in Chrome etc.), and compile the code into something faster before it runs. 
 
-This site runs the same file through **Calcite**, a compiler that evaluates the same CSS about 100,000x faster; [its own page](https://app.notion.com/p/CSS-DOS-Site-Copy-397157baceda80debd20ce5ed2c06e08?pvs=21) explains how it works, and why it isn’t cheating. 
+This site runs the same file through **Calcite**, a compiler that evaluates the same CSS over 100,000x faster; [its own page](https://app.notion.com/p/CSS-DOS-Site-Copy-397157baceda80debd20ce5ed2c06e08?pvs=21) explains how it works, and why it isn’t cheating. 
 
 ```css
 /* CSS-DOS: the AND operation, plus auxiliary @functions.
