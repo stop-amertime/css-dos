@@ -71,7 +71,7 @@ body:has(.window.wizard) {
 .step h1 {
   font-family: inherit;
   font-weight: normal;
-  font-size: 32px;
+  font-size: 24px;
   line-height: 32px;
   margin: 0 0 8px;
   letter-spacing: -1px;
