@@ -13,10 +13,14 @@ Measured headless Chromium on doom8088.css via the new
 - **With a live clock the tab wedges forever** (recalc ≫ 400 ms clock
   period; 7 min observed, zero idle windows). "Crashes Chrome" is really
   an unbounded recalc backlog; no renderer crash seen headless.
-- **BUG (follow-up: raw-regen.mjs):** raw.html puts `clock`+`cpu` on ONE
-  element, so `.cpu`'s `animation: store…,execute…` (doom8088.css:1185)
-  cascade-clobbers `.clock`'s `anim-play` (line 1180) → the clock never
-  ticks; `@container style(--clock:)` also only queries ancestors. The
-  raw player is frozen at tick 0 by construction (verified by minimal
-  repro + full cabinet). Fix = nest `.clock > .cpu`. Its loading message
-  ("wait ~10 seconds") is off ~30×.
+- **BUG, FIXED same day:** raw.html put `clock`+`cpu` on ONE element, so
+  `.cpu`'s `animation: store…,execute…` (doom8088.css:1185)
+  cascade-clobbered `.clock`'s `anim-play` (line 1180) → the clock never
+  ticked; `@container style(--clock:)` also only queries ancestors. The
+  raw player was frozen at tick 0 by construction (verified by minimal
+  repro + full cabinet). Fix: raw-regen now puts `.clock` on `.window`
+  and `.cpu` on `.window-body` (nested); raw-regen.test.mjs asserts the
+  split. E2E-verified in Chromium with the hello-text cabinet:
+  cycleCount 0→16, IP 0x100→0x104 (~6 s recalc/tick at 8.9 MB + 64K
+  pixels). raw.html's "wait ~10 seconds" message is still off ~30× for
+  Doom-sized cabinets.

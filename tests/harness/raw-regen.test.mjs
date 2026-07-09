@@ -24,7 +24,7 @@ for (const id of ['kb-caps','kb-ctrl','kb-shift','kb-f1','kb-f10','kb-slash','kb
   assert.ok(raw.includes(`id="${id}"`), `raw has ${id}`);
 }
 
-// .cpu host present so cabinet rules can match (simplification: window-body gets the classes).
+// .cpu host present so cabinet rules can match.
 assert.ok(/class="[^"]*\bcpu\b/.test(raw), 'raw has .cpu host');
 
 // Cabinet loaded as a real stylesheet.
@@ -43,8 +43,14 @@ assert.ok(raw.includes('<title>CSS-DOS · raw CSS</title>'), 'raw CSS in title')
 assert.ok(raw.includes('CSS-DOS - RAW CSS'), 'menu-bar title is RAW CSS');
 assert.ok(!raw.includes('CSS-DOS - PLAYING'), 'old PLAYING menu title gone');
 
-// Window body has cpu and clock classes.
-assert.ok(raw.includes('class="window-body clock cpu"'), '.window-body has clock and cpu classes');
+// .clock must be an ANCESTOR of .cpu, never the same element: on one
+// element .cpu's animation shorthand cascade-clobbers anim-play (clock
+// never ticks) and @container style(--clock:) only queries ancestors.
+// LOGBOOK 2026-07-09-chrome-eval-huge-cabinet.
+assert.ok(raw.includes('class="window clock"'), '.window hosts the clock');
+assert.ok(raw.includes('class="window-body cpu"'), '.window-body hosts the cpu');
+assert.ok(!/class="[^"]*\bclock\b[^"]*\bcpu\b|class="[^"]*\bcpu\b[^"]*\bclock\b/.test(raw),
+  'clock and cpu are never on the same element');
 
 // Cabinet <link rel="alternate"> is gone.
 assert.ok(!raw.includes('rel="alternate"'), 'no rel="alternate" in raw');

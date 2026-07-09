@@ -3,9 +3,9 @@
 // Generate player/raw.html by deriving it from calcite.html, so the
 // two players share chrome/keyboard verbatim and cannot drift. The
 // ONLY differences: the <img> screen becomes a 320x200 = 64000-element
-// CSS pixel grid, the cabinet loads as a real stylesheet, .window-body
-// gains .clock and .cpu classes to host the cabinet's .cpu-scoped rules,
-// and the label reads RAW.
+// CSS pixel grid, the cabinet loads as a real stylesheet, .window gains
+// .clock and .window-body gains .cpu (nested — see step 2) to host the
+// cabinet's machine, and the label reads RAW.
 //
 // In principle Chrome evaluates the cabinet and the pixel painter
 // (kiln/pixels.mjs) drives #p0..#p63999 from the Mode 13h framebuffer.
@@ -66,12 +66,18 @@ html = html.replace(
   /<img id="calcite-screen"[\s\S]*?width="640" height="400">/,
   pixelGrid());
 
-// (2) Add .clock and .cpu classes to .window-body so cabinet
-//     .cpu-scoped rules (keyboard :has, pixel painter) have a host.
-//     Simpler and more robust than wrapping with new divs.
+// (2) Host the machine: .clock on .window, .cpu on its child
+//     .window-body. They must be NESTED, not the same element — on one
+//     element .cpu's `animation: store…, execute…` shorthand cascade-
+//     clobbers .clock's anim-play (the clock never ticks), and the
+//     cabinet's `@container style(--clock: N)` queries only look at
+//     ancestors anyway. See LOGBOOK 2026-07-09-chrome-eval-huge-cabinet.
+html = html.replace(
+  '<div class="window">',
+  '<div class="window clock">');
 html = html.replace(
   '<div class="window-body">',
-  '<div class="window-body clock cpu">');
+  '<div class="window-body cpu">');
 
 // (3) Cabinet as a real stylesheet instead of <link rel="alternate">.
 html = html.replace(
