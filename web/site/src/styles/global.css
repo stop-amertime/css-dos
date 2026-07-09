@@ -455,8 +455,14 @@ body:has(.window.wizard) {
   font-size: 32px;
   line-height: 32px;
   font-weight: normal;
-  margin: 0 0 8px;
   letter-spacing: -1px;
+  /* TUI dialog-caption treatment, site-wide: centred in a double-line
+     box. Pages whose h1 is not a page title (the hero) opt out. */
+  border: 6px double var(--edit-black);
+  width: fit-content;
+  margin: 4px auto 20px;
+  padding: 6px 24px 4px;
+  text-align: center;
 }
 .step h3 {
   font-family: 'WebVGA', monospace; letter-spacing: normal;

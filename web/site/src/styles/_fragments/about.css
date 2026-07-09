@@ -110,10 +110,17 @@
   max-width: 520px;
   text-align: left;
 }
-.intro-hero h1 {
+/* The hero is a magazine cover, not a dialog — opt out of the
+   global.css title box. (.window.wizard prefix needed to outweigh
+   global's `.window.wizard h1`.) */
+.window.wizard .intro-hero h1 {
   font-size: 28px;
   line-height: 28px;
-  margin-bottom: 16px;
+  border: none;
+  width: auto;
+  margin: 0 0 16px;
+  padding: 0;
+  text-align: left;
 }
 .intro-hero .lede {
   font-size: 16px;
@@ -200,18 +207,6 @@
 .cross-list li, .sim-list li { margin-bottom: 6px; line-height: 16px; }
 .cross-list .no { color: var(--edit-red); margin-right: 8px; }
 .sim-list .ok { color: #006600; margin-right: 8px; }
-
-/* ── TUI page titles: centred in a double-line box, the way EDIT
-   captions its dialogs. Direct child only, so the hero's own h1 and
-   headings inside components keep their layouts. Specificity matches
-   global.css's `.window.wizard h1`; this file loads later and wins. ── */
-.step .subpage > h1 {
-  border: 6px double var(--edit-black);
-  width: fit-content;
-  margin: 4px auto 20px;
-  padding: 6px 24px 4px;
-  text-align: center;
-}
 
 /* ── The dithered TUI shadow: text-mode dialogs shadowed the cells
    under them with a ▒ halftone, not a solid slab. Painted by an
