@@ -111,11 +111,11 @@ source: web/site/src/routes/About.svelte (sub 2)
 
 Cave paintings started when some spare blood was misused to represent a deer. Fifty thousand years later, someone beat *Dark Souls* using the bongo drums controller from Gamecube rhythm game *Donkey Konga*, which has three buttons and a microphone.
 
-**I’m under no illusion: this project was excruciating to create and serves no practical benefit whatsoever.** Unlike mountain climbers, makers are motivated by what ISN’T there.¹ But the drive is the same — to probe at the boundary between ‘impractical’ and ‘impossible’.
+**I’m under no illusion: this project was excruciating to create and serves no practical benefit whatsoever.**
 
-¹ But, like summiting Everest, this project generates an enormous amount of rubbish.
+“Urg Urg, why are you wasting perfectly good blood on the cave walls, you mad idiot? We’ll have none left for all the rituals that need doing!”
 
-[note: render the footnote at the very bottom of the page, near the CTA buttons — same visual grammar as the hero’s “*barely.” — so the deflation is physically the last thing read]
+Urg Urg didn’t have an answer for ‘why?’. But nobody remembers the rituals, and the deer is still on the wall. I don’t think the *Dark Souls* guy even understands the question. I don’t have a good answer myself, except one as vague and meaningless as George’s: because it *wasn’t* there.
 
 ---
 
