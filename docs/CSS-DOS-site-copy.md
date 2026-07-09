@@ -113,9 +113,11 @@ Cave paintings started when some spare blood was misused to represent a deer. Fi
 
 **I’m under no illusion: this project was excruciating to create and serves no practical benefit whatsoever.**
 
+I’m in good company, though.
+
 “Urg Urg, why are you wasting perfectly good blood on the cave walls, you mad idiot? We’ll have none left for all the rituals that need doing!”
 
-Urg Urg didn’t have an answer for ‘why?’. But nobody remembers the rituals, and the deer is still on the wall. I don’t think the *Dark Souls* guy even understands the question. I don’t have a good answer myself, except one as vague and meaningless as George’s: because it *wasn’t* there.
+Urg Urg didn’t have an answer for ‘why?’. But nobody remembers the rituals, and the deer is still on the wall. I don’t think anyone’s even bothered asking the *Dark Souls* bongo drums guy — what could he even say? I don’t have a good answer myself, except one as vague and meaningless as Mallory’s: because it *wasn’t* there.
 
 ---
 
