@@ -111,7 +111,11 @@ source: web/site/src/routes/About.svelte (sub 2)
 
 Cave paintings started when some spare blood was misused to represent a deer. Fifty thousand years later, someone beat *Dark Souls* using the bongo drums controller from Gamecube rhythm game *Donkey Konga*, which has three buttons and a microphone.
 
-**I’m under no illusion: this project was excruciating to create and serves no practical benefit whatsoever.** But it sits in that mysterious nook between ‘might be technically possible’ and ‘impossible’ that draws the foolish and the brave recklessly in.
+**I’m under no illusion: this project was excruciating to create and serves no practical benefit whatsoever.** Unlike mountain climbers, makers are motivated by what ISN’T there.¹ But the drive is the same — to probe at the boundary between ‘impractical’ and ‘impossible’. Not because it is easy, but because it is hard.
+
+¹ But, like summiting Everest, this project generates an enormous amount of rubbish.
+
+[note: render the footnote at the very bottom of the page, near the CTA buttons — same visual grammar as the hero’s “*barely.” — so the deflation is physically the last thing read]
 
 ---
 
