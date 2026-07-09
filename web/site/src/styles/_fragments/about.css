@@ -201,13 +201,70 @@
 .cross-list .no { color: var(--edit-red); margin-right: 8px; }
 .sim-list .ok { color: #006600; margin-right: 8px; }
 
+/* ── TUI page titles: centred in a double-line box, the way EDIT
+   captions its dialogs. Direct child only, so the hero's own h1 and
+   headings inside components keep their layouts. Specificity matches
+   global.css's `.window.wizard h1`; this file loads later and wins. ── */
+.step .subpage > h1 {
+  border: 6px double var(--edit-black);
+  width: fit-content;
+  margin: 4px auto 20px;
+  padding: 6px 24px 4px;
+  text-align: center;
+}
+
+/* ── The dithered TUI shadow: text-mode dialogs shadowed the cells
+   under them with a ▒ halftone, not a solid slab. Painted by an
+   ::after offset one cell right+down, behind the box's own fill. ── */
+.dos-shadow { position: relative; }
+.dos-shadow::after {
+  content: '';
+  position: absolute;
+  inset: 8px -8px -8px 8px;
+  z-index: -1;
+  background: var(--dither-dark) 0 0 / 4px 4px;
+}
+
 .ext-link-box {
-  border: 1px dashed var(--edit-black);
+  border: 6px double var(--edit-black);
   background: var(--edit-white);
   padding: 10px 14px;
-  margin: 16px 0;
+  margin: 20px 8px 20px 0;
+  position: relative;
+}
+.ext-link-box::after {
+  content: '';
+  position: absolute;
+  inset: 8px -8px -8px 8px;
+  z-index: -1;
+  background: var(--dither-dark) 0 0 / 4px 4px;
 }
 .ext-link-box p { margin: 0; }
+
+/* ── Problem headings as DOS error dialogs (the upcoming 'How is this
+   possible?' rewrite). Usage:
+     <div class="problem-box dos-shadow">
+       <span class="problem-tag">Problem 4</span>
+       <h3>No inputs and outputs</h3>
+     </div> ── */
+.problem-box {
+  border: 6px double var(--edit-black);
+  background: var(--edit-gray);
+  padding: 16px 16px 10px;
+  margin: 32px 8px 14px 0;
+  text-align: center;
+}
+.problem-box h3 { margin: 0; font-size: 20px; line-height: 20px; }
+.problem-tag {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--edit-red);
+  color: var(--edit-white);
+  padding: 0 8px;
+  white-space: nowrap;
+}
 
 /* External links — blue, underline on hover. (wizard.css dropped its
    .ext-link rule; markup still uses the class, so define it here.) */

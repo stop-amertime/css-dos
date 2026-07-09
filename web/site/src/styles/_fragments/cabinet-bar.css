@@ -110,7 +110,9 @@
   position: fixed;
   inset: 0;
   z-index: 44;
-  background: rgba(0, 0, 0, 0.4);
+  /* A ▒ dither instead of an alpha dim — how a text-mode UI 'greys
+     out' what's behind a modal. */
+  background: var(--dither-dark) 0 0 / 4px 4px;
 }
 
 .hint-pop {

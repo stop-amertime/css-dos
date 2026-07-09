@@ -47,6 +47,15 @@
   --edit-yellow:  #ffff55;
   --edit-cyan:    #55ffff;
   --edit-green:   #00aa00;   /* success (EGA green) */
+  --edit-blue-bright: #5555ff;  /* EGA bright blue — desktop-weave partner */
+  --edit-gray-dark:   #aaaaaa;  /* true EGA gray (the dialog fill's parent) */
+
+  /* ── Dither tiles (the ░/▒ halftones of a 16-colour TUI) ──
+     A 2×2-px checkerboard drawn with conic-gradient: crisp squares, no
+     antialiasing. --dither-dark is ▒ (50/50 black), used for shadows and
+     the scrollbar track; the desktop weave below mixes the two blues. */
+  --dither-dark: conic-gradient(var(--edit-black) 90deg, #0000 90deg 180deg,
+                 var(--edit-black) 180deg 270deg, #0000 270deg);
 
   /* The 8x16 grid the font is locked to. */
   --cell-w: 8px;
@@ -64,7 +73,11 @@ body {
   font-family: 'WebVGA', 'MorePerfectVGA', 'Perfect DOS VGA 437', 'Fixedsys', 'Terminal', monospace;
   font-size: 16px;
   line-height: 16px;
-  background: var(--edit-blue);
+  /* The desktop: navy woven with a sparse ░ of EGA bright blue — the
+     Turbo-Vision-era dithered backdrop, one bright pixel-pair per 4px
+     tile so it reads as texture, not noise. Flat navy underneath. */
+  background: conic-gradient(var(--edit-blue-bright) 90deg, #0000 90deg) 0 0 / 4px 4px,
+              var(--edit-blue);
   color: var(--edit-white);
   min-height: 100vh;
   cursor: default;
@@ -414,6 +427,19 @@ body:has(.window.wizard) {
   min-height: 0;
   overflow-y: auto;
 }
+/* ── DOS scrollbar: a ▒-dithered track and a flat block thumb, the way
+   EDIT drew them (track = dither glyphs, thumb = solid block). Square,
+   no hover niceties. Webkit-only; Firefox falls back gracefully. ── */
+.wiz-scroll::-webkit-scrollbar { width: 16px; }
+.wiz-scroll::-webkit-scrollbar-track {
+  background: var(--dither-dark) 0 0 / 4px 4px, var(--edit-gray);
+  border-left: 1px solid var(--edit-black);
+}
+.wiz-scroll::-webkit-scrollbar-thumb {
+  background: var(--edit-gray);
+  border: 1px solid var(--edit-black);
+}
+.wiz-scroll::-webkit-scrollbar-button { display: none; }
 .window.wizard .window-body {
   padding: 24px 28px 16px;
 }
