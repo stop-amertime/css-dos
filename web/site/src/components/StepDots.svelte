@@ -50,14 +50,12 @@
   }
   .step-strip li:last-child { border-right: none; }
   .step-strip li .num { color: var(--edit-red); margin-right: 4px; }
-  /* Bright EGA cyan marks every clickable tab — same "click me" signal
-     as the primary CTA buttons; red number chips stay legible on cyan.
-     The current tab is the OPEN folder tab: dialog grey, with a grey
+  /* The current tab is the OPEN folder tab: dialog grey, with a grey
      box-shadow painting over the strip's 1px bottom border so the tab
      visually connects to the band below — you're not on a button,
-     you're on the page it opens. (The old inverse-video black fought
-     the cyan: two competing highlight systems.) */
-  .step-strip li.clickable { background: var(--edit-cyan); color: var(--edit-black); }
+     you're on the page it opens. Other tabs stay quiet grey (owner
+     tried cyan here 2026-07-09 and pulled it: too loud next to the
+     open tab). Cyan = clickable survives on the CTAs and subdots. */
   .step-strip li.current {
     background: var(--edit-gray);
     color: var(--edit-black);

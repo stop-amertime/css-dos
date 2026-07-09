@@ -96,12 +96,12 @@ body {
   left: 0;
   right: 0;
   height: 16px;
-  background: var(--edit-gray);
+  /* A ░ of darker grey over the dialog grey: the bar separates itself
+     from the (same-grey) dialog scrolling underneath by TEXTURE, the
+     way a text-mode UI would — a 1px hairline reads too hi-res. */
+  background: conic-gradient(var(--edit-gray-dark) 90deg, #0000 90deg) 0 0 / 4px 4px,
+              var(--edit-gray);
   color: var(--edit-black);
-  /* A hard separator line below the bar so it never visually merges with
-     the (same-grey) dialog scrolling underneath it. box-shadow keeps the
-     16px height exact (no layout shift). */
-  box-shadow: 0 1px 0 0 var(--edit-black);
   display: flex;
   align-items: center;
   padding: 0 8px;
@@ -130,10 +130,10 @@ body {
   left: 0;
   right: 0;
   height: 16px;
-  background: var(--edit-gray);
+  /* Textured like .menu-bar (see there) — no hairline. */
+  background: conic-gradient(var(--edit-gray-dark) 90deg, #0000 90deg) 0 0 / 4px 4px,
+              var(--edit-gray);
   color: var(--edit-black);
-  /* Hard separator line above the bar (mirror of .menu-bar). */
-  box-shadow: 0 -1px 0 0 var(--edit-black);
   display: flex;
   align-items: center;
   gap: 32px;
