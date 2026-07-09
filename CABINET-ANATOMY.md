@@ -31,7 +31,7 @@ Here is the whole file, top to bottom, with real sizes:
 | 4 | Engine + fetch/decode | 21 KB | The clock, and per-tick instruction prep |
 | 5 | **Register dispatch tables** | **225 KB** | **The CPU itself** — every opcode |
 | 6 | Memory write slots + gates | 30 KB | How a write finds its destination |
-| 7 | Debug display + keyboard | 4 KB | On-screen register dump + `:active` key rules |
+| 7 | Keyboard | 4 KB | `:active` key rules |
 | 8 | Mode 13h pixel painter | 6.5 MB | 64,000 pixels, each a CSS rule |
 | 9 | Property declarations | 32 MB | Declaring every memory cell exists |
 | 10 | Memory read function | 44 MB | Reading any byte of RAM/ROM |
@@ -359,14 +359,9 @@ memory table on a non-writing tick.
 
 ---
 
-## 7. Debug display + keyboard — ~4 KB
+## 7. Keyboard — ~4 KB
 
-**Debug display.** A `.cpu::after` pseudo-element uses CSS **counters**
-to render the live register values as on-screen text — a tiny built-in
-debugger you can literally see. (`counter()` is CSS's one way to turn a
-number into displayable text.)
-
-**Keyboard.** Each on-screen key is a DOM element; when you hold it down
+Each on-screen key is a DOM element; when you hold it down
 it matches CSS's `:active` pseudo-class, and a rule fires:
 
 ```css

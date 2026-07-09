@@ -1,22 +1,11 @@
 <script>
-  // The keyboard & debug display — the smallest section, 4 KB doing
-  // two jobs. Copy recycled from the retired "Screen, keys, time" and
-  // "The CPU" pages; facts from CABINET-ANATOMY.md §7.
+  // The keyboard section — 4 KB of :active key rules. Copy recycled
+  // from the retired "Screen, keys, time" and "The CPU" pages; facts
+  // from CABINET-ANATOMY.md §7.
   import KeyboardDemo from '../KeyboardDemo.svelte';
-  import CodeCss from '../CodeCss.svelte';
   import Callout from '../Callout.svelte';
-
-  const DEBUG_OUT = `.cpu::after {
-  counter-reset: AX var(--AX) BX var(--BX) CX var(--CX) … IP var(--IP);
-  content: "\\a --AX: " counter(AX) "\\a --BX: " counter(BX) …;
-}`;
 </script>
 
-<p>
-  The smallest section in the file. Alongside the keyboard rules it
-  carries a small debug read-out &mdash; the registers drawn on screen
-  with CSS counters &mdash; but the interesting part is the keys.
-</p>
 <p>
   CSS has no input events. The one thing it can ask is
   <b><code>:active</code></b> &mdash; &ldquo;is this element being
@@ -37,18 +26,6 @@
   machine keeps a <b>latch</b>: one variable holding the most recent
   key event, press or release, until the next one replaces it.
 </p>
-
-<h3 class="anatomy-head">The debug read-out</h3>
-<p>
-  The section&rsquo;s other job is printing the registers on screen,
-  which runs into a missing tool: CSS has no way to display a number.
-  <code>content</code> only prints text, and nothing converts the
-  integer in <code>--AX</code> into the characters &ldquo;31022&rdquo;.
-  The one thing in CSS that takes an integer and produces digits is a
-  <b>counter</b> &mdash; the machinery meant for numbering chapters
-  and list items. So the registers are displayed as chapter numbers:
-</p>
-<CodeCss code={DEBUG_OUT} />
 
 <Callout kind="warn" label="Honest limits">
   <p>

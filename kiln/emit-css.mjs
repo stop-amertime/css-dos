@@ -7,7 +7,7 @@ import { emitDecodeFunction, emitDecodeProperties } from './decode.mjs';
 import {
   emitPropertyDecls, emitBufferReads, emitRegisterAliases,
   emitStoreKeyframe, emitExecuteKeyframe, emitClockKeyframes,
-  emitClockAndCpuBase, emitDebugDisplay,
+  emitClockAndCpuBase,
   emitKeyboardRules,
 } from './template.mjs';
 import { emitPixelPaintRules } from './pixels.mjs';
@@ -793,9 +793,7 @@ export function emitCSS(opts, writeStream) {
     writeStream.write(emitDiskWriteRemap(writableDisk) + '\n\n');
   }
 
-  // 6. Debug display
   w('}');
-  w(emitDebugDisplay(templateOpts));
 
   // 7. Keyboard :active rules (separate .cpu block)
   w(emitKeyboardRules());

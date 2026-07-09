@@ -1,52 +1,52 @@
 // Execution engine: clock, double-buffer, store/execute keyframes, HTML wrapper.
 // The 14 CPU registers, in the order used by the 8086.
-// Each has: name, initial value, debug-visible
+// Each has: name, initial value
 export const REGISTERS = [
-  { name: 'AX', init: 0, debug: true },
-  { name: 'CX', init: 0, debug: true },
-  { name: 'DX', init: 0, debug: true },
-  { name: 'BX', init: 0, debug: true },
-  { name: 'SP', init: 0, debug: true }, // set dynamically based on memSize
-  { name: 'BP', init: 0, debug: true },
-  { name: 'SI', init: 0, debug: true },
-  { name: 'DI', init: 0, debug: true },
-  { name: 'CS', init: 0, debug: true },
-  { name: 'DS', init: 0, debug: true },
-  { name: 'ES', init: 0, debug: true },
-  { name: 'SS', init: 0, debug: true },
-  { name: 'IP', init: 0x100, debug: true }, // .COM entry point
-  { name: 'flags', init: 0x0002, debug: true }, // bit 1 always set on 8086
+  { name: 'AX', init: 0 },
+  { name: 'CX', init: 0 },
+  { name: 'DX', init: 0 },
+  { name: 'BX', init: 0 },
+  { name: 'SP', init: 0 }, // set dynamically based on memSize
+  { name: 'BP', init: 0 },
+  { name: 'SI', init: 0 },
+  { name: 'DI', init: 0 },
+  { name: 'CS', init: 0 },
+  { name: 'DS', init: 0 },
+  { name: 'ES', init: 0 },
+  { name: 'SS', init: 0 },
+  { name: 'IP', init: 0x100 }, // .COM entry point
+  { name: 'flags', init: 0x0002 }, // bit 1 always set on 8086
 ];
 
 // Extra state variables that participate in the double-buffer cycle
 export const STATE_VARS = [
-  { name: 'halt', init: 0, debug: true },
-  { name: 'cycleCount', init: 0, debug: false },
-  { name: '_tfPending', init: 0, debug: false },
+  { name: 'halt', init: 0 },
+  { name: 'cycleCount', init: 0 },
+  { name: '_tfPending', init: 0 },
 
   // PIC (i8259) state — see kiln/patterns/misc.mjs emitIO().
   // picMask: IMR. Bit set = IRQ masked. Init 0xFF (all masked) matches real
   // BIOS POST before the OS unmasks IRQ 0/1.
   // picPending: IRR. Bit set = IRQ requested, not yet acknowledged.
   // picInService: ISR. Bit set = IRQ currently being serviced (cleared by EOI).
-  { name: 'picMask', init: 0xFF, debug: false },
-  { name: 'picPending', init: 0, debug: false },
-  { name: 'picInService', init: 0, debug: false },
+  { name: 'picMask', init: 0xFF },
+  { name: 'picPending', init: 0 },
+  { name: 'picInService', init: 0 },
 
   // PIT (i8253) channel 0 state — see kiln/patterns/misc.mjs emitIO().
   // pitMode: counting mode (0..5 from control word bits 3-1).
   // pitReload: 16-bit reload latch, loaded by OUT 0x40 lo/hi sequence.
   // pitCounter: running countdown; reloads from pitReload on zero crossing.
   // pitWriteState: lo/hi toggle for OUT 0x40 (0 = lo byte next, 1 = hi byte next).
-  { name: 'pitMode', init: 0, debug: false },
-  { name: 'pitReload', init: 0, debug: false },
-  { name: 'pitCounter', init: 0, debug: false },
-  { name: 'pitWriteState', init: 0, debug: false },
+  { name: 'pitMode', init: 0 },
+  { name: 'pitReload', init: 0 },
+  { name: 'pitCounter', init: 0 },
+  { name: 'pitWriteState', init: 0 },
 
   // Previous-tick snapshot of --keyboard, used to detect press edges for IRQ 1.
   // --keyboard is driven externally by :active button rules; its double-buffered
   // snapshot lets us compare this tick's value against last tick's.
-  { name: 'prevKeyboard', init: 0, debug: false },
+  { name: 'prevKeyboard', init: 0 },
 
   // Keyboard scancode latch. Holds the most recent scancode (make code on
   // press, break code on release) until the next edge. Backs port 0x60
@@ -54,41 +54,41 @@ export const STATE_VARS = [
   // a meaningful scancode N ticks after the edge fired (otherwise port
   // 0x60 returns 0 outside the single edge tick and DOOM's key-held
   // tracking never sees release events).
-  { name: 'kbdScancodeLatch', init: 0, debug: false },
+  { name: 'kbdScancodeLatch', init: 0 },
 
   // Hold-wire held set — scancodes whose release was latched while
   // --kbdHold was 1 (0 = empty slot). Filled lowest-slot-first; drained
   // highest-slot-first as synthesized break codes once --kbdHold drops.
   // 8 slots; presses beyond that still deliver their make code but the
   // break is lost (stuck key until re-press) — see emitIRQCompute.
-  { name: 'kbdHeld0', init: 0, debug: false },
-  { name: 'kbdHeld1', init: 0, debug: false },
-  { name: 'kbdHeld2', init: 0, debug: false },
-  { name: 'kbdHeld3', init: 0, debug: false },
-  { name: 'kbdHeld4', init: 0, debug: false },
-  { name: 'kbdHeld5', init: 0, debug: false },
-  { name: 'kbdHeld6', init: 0, debug: false },
-  { name: 'kbdHeld7', init: 0, debug: false },
+  { name: 'kbdHeld0', init: 0 },
+  { name: 'kbdHeld1', init: 0 },
+  { name: 'kbdHeld2', init: 0 },
+  { name: 'kbdHeld3', init: 0 },
+  { name: 'kbdHeld4', init: 0 },
+  { name: 'kbdHeld5', init: 0 },
+  { name: 'kbdHeld6', init: 0 },
+  { name: 'kbdHeld7', init: 0 },
 
   // VGA DAC state — see patterns/misc.mjs emitIO().
   // dacWriteIndex: which of the 256 DAC registers is currently being written
   //   (set by OUT 0x3C8; auto-increments after every 3 writes to 0x3C9).
   // dacSubIndex: 0/1/2 counter for R/G/B within a single DAC register.
   //   Advances on each OUT 0x3C9; wraps to 0 and bumps dacWriteIndex on 3.
-  { name: 'dacWriteIndex', init: 0, debug: false },
-  { name: 'dacSubIndex',   init: 0, debug: false },
+  { name: 'dacWriteIndex', init: 0 },
+  { name: 'dacSubIndex',   init: 0 },
   // Read side of the DAC. Written by OUT 0x3C7; every three IN 0x3C9 reads
   // bump dacReadIndex by 1 (wrapping the sub-index). Read and write paths
   // keep separate sub-indices so a program that interleaves the two (rare)
   // doesn't corrupt either cursor.
-  { name: 'dacReadIndex',    init: 0, debug: false },
-  { name: 'dacReadSubIndex', init: 0, debug: false },
+  { name: 'dacReadIndex',    init: 0 },
+  { name: 'dacReadSubIndex', init: 0 },
 
   // Sticky latch: set to the offending opcode byte the first time the CPU
   // hits an instruction with no dispatch entry (unknownOp=1). Once set, never
   // clears — the host (player / CLI) surfaces it as a diagnostic. 0 means
   // no unknown opcode seen yet.
-  { name: 'haltCode', init: 0, debug: true },
+  { name: 'haltCode', init: 0 },
 ];
 
 /**
@@ -207,21 +207,6 @@ export function emitClockAndCpuBase() {
   @container style(--clock: 3) { animation-play-state: paused, running }`;
   // Note: this is opened and closed by emit-css.mjs since the .cpu rule
   // contains all the computed properties.
-}
-
-/**
- * Emit debug display (::before and ::after pseudo-elements).
- */
-export function emitDebugDisplay(opts) {
-  const all = getAllVars(opts).filter(v => v.debug);
-  const counters = all.map(v => `${v.name} var(--${v.name})`).join(' ');
-  const content = all.map(v => `"\\a --${v.name}: " counter(${v.name})`).join(' ');
-  return `
-.cpu::after {
-  white-space: pre;
-  counter-reset: ${counters};
-  content: ${content};
-}`;
 }
 
 // HTML wrapping used to live here. It moved out of Kiln and into
