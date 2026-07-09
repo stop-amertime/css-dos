@@ -5,7 +5,6 @@
   // off getBoundingClientRect) so the wizard's scroll band can't clip
   // it; any scroll or outside tap closes it. Definitions live in
   // lib/terms.js.
-  import '../styles/_fragments/term.css';
   import { TERMS } from '../lib/terms.js';
 
   let { t, children } = $props();
@@ -44,3 +43,31 @@
       onkeydown={(e) => e.key === 'Escape' && close()}
       >{@render children()}</span>{#if tip}<div class="term-tip" role="tooltip"
     style="left:{tip.x}px; bottom:{tip.bottom}px">{TERMS[t]}</div>{/if}
+
+<style>
+  .term {
+    /* Blue like every other interactable, dotted unlike real links. */
+    text-decoration: underline dotted var(--edit-blue);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+    cursor: help;
+  }
+  .term:hover, .term:focus-visible {
+    text-decoration-color: var(--edit-red);
+    outline: none;
+  }
+
+  .term-tip {
+    position: fixed;
+    z-index: 40;
+    width: max-content;
+    max-width: min(264px, calc(100vw - 16px));
+    padding: 7px 10px;
+    background: var(--edit-white);
+    border: 1px solid var(--edit-black);
+    box-shadow: 3px 3px 0 var(--edit-black);
+    font-size: 14px;
+    line-height: 17px;
+    color: var(--edit-black);
+  }
+</style>

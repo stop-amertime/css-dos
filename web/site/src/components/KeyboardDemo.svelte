@@ -5,7 +5,6 @@
   // rule in kbd-demo.css sets --demo-kbd, and the readout renders it
   // via counter-reset (the cabinet's own debug-display trick). Values
   // are the real ones from kiln/template.mjs (scancode·256 + ascii).
-  import '../styles/_fragments/kbd-demo.css';
   import SplitPane from './SplitPane.svelte';
 
   const KEYS = [
@@ -51,3 +50,97 @@
     see you let go.
   </p>
 </div>
+
+<style>
+  /* Typed so the counter-reset render below gets a clean integer. */
+  @property --demo-kbd {
+    syntax: '<integer>';
+    inherits: true;
+    initial-value: 0;
+  }
+
+  .kbd-demo {
+    border: 1px solid var(--edit-black);
+    background: var(--edit-white);
+    box-shadow: 4px 4px 0 var(--edit-black);
+    margin: 16px 0;
+    --demo-kbd: 0;
+  }
+
+  /* The real cabinet mechanism, verbatim shape (ids namespaced demo-). */
+  .kbd-demo:has(#demo-kb-a:active) { --demo-kbd: 7777; }
+  .kbd-demo:has(#demo-kb-s:active) { --demo-kbd: 8051; }
+  .kbd-demo:has(#demo-kb-d:active) { --demo-kbd: 8292; }
+
+  .kbd-code {
+    margin: 0;
+    padding: 12px 16px;
+    font-family: 'WebVGA', monospace; letter-spacing: normal;
+    font-size: 15px;
+    line-height: 20px;
+    color: var(--edit-black);
+    background: var(--edit-white);
+    white-space: pre;
+    overflow-x: auto;
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .kbd-code code { background: none; border: none; padding: 0; }
+  .kbd-code .tok-sel     { color: var(--edit-blue); }
+  .kbd-code .tok-prop    { color: var(--edit-red); }
+  .kbd-code .tok-num     { color: #006600; }
+  .kbd-code .tok-comment { color: #777; }
+
+  .kbd-try {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px 12px;
+  }
+  .kbd-keys { display: flex; gap: 8px; }
+  .kb-key {
+    font-family: 'WebVGA', monospace; letter-spacing: normal;
+    font-size: 18px;
+    min-width: 44px;
+    padding: 10px 12px;
+    background: var(--edit-gray);
+    color: var(--edit-black);
+    border: 1px solid var(--edit-black);
+    box-shadow: 0 3px 0 var(--edit-black);
+    cursor: pointer;
+    user-select: none;
+    touch-action: none;
+  }
+  .kb-key:active {
+    transform: translateY(3px);
+    box-shadow: none;
+    background: var(--edit-yellow);
+  }
+
+  .kbd-readout {
+    font-size: 18px;
+    color: var(--edit-black);
+  }
+  /* Render the live integer as text — counter-reset from a custom
+     property, exactly how the cabinet's .cpu::after debug dump works. */
+  .kbd-value::after {
+    counter-reset: kbdval var(--demo-kbd);
+    content: counter(kbdval);
+    color: var(--edit-red);
+    font-weight: bold;
+  }
+
+  .kbd-demo .caption {
+    margin: 0;
+    padding: 10px 16px 12px;
+    font-size: 16px;
+    line-height: 18px;
+    color: var(--edit-black);
+    border-top: 1px solid var(--edit-black);
+  }
+</style>

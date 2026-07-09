@@ -43,3 +43,58 @@
        onchange={(e) => build.pickFile(e.currentTarget.files[0])} />
 <input type="file" id="dir-file" bind:this={dirInput} webkitdirectory multiple
        onchange={(e) => build.pickFolder(e.currentTarget.files)} />
+
+<style>
+  /* Custom-program upload panel — surfaced only when the Custom card is
+     selected. A substantial bordered panel, not a one-line link. */
+  .custom-panel {
+    margin-top: 16px;
+    border: 2px solid var(--edit-black);
+    background: var(--edit-white);
+    box-shadow: 4px 4px 0 var(--edit-black);
+    padding: 16px 20px 18px;
+  }
+  .custom-panel-head {
+    font-size: 16px;
+    line-height: 16px;
+    color: var(--edit-black);
+    margin-bottom: 8px;
+  }
+  .custom-panel-lede {
+    font-size: 14px;
+    line-height: 18px;
+    color: #333;
+    margin: 0 0 14px;
+  }
+  .custom-drop {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  /* A real <button> (it .click()s the hidden input) — reset the native
+     chrome, keep the dashed drop-target look. */
+  .custom-choice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+    padding: 20px 12px;
+    border: 1px dashed var(--edit-black);
+    background: var(--edit-gray);
+    cursor: pointer;
+    user-select: none;
+    font: inherit;
+    width: 100%;
+  }
+  .custom-choice:hover { background: #ddddff; }
+  .custom-choice-glyph { font-size: 40px; line-height: 1; }
+  .custom-choice-title { font-size: 16px; line-height: 16px; color: var(--edit-black); }
+  .custom-choice-sub { font-size: 12px; line-height: 12px; color: #555; }
+  .custom-selected {
+    margin: 14px 0 0;
+    font-size: 14px;
+    line-height: 16px;
+    color: var(--edit-black);
+  }
+</style>

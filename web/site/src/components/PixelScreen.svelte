@@ -3,7 +3,6 @@
   // pane: left, the first three rules (trailing off to "…63,997 more");
   // right, the 320×200 screen with those pixels drawn in the corner and
   // dimension arrows. Colour chips link each rule to its pixel.
-  import '../styles/_fragments/pixel-screen.css';
   import SplitPane from './SplitPane.svelte';
 
   const PX = [
@@ -62,3 +61,61 @@
     bytes, and divs change colour.
   </p>
 </div>
+
+<style>
+  .pixel-screen {
+    border: 1px solid var(--edit-black);
+    background: var(--edit-white);
+    box-shadow: 4px 4px 0 var(--edit-black);
+    margin: 16px 0;
+  }
+
+  .pixel-code {
+    margin: 0;
+    padding: 12px 16px;
+    font-family: 'WebVGA', monospace; letter-spacing: normal;
+    font-size: 15px;
+    line-height: 20px;
+    color: var(--edit-black);
+    background: var(--edit-white);
+    white-space: pre;
+    overflow-x: auto;
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .pixel-code code { background: none; border: none; padding: 0; }
+  .pixel-code .tok-sel     { color: var(--edit-blue); }
+  .pixel-code .tok-prop    { color: var(--edit-red); }
+  .pixel-code .tok-fn      { color: #006600; }
+  .pixel-code .tok-comment { color: #777; }
+
+  /* Colour chip linking a rule to its pixel in the diagram. */
+  .px-chip {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 6px;
+    border: 1px solid var(--edit-black);
+    vertical-align: baseline;
+  }
+
+  .pixel-diagram {
+    display: block;
+    width: 100%;
+    height: auto;
+    padding: 8px 10px;
+    box-sizing: border-box;
+  }
+
+  .pixel-screen .caption {
+    margin: 0;
+    padding: 10px 16px 12px;
+    font-size: 16px;
+    line-height: 18px;
+    color: var(--edit-black);
+    border-top: 1px solid var(--edit-black);
+  }
+</style>

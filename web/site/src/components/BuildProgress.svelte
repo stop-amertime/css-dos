@@ -1,5 +1,4 @@
 <script>
-  import '../styles/_fragments/build-progress.css';
   import { build } from '../lib/builder.svelte.js';
 
   // The builder emits ~6–8 progress stages but the exact count isn't known
@@ -17,3 +16,41 @@
   </div>
 </div>
 <pre class="build-log">{build.progressLog}</pre>
+
+<style>
+  .build-progress { display: flex; align-items: center; gap: 12px; }
+  .build-progress .bar {
+    flex: 1;
+    height: 16px;
+    background: var(--edit-white);
+    border: 1px solid var(--edit-black);
+    overflow: hidden;
+  }
+  .build-progress .bar .bar-fill {
+    height: 100%; width: 0%;
+    background: repeating-linear-gradient(
+      90deg, var(--edit-blue) 0 6px, #0000ff 6px 8px
+    );
+    transition: width 240ms ease-out;
+  }
+  .build-progress-meta {
+    display: flex; gap: 12px;
+    font-size: 16px; line-height: 16px;
+    color: var(--edit-black);
+  }
+
+  /* Raw log — collapsed to a scrolling pane under the progress bar. */
+  .build-log {
+    margin-top: 8px;
+    max-height: 96px;
+    overflow-y: auto;
+    border: 1px solid var(--edit-black);
+    background: var(--edit-white);
+    color: var(--edit-black);
+    padding: 4px 8px;
+    font-family: 'WebVGA', monospace; letter-spacing: normal;
+    font-size: 14px;
+    line-height: 14px;
+    white-space: pre-wrap;
+  }
+</style>

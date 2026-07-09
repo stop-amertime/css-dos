@@ -4,8 +4,9 @@
 /* ─────────────────────────────────────────────────────────────────────────
    Everything below is the truly-global layer carved from assets/site.css
    (+ the wizard chrome / .wiz-nav / a couple of shared helpers from
-   assets/wizard.css). Cart-picker-specific rules (.cart-list) were moved
-   out to _fragments/cart-grid.css. Preserved 1:1 from the originals.
+   assets/wizard.css). Cart-picker-specific rules now live scoped inside
+   CartGrid.svelte / CartCard.svelte / CustomPanel.svelte. Preserved 1:1
+   from the originals.
    ───────────────────────────────────────────────────────────────────────── */
 
 /* "Web437 IBM VGA 8x16" from VileR's Oldschool PC Font Pack v2.2,

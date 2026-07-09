@@ -3,8 +3,6 @@
   // order. Sizes measured from a real build (see CABINET-ANATOMY.md).
   // The CPU is a 3px red hairline with a zoom callout — that IS the
   // point of the figure.
-  import '../styles/_fragments/file-map.css';
-
   // [label, MB, colour, px width] — px pre-computed for a 680px bar
   const SEGS = [
     { x: 10,  w: 3,   c: '#aa0000' },  // CPU (exaggerated ~4x to be visible)
@@ -62,3 +60,43 @@
     sliver is memory bookkeeping.
   </p>
 </div>
+
+<style>
+  .file-map {
+    border: 1px solid var(--edit-black);
+    background: var(--edit-white);
+    box-shadow: 4px 4px 0 var(--edit-black);
+    margin: 16px 0;
+    padding: 12px;
+  }
+  .file-map svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .file-map-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    margin-top: 10px;
+    font-size: 14px;
+    line-height: 18px;
+    color: var(--edit-black);
+  }
+  .file-map-legend .chip {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    border: 1px solid var(--edit-black);
+    margin-right: 5px;
+    vertical-align: -1px;
+  }
+
+  .file-map .caption {
+    margin: 10px 0 0;
+    font-size: 14px;
+    line-height: 18px;
+    color: #555;
+  }
+</style>

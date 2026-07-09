@@ -1,111 +1,15 @@
-/* cabinet-bar.css — the clickable to-scale bar of the cabinet file
-   (CabinetBar.svelte) and the section carousel below it (About's
-   How-it-works sub-page). The bar is a full-width white TOPPER pinned
-   to the top of the wizard's scroll band — not a floating box — with
-   tall narrow prev/next arrows flanking it; the section content below
-   sits in a white box, visually nested under the picked segment. */
+/* cabinet-bar.css — the two pieces of the About "How it works" carousel
+   that CANNOT live in CabinetBar.svelte's own scoped style: both are
+   rendered by routes/About.svelte, not by CabinetBar's own template.
+   (Everything else CabinetBar draws — the bar, arrows, tooltip, hint
+   popover — is now scoped inside CabinetBar.svelte.) */
 
-.cab-bar {
-  /* Pinned to the top of the wizard's scroll band (.wiz-scroll): the
-     map stays put while the section text scrolls under it. The
-     negative margins cancel .window-body's padding so the topper runs
-     edge to edge (values mirror global.css's responsive paddings). */
-  position: sticky;
-  top: 0;
-  z-index: 8;
-  margin: -24px -28px 0;
-  padding: 10px 12px 8px;
-  background: var(--edit-white);
-  border-bottom: 1px solid var(--edit-black);
-}
-
-/* ── Topper layout: [prev arrow] [title + bar] [next arrow] ── */
-.cab-grid {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 0 12px;
-  align-items: stretch;
-}
-.cab-mid { min-width: 0; }
-.cab-mid > svg { width: 100%; height: auto; display: block; }
-
-/* Carousel arrows: tall (full topper height) but narrow, flanking the
-   bar. Flat — they belong to the topper, not floating chrome. */
-.sec-arrow {
-  width: 30px;
-  font: inherit;
-  font-size: 18px;
-  color: var(--edit-black);
-  background: var(--edit-gray);
-  border: 1px solid var(--edit-black);
-  cursor: pointer;
-  align-self: stretch;
-}
-.sec-arrow:hover { background: var(--edit-yellow); }
-.sec-arrow:active { background: var(--edit-black); color: var(--edit-white); }
-
-/* Title row: the current section's name + size, centred over its bar
-   segment (clamped to the row) and tied to it by a coloured tick;
-   "n / N" carousel position at the right. */
-.bar-title {
-  position: relative;
-  height: 22px;
-  margin-bottom: 8px;
-}
-.bar-title .t-text {
-  position: absolute;
-  top: 0;
-  margin: 0;
-  font-size: 20px;
-  line-height: 22px;
-  font-weight: normal;
-  letter-spacing: normal;
-  white-space: nowrap;
-  color: var(--edit-black);
-  /* Never collide with the count at the right edge. */
-  max-width: calc(100% - 56px);
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.bar-title .t-text .sz { color: var(--edit-red); font-size: 16px; }
-.bar-title .t-map { position: static; }
-.bar-title .t-count {
-  position: absolute;
-  right: 0;
-  top: 4px;
-  color: #555;
-  font-size: 15px;
-  line-height: 16px;
-}
-/* The leader tick: drops from under the title into the segment's top
-   edge (same colour, so the join reads as one mark). */
-.bar-title .t-tick {
-  position: absolute;
-  top: 22px;
-  width: 3px;
-  height: 12px;
-  transform: translateX(-50%);
-  z-index: 1;
-}
-
-.cab-bar .seg { cursor: pointer; outline: none; }
-.cab-bar .dim { opacity: 0.3; }
-.cab-bar rect.seg.sel { stroke: var(--edit-black); stroke-width: 2.5; }
-/* svg text: font-size here is in viewBox units (700-wide), so it
-   shrinks with the bar — the phone override keeps it legible. */
-.cab-bar .zoom-label { fill: #555; font-family: inherit; font-size: 13px; }
-
-/* ── The first-visit hint: a spotlight. The overlay dims the whole
-   screen; the bar and the bubble punch through by being children of
-   .cab-bar, whose z-index is raised above the page chrome while the
-   hint is live. Dismiss = the X, clicking the dim, or using the
-   carousel. ── */
-/* The overlay is rendered by About.svelte as a SIBLING of the bar,
+/* The overlay is rendered by About.svelte as a SIBLING of <CabinetBar>,
    not a child: Chrome clips position:fixed descendants of a sticky
    element to the sticky layer, which butchered the full-screen dim.
-   Sibling at 44, topper raised to 45 → the bar and its bubble are the
-   spotlight; everything else (page chrome included) dims. */
-.cab-bar.hint-live { z-index: 45; }
+   Sibling at z-index 44, topper raised to 45 (CabinetBar.svelte's own
+   .hint-live rule) → the bar and its bubble are the spotlight;
+   everything else (page chrome included) dims. */
 .hint-overlay {
   position: fixed;
   inset: 0;
@@ -115,97 +19,9 @@
   background: var(--dither-dark) 0 0 / 4px 4px;
 }
 
-.hint-pop {
-  position: absolute;
-  top: calc(100% + 14px);
-  left: 50%;
-  transform: translateX(-50%);
-  width: 360px;
-  max-width: 90vw;
-  background: var(--edit-white);
-  color: var(--edit-black);
-  border: 1px solid var(--edit-black);
-  box-shadow: 4px 4px 0 var(--edit-black);
-  padding: 12px 30px 12px 12px;
-  font-size: 15px;
-  line-height: 18px;
-}
-/* The upward arrow — white like the bubble (a rotated square sharing
-   its background and border). */
-.hint-pop::before {
-  content: '';
-  position: absolute;
-  top: -7px;
-  left: 50%;
-  width: 12px;
-  height: 12px;
-  transform: translateX(-50%) rotate(45deg);
-  background: var(--edit-white);
-  border-top: 1px solid var(--edit-black);
-  border-left: 1px solid var(--edit-black);
-}
-.hint-x {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  border: 1px solid var(--edit-black);
-  background: var(--edit-white);
-  color: var(--edit-black);
-  font: inherit;
-  font-size: 14px;
-  line-height: 18px;
-  cursor: pointer;
-}
-.hint-x:hover { background: var(--edit-black); color: var(--edit-white); }
-.bar-hint {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-}
-.bar-hint-icon {
-  width: 20px;
-  height: 20px;
-  flex: none;
-  margin-top: 1px;
-  color: var(--edit-blue);
-}
-.bar-hint-promise {
-  margin-top: 6px;
-  font-size: 13px;
-  line-height: 15px;
-  color: var(--edit-red);
-}
-
-/* Cursor tooltip: title + size of the hovered group. */
-.cab-tip {
-  position: fixed;
-  z-index: 30;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 10px;
-  background: var(--edit-white);
-  border: 1px solid var(--edit-black);
-  box-shadow: 3px 3px 0 var(--edit-black);
-  font-size: 14px;
-  line-height: 16px;
-  color: var(--edit-black);
-  white-space: nowrap;
-}
-.cab-tip .chip {
-  flex: none;
-  width: 12px;
-  height: 12px;
-  border: 1px solid var(--edit-black);
-}
-.cab-tip .sz { color: var(--edit-red); }
-
-/* — the section content below the topper: a white box, nested under
-   the picked segment (its top edge carries the segment's colour) — */
+/* The section content below the topper: a white box, nested under the
+   picked segment (its top edge carries the segment's colour). Also
+   rendered by About.svelte, as a sibling of <CabinetBar>. */
 .anatomy-pane {
   margin-top: 20px;
   border: 1px solid var(--edit-black);
@@ -214,23 +30,7 @@
   padding: 14px 16px 12px;
 }
 
-@media (max-width: 900px) {
-  /* window-body padding is 16px 14px at this width. */
-  .cab-bar { margin: -16px -14px 0; padding: 8px 8px 6px; }
-  .sec-arrow { width: 24px; font-size: 16px; }
-}
-
 @media (max-width: 640px) {
-  /* Phone: tighter chrome so the pinned map eats less of the screen
-     (window-body padding is 12px 10px here). */
-  .cab-bar { margin: -12px -10px 0; padding: 6px 6px 5px; }
-  .cab-grid { gap: 0 6px; }
-  .sec-arrow { width: 20px; font-size: 14px; }
-  .bar-title { height: 18px; margin-bottom: 6px; }
-  .bar-title .t-text { font-size: 16px; line-height: 18px; }
-  .bar-title .t-text .sz { font-size: 13px; }
-  .bar-title .t-count { top: 2px; font-size: 13px; }
-  .bar-title .t-tick { top: 18px; height: 9px; }
-  .cab-bar .zoom-label { font-size: 22px; }
+  /* Phone: tighter chrome (window-body padding is 12px 10px here). */
   .anatomy-pane { padding: 10px 10px 8px; }
 }

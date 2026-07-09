@@ -1,5 +1,4 @@
 <script>
-  import '../styles/_fragments/moon-viz.css';
 </script>
 
 <!-- earth–moon distance. The dotted walk is ~60% of the baseline:
@@ -29,3 +28,20 @@
     (some 230,000&nbsp;km).
   </p>
 </div>
+
+<style>
+  .moon-viz {
+    border: 1px solid var(--edit-black);
+    background: var(--edit-white);
+    box-shadow: 4px 4px 0 var(--edit-black);
+    padding: 12px 16px;
+    margin: 16px 0;
+  }
+  .moon-viz svg { width: 100%; height: auto; display: block; }
+  .moon-viz .caption {
+    margin: 8px 0 0;
+    font-size: 16px;
+    line-height: 18px;
+    color: var(--edit-black);
+  }
+</style>
