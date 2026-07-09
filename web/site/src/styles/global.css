@@ -57,6 +57,10 @@
      the scrollbar track; the desktop weave below mixes the two blues. */
   --dither-dark: conic-gradient(var(--edit-black) 90deg, #0000 90deg 180deg,
                  var(--edit-black) 180deg 270deg, #0000 270deg);
+  /* ▒ in greys — chrome bands (menu bar, status line, wizard header/
+     footer) separate from the flat dialog grey by texture, no hairlines. */
+  --dither-gray: conic-gradient(var(--edit-gray-dark) 90deg, #0000 90deg 180deg,
+                 var(--edit-gray-dark) 180deg 270deg, #0000 270deg);
 
   /* The 8x16 grid the font is locked to. */
   --cell-w: 8px;
@@ -96,13 +100,7 @@ body {
   left: 0;
   right: 0;
   height: 16px;
-  /* A ▒ of darker grey over the dialog grey: the bar separates itself
-     from the (same-grey) dialog scrolling underneath by TEXTURE, the
-     way a text-mode UI would — a 1px hairline reads too hi-res.
-     Full 50% checker: the sparse version vanished on scaled displays. */
-  background: conic-gradient(var(--edit-gray-dark) 90deg, #0000 90deg 180deg,
-              var(--edit-gray-dark) 180deg 270deg, #0000 270deg) 0 0 / 4px 4px,
-              var(--edit-gray);
+  background: var(--dither-gray) 0 0 / 4px 4px, var(--edit-gray);
   color: var(--edit-black);
   display: flex;
   align-items: center;
@@ -132,10 +130,7 @@ body {
   left: 0;
   right: 0;
   height: 16px;
-  /* Textured like .menu-bar (see there) — no hairline. */
-  background: conic-gradient(var(--edit-gray-dark) 90deg, #0000 90deg 180deg,
-              var(--edit-gray-dark) 180deg 270deg, #0000 270deg) 0 0 / 4px 4px,
-              var(--edit-gray);
+  background: var(--dither-gray) 0 0 / 4px 4px, var(--edit-gray);
   color: var(--edit-black);
   display: flex;
   align-items: center;
@@ -419,9 +414,13 @@ body:has(.window.wizard) {
    separator under the substeps is the visual floor of this band. */
 .wiz-head {
   flex: none;
+  /* The dialog's OWN header band (tabs + subnav) gets the ▒ texture:
+     these were the "top and bottom 1px separators" — the band edge is
+     now a texture change, not a hairline. */
+  background: var(--dither-gray) 0 0 / 4px 4px, var(--edit-gray);
 }
 .wiz-subhead {
-  border-bottom: 1px solid var(--edit-black);
+  border-bottom: none;
 }
 /* The one scrolling band. min-height:0 lets it actually shrink inside the
    flex column (without it, flex children refuse to go below content size
@@ -515,9 +514,9 @@ pre, code, kbd {
   flex: none;
   display: flex;
   align-items: center;
-  border-top: 1px solid var(--edit-black);
   padding: 12px 16px;
-  background: var(--edit-gray);
+  /* Footer band: textured like .wiz-head, no hairline. */
+  background: var(--dither-gray) 0 0 / 4px 4px, var(--edit-gray);
 }
 .wiz-nav .btn { margin-bottom: 0; }
 .wiz-nav-spacer { flex: 1; }

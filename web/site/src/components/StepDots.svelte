@@ -32,8 +32,9 @@
   .step-strip {
     display: flex;
     list-style: none;
-    background: var(--edit-gray);
-    border-bottom: 1px solid var(--edit-black);
+    /* Transparent: the strip sits on .wiz-head's ▒-textured band —
+       no hairline borders (band edges are texture changes now). */
+    background: none;
     padding: 0;
   }
   .step-strip li {
@@ -42,25 +43,19 @@
     font-size: 16px;
     line-height: 16px;
     color: var(--edit-black);
-    border-right: 1px solid var(--edit-black);
     text-align: center;
     cursor: pointer;
     user-select: none;
     white-space: nowrap;
   }
-  .step-strip li:last-child { border-right: none; }
   .step-strip li .num { color: var(--edit-red); margin-right: 4px; }
-  /* The current tab is the OPEN folder tab: dialog grey, with a grey
-     box-shadow painting over the strip's 1px bottom border so the tab
-     visually connects to the band below — you're not on a button,
-     you're on the page it opens. Other tabs stay quiet grey (owner
-     tried cyan here 2026-07-09 and pulled it: too loud next to the
-     open tab). Cyan = clickable survives on the CTAs and subdots. */
+  /* The current tab is a FLAT grey island on the textured band —
+     selection reads as "the calm spot", the TUI way. Other tabs stay
+     quiet (owner tried cyan here 2026-07-09 and pulled it: too loud).
+     Cyan = clickable survives on the CTAs and subdots. */
   .step-strip li.current {
     background: var(--edit-gray);
     color: var(--edit-black);
-    position: relative;
-    box-shadow: 0 1px 0 0 var(--edit-gray);
   }
   /* TUI-style angle brackets on the current tab — a cheap, authentic
      touch (BIOS setup / Turbo Vision menu highlight). Pseudo-elements
