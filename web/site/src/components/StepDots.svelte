@@ -50,20 +50,26 @@
   }
   .step-strip li:last-child { border-right: none; }
   .step-strip li .num { color: var(--edit-red); margin-right: 4px; }
-  /* Bright EGA cyan marks every clickable tab — same "click me" signal as
-     the primary CTA buttons. The current tab stays black-on-white
-     (it's not a click target); its number chip stays yellow so it still
-     reads against black. Cyan is light, so the other tabs' chips stay
-     red — red-on-cyan is still legible. */
+  /* Bright EGA cyan marks every clickable tab — same "click me" signal
+     as the primary CTA buttons; red number chips stay legible on cyan.
+     The current tab is the OPEN folder tab: dialog grey, with a grey
+     box-shadow painting over the strip's 1px bottom border so the tab
+     visually connects to the band below — you're not on a button,
+     you're on the page it opens. (The old inverse-video black fought
+     the cyan: two competing highlight systems.) */
   .step-strip li.clickable { background: var(--edit-cyan); color: var(--edit-black); }
-  .step-strip li.current { background: var(--edit-black); color: var(--edit-white); }
-  .step-strip li.current .num { color: var(--edit-yellow); }
+  .step-strip li.current {
+    background: var(--edit-gray);
+    color: var(--edit-black);
+    position: relative;
+    box-shadow: 0 1px 0 0 var(--edit-gray);
+  }
   /* TUI-style angle brackets on the current tab — a cheap, authentic
      touch (BIOS setup / Turbo Vision menu highlight). Pseudo-elements
      so they don't touch the flex layout or push the label. */
   .step-strip li.current::before,
   .step-strip li.current::after {
-    color: var(--edit-yellow);
+    color: var(--edit-red);
   }
   .step-strip li.current::before { content: '\2039 '; }
   .step-strip li.current::after { content: ' \203a'; }
