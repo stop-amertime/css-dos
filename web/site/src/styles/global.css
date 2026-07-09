@@ -437,11 +437,13 @@ body:has(.window.wizard) {
    no hover niceties. Webkit-only; Firefox falls back gracefully. ── */
 .wiz-scroll::-webkit-scrollbar { width: 16px; }
 .wiz-scroll::-webkit-scrollbar-track {
+  /* The empty channel is the MORE dithered surface… */
   background: var(--dither-dark) 0 0 / 4px 4px, var(--edit-gray);
 }
 .wiz-scroll::-webkit-scrollbar-thumb {
-  /* Flat block on the dark dithered track — no outline needed. */
-  background: var(--edit-gray);
+  /* …and the thumb carries a lighter ▒ of its own — two dither
+     densities, no outlines. */
+  background: var(--dither-gray) 0 0 / 4px 4px, var(--edit-gray);
 }
 .wiz-scroll::-webkit-scrollbar-button { display: none; }
 .window.wizard .window-body {
@@ -500,8 +502,8 @@ pre, code, kbd {
   letter-spacing: normal;
   background: var(--edit-white);
   padding: 0 4px;
-  /* Blocky mini-shadow, not a 1px outline (hairlines read hi-res). */
-  box-shadow: 2px 2px 0 var(--edit-black);
+  /* Flat white chip — no outline, no shadow (both read as clutter at
+     inline size). */
 }
 /* In an h1 the box would be oversized against the 32px glyphs — keep the
    chip but let it breathe and not overpower the line. */

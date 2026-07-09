@@ -88,7 +88,9 @@
     gap: 6px;
     font-size: 16px;
     line-height: 16px;
-    color: #666;
+    /* Black, not dimmed grey — #666 was illegible on the dithered
+       band. The white current chip still marks the selection. */
+    color: var(--edit-black);
     cursor: pointer;
     user-select: none;
     padding: 4px 10px 4px 8px;
@@ -98,11 +100,10 @@
     text-overflow: ellipsis;
   }
   .subdots li .dot { flex: none; }
-  /* Dots and the current chip carry blocky mini-shadows, not 1px
-     outlines — hairlines read hi-res (owner rule, 2026-07-09). */
+  /* Flat squares — no outline, no shadow (clutter at 10px). The
+     current chip below keeps its blocky shadow; it's button-sized. */
   .subdots li .dot {
     width: 10px; height: 10px;
-    box-shadow: 2px 2px 0 var(--edit-black);
     background: var(--edit-white);
     display: inline-block;
   }
