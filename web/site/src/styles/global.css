@@ -96,10 +96,12 @@ body {
   left: 0;
   right: 0;
   height: 16px;
-  /* A ░ of darker grey over the dialog grey: the bar separates itself
+  /* A ▒ of darker grey over the dialog grey: the bar separates itself
      from the (same-grey) dialog scrolling underneath by TEXTURE, the
-     way a text-mode UI would — a 1px hairline reads too hi-res. */
-  background: conic-gradient(var(--edit-gray-dark) 90deg, #0000 90deg) 0 0 / 4px 4px,
+     way a text-mode UI would — a 1px hairline reads too hi-res.
+     Full 50% checker: the sparse version vanished on scaled displays. */
+  background: conic-gradient(var(--edit-gray-dark) 90deg, #0000 90deg 180deg,
+              var(--edit-gray-dark) 180deg 270deg, #0000 270deg) 0 0 / 4px 4px,
               var(--edit-gray);
   color: var(--edit-black);
   display: flex;
@@ -131,7 +133,8 @@ body {
   right: 0;
   height: 16px;
   /* Textured like .menu-bar (see there) — no hairline. */
-  background: conic-gradient(var(--edit-gray-dark) 90deg, #0000 90deg) 0 0 / 4px 4px,
+  background: conic-gradient(var(--edit-gray-dark) 90deg, #0000 90deg 180deg,
+              var(--edit-gray-dark) 180deg 270deg, #0000 270deg) 0 0 / 4px 4px,
               var(--edit-gray);
   color: var(--edit-black);
   display: flex;

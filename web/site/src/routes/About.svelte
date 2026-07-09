@@ -48,8 +48,8 @@
   const SUBPAGES = [
     { label: 'Home' },
     { label: 'Why?' },
-    { label: 'How is this possible?' },
-    { label: 'How it works' },
+    { label: 'How?' },
+    { label: 'File Map' },
     { label: 'Calcite' },
     { label: 'FAQs' },
     { label: 'Credits' },
@@ -86,7 +86,7 @@
           <p class="lede">Yes, it runs <b>Doom</b><span class="flair-star">*</span></p>
           <div class="flair-burst">
             <div class="flair-text">
-              <span>The first time real programs have run in CSS!</span>
+              <span>The first time<br>real programs<br>have run in CSS!</span>
             </div>
           </div>
           <p class="intro-fn small">

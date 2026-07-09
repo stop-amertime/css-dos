@@ -85,6 +85,15 @@
 /* Intro sub-page — logo beside the text, centred within the gray
    window-body. Only this sub-page fills the body height; the others keep
    their natural top-aligned flow. (window-body min-height 480 − 40 pad.) */
+/* Prose sub-pages read as a centred column: text stays left-aligned
+   inside it, but the column itself sits centred in the dialog. The
+   How-it-works page (data-subpage 4) opts out — its cabinet bar and
+   anatomy pane want the full width. */
+.subpage:not([data-subpage="4"]) {
+  max-width: 680px;
+  margin-inline: auto;
+}
+
 .subpage-intro {
   display: flex;
   align-items: center;
@@ -101,71 +110,74 @@
   gap: 20px;
 }
 .intro-logo img {
-  width: 128px;
-  height: 128px;
+  width: 160px;
+  height: 160px;
   display: block;
   image-rendering: pixelated;
 }
 .intro-text {
-  max-width: 520px;
+  /* Wide enough that the boxed h1 below fits on one line. */
+  max-width: 620px;
   text-align: left;
 }
-/* The hero is a magazine cover, not a dialog — opt out of the
-   global.css title box. (.window.wizard prefix needed to outweigh
-   global's `.window.wizard h1`.) */
+/* The hero h1 keeps the global TUI title box (owner likes it) — just
+   sized down a notch. 28px WebVGA = 14px/char: the full title +
+   box padding fits .intro-text's 620px on a single line. */
 .window.wizard .intro-hero h1 {
   font-size: 28px;
   line-height: 28px;
-  border: none;
-  width: auto;
-  margin: 0 0 16px;
-  padding: 0;
-  text-align: left;
+  white-space: nowrap;
 }
 .intro-hero .lede {
   font-size: 16px;
   line-height: 20px;
   margin-bottom: 10px;
 }
-/* 80s game-box flash — a scalloped banner (the "wavy-box" mask technique:
-   radial + conic gradients cut an even wavy edge, no hand-plotted polygon).
-   Muted tones only — a soft mustard fill inside a brick-red scalloped
-   border, both desaturated via HSL so it reads vintage, not neon. Tilted a
-   hair so it looks slapped on. */
+/* 80s game-box flash — a scalloped CIRCULAR badge (price-sticker
+   style): one centre disc plus twelve rim bumps, cut as a stack of
+   mask radial-gradients (CSS trig places the bumps). Muted two-tone
+   gold, toned down from the old banner, tilted harder so it reads as
+   slapped-on. */
 .intro-hero .flair-burst {
-  --s: 9px;                        /* wave size */
-  /* The scallop mask tiles at 4*--s; width & height MUST be exact multiples
-     of that or the last row/column tears mid-wave. round() locks both to
-     the grid. */
-  --w: 288px;
-  width: round(var(--w), calc(4*var(--s)));
-  height: round(down, 108px, calc(4*var(--s)));
-  margin: 14px auto 8px;
-  padding: var(--s);
-  border: var(--s) solid #0000;    /* the scalloped border band */
-  box-sizing: border-box;
-  background: hsl(40 52% 48%);      /* muted old-gold (border colour) */
-  transform: rotate(-2deg);
-  mask:
-    radial-gradient(calc(sqrt(2)*var(--s)),#000 calc(100% - 1px),#0000),
-    conic-gradient(#000 0 0) content-box,
-    radial-gradient(calc(sqrt(2)*var(--s)),#0000 100%,#000 calc(100% + 1px))
-      var(--s) var(--s) padding-box;
-  mask-size: calc(var(--s)*4) calc(var(--s)*4);
-}
-.intro-hero .flair-text {
-  width: 100%;
-  height: 100%;
+  --r: 66px;    /* centre-disc radius (bump centres sit on this ring) */
+  --b: 20px;    /* scallop bump radius */
+  width: 184px;
+  height: 184px;
+  margin: 12px auto 8px;
   display: grid;
   place-items: center;
-  background: hsl(48 58% 66%);      /* soft muted mustard fill */
+  background: hsl(42 36% 54%);      /* old gold, desaturated (band) */
+  transform: rotate(-6deg);
+  mask:
+    radial-gradient(var(--r) at 50% 50%, #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(0deg))   calc(50% + var(--r)*sin(0deg)),   #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(30deg))  calc(50% + var(--r)*sin(30deg)),  #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(60deg))  calc(50% + var(--r)*sin(60deg)),  #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(90deg))  calc(50% + var(--r)*sin(90deg)),  #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(120deg)) calc(50% + var(--r)*sin(120deg)), #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(150deg)) calc(50% + var(--r)*sin(150deg)), #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(180deg)) calc(50% + var(--r)*sin(180deg)), #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(210deg)) calc(50% + var(--r)*sin(210deg)), #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(240deg)) calc(50% + var(--r)*sin(240deg)), #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(270deg)) calc(50% + var(--r)*sin(270deg)), #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(300deg)) calc(50% + var(--r)*sin(300deg)), #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(330deg)) calc(50% + var(--r)*sin(330deg)), #000 calc(100% - 1px), #0000);
 }
-.intro-hero .flair-text span { max-width: 84%; }
+.intro-hero .flair-text {
+  width: 122px;
+  height: 122px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: hsl(47 44% 72%);      /* mustard fill, toned down */
+}
 .intro-hero .flair-text span {
   display: block;
   text-align: center;
   color: var(--edit-black);
-  font-size: 15px;
+  /* 14px: the longest forced line (HAVE RUN IN CSS!) has to clear the
+     122px inner disc's chord one row below centre. */
+  font-size: 14px;
   line-height: 16px;
   letter-spacing: -0.3px;
   text-transform: uppercase;

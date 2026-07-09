@@ -80,7 +80,9 @@
     list-style: none;
     margin: 10px 0;
     padding: 0;
-    flex-wrap: wrap;
+    /* Squash before wrapping: items shrink + ellipsize on one row
+       (nowrap) rather than dropping a lone label to a second line. */
+    flex-wrap: nowrap;
     justify-content: center;
   }
   .subdots li {
@@ -94,7 +96,12 @@
     user-select: none;
     padding: 4px 10px 4px 8px;
     border: 1px solid transparent;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
+  .subdots li .dot { flex: none; }
   .subdots li .dot {
     width: 10px; height: 10px;
     border: 1px solid var(--edit-black);
