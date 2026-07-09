@@ -518,14 +518,17 @@ pre, code, kbd {
 }
 .wiz-nav .btn { margin-bottom: 0; }
 .wiz-nav-spacer { flex: 1; }
+/* Bright EGA cyan — the same "click me" signal the desktop weave uses —
+   marks the primary call-to-action. Cyan is light, so text/glyphs sit
+   black on top of it (the Norton/DOS-utility look), not white. */
 .btn.primary {
-  background: var(--edit-blue);
-  color: var(--edit-white);
+  background: var(--edit-cyan);
+  color: var(--edit-black);
 }
-.btn.primary .hot { color: var(--edit-yellow); }
+.btn.primary .hot { color: var(--edit-red); }
 .btn.primary:hover:not(:disabled) {
-  background: #1111cc;
-  color: var(--edit-white);
+  background: #99ffff;
+  color: var(--edit-black);
 }
 /* A disabled primary must actually READ as disabled — otherwise the blue
    fill looks identical to the active button. Desaturate to a flat grey and

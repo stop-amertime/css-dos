@@ -12,6 +12,7 @@
       class:current={n === current}
       class:done={n < current}
       class:disabled={disabled(n)}
+      class:clickable={n !== current && !disabled(n)}
       role="button"
       tabindex="0"
       onclick={() => !disabled(n) && onjump?.(n)}
@@ -49,11 +50,24 @@
   }
   .step-strip li:last-child { border-right: none; }
   .step-strip li .num { color: var(--edit-red); margin-right: 4px; }
+  /* Bright EGA cyan marks every clickable tab — same "click me" signal as
+     the primary CTA buttons. The current tab stays black-on-white
+     (it's not a click target); its number chip stays yellow so it still
+     reads against black. Cyan is light, so the other tabs' chips stay
+     red — red-on-cyan is still legible. */
+  .step-strip li.clickable { background: var(--edit-cyan); color: var(--edit-black); }
   .step-strip li.current { background: var(--edit-black); color: var(--edit-white); }
   .step-strip li.current .num { color: var(--edit-yellow); }
-  .step-strip li.done { background: #666; color: var(--edit-white); }
-  .step-strip li.done .num { color: var(--edit-yellow); }
-  .step-strip li.disabled { cursor: not-allowed; opacity: 0.6; }
+  /* TUI-style angle brackets on the current tab — a cheap, authentic
+     touch (BIOS setup / Turbo Vision menu highlight). Pseudo-elements
+     so they don't touch the flex layout or push the label. */
+  .step-strip li.current::before,
+  .step-strip li.current::after {
+    color: var(--edit-yellow);
+  }
+  .step-strip li.current::before { content: '\2039 '; }
+  .step-strip li.current::after { content: ' \203a'; }
+  .step-strip li.disabled { cursor: not-allowed; opacity: 0.6; background: var(--edit-gray); }
 
   /* ===== Sub-page dot indicator ===== */
   .subdots {
@@ -89,7 +103,7 @@
     border: 1px solid var(--edit-black);
     background: var(--edit-white);
   }
-  .subdots li.current .dot { background: var(--edit-red); }
+  .subdots li.current .dot { background: var(--edit-cyan); }
   .subdots li + li::before {
     content: '\2192';
     color: #999;
