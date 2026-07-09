@@ -92,23 +92,24 @@
     cursor: pointer;
     user-select: none;
     padding: 4px 10px 4px 8px;
-    border: 1px solid transparent;
     min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   .subdots li .dot { flex: none; }
+  /* Dots and the current chip carry blocky mini-shadows, not 1px
+     outlines — hairlines read hi-res (owner rule, 2026-07-09). */
   .subdots li .dot {
     width: 10px; height: 10px;
-    border: 1px solid var(--edit-black);
+    box-shadow: 2px 2px 0 var(--edit-black);
     background: var(--edit-white);
     display: inline-block;
   }
   .subdots li.done .dot { background: #666; }
   .subdots li.current {
     color: var(--edit-black);
-    border: 1px solid var(--edit-black);
+    box-shadow: 2px 2px 0 var(--edit-black);
     background: var(--edit-white);
   }
   .subdots li.current .dot { background: var(--edit-cyan); }

@@ -86,9 +86,11 @@
           <p class="lede">Yes, it runs <b>Doom</b><span class="flair-star">*</span></p>
           <div class="flair-burst">
             <div class="flair-text">
-              <span><span class="fl-s">The first time</span><br><span
-                class="fl-l">real programs</span><br><span
-                class="fl-s">have run in CSS!</span></span>
+              <span><span class="fl-1">The</span><span
+                class="fl-2">first time</span><span
+                class="fl-3">real programs</span><span
+                class="fl-4">have run</span><span
+                class="fl-5">in CSS!</span></span>
             </div>
           </div>
           <p class="intro-fn small">

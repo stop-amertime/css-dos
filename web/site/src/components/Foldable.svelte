@@ -26,7 +26,8 @@
 
 <style>
   .foldable {
-    border: 1px solid var(--edit-black);
+    /* Blocky shadow instead of a 1px outline (hairlines read hi-res). */
+    box-shadow: 3px 3px 0 var(--edit-black);
     background: var(--edit-white);
   }
   .foldable > summary {
@@ -55,7 +56,8 @@
 
   .foldable .fold-summary { flex: 1 1 auto; min-width: 0; }
 
-  .foldable[open] > summary { border-bottom: 1px solid var(--edit-black); }
+  /* No divider under the open summary: the tinted band vs white body
+     already separates them (bands, not hairlines). */
 
   /* Background-primer variant (`class="fold-bg"`): holds prerequisite
      knowledge some readers won't need — warm tint + [?] glyph so it reads
