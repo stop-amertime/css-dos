@@ -4,7 +4,7 @@ Chronological work entries. Newest first. The durable handbook
 (current state, sentinels, gotchas, how to test) is in
 [`STATUS.md`](STATUS.md).
 
-Last updated: 2026-07-07
+Last updated: 2026-07-09
 
 Entries are individual files in [`entries/`](entries/). This page is
 the **index only** — read the tag + one-line summary, open the 1–3
@@ -22,6 +22,7 @@ See [`PROTOCOL.md`](PROTOCOL.md).
 
 | Date | Tag | Entry |
 |------|-----|-------|
+| 2026-07-09 | FINDING | [Chrome vs a 316 MB cabinet, measured (new `web/player/experiments/huge-css-test.html`): `<link>` parse ~6 s no crash (V8 ~536 MB cap is fetch-path-only); first style resolution of one `.cpu` div ~310 s then completes with correct tick-0 registers; with a live clock the tab wedges forever (recalc ≫ clock period — the "crash" is an unbounded recalc backlog). **BUG:** raw.html's same-element `class="clock cpu"` lets `.cpu`'s animation shorthand cascade-clobber `anim-play` → the raw player's machine is frozen at tick 0 by construction; fix = nest `.clock > .cpu` (raw-regen.mjs follow-up)](entries/2026-07-09-chrome-eval-huge-cabinet.md) |
 | 2026-07-09 | LANDED | [EGA cyan "click me" pass: `.btn.primary` (Next/CTA/Build buttons), step-strip clickable tabs, and the StepDots selected-dot fill switch from navy/red to `var(--edit-cyan)` with black text (not `--edit-blue-bright`, which stays the desktop-weave colour); current step-strip tab gains TUI-style `‹ ›` angle brackets](entries/2026-07-09-cyan-clickme.md) |
 | 2026-07-09 | LANDED | [Svelte CSS defragment: 15 single-owner `_fragments/*.css` port artifacts moved into their component's scoped `<style>` (foldable, moon-viz, tick-clock, ram-write, css-demo, term, step-dots, sign-demo, kbd-demo, file-map, pixel-screen, split-pane, result-floppy, build-progress, env-notice); `cart-grid.css` split across its 3 real owners (CartGrid/CartCard/CustomPanel). `cabinet-bar.css` kept, slimmed to the 2 selectors About.svelte renders as siblings of `<CabinetBar>`. Screenshot-verified pixel-identical across 7 routes incl. Foldable open/fold-bg/advanced-variant states](entries/2026-07-09-svelte-css-defragment.md) |
 | 2026-07-07 | LANDED | [Corduroy 0.6.0: Shift/Ctrl/Alt are real modifiers — INT 09h was dropping breaks, never writing BDA 0x417, buffering modifier makes as bogus keys, one unshifted table (INT 16h consumers saw no modifiers ever); now flag-tracked + shift/ctrl translate tables (Ctrl+C = DOS break). FINDING: simultaneous `:active` presses can't chord (single-valued wire) — chords need the hold wire/multitouch; calcite-cli --press-events grew a `checked@sel` pseudo prefix (calcite `8928622`) to test it natively. msdos4-verified: hold→Shift,A → 'A', drain-alone clears flags, Ctrl+C → ^C. smoke/msdos/writable/kbd-e2e PASS](entries/2026-07-07-corduroy-modifier-keys.md) |

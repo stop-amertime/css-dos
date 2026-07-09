@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<!-- Experiment: load a huge cabinet CSS via a plain <link> AND give it
+     the machine DOM so Chrome actually has to evaluate it. Findings from
+     the first run: LOGBOOK entry 2026-07-09-chrome-eval-huge-cabinet.
+     Open directly via file:// (the dev server doesn't serve repo-root
+     cabinets):
+       file:///C:/.../CSS-DOS/web/player/experiments/huge-css-test.html
+     Params:
+       css=<path>   stylesheet to load (default ../../../doom8088.css,
+                    i.e. a cabinet sitting in the repo root)
+       dom=0        parse-only — no machine DOM (the original experiment)
+       grid=0       machine DOM but no 64,000-pixel screen grid
+     The machine DOM is .clock > .cpu > #grid (<i id=p0>..<i id=p63999>) —
+     nested, not raw.html's same-element form (see note in the script).
+     Clock is 400ms/4 phases, so
+     ~2.5 instructions/sec — the point is watching style recalc, not boot. -->
+<html>
+<head>
+<meta charset="utf-8">
+<title>huge CSS eval test</title>
+<style>
+  body { font: 14px/1.5 monospace; background: #111; color: #ddd; margin: 2em; }
+  h1 { font-size: 16px; }
+  #log div { padding: 2px 0; }
+  .ok { color: #7f7; } .bad { color: #f77; } .info { color: #7cf; }
+  #heartbeat { color: #fd7; }
+  #regs { color: #d9f; }
+  .screen-grid {
+    display: grid;
+    grid-template-columns: repeat(320, 2px);
+    grid-auto-rows: 2px;
+    width: 640px;
+    height: 400px;
+    image-rendering: pixelated;
+    background: #000;
+    margin: 1em 0;
+    border: 1px solid #444;
+  }
+  .screen-grid > i { display: block; width: 2px; height: 2px; background: transparent; }
+</style>
+</head>
+<body>
+<h1>huge CSS eval test</h1>
+<div id="target">target: (resolving…)</div>
+<div id="heartbeat">heartbeat: —</div>
+<div id="regs">regs: (waiting for onload)</div>
+<div id="log"></div>
+<div id="machine"></div>
+
+<script>
+const t0 = performance.now();
+const log = (msg, cls) => {
+  const d = document.createElement('div');
+  d.textContent = `[${((performance.now() - t0) / 1000).toFixed(2)}s] ${msg}`;
+  if (cls) d.className = cls;
+  document.getElementById('log').appendChild(d);
+};
+
+const params = new URLSearchParams(location.search);
+const cssUrl   = params.get('css') || '../../../doom8088.css';
+const withDom  = params.get('dom')  !== '0';
+const withGrid = params.get('grid') !== '0';
+document.getElementById('target').textContent =
+  `target: ${cssUrl}  (machine DOM: ${withDom ? 'yes' : 'no'}, pixel grid: ${withDom && withGrid ? 'yes' : 'no'})`;
+
+// --- Machine DOM ----------------------------------------------------------
+// NOTE: deliberately NOT raw.html's `class="clock cpu"` same-element form —
+// there .cpu's `animation: store…, execute…` shorthand clobbers .clock's
+// anim-play on the same element and the clock never ticks (verified with a
+// minimal repro). Nesting .cpu inside .clock makes both animations live and
+// lets the @container style(--clock:N) queries see the ancestor's clock.
+let cpu = null;
+if (withDom) {
+  const domT = performance.now();
+  const clock = document.createElement('div');
+  clock.className = 'clock';
+  cpu = document.createElement('div');
+  cpu.className = 'cpu';
+  clock.appendChild(cpu);
+  if (withGrid) {
+    const grid = document.createElement('div');
+    grid.id = 'grid';
+    grid.className = 'screen-grid';
+    for (let i = 0; i < 64000; i++) {
+      const px = document.createElement('i');
+      px.id = 'p' + i;
+      grid.appendChild(px);
+    }
+    cpu.appendChild(grid);
+  }
+  document.getElementById('machine').appendChild(clock);
+  log(`machine DOM built in ${(performance.now() - domT).toFixed(0)}ms `
+      + `(.clock > .cpu${withGrid ? ' > 64,000-pixel grid' : ', no grid'})`, 'info');
+}
+
+// --- Heartbeat: liveness + register sampling -----------------------------
+// If the main thread is blocked (recalc churning) this stops ticking.
+// Register reads force a style recalc themselves — that's the point.
+let lastBeat = t0;
+let sheetLoaded = false;
+const REGS = ['--__0IP', '--__0CS', '--__0AX', '--__0cycleCount', '--__0halt'];
+setInterval(() => {
+  const now = performance.now();
+  const gap = now - lastBeat;
+  lastBeat = now;
+  let s = `heartbeat: ${((now - t0) / 1000).toFixed(1)}s elapsed`;
+  if (gap > 1500) s += ` — main thread was BLOCKED for ${(gap / 1000).toFixed(1)}s`;
+  if (performance.memory) {
+    s += ` | JS heap ${(performance.memory.usedJSHeapSize / 1048576).toFixed(0)} MB`;
+  }
+  document.getElementById('heartbeat').textContent = s;
+
+  if (cpu && sheetLoaded) {
+    const sampleT = performance.now();
+    const cs = getComputedStyle(cpu);
+    const vals = REGS.map(n => `${n.replace('--__0', '')}=${cs.getPropertyValue(n) || '∅'}`);
+    document.getElementById('regs').textContent =
+      `regs: ${vals.join('  ')}  (sample cost ${(performance.now() - sampleT).toFixed(0)}ms)`;
+  }
+}, 500);
+
+// --- The stylesheet -------------------------------------------------------
+log(`injecting <link rel="stylesheet" href="${cssUrl}">`, 'info');
+const link = document.createElement('link');
+link.rel = 'stylesheet';
+link.href = cssUrl;
+
+link.onload = () => {
+  log('link.onload fired — stylesheet parsed', 'ok');
+  sheetLoaded = true;
+  // Time to the first frame actually painted with the new sheet — the
+  // initial full style recalc over the machine DOM lands before this.
+  const recalcT = performance.now();
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    log(`first frame after stylesheet applied: +${((performance.now() - recalcT) / 1000).toFixed(2)}s `
+        + `(includes initial full recalc${withDom ? ' of the machine DOM' : ''})`, 'ok');
+  }));
+};
+link.onerror = () => log('link.onerror fired — Chrome refused/failed to load it', 'bad');
+document.head.appendChild(link);
+log('link appended to <head>; waiting…', 'info');
+</script>
+</body>
+</html>
