@@ -441,9 +441,13 @@ body:has(.window.wizard) {
   background: var(--dither-dark) 0 0 / 4px 4px, var(--edit-gray);
 }
 .wiz-scroll::-webkit-scrollbar-thumb {
-  /* …and the thumb carries a lighter ▒ of its own — two dither
-     densities, no outlines. */
-  background: var(--dither-gray) 0 0 / 4px 4px, var(--edit-gray);
+  /* …and the thumb dithers LIGHTER than the chrome bands (white ▒ on
+     grey, vs their #999-on-grey) so it blends with neither the track
+     nor the header/footer. Density ladder: dark track, medium chrome,
+     light thumb. */
+  background: conic-gradient(var(--edit-white) 90deg, #0000 90deg 180deg,
+              var(--edit-white) 180deg 270deg, #0000 270deg) 0 0 / 4px 4px,
+              var(--edit-gray);
 }
 .wiz-scroll::-webkit-scrollbar-button { display: none; }
 .window.wizard .window-body {
