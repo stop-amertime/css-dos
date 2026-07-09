@@ -58,9 +58,10 @@
   --dither-dark: conic-gradient(var(--edit-black) 90deg, #0000 90deg 180deg,
                  var(--edit-black) 180deg 270deg, #0000 270deg);
   /* ▒ in greys — chrome bands (menu bar, status line, wizard header/
-     footer) separate from the flat dialog grey by texture, no hairlines. */
-  --dither-gray: conic-gradient(var(--edit-gray-dark) 90deg, #0000 90deg 180deg,
-                 var(--edit-gray-dark) 180deg 270deg, #0000 270deg);
+     footer) separate from the flat dialog grey by texture, no hairlines.
+     #999: a notch darker than EGA gray so the texture carries. */
+  --dither-gray: conic-gradient(#999 90deg, #0000 90deg 180deg,
+                 #999 180deg 270deg, #0000 270deg);
 
   /* The 8x16 grid the font is locked to. */
   --cell-w: 8px;
@@ -155,9 +156,10 @@ body {
   background: var(--edit-gray);
   color: var(--edit-black);
   /* Drop shadow — offset is ~1/4 of the dialog edge thickness so the
-     shadow visibly tucks under the panel rather than floating away. */
+     shadow visibly tucks under the panel rather than floating away.
+     No outline: the grey-on-blue edge + shadow carry the window shape
+     (the 1px border read too hi-res — owner call, 2026-07-09). */
   box-shadow: 6px 6px 0 var(--edit-black);
-  border: 1px solid var(--edit-black);
   width: 720px;
   max-width: calc(100% - 32px);
   margin: 0 auto 24px;

@@ -127,23 +127,27 @@
   font-size: 28px;
   line-height: 28px;
   white-space: nowrap;
+  /* Full column width, not fit-content: the box's edges line up
+     exactly with the prose measure below it. */
+  width: 100%;
 }
 .intro-hero .lede {
   font-size: 16px;
   line-height: 20px;
   margin-bottom: 10px;
 }
-/* 80s game-box flash — a scalloped CIRCULAR badge (price-sticker
-   style): one centre disc plus twelve rim bumps, cut as a stack of
-   mask radial-gradients (CSS trig places the bumps). Muted two-tone
-   gold, toned down from the old banner, tilted harder so it reads as
-   slapped-on. */
+/* 80s game-box flash — a scalloped seal-of-approval sticker: one
+   centre disc plus twenty small rim bumps, cut as a stack of mask
+   radial-gradients (CSS trig places the bumps). Small tight bumps =
+   stamp edge; big ones read as flower petals (tried, pulled). Muted
+   two-tone gold, tilted, right-aligned so it sits like a sticker
+   slapped near the box corner. */
 .intro-hero .flair-burst {
-  --r: 66px;    /* centre-disc radius (bump centres sit on this ring) */
-  --b: 20px;    /* scallop bump radius */
-  width: 184px;
-  height: 184px;
-  margin: 12px auto 8px;
+  --r: 60px;    /* centre-disc radius (bump centres sit on this ring) */
+  --b: 9px;     /* scallop bump radius — small = stamp, big = flower */
+  width: 144px;
+  height: 144px;
+  margin: 10px 24px 8px auto;
   display: grid;
   place-items: center;
   background: hsl(42 36% 54%);      /* old gold, desaturated (band) */
@@ -151,26 +155,38 @@
   mask:
     radial-gradient(var(--r) at 50% 50%, #000 calc(100% - 1px), #0000),
     radial-gradient(var(--b) at calc(50% + var(--r)*cos(0deg))   calc(50% + var(--r)*sin(0deg)),   #000 calc(100% - 1px), #0000),
-    radial-gradient(var(--b) at calc(50% + var(--r)*cos(30deg))  calc(50% + var(--r)*sin(30deg)),  #000 calc(100% - 1px), #0000),
-    radial-gradient(var(--b) at calc(50% + var(--r)*cos(60deg))  calc(50% + var(--r)*sin(60deg)),  #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(18deg))  calc(50% + var(--r)*sin(18deg)),  #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(36deg))  calc(50% + var(--r)*sin(36deg)),  #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(54deg))  calc(50% + var(--r)*sin(54deg)),  #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(72deg))  calc(50% + var(--r)*sin(72deg)),  #000 calc(100% - 1px), #0000),
     radial-gradient(var(--b) at calc(50% + var(--r)*cos(90deg))  calc(50% + var(--r)*sin(90deg)),  #000 calc(100% - 1px), #0000),
-    radial-gradient(var(--b) at calc(50% + var(--r)*cos(120deg)) calc(50% + var(--r)*sin(120deg)), #000 calc(100% - 1px), #0000),
-    radial-gradient(var(--b) at calc(50% + var(--r)*cos(150deg)) calc(50% + var(--r)*sin(150deg)), #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(108deg)) calc(50% + var(--r)*sin(108deg)), #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(126deg)) calc(50% + var(--r)*sin(126deg)), #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(144deg)) calc(50% + var(--r)*sin(144deg)), #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(162deg)) calc(50% + var(--r)*sin(162deg)), #000 calc(100% - 1px), #0000),
     radial-gradient(var(--b) at calc(50% + var(--r)*cos(180deg)) calc(50% + var(--r)*sin(180deg)), #000 calc(100% - 1px), #0000),
-    radial-gradient(var(--b) at calc(50% + var(--r)*cos(210deg)) calc(50% + var(--r)*sin(210deg)), #000 calc(100% - 1px), #0000),
-    radial-gradient(var(--b) at calc(50% + var(--r)*cos(240deg)) calc(50% + var(--r)*sin(240deg)), #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(198deg)) calc(50% + var(--r)*sin(198deg)), #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(216deg)) calc(50% + var(--r)*sin(216deg)), #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(234deg)) calc(50% + var(--r)*sin(234deg)), #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(252deg)) calc(50% + var(--r)*sin(252deg)), #000 calc(100% - 1px), #0000),
     radial-gradient(var(--b) at calc(50% + var(--r)*cos(270deg)) calc(50% + var(--r)*sin(270deg)), #000 calc(100% - 1px), #0000),
-    radial-gradient(var(--b) at calc(50% + var(--r)*cos(300deg)) calc(50% + var(--r)*sin(300deg)), #000 calc(100% - 1px), #0000),
-    radial-gradient(var(--b) at calc(50% + var(--r)*cos(330deg)) calc(50% + var(--r)*sin(330deg)), #000 calc(100% - 1px), #0000);
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(288deg)) calc(50% + var(--r)*sin(288deg)), #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(306deg)) calc(50% + var(--r)*sin(306deg)), #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(324deg)) calc(50% + var(--r)*sin(324deg)), #000 calc(100% - 1px), #0000),
+    radial-gradient(var(--b) at calc(50% + var(--r)*cos(342deg)) calc(50% + var(--r)*sin(342deg)), #000 calc(100% - 1px), #0000);
 }
 .intro-hero .flair-text {
-  width: 122px;
-  height: 122px;
+  width: 112px;
+  height: 112px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   background: hsl(47 44% 72%);      /* mustard fill, toned down */
 }
+/* Diamond-set lines — small, big, small — so the text block hugs the
+   circle's chords and the seal can stay tight. */
+.intro-hero .flair-text .fl-s { font-size: 11px; line-height: 13px; }
+.intro-hero .flair-text .fl-l { font-size: 16px; line-height: 18px; }
 .intro-hero .flair-text span {
   display: block;
   text-align: center;

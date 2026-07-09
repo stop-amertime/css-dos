@@ -49,12 +49,14 @@
     white-space: nowrap;
   }
   .step-strip li .num { color: var(--edit-red); margin-right: 4px; }
-  /* The current tab is a FLAT grey island on the textured band —
-     selection reads as "the calm spot", the TUI way. Other tabs stay
-     quiet (owner tried cyan here 2026-07-09 and pulled it: too loud).
-     Cyan = clickable survives on the CTAs and subdots. */
+  /* Inactive tabs are flat grey buttons; the CURRENT tab goes
+     transparent so the band's ▒ texture shows through — pressed into
+     the chrome, while the others sit raised. (Owner swapped this from
+     the inverse: a flat current tab didn't line up with the band.)
+     Cyan stays off the strip — CTAs and subdots only. */
+  .step-strip li { background: var(--edit-gray); }
   .step-strip li.current {
-    background: var(--edit-gray);
+    background: none;
     color: var(--edit-black);
   }
   /* TUI-style angle brackets on the current tab — a cheap, authentic
