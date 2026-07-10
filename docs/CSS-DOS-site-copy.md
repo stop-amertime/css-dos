@@ -936,6 +936,64 @@ opcode 0255AXCXDXBXSPBPSIDICSDSESSSIPflags
 
 These tables are the same CSS in every cabinet: Doom’s CPU and Zork’s are byte-identical. Everything that differs between two cabinets is memory and disk.
 
+### The decoder — parsing without a parser
+
+We've been waving at `--imm16` and `--q1` as if the right bytes just present themselves in the right places. Time to own up to the decoder.
+
+An 8086 instruction is one to six bytes long, and you can't tell how long until you've read some of it. Worse, the first byte might not even be the instruction — it might be a *prefix*, a modifier meaning "use a different memory segment" or "repeat this". Every normal emulator handles this with a little parsing loop: read a byte, decide, read some more. We don't get a loop.
+
+So the machine reads first and thinks later. Every tick, eight bytes are fetched from wherever IP points — unconditionally, in parallel, enough for the worst case of two prefixes plus the longest instruction:
+
+```css
+--csBase: calc(var(--snapshot-CS) * 16);
+--ipAddr: calc(var(--csBase) + var(--snapshot-IP));
+--raw0: --readMem(var(--ipAddr));
+--raw1: --readMem(calc(var(--ipAddr) + 1));
+/* … --raw2 through --raw7 … */
+```
+
+(Yes — that's eight separate trips through the 743,948-arm read function, every tick, mostly fetching bytes the instruction turns out not to have.)
+
+Then, prefixes. A real 8086 consumes them one at a time off a queue. We can't consume anything — but we can move the *labels* instead of the bytes. `--prefixLen` counts how many of the leading bytes are prefixes (there are only six byte values to check), and the queue the rest of the CPU actually reads — `--q0` to `--q5` — is a set of aliases, each pointing at a different raw byte depending on that count:
+
+```css
+--isPrefix0: if(
+  style(--raw0: 38): 1;   /* the six prefix bytes: */
+  style(--raw0: 46): 1;   /* four segment overrides… */
+  style(--raw0: 54): 1;
+  style(--raw0: 62): 1;
+  style(--raw0: 242): 1;  /* …and two REPeat prefixes */
+  style(--raw0: 243): 1;
+else: 0);
+--prefixLen: calc(var(--isPrefix0) + var(--isPrefix1));
+
+--q0: if(style(--prefixLen: 0): var(--raw0); style(--prefixLen: 1): var(--raw1); else: var(--raw2));
+--q1: if(style(--prefixLen: 0): var(--raw1); style(--prefixLen: 1): var(--raw2); else: var(--raw3));
+/* … through --q5 … */
+
+--opcode: var(--q0);
+```
+
+Nothing was skipped or shifted; the *meaning of "byte one"* slid along underneath the bytes. Everything downstream gets to pretend prefixes don't exist — `--q0` is simply always the opcode. The 850 register-table rows never learn about prefixes at all; only the IP table gets a single `+ prefixLen` wrapped around the whole thing, so every instruction silently steps over whatever prefixes it had.
+
+The second byte, on most instructions, is a dense little operand descriptor — two bits of addressing mode, three bits of register, three of register-or-memory. CSS has no way to slice bits out of a byte, so, as ever: divide and take remainders.
+
+```css
+--mod: --rightShift(var(--q1), 6);
+--reg: --lowerBytes(--rightShift(var(--q1), 3), 3);
+--rm:  --lowerBytes(var(--q1), 3);
+```
+
+And what if the fetched byte is nonsense — an opcode with no rows anywhere? Nothing *can* crash, because nothing is running. No row means no register changes, and the IP table's fall-through is "stay put" — so the machine re-fetches the same mystery byte, forever, while a diagnostic variable (`--haltCode`) holds the offending value up like a flare for the outside world to read. A machine that cannot throw an exception can still sulk indefinitely.
+
+### Decode everything, keep what you need
+
+Notice what the decoder never asks: *whether any of this applies.* The current instruction might have no second byte, no immediate, no memory operand — the machine computes all of them anyway, every tick. The memory address an operand *would* use. Both operand values. The immediates. The signed reinterpretations that only multiplication cares about — the full product, in fact, of a multiply that almost certainly isn't happening. Around seventy of these standing values are derived each tick, and then the opcode selects the handful that mean something; the rest are computed and discarded. On an ordinary MOV's tick, the machine has also quietly worked out what a multiply would have produced.
+
+Some of that waste is just CSS being CSS — with no sequencing, there's no "compute it only if needed" at the top level. But a fair chunk of it is Chrome's fault, and this is worth being honest about, because it shaped the CPU's anatomy: some ways of nesting one `@function` call inside another work in Chrome, and others fail, in patterns the spec doesn't predict and I had to map by experiment. So Kiln flattens defensively. Where a register row wants `--bit()` nested inside something else, the bit gets hoisted out into its own named property — the carry flag exists as a standing per-tick property (`--_cf`) for exactly this reason. And a hoisted property is paid for by *everyone*, every tick, forever, whether this tick's instruction wants a carry flag or not.
+
+There's a counter-trick, and it explains some of the ugliest code on this page. The *maths* functions — `mod()`, `round()`, `min()`, `calc()` — are built into CSS and nest freely; it's only the user-defined `@function`s that are delicate. So when an expression should only be paid for when its instruction actually runs, Kiln builds it out of nothing but raw arithmetic and buries it inside that opcode's branch, where `if()` evaluates it lazily. That unreadable DAA expression above is unreadable *on purpose*: written entirely in `mod` and `round` so it can live inside opcode 39's row, the one place where only DAA pays for it. (And it's pasted out twice — once in AX's table, once in flags' — because the fourteen tables evaluate in parallel and may not share intermediate results.) Two currencies — pay every tick, or pay in ugliness and duplication — and Kiln haggles instruction by instruction.
+
 ### One instruction, all the way through
 
 The instruction in question is ADD - opcode 5. We'll take a look at everything that needs to update to process this instruction. 
@@ -1033,6 +1091,25 @@ DAA needs to ask “is this 4-bit chunk bigger than 9?”, and with no `<` avail
 
 It goes on like this for **232 distinct opcodes — 850 rows** across the register tables.
 
+### REP — the loop with nowhere to go
+
+x86 has a prefix, REP, that means "do this instruction CX times". `REP MOVSW` is the 1981 idiom for copying a block of memory: one instruction, up to 65,535 iterations, and the real chip just sits there micro-looping until it's finished.
+
+We cannot loop. A tick *is* one evaluation of every formula in the file — there is no "again" inside it. So the loop gets turned inside out: **one iteration per tick, and the repetition is done by refusing to move on.** The IP row for a repeating string instruction simply declines to advance:
+
+```css
+/* the IP row for MOVSB (opcode 164) */
+style(--opcode: 164): if(
+  style(--_repContinue: 1): calc(var(--snapshot-IP) - var(--prefixLen));
+  else: calc(var(--snapshot-IP) + 1));
+```
+
+Next tick, the fetch lands on the very same instruction, and the entire machine — fourteen register tables, all 368,256 memory formulas — re-evaluates from scratch to copy one more word. CX counts down by one per tick; on the last iteration `--_repContinue` goes 0 and IP finally walks on. Copying a 64 KB block this way is 32,768 complete evaluations of a 300 MB stylesheet, each moving two bytes.
+
+(That `- var(--prefixLen)` is my favourite line in the decoder. The IP table has a blanket `+ prefixLen` wrapped around it, so that every instruction steps over its own prefixes — *including this one*. To stand still, the repeating instruction first steps **backwards**, off the front of itself, and the wrapper marches it forward again onto the same spot. The machine moonwalks in place.)
+
+One wrinkle. The conditional variants (REPE/REPNE — "repeat while equal", used for comparing and searching) are supposed to stop depending on the zero flag *from the comparison happening this very tick*. But IP and the flags are two parallel tables, and neither may read the other's mid-tick output. So the decoder computes the comparison a second time, independently, purely to decide whether to keep looping. Two parts of the machine doing the same subtraction side by side, because asking each other is against the rules.
+
 [QUESTION: WHERE ARE THE PIT AND PIC? ARE THEY COUNTED IN CPU? THEY SHOULDNT REALLY BE]
 
 #### ▸ How an interrupt arrives
@@ -1064,6 +1141,24 @@ A PC contains three other chips, and programs talk to them *directly* (it's the 
 --prevKeyboard --kbdScancodeLatch         /* keyboard */
 --dacWriteIndex --dacSubIndex …           /* VGA palette chip */
 ```
+
+### The idle branch is where the hardware lives
+
+Look back at any register table and the last line is always the same shrug: `else:` keep the old value. For the CPU's own registers that's correct — AX doesn't drift on its own. But real support chips don't hold still while the CPU works. The timer counts *whether or not anyone is talking to it*; that's rather the point of a timer. CSS has no second thread to run it on. What CSS has is that `else`.
+
+So for the handful of variables modelling other hardware, the fall-through isn't "hold" — it's the chip doing its job. The timer's table has rows for the OUT instructions that program it, and then, where every other table shrugs, it counts:
+
+```css
+--pitCounter: if(
+  /* … rows for the OUT opcodes that program the timer … */
+  else: if(
+    style(--snapshot-pitReload: 0): 0;   /* never armed: stay dark */
+    else: calc(var(--snapshot-pitCounter) - var(--_pitDecrement)
+      + max(0, sign(calc(var(--_pitDecrement) - var(--snapshot-pitCounter) + 1)))
+        * var(--snapshot-pitReload))));  /* count down; past zero, reload — and IRQ 0 fires */
+```
+
+The interrupt controller's fall-through latches any newly arrived interrupt requests. The keyboard's snapshots the current key so next tick can spot the change. Concurrency, faked in the one place an opcode-keyed table has room for it: the timer ticks precisely on the branch that means *no instruction touched me*.
 
 ### Power-on
 
@@ -1108,6 +1203,45 @@ Wait, 7777? 8051? Those aren't scancodes. In fact, each number packs the key’s
 ### The release-code latch
 
 Real keyboards also send a *release* code when a key comes back up, and games depend on it. But `:active` only stops matching for the single instant you let go, and programs usually don’t check the keyboard until a few ticks later — by then that instant is gone, and the key would look held down forever. So the machine keeps a **latch**: one variable holding the most recent key event, press or release, until the next one replaces it.
+
+### Manufacturing the past
+
+There's a deeper mismatch under that latch, worth naming. `:active` can only answer one question: *is this element held down right now?* The machine needs to answer a different one: *what happened?* — a program typically gets round to asking the keyboard hundreds of ticks after you touched anything. CSS speaks in the present tense; the PC demands a past tense.
+
+So the past is manufactured. One variable, `--prevKeyboard`, exists purely to remember what `--keyboard` said one tick ago — its entire definition is "copy the current value", and the flip-flop plumbing makes the copy arrive a tick late, which for once is exactly what we want. Compare the two and you get *events* out of a *state*:
+
+```css
+--_kbdPress: if(
+  style(--keyboard: 0): 0;               /* nothing held now → no press */
+  style(--snapshot-prevKeyboard: 0): 1;  /* held now, empty last tick → a press! */
+  else: 0);
+```
+
+A press edge is one tick wide — under Calcite, gone in about 1/400,000th of a second — which is why it's immediately latched where the program can find it at its leisure.
+
+### The hold wire, or: chords for the one-fingered
+
+A subtler problem: you have one mouse pointer, and DOOM expects you to run *and* shoot. You cannot hold two on-screen buttons at once. So the player has a hold mode, and its wire into the machine is the second and final human sense CSS grants us — `:checked`:
+
+```css
+&:has(#kb-holdmode:checked) { --kbdHold: 1; }
+```
+
+While the wire is up, key releases are not delivered — they're *filed*. Letting go of a key drops its code into one of eight numbered pigeonholes (`--kbdHeld0` through `--kbdHeld7`; CSS has no arrays, so a queue is eight variables and some willpower). Presses keep arriving as normal, so keys accumulate: a chord. Drop the wire, and the machine invents the missing history — one release per opportunity, politely paced, each new one synthesised only after the program's interrupt handler has fully digested the previous.
+
+Each pigeonhole decides *for itself* whether it's the one being filled, by checking that everyone below it is already full:
+
+```css
+/* slot 2 claims the key only if slots 0 and 1 are taken */
+--_kbdApp2: if(
+  style(--_kbdLatch: 0): 0;
+  style(--snapshot-kbdHeld0: 0): 0;
+  style(--snapshot-kbdHeld1: 0): 0;
+  style(--snapshot-kbdHeld2: 0): 1;
+  else: 0);
+```
+
+No queue object, no head pointer — eight formulas each independently working out whether they are the frontier. It's the register-table trick again, at doll's-house scale.
 
 CSS cannot see your physical keyboard — no selector reacts to a real keypress, so every program is piloted from the on-screen keys. 
 
@@ -1169,6 +1303,21 @@ FUN FACT: Of the file’s thousands of functions, this is the only one that retu
 
 There’s a second, separate cursor for *reading* the palette back — a fade effect wants to know the current colours before dimming them, and real VGA hardware let it ask without disturbing the write cursor. If real hardware did it, we have to support it too. 
 
+### One port, three meanings
+
+It's worth pausing on what those palette writes look like from the CPU's side: three consecutive OUTs to the same port, each carrying a bare number. Nothing about the third write says "I am a blue". On real hardware the chip counts them privately; in CSS there is no *privately*. The cursor and its little R/G/B counter are just two more register-style variables, advancing on the same tick-by-tick terms as everything else in the machine:
+
+```css
+--dacSubIndex: if(
+  style(--q1: 968): 0;                                      /* OUT 0x3C8: new colour slot — reset */
+  style(--q1: 967): 0;                                      /* OUT 0x3C7 (read cursor) also resets */
+  style(--q1: 969) and style(--snapshot-dacSubIndex: 2): 0; /* blue just landed: wrap to red… */
+  style(--q1: 969): calc(var(--snapshot-dacSubIndex) + 1);  /* …otherwise advance R→G→B */
+  else: var(--snapshot-dacSubIndex));
+```
+
+The write itself is then an ordinary memory write whose *address* comes from that remembered state — palette base + slot × 3 + sub-index. Three identical-looking writes land in three different bytes because the machine remembers how many it has seen. That's all "hidden chip state" ever was.
+
 ### Text mode & CGA — the shared bytes
 
 Mode 13h isn’t the only screen the machine carries. Text mode — the 80×25 grid the DOS prompt lives on — is its own region of video memory at a different address: two bytes per character, the letter and its colours. And the older CGA graphics modes have their own aperture… which **overlaps the text region**. The same memory cells serve both, on purpose, because that’s genuinely how 1981 CGA hardware behaved — the aliasing is part of the machine being faithful.
@@ -1229,6 +1378,20 @@ If the staged copy doesn’t exist yet — tick one, nothing stored — the snap
 The one optimisation
 
 Memory is **packed two bytes per variable** (32861 is really the two bytes 93 and 128), so every sweep over memory mentions half as many cells as there are bytes. Without it, everything memory-related in the file doubles. This had to be done to avoid V8's string size limit, which would have prevented cabinets loading in Chrome entirely. 
+
+### Addresses the program cannot pronounce
+
+The machine also needs storage the running program must never see. The palette is the clearest case: 768 bytes of colour data that programs write through a port, byte by blind byte — on real hardware those bytes live inside the VGA chip, not in memory. Where do you hide bytes from a CPU that can address everything?
+
+You use the one fact in our favour: an 8086 address tops out a shade over one megabyte. The chip is *arithmetically incapable* of forming a bigger one. But a CSS variable name is just text — `--mc524288` costs no more to have than `--mc632`. So the palette lives as perfectly ordinary memory cells starting at linear address 1,048,576 — one byte past the guest's universe — and the writable floppy's contents (when a cart opts in) at 2,097,152. Reachable only through the official ceremonies: the palette port, the disk window. No stray pointer can trample them, because no stray pointer can count that high.
+
+One booby trap up here, and it shaped a whole feature: big numbers are safe in a property's *name* but not in its *value*. Chrome keeps only about six significant digits on a computed numeric property, so any computed value past a million quietly loses its low digits. All the arithmetic around these far-flung cells is therefore done in small, disk-local offsets — only the *name* ever carries the big number. It's also why writable floppies are capped at 720 KB: a disk's byte index is a computed value, and past the million mark neighbouring bytes would start blurring into one another.
+
+### The holes are not implemented
+
+A conventional emulator allocates its RAM up front and marks some ranges absent. Kiln does something more absolute: for addresses no program could ever touch, it emits *nothing*. No declaration, no read arm, no write formula — the address simply does not occur anywhere in 300 MB. Read one and you fall through every arm of the big lookup to its final `else: 0`; write one and the broadcast finds no cell whose formula mentions that address, so the write lands nowhere, and nothing complains. (The CPU exploits the same mechanism on purpose when it cancels a write by aiming it at address −1.)
+
+There's no bounds check because there is no boundary — just places where the CSS stops. Unmapped memory, implemented as exactly nothing.
 
 ### CAROUSEL SECTION: Memory — read formulas
 
@@ -1524,6 +1687,12 @@ The store and execute steps are themselves `@keyframes` — and an animation can
   @container style(--clock: 1) { animation-play-state: running, paused }
   @container style(--clock: 3) { animation-play-state: paused, running }
 ```
+
+### What the animation is really for
+
+A confession about the word "clock". The keyframes above change one integer, four times a lap. That is the entire moving world — nothing else in 300 MB ever changes of its own accord. Everything else happens because the browser *notices*: change a custom property, and every property that depends on it must be recalculated, and every property that depends on those, outward through the whole dependency graph. The machine is built so that, by the time the ripples stop, that graph is the entire file.
+
+So the honest description isn't "a clock signal driving a circuit". It's a stone dropped into a very still pond every 400 ms, with 368,256 formulas living in the ripples. The style-invalidation machinery browsers built to turn your button blue on hover is the engine actually propelling DOS.
 
 ### CAROUSEL SECTION: Memory — write formulas
 
