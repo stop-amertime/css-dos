@@ -3,7 +3,8 @@
 //
 // Emits one CSS rule per pixel that reads the pixel's framebuffer byte
 // from packed memory storage (--__1mc{cell}) and maps it through the
-// live DAC palette to a background-color. ALWAYS emitted; inert in the
+// live DAC palette to a background-color. Scoped under .motherboard
+// (the machine host element). ALWAYS emitted; inert in the
 // calcite/bridge players (which have no #pN nodes and render the
 // framebuffer to an <img>). Only the raw player paints.
 //
@@ -59,7 +60,7 @@ export function emitPixelPaintRules({ width = 320, height = 200 } = {}) {
   const count = width * height;
   for (let i = 0; i < count; i++) {
     lines.push(
-      `.cpu #p${i} { --ci: ${cellByteExpr(FB_BASE + i)}; ` +
+      `.motherboard #p${i} { --ci: ${cellByteExpr(FB_BASE + i)}; ` +
       `background-color: --paletteRGB(var(--ci)); }`);
   }
   return lines.join('\n');

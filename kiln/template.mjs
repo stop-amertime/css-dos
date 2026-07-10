@@ -123,7 +123,7 @@ export function emitPropertyDecls(opts) {
 }
 
 /**
- * Emit the .cpu rule's __1 variable reads (read from double-buffer).
+ * Emit the machine element's __1 variable reads (read from double-buffer).
  * --__1AX: var(--__2AX, <init>);
  */
 export function emitBufferReads(opts) {
@@ -192,21 +192,31 @@ export function emitClockKeyframes() {
 }
 
 /**
- * Emit the .clock and .cpu base rules (animation setup).
+ * Emit the .clock rule — the animation heartbeat. The .clock element
+ * must be an ANCESTOR of the .motherboard element (never the same one:
+ * the motherboard's `animation: store…, execute…` shorthand would
+ * cascade-clobber anim-play, and the cabinet's `@container
+ * style(--clock: N)` queries only consult ancestors).
  */
-export function emitClockAndCpuBase() {
+export function emitClockRule() {
   return `.clock {
   animation: anim-play 400ms steps(4, jump-end) infinite;
   --clock: 0;
+}`;
 }
 
-.cpu {
+/**
+ * Open the clock-plumbing rule on the machine element: attaches the
+ * store/execute keyframes permanently paused, and unpauses each for a
+ * single beat per clock lap. Returned UNCLOSED — emit-css.mjs streams
+ * the double-buffer reads into it and closes it.
+ */
+export function emitClockPlumbingOpen() {
+  return `.motherboard {
   animation: store 1ms infinite, execute 1ms infinite;
   animation-play-state: paused, paused;
   @container style(--clock: 1) { animation-play-state: running, paused }
   @container style(--clock: 3) { animation-play-state: paused, running }`;
-  // Note: this is opened and closed by emit-css.mjs since the .cpu rule
-  // contains all the computed properties.
 }
 
 // HTML wrapping used to live here. It moved out of Kiln and into
@@ -327,7 +337,7 @@ const KEYBOARD_KEYS = [
  * makes without breaks = keys down together.
  */
 export function emitKeyboardRules() {
-  const lines = ['.cpu {'];
+  const lines = ['.motherboard {'];
   for (const key of KEYBOARD_KEYS) {
     const value = (key.scancode << 8) | key.ascii;
     lines.push(`  &:has(#${key.id}:active) { --keyboard: ${value}; } /* ${key.label} */`);

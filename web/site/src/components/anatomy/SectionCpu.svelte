@@ -57,12 +57,8 @@ mod(calc(var(--snapshot-DX) * 65536 + var(--snapshot-AX)), max(1, var(--rmVal16)
 
   const TF_DELAY = `--_tf: var(--__1_tfPending);   /* this tick's trap = LAST tick's request */`;
 
-  const CHIP_VARS = `--AX --CX --DX --BX --SP --BP --SI --DI   /* the registers … */
---CS --DS --ES --SS --IP --flags          /* … all fourteen */
---picMask --picPending --picInService     /* interrupt controller */
---pitMode --pitReload --pitCounter …      /* timer chip */
---prevKeyboard --kbdScancodeLatch         /* keyboard */
---dacWriteIndex --dacSubIndex …           /* VGA palette chip */`;
+  const REG_VARS = `--AX --CX --DX --BX --SP --BP --SI --DI   /* the registers … */
+--CS --DS --ES --SS --IP --flags          /* … all fourteen */`;
 
   const POWER_ON = `@property --CS { … initial-value: 61440; }   /* 0xF000 — the BIOS ROM */
 @property --IP { … initial-value: 0; }`;
@@ -71,7 +67,7 @@ mod(calc(var(--snapshot-DX) * 65536 + var(--snapshot-AX)), max(1, var(--rmVal16)
 <p>
   This section is the fourteen <Term t="register">registers</Term> &mdash; <code>--AX</code>,
   <code>--BX</code>, <code>--IP</code> and the rest &mdash; and the
-  tables that define them. It is about 255&nbsp;KB: less than a tenth
+  tables that define them. It is about 265&nbsp;KB: less than a tenth
   of a percent of the file does all of the machine&rsquo;s thinking.
 </p>
 
@@ -112,6 +108,7 @@ mod(calc(var(--snapshot-DX) * 65536 + var(--snapshot-AX)), max(1, var(--rmVal16)
     <code>--snapshot-IP</code>.
   </p>
 </Callout>
+<CodeCss code={REG_VARS} />
 <p>
   Fourteen of these tables, one per register. Evaluating all fourteen
   against the current opcode, once, is how an instruction gets
@@ -290,20 +287,6 @@ mod(calc(var(--snapshot-DX) * 65536 + var(--snapshot-AX)), max(1, var(--rmVal16)
     instruction copying a whole block; underneath it&rsquo;s the same
     instruction re-run N times by the clock.
   </p>
-</Foldable>
-
-<Foldable>
-  {#snippet summary()}The other chips: timer, interrupt controller, palette{/snippet}
-  <p>
-    A PC was never one chip, and programs talk to the rest of the
-    machine directly: they program a <b>timer chip</b> to interrupt
-    them 18.2 times a second, tell the <b>interrupt controller</b>
-    which events to let through, stream colours into the <b>VGA
-    palette</b>. Each of those chips is simulated the same way the
-    registers are &mdash; a few more variables, with tables describing
-    what the silicon would have done:
-  </p>
-  <CodeCss code={CHIP_VARS} />
 </Foldable>
 
 <h3 class="anatomy-head">Power-on</h3>

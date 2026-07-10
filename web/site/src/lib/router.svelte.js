@@ -19,7 +19,7 @@ export const ABOUT_SUBPAGES = ABOUT_SUBS.length;
 const BUILD_SUBS = ['pick', 'configure', 'result'];
 // The How-it-works carousel: the map/overview page, then the file's
 // sections in file order (mirrors anatomy/groups.js).
-export const FILE_SECTIONS = ['map', 'util', 'cpu', 'keys', 'screen', 'decl', 'memr', 'disk', 'clock', 'memw'];
+export const FILE_SECTIONS = ['map', 'util', 'cpu', 'chipset', 'keys', 'screen', 'decl', 'memr', 'memw', 'disk', 'clock'];
 // Which About sub-page hosts the carousel (App.svelte keys arrows off it).
 export const ABOUT_FILE_SUB = ABOUT_SUBS.indexOf('file') + 1;
 // Where "How it Works" entries land: the first info page after Why?.

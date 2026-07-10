@@ -19,6 +19,7 @@
   import SectionMap from '../components/anatomy/SectionMap.svelte';
   import SectionUtil from '../components/anatomy/SectionUtil.svelte';
   import SectionCpu from '../components/anatomy/SectionCpu.svelte';
+  import SectionChipset from '../components/anatomy/SectionChipset.svelte';
   import SectionKeys from '../components/anatomy/SectionKeys.svelte';
   import SectionScreen from '../components/anatomy/SectionScreen.svelte';
   import SectionMemDecl from '../components/anatomy/SectionMemDecl.svelte';
@@ -32,7 +33,8 @@
   // The cabinet carousel: the current section lives on the router
   // (nav.section) so it's addressable — #about/file/clock deep-links.
   const SECTIONS = {
-    map: SectionMap, util: SectionUtil, cpu: SectionCpu, keys: SectionKeys,
+    map: SectionMap, util: SectionUtil, cpu: SectionCpu,
+    chipset: SectionChipset, keys: SectionKeys,
     screen: SectionScreen, decl: SectionMemDecl, memw: SectionMemWrite,
     memr: SectionMemRead, disk: SectionDisk, clock: SectionClock,
   };

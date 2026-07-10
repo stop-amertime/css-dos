@@ -13,8 +13,8 @@ assert.match(css, /#p1\b[^}]*--ci:\s*round\(down,\s*var\(--__1mc327680\)\s*\/\s*
   'pixel 1 reads high byte of cell 0x50000');
 // Exactly 4 pixel rules.
 assert.equal((css.match(/#p\d+\s*\{/g) || []).length, 4, 'one rule per pixel');
-// Pixel rules must be scoped so they only match inside .cpu host.
-assert.match(css, /\.cpu\s+#p0\b|\.cpu\s*>\s*[^{]*#p0\b|#p0[^{]*\{[^}]*--ci/,
+// Pixel rules must be scoped so they only match inside the .motherboard host.
+assert.match(css, /\.motherboard\s+#p0\b|\.motherboard\s*>\s*[^{]*#p0\b|#p0[^{]*\{[^}]*--ci/,
   'pixel rules present');
 
 console.log('PASS pixels-emit index extraction');

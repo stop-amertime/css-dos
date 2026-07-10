@@ -18,13 +18,13 @@
 <div class="kbd-demo">
   <SplitPane>
     {#snippet left()}
-      <pre class="kbd-code"><code><span class="tok-sel">.cpu:has(#kb-a:active)</span> {'{'}
+      <pre class="kbd-code"><code><span class="tok-sel">.motherboard:has(#kb-a:active)</span> {'{'}
   <span class="tok-prop">--keyboard</span>: <span class="tok-num">7777</span>;
 {'}'}
-<span class="tok-sel">.cpu:has(#kb-s:active)</span> {'{'}
+<span class="tok-sel">.motherboard:has(#kb-s:active)</span> {'{'}
   <span class="tok-prop">--keyboard</span>: <span class="tok-num">8051</span>;
 {'}'}
-<span class="tok-sel">.cpu:has(#kb-d:active)</span> {'{'}
+<span class="tok-sel">.motherboard:has(#kb-d:active)</span> {'{'}
   <span class="tok-prop">--keyboard</span>: <span class="tok-num">8292</span>;
 {'}'}
 <span class="tok-comment">/* … one rule per key … */</span></code></pre>

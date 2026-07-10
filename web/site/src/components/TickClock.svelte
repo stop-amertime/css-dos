@@ -22,7 +22,7 @@
   <span class="tok-num">50%</span>  {'{'} <span class="tok-prop">--clock</span>: <span class="tok-num">2</span> {'}'}
   <span class="tok-num">75%</span>  {'{'} <span class="tok-prop">--clock</span>: <span class="tok-num">3</span> {'}'}
 {'}'}
-<span class="tok-sel">.cpu</span> {'{'}
+<span class="tok-sel">.motherboard</span> {'{'}
   animation: tick <span class="tok-num">400ms</span>
     <span class="tok-fn">steps</span>(<span class="tok-num">4</span>) infinite;
 {'}'}</code></pre>

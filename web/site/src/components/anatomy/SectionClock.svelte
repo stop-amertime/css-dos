@@ -41,7 +41,7 @@ style(--opcode: 136): calc(var(--snapshot-cycleCount)
   + if(style(--mod: 3): 2; else: 9));   /* MOV: 2 — or 9 if memory is involved */
 style(--opcode: 212): calc(var(--snapshot-cycleCount) + 83);  /* AAM: 83 — division was expensive */`;
 
-  const CONDUCTOR = `.cpu {
+  const CONDUCTOR = `.motherboard {
   animation: store 1ms infinite, execute 1ms infinite;
   animation-play-state: paused, paused;
   @container style(--clock: 1) { animation-play-state: running, paused }

@@ -96,8 +96,9 @@ inside the ±1% gate).
    `kiln/pixels.mjs` paints each Mode 13h pixel from the framebuffer
    via a 256-arm `@function --paletteRGB()` (proven in real
    Chromium 149). Inert in the calcite path (smoke 6/6). **Open
-   assessment:** the painter is ALWAYS emitted (+6.17 MB fixed per
-   cabinet) — calcite compile-only bench not yet run (deferred; was
+   assessment:** the painter is ALWAYS emitted (+7.0 MB fixed per
+   cabinet since the 2026-07-10 `.motherboard` selector rename) —
+   calcite compile-only bench not yet run (deferred; was
    a concurrent session). Escape hatch if compile time regresses: a
    build flag gating `emitPixelPaintRules()` (~5 lines). See LOGBOOK
    2026-06-30.

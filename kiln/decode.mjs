@@ -1,5 +1,6 @@
 // Opcode fetch, prefix handling, ModR/M decode, EA computation.
-// These are CSS @functions and computed properties emitted into the .cpu rule.
+// These are CSS @functions and computed properties emitted into the .cpu rule
+// (the machine element also carries .motherboard — same computed style).
 
 /**
  * Emit @function for ModR/M effective address computation.

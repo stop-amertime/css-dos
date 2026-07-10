@@ -9,5 +9,5 @@ execFileSync('node', ['builder/build.mjs', 'carts/test-carts/hello-text', '-o', 
 const css = readFileSync(out, 'utf8');
 assert.ok(css.includes('MODE 13h PIXEL PAINTER'), 'painter block emitted');
 assert.ok(css.includes('@function --paletteRGB'), 'palette function emitted');
-assert.ok(/\.cpu #p63999 \{/.test(css), 'full 320x200 grid emitted (last pixel)');
+assert.ok(/\.motherboard #p63999 \{/.test(css), 'full 320x200 grid emitted (last pixel)');
 console.log('PASS pixels wired into cabinet');

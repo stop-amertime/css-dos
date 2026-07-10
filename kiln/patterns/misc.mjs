@@ -459,7 +459,8 @@ export function emitLAHF_SAHF(dispatch) {
 }
 
 /**
- * Peripheral helper computed properties emitted into the .cpu rule.
+ * Peripheral helper computed properties emitted into the .motherboard
+ * (chipset) rule.
  *
  * These aren't dispatched — they're derived each tick from the new
  * --cycleCount (which the instruction's cycle-count entry has already
@@ -522,7 +523,7 @@ export function picPendingDefaultExpr() {
 
 /**
  * Compute properties for IRQ delivery. Emitted as standalone lines in
- * the .cpu rule — not dispatch-routed.
+ * the .motherboard (chipset) rule — not dispatch-routed.
  *
  *   --_kbdPress:    1 iff --keyboard went 0 → non-zero this tick (make code).
  *   --_kbdRelease:  1 iff --keyboard went non-zero → 0 this tick (break code).

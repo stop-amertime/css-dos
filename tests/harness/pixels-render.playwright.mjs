@@ -65,12 +65,12 @@ const cellDecls = [...cells].map(([i, v]) => `--__1mc${i}: ${v};`).join(' ');
 const grid = Array.from({ length: W * H }, (_, i) => `<i id="p${i}"></i>`).join('');
 const html = `<!doctype html><meta charset=utf-8>
 <style>
-.cpu { ${cellDecls} }
+.motherboard { ${cellDecls} }
 #grid { display: grid; grid-template-columns: repeat(${W}, 8px); }
 #grid i { width: 8px; height: 8px; display: block; }
 ${painter}
 </style>
-<div class="cpu"><div id="grid">${grid}</div></div>`;
+<div class="motherboard"><div id="grid">${grid}</div></div>`;
 
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage();
