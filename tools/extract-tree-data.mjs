@@ -187,12 +187,38 @@ function parseIf(text) {
   return { kind: 'if', code: calcWrap ? 'calc(if(' : 'if(', children, trailer };
 }
 
-// Parses one real `--REG: if(...);` declaration (the shape every register
-// dispatch has — emit-css.mjs emitRegisterDispatch) into a `decl` root.
-function parseRegisterDispatch(raw, reg) {
-  const declPrefix = `--${reg}: `;
-  if (!raw.startsWith(declPrefix)) throw new Error(`unexpected prefix for --${reg}: ${raw.slice(0, 40)}`);
-  return { kind: 'decl', code: `--${reg}:`, children: [parseIf(raw.slice(declPrefix.length))] };
+// Parses the ENTIRE `.cpu { ... }` rule body — every declaration and
+// banner comment, in file order, nothing hand-picked (the alias list and
+// the flag-function exhibit both went stale because they were hand-kept;
+// this doesn't). Each ';'-terminated chunk yields: leading "/* ... */"
+// banner comments as their own block nodes, then the declaration —
+// a folded `decl` AST when its value branches (if(...) / calc(if(...)),
+// a plain one-line block otherwise.
+function parseCpuRule(css) {
+  const ruleStart = css.indexOf('.cpu {');
+  if (ruleStart === -1) throw new Error('.cpu rule not found');
+  const bodyStart = ruleStart + '.cpu {'.length;
+  const body = css.slice(bodyStart, css.indexOf('\n}', bodyStart));
+
+  const nodes = [];
+  for (const rawChunk of splitTopLevel(body)) {
+    let chunk = rawChunk.trim();
+    while (chunk.startsWith('/*')) {
+      const end = chunk.indexOf('*/') + 2;
+      nodes.push({ kind: 'block', code: chunk.slice(0, end) });
+      chunk = chunk.slice(end).trim();
+    }
+    if (!chunk) continue;
+    const m = chunk.match(/^(--[\w-]+):/);
+    if (!m) throw new Error(`unparsed .cpu chunk: ${chunk.slice(0, 60)}...`);
+    const value = chunk.slice(m[0].length).trim();
+    if (value.startsWith('if(') || value.startsWith('calc(if(')) {
+      nodes.push({ kind: 'decl', code: m[0], children: [parseIf(value)] });
+    } else {
+      nodes.push({ kind: 'block', code: chunk });
+    }
+  }
+  return { nodes, body };
 }
 
 // ---------------------------------------------------------------------------
@@ -226,26 +252,6 @@ function assertRoundTrip(declNode, raw, reg) {
 
 // ---------------------------------------------------------------------------
 // Verbatim slicing of non-dispatch exhibits.
-
-// Extracts the full text of one register's real dispatch declaration
-// (e.g. "  --AX: if(...);") out of the real generated .cpu rule, by
-// paren-balanced scanning from `  --${reg}:` to its closing `;`.
-function extractRegisterDispatch(css, reg) {
-  const marker = `  --${reg}: `;
-  const start = css.indexOf(marker);
-  if (start === -1) throw new Error(`register --${reg} not found in generated CSS`);
-  let depth = 0;
-  for (let i = start + marker.length; i < css.length; ) {
-    const skipped = skipComment(css, i);
-    if (skipped !== i) { i = skipped; continue; }
-    const c = css[i];
-    if (c === '(') depth++;
-    else if (c === ')') depth--;
-    else if (c === ';' && depth === 0) return css.slice(start, i + 1).trim();
-    i++;
-  }
-  throw new Error(`--${reg}: dispatch never terminated`);
-}
 
 // Extracts one real `@property --NAME { ... }` block verbatim.
 function extractPropertyBlock(css, name) {
@@ -313,21 +319,20 @@ function carveFolds(decl) {
 function generateCpuTree() {
   const css = captureRealCSS();
 
-  const regAst = {};
+  // The whole .cpu rule, every declaration + banner comment, file order.
+  const { nodes: cpuNodes, body: cpuBody } = parseCpuRule(css);
+  const declNodes = cpuNodes.filter((n) => n.kind === 'decl');
+  for (const decl of declNodes) carveFolds(decl);
+  // Round-trip the ENTIRE rule body: concatenating every parsed node must
+  // reproduce it (whitespace-stripped) — nothing dropped, nothing moved.
+  assertRoundTrip({ code: '', children: cpuNodes }, cpuBody, 'cpu-rule');
+  // Sanity: every register dispatch must be among the parsed decls.
   for (const reg of CPU_REGS) {
-    const raw = extractRegisterDispatch(css, reg);
-    const decl = parseRegisterDispatch(raw, reg);
-    assertRoundTrip(decl, raw, reg);
-    carveFolds(decl);
-    regAst[reg] = decl;
-    const branchCount = decl.children[0].children.length;
-    console.error(`  --${reg}: ${branchCount} top-level branches, round-trip OK`);
+    if (!declNodes.some((n) => n.code === `--${reg}:`)) {
+      throw new Error(`--${reg}: dispatch missing from parsed .cpu rule`);
+    }
   }
-
-  const alAlias = (() => {
-    const start = css.indexOf('--AL:');
-    return css.slice(start, css.indexOf(';', start) + 1);
-  })();
+  console.error(`  .cpu rule: ${cpuNodes.length} nodes (${declNodes.length} branching decls), round-trip OK`);
 
   // The flag-arithmetic @function cluster — discovered by scanning the
   // real file (not a hand-kept list, so new helpers can't silently go
@@ -351,12 +356,12 @@ function generateCpuTree() {
   lines.push(`// generation time. Regenerate: node tools/extract-tree-data.mjs cpu > \\`);
   lines.push(`//   web/site/src/components/anatomy/tree/cpu-tree.js`);
   lines.push(`// The top-level layout mirrors the REAL file order (nothing is`);
-  lines.push(`// reordered, only curated): @function helpers first, then the .cpu`);
-  lines.push(`// rule with the alias + register dispatches, then the @property`);
-  lines.push(`// registrations near the end of the cabinet. Fold points (folded:)`);
-  lines.push(`// are carved by the tool; everything else renders as plain code.`);
-  lines.push('');
-  lines.push(`const AL_ALIAS = ${jsTemplateLiteral(alAlias)};`);
+  lines.push(`// reordered, only curated): the flag @function cluster first, then`);
+  lines.push(`// the COMPLETE .cpu rule (every declaration and banner comment, in`);
+  lines.push(`// order — aliases, fetch/decode, ModR/M, EA, precomputed operands,`);
+  lines.push(`// REP state, the 14 dispatches), then the @property registrations`);
+  lines.push(`// near the end of the cabinet. Fold points (folded:) are carved by`);
+  lines.push(`// the tool; everything else renders as plain code.`);
   lines.push('');
 
   const flagFnVarNames = [];
@@ -374,22 +379,16 @@ function generateCpuTree() {
   }
   lines.push('');
 
-  const dispatchVarNames = {};
-  for (const reg of CPU_REGS) {
-    dispatchVarNames[reg] = `${reg}_DISPATCH`;
-    lines.push(`const ${dispatchVarNames[reg]} = ${serializeNode(regAst[reg], 0)};`);
-    lines.push('');
-  }
-
   // Top level in real file order: the @function cluster (~27-41K into
-  // the cabinet), .cpu rule (alias ~42K, dispatches 61K-233K), @property
-  // blocks (~7.3M, near the end). Verified against the captured CSS's
-  // indexOf offsets.
+  // the cabinet), the complete .cpu rule (~42-306K), @property blocks
+  // (~7.3M, near the end). Verified against the captured CSS's indexOf
+  // offsets.
   lines.push(`export const CPU_TREE = [`);
   lines.push(`  {`);
   lines.push(`    kind: 'section',`);
   lines.push(`    label: 'flag-arithmetic @functions (${flagFnNames.length} helpers the ALU rows call)',`);
   lines.push(`    folded: true,`);
+  lines.push(`    boxed: true,`);
   lines.push(`    children: [`);
   for (const varName of flagFnVarNames) {
     lines.push(`      { kind: 'block', code: ${varName}, folded: true },`);
@@ -398,12 +397,12 @@ function generateCpuTree() {
   lines.push(`  },`);
   lines.push(`  {`);
   lines.push(`    kind: 'section',`);
-  lines.push(`    label: '.cpu rule — register dispatch',`);
+  lines.push(`    label: '.cpu rule — the complete decode + register block (${cpuNodes.length} entries)',`);
   lines.push(`    folded: true,`);
+  lines.push(`    boxed: true,`);
   lines.push(`    children: [`);
-  lines.push(`      { kind: 'block', code: AL_ALIAS },`);
-  for (const reg of CPU_REGS) {
-    lines.push(`      ${dispatchVarNames[reg]},`);
+  for (const node of cpuNodes) {
+    lines.push(`${serializeNode(node, 3)},`);
   }
   lines.push(`    ],`);
   lines.push(`  },`);
@@ -411,6 +410,7 @@ function generateCpuTree() {
   lines.push(`    kind: 'section',`);
   lines.push(`    label: '@property registrations — typed register declarations',`);
   lines.push(`    folded: true,`);
+  lines.push(`    boxed: true,`);
   lines.push(`    children: [`);
   for (const reg of CPU_REGS) {
     lines.push(`      { kind: 'block', code: ${propVarNames[reg]}, folded: true },`);

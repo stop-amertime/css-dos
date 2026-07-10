@@ -1,14 +1,18 @@
 <script>
   // TreeAst — the ONE renderer for every node of the anatomy Tree View
   // (see tools/extract-tree-data.mjs for the node model):
-  //   section  editorial label row, [+]/[-] folds its children.
-  //   block    verbatim multi-line code exhibit; folds to its first line.
+  //   section  editorial label row, [+]/[-] folds its children; with
+  //            `boxed: true` its children render inside one tinted
+  //            .byte-example pane (one box per file region, not one per
+  //            exhibit).
+  //   block    verbatim code chunk (a one-line declaration, a banner
+  //            comment, an @property/@function body); folds to its first
+  //            line when carved.
   //   decl/if/branch/value  the real dispatch AST, rendered as indented
   //            Prism-highlighted code whose indentation IS the tree.
   // Collapsing happens ONLY at nodes the extraction tool carved with a
-  // `folded` flag (sections, register decls, @property blocks, opcode
-  // rows) — every other node is plain, always-visible code with no
-  // toggle. `folded: true` = starts collapsed; the flag's presence is
+  // `folded` flag — every other node is plain, always-visible code with
+  // no toggle. `folded: true` = starts collapsed; the flag's presence is
   // what makes a node togglable at all.
   //
   // Display rules (display logic only — the data stays fully decomposed):
@@ -20,6 +24,9 @@
   //   - a folded node shows its own token, a dim "…", then its comment
   //     (the comment is the row's description — it stays visible).
   //   - an if's real closing text (trailer) prints back at its own indent.
+  //   - code lines are <pre> elements: the wizard's inline-code white
+  //     chip rule (global.css `.window.wizard :not(pre) > code`) is
+  //     designed to skip code inside a <pre>.
   import Prism from '../../../lib/prism.js';
   import TreeAst from './TreeAst.svelte'; // self-import: Svelte 5 deprecates <svelte:self>
 
@@ -68,9 +75,9 @@
   const lineHtml = $derived.by(() => {
     if (isSection) return null;
     if (isBlock) {
-      return open && blockFoldable
+      return open || !blockFoldable
         ? blockLines[0]
-        : hl(node.code.split('\n')[0]) + (blockFoldable ? '<span class="ast-ellipsis"> …</span>' : '');
+        : hl(node.code.split('\n')[0]) + '<span class="ast-ellipsis"> …</span>';
     }
     let h = hl((node.code ?? '') + (oneLine ? ` ${onlyChild.code}` : ''));
     if (foldable && !open) h += '<span class="ast-ellipsis"> …</span>';
@@ -84,29 +91,33 @@
   function toggle() { if (foldable) open = !open; }
 </script>
 
-{#snippet body()}
-  {#if isSection}
-    <div class="ast-line is-section" class:is-foldable={foldable}
-         role={foldable ? 'button' : undefined} tabindex={foldable ? 0 : undefined}
-         onclick={toggle} onkeydown={(e) => e.key === 'Enter' && toggle()}>
-      <span class="tree-glyph" aria-hidden="true">{foldable ? (open ? '[-]' : '[+]') : ''}</span>
-      <span class="tree-label-group">{node.label}</span>
-    </div>
-  {:else}
-    <div class="ast-line" class:is-foldable={foldable}
-         role={foldable ? 'button' : undefined} tabindex={foldable ? 0 : undefined}
-         onclick={toggle} onkeydown={(e) => e.key === 'Enter' && toggle()}>
-      <span class="tree-glyph" aria-hidden="true">{foldable ? (open ? '[-]' : '[+]') : ''}</span>
-      <code>{@html lineHtml}</code>
+{#if isSection}
+  <div class="ast-line is-section" class:is-foldable={foldable}
+       role={foldable ? 'button' : undefined} tabindex={foldable ? 0 : undefined}
+       onclick={toggle} onkeydown={(e) => e.key === 'Enter' && toggle()}>
+    <span class="tree-glyph" aria-hidden="true">{foldable ? (open ? '[-]' : '[+]') : ''}</span>
+    <span class="tree-label-group">{node.label}</span>
+  </div>
+  {#if open && visible.length > 0}
+    <div class="ast-children" class:byte-example={node.boxed} class:tree-ast={node.boxed}>
+      {#each visible as child}
+        <TreeAst node={child} />
+      {/each}
+      {#if remaining > 0}
+        <div class="tree-more">
+          <button onclick={() => (shown += PAGE)}>({remaining} more&hellip;)</button>
+        </div>
+      {/if}
     </div>
   {/if}
+{:else}
+  <pre class="ast-line" class:is-foldable={foldable}
+       role={foldable ? 'button' : undefined} tabindex={foldable ? 0 : undefined}
+       onclick={toggle} onkeydown={(e) => e.key === 'Enter' && toggle()}><span class="tree-glyph" aria-hidden="true">{foldable ? (open ? '[-]' : '[+]') : ''}</span><code>{@html lineHtml}</code></pre>
 
   {#if isBlock && open && blockFoldable}
     {#each blockLines.slice(1) as line}
-      <div class="ast-line">
-        <span class="tree-glyph" aria-hidden="true"></span>
-        <code>{@html line}</code>
-      </div>
+      <pre class="ast-line"><span class="tree-glyph" aria-hidden="true"></span><code>{@html line}</code></pre>
     {/each}
   {/if}
 
@@ -124,15 +135,6 @@
   {/if}
 
   {#if !isBlock && open && node.trailer}
-    <div class="ast-line">
-      <span class="tree-glyph" aria-hidden="true"></span>
-      <code>{@html hl(node.trailer)}</code>
-    </div>
+    <pre class="ast-line"><span class="tree-glyph" aria-hidden="true"></span><code>{@html hl(node.trailer)}</code></pre>
   {/if}
-{/snippet}
-
-{#if node.kind === 'decl' || isBlock}
-  <div class="byte-example tree-ast">{@render body()}</div>
-{:else}
-  {@render body()}
 {/if}

@@ -9,8 +9,10 @@ and verbatim exhibits. The tool **round-trip-verifies** every register
 (AST reconstruction must equal the raw text) and opcode counts match
 `cpu-coverage.js` for all 14 registers. Top level mirrors the REAL
 file order (nothing reordered): 36 flag-arithmetic `@function`s
-(scanned dynamically, addOF16…sarFlagsN8) → `.cpu` rule (AL alias +
-14 dispatches) → `@property` blocks (really near the file's end). One
+(scanned dynamically, addOF16…sarFlagsN8) → the COMPLETE `.cpu` rule
+(163 entries: 8 aliases, fetch/decode/ModR/M/EA pipeline, 14
+dispatches, banner comments — whole-rule round-trip-verified) →
+`@property` blocks (really near the file's end). One
 renderer (`TreeAst.svelte`); collapse ONLY at tool-carved fold points
 (sections, decls, property/function blocks, nested-if opcode rows),
 20-per-level pagination, one-line joins under an ~80-char budget else

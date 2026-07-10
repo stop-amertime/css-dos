@@ -32,11 +32,21 @@
 
 /* One visual line of the tree: a fixed [+]/[-] gutter (kept on every
    line so code columns stay aligned whether or not a row folds) and the
-   line's content — wrapped continuations align after the gutter. */
+   line's content — wrapped continuations align after the gutter. Code
+   lines are <pre> elements so the wizard's inline-code white-chip rule
+   (global.css `.window.wizard :not(pre) > code`) skips them by design —
+   reset the pre defaults here. */
 .ast-line {
   display: flex;
   align-items: baseline;
   padding: 1px 0;
+  margin: 0;
+  border: none;
+  background: none;
+  white-space: normal;
+  overflow-x: visible;
+  font-size: inherit;
+  line-height: inherit;
 }
 .ast-line .tree-glyph {
   flex: none;
@@ -70,10 +80,11 @@
   border-left: 1px dashed #ccd;
 }
 
-/* Code exhibits (a register dispatch, an @property/@function block) sit
-   in a tinted box — .byte-example supplies the WebVGA font and Prism
-   palette; this override swaps its border for the tint. */
-.tree-ast {
+/* A boxed section's children pane: ONE tinted box per real file region
+   (the @function cluster, the .cpu rule, the @property blocks) —
+   .byte-example supplies the WebVGA font and Prism palette; this
+   override swaps its border for the tint. */
+.ast-children.tree-ast {
   margin: 4px 0 8px 0;
   background: #f0f0f8;
   border: none;
