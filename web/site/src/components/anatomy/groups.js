@@ -7,20 +7,23 @@
 // util 24,979 / cpu 66,717 / chipset 331,885 / keys 348,315 /
 // screen 351,835 / decl 7,331,748 / memr 39,366,670 /
 // memw 83,138,481 / disk 253,856,953 / clock 266,802,460.
-// Colours from the EGA palette (utilities get light red: same
-// family as the CPU; chipset yellow; declarations light blue: same
-// family as the write formulas).
+// Colours are semantic families (EGA-leaning): silicon = reds
+// (CPU dark, chipset light), I/O = cyans (screen dark, keys light),
+// memory = blues (decl light → memr mid → memw dark, biggest =
+// darkest), disk = floppy brown, utilities = green (deliberately
+// unrelated to everything), clock = bright pink — the one thing
+// that moves gets the loudest colour.
 export const GROUPS = [
-  { id: 'util',    label: 'Utility functions',               size: '42 KB',  c: '#ff5555' },
+  { id: 'util',    label: 'Utility functions',               size: '42 KB',  c: '#00aa00' },
   { id: 'cpu',     label: 'CPU',                             size: '265 KB', c: '#aa0000' },
-  { id: 'chipset', label: 'Chipset',                         size: '16 KB',  c: '#ffff55' },
-  { id: 'keys',    label: 'Keyboard & debug display',        size: '3.5 KB', c: '#aa00aa' },
+  { id: 'chipset', label: 'Chipset',                         size: '16 KB',  c: '#ff5555' },
+  { id: 'keys',    label: 'Keyboard & debug display',        size: '3.5 KB', c: '#55ffff' },
   { id: 'screen',  label: 'Screen',                          size: '7 MB',   c: '#00aaaa' },
   { id: 'decl',    label: 'Memory — variable declarations',  size: '32 MB',  c: '#5555ff' },
-  { id: 'memr',    label: 'Memory — read formulas',          size: '44 MB',  c: '#00aa00' },
+  { id: 'memr',    label: 'Memory — read formulas',          size: '44 MB',  c: '#2222cc' },
   { id: 'memw',    label: 'Memory — write formulas',         size: '171 MB', c: '#0000aa' },
   { id: 'disk',    label: 'Disk',                            size: '13 MB',  c: '#aa5500' },
-  { id: 'clock',   label: 'Clock',                           size: '43 MB',  c: '#aaaaaa' },
+  { id: 'clock',   label: 'Clock',                           size: '43 MB',  c: '#ff55ff' },
 ];
 
 // The four sections too small to draw at bar scale — together
