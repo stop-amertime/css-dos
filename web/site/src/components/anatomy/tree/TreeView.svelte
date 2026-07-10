@@ -1,17 +1,22 @@
 <script>
   // TreeView — the root of the anatomy Tree View: a labelled panel
-  // containing one TreeNode per top-level entry in `nodes`. Sits above
-  // the existing prose in a section pane (see SectionCpu.svelte) — see
-  // docs/plans/2026-07-10-anatomy-tree-view.md "Data & placement".
+  // containing one TreeAst per top-level entry in `nodes` (sections,
+  // blocks, and dispatch ASTs all render through the same component —
+  // see tools/extract-tree-data.mjs for the node model). Sits above the
+  // existing prose in a section pane (see SectionCpu.svelte).
   import '../../../styles/_fragments/tree-view.css';
-  import TreeNode from './TreeNode.svelte';
+  import TreeAst from './TreeAst.svelte';
+  import IconTree from '~icons/pixelarticons/tree';
 
   let { nodes, label = 'Tree view: real cabinet CSS' } = $props();
 </script>
 
 <section class="tree-view" aria-label={label}>
-  <h3 class="anatomy-head">{label}</h3>
+  <h3 class="anatomy-head tree-view-head">
+    <IconTree class="tree-view-icon" aria-hidden="true" />
+    <span class="sr-only">{label}</span>
+  </h3>
   {#each nodes as node}
-    <TreeNode {node} depth={0} />
+    <TreeAst {node} />
   {/each}
 </section>

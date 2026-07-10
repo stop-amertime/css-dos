@@ -1,0 +1,436 @@
+#!/usr/bin/env node
+// extract-tree-data.mjs — generates the website's anatomy Tree View data
+// (web/site/src/components/anatomy/tree/*-tree.js) from REAL Kiln output,
+// never hand-typed CSS. Runs the same emitCSS(opts, writeStream) entry
+// point builder/build.mjs uses, against a tiny synthetic cart, and slices
+// real rows out of the real generated text.
+//
+// ONE node model powers the whole tree (TreeAst.svelte renders all of it):
+//   section "AX" / "Registers" — editorial label, no code. The only
+//           editorial invention in the tree: the CSS itself doesn't group
+//           a register's @property with its dispatch.
+//   block   a verbatim multi-line exhibit (@property/@function/alias),
+//           folds to its first line.
+//   decl    "--REG:" — the register declaration; one child, its if.
+//   if      "if(" (or "calc(if(" for IP's prefixLen wrap) — one child per
+//           branch, in source order; `trailer` is the real closing text
+//           (")", ");", ") + var(--prefixLen))" ...).
+//   branch  "style(cond):" or "else:" — one child: a leaf `value`, or an
+//           `if` when the branch's value itself branches. `comment` holds
+//           the row's own trailing "/* ... */" (Kiln emits it after the
+//           row's ';').
+//   value   a plain leaf expression, ';' included when the source had one.
+// Nothing is collapsed or re-nested at the DATA level — a node's `code`
+// is only its own token, never text that belongs to a child. TreeAst.svelte
+// may render single-child chains on one visual line (when they fit a line
+// budget); that is display logic, not a change to the tree.
+//
+// COLLAPSING is data-carved: `folded: true` marks a node's INITIAL state;
+// every node with hidden content is click-togglable regardless. The cpu
+// recipe folds: all sections, every @property block, and every opcode row
+// whose value is a nested if (so the ~99-232-row lists scan as one line
+// per row — "[+] style(--opcode: 0): … /* ADD r/m8, reg8 → AX */" — and
+// expand on demand).
+//
+// SELF-CHECK: after parsing, each register's AST is reconstructed and
+// compared (whitespace-stripped) against the raw sliced text. Any dropped
+// or misattached character — the historical failure mode here, twice —
+// fails the generation loudly instead of shipping a silently-wrong tree.
+//
+// Usage: node tools/extract-tree-data.mjs cpu > \
+//   web/site/src/components/anatomy/tree/cpu-tree.js
+// Only "cpu" is implemented; the other 9 file sections (memory/disk/
+// clock/...) need their own extraction recipe per section (see the survey
+// referenced in the logbook) — captureRealCSS()/parseIf() generalise, but
+// each section's own dispatch shape still needs its own parser.
+
+import { emitCSS } from '../kiln/emit-css.mjs';
+
+// A tiny synthetic cart: a 6-byte program at 0x100 (enough for emitCSS's
+// address-set builder to run for real), no BIOS/disk. Real emitter logic,
+// fake-small input — the technique verified across all 10 file sections.
+const SYNTHETIC_OPTS = {
+  memoryZones: [[0x100, 0x106]],
+  programBytes: new Uint8Array([0xb8, 0x05, 0x00, 0xcd, 0x20, 0x00]), // MOV AX,5; INT 0x20
+  biosBytes: new Uint8Array(0),
+  embeddedData: [],
+  programOffset: 0x100,
+  initialCS: 0,
+  initialIP: 0x100,
+  diskBytes: null,
+  writableDisk: null,
+  header: null,
+};
+
+function captureRealCSS(opts = SYNTHETIC_OPTS) {
+  const chunks = [];
+  const fakeStream = { write: (s) => { chunks.push(s); return true; } };
+  emitCSS(opts, fakeStream);
+  return chunks.join('');
+}
+
+// ---------------------------------------------------------------------------
+// Scanning primitives — all comment-aware. Comments can contain parens
+// ("/* HLT (IP unchanged) */") and must never affect depth tracking.
+
+// If text[i] starts a "/* ... */" comment, returns the index just past its
+// "*/"; otherwise returns i unchanged.
+function skipComment(text, i) {
+  if (text[i] === '/' && text[i + 1] === '*') {
+    const end = text.indexOf('*/', i + 2);
+    return end === -1 ? text.length : end + 2;
+  }
+  return i;
+}
+
+// Index of the ')' matching the '(' at openIndex.
+function matchParen(text, openIndex) {
+  let depth = 1;
+  for (let i = openIndex + 1; i < text.length; ) {
+    const skipped = skipComment(text, i);
+    if (skipped !== i) { i = skipped; continue; }
+    if (text[i] === '(') depth++;
+    else if (text[i] === ')' && --depth === 0) return i;
+    i++;
+  }
+  throw new Error(`unbalanced parens from index ${openIndex}: ${text.slice(openIndex, openIndex + 60)}...`);
+}
+
+// Splits an if(...)'s inner body into its top-level ';'-separated branches.
+// Each branch keeps its own ';' AND its own trailing "/* comment */" (Kiln
+// emits the comment after the ';', so a naive cut hands it to the NEXT
+// branch — the comment-bleed bug this parser has now regrown twice; the
+// lookahead here is the permanent fix, guarded by the round-trip check).
+function splitTopLevel(body) {
+  const parts = [];
+  let start = 0;
+  let depth = 0;
+  for (let j = 0; j < body.length; ) {
+    const skipped = skipComment(body, j);
+    if (skipped !== j) { j = skipped; continue; }
+    const c = body[j];
+    if (c === '(') depth++;
+    else if (c === ')') depth--;
+    else if (c === ';' && depth === 0) {
+      let end = j + 1;
+      const m = body.slice(end).match(/^[ \t]*\/\*[\s\S]*?\*\//);
+      if (m) end += m[0].length;
+      parts.push(body.slice(start, end));
+      start = end;
+      j = end;
+      continue;
+    }
+    j++;
+  }
+  const last = body.slice(start);
+  if (last.trim()) parts.push(last);
+  return parts;
+}
+
+// First ':' at paren-depth 0 (the branch's own "cond: value" separator —
+// colons inside style(...) conditions sit at depth 1 and don't match).
+function topLevelColon(text) {
+  let depth = 0;
+  for (let j = 0; j < text.length; ) {
+    const skipped = skipComment(text, j);
+    if (skipped !== j) { j = skipped; continue; }
+    const c = text[j];
+    if (c === '(') depth++;
+    else if (c === ')') depth--;
+    else if (c === ':' && depth === 0) return j;
+    j++;
+  }
+  return -1;
+}
+
+// ---------------------------------------------------------------------------
+// The AST parser.
+
+// Parses text beginning with "if(" (or "calc(if(") into an `if` node.
+// `trailer` is everything from the if's own ')' to the end of the given
+// text — for a plain branch value that's ");" (+ nothing, the comment was
+// already peeled to the branch), for IP's calc wrap it's
+// ") + var(--prefixLen))", for the register root it's ");". Keeping the
+// trailer ON the node means the renderer can close the block visually at
+// the right indent, and the round-trip check can prove no text was lost.
+function parseIf(text) {
+  const calcWrap = text.startsWith('calc(if(');
+  const ifStart = text.indexOf('if(');
+  const closeIdx = matchParen(text, ifStart + 2);
+  const body = text.slice(ifStart + 3, closeIdx);
+  const trailer = text.slice(closeIdx); // ')' inclusive, through end
+
+  const children = splitTopLevel(body).map((branchText) => {
+    let t = branchText.trim();
+    // Peel the row's own trailing comment (already guaranteed by
+    // splitTopLevel to be THIS row's) into the branch node.
+    let comment = null;
+    const cm = t.match(/\s*(\/\*[\s\S]*?\*\/)$/);
+    if (cm) {
+      comment = cm[1];
+      t = t.slice(0, t.length - cm[0].length);
+    }
+    const colonAt = topLevelColon(t);
+    if (colonAt === -1) throw new Error(`branch without top-level ':': ${t.slice(0, 60)}...`);
+    const condText = t.slice(0, colonAt + 1).trim(); // "style(...):" / "else:"
+    const valueText = t.slice(colonAt + 1).trim();
+
+    const child = (valueText.startsWith('if(') || valueText.startsWith('calc(if('))
+      ? parseIf(valueText)
+      : { kind: 'value', code: valueText };
+
+    const branch = { kind: 'branch', code: condText, children: [child] };
+    if (comment) branch.comment = comment;
+    return branch;
+  });
+
+  return { kind: 'if', code: calcWrap ? 'calc(if(' : 'if(', children, trailer };
+}
+
+// Parses one real `--REG: if(...);` declaration (the shape every register
+// dispatch has — emit-css.mjs emitRegisterDispatch) into a `decl` root.
+function parseRegisterDispatch(raw, reg) {
+  const declPrefix = `--${reg}: `;
+  if (!raw.startsWith(declPrefix)) throw new Error(`unexpected prefix for --${reg}: ${raw.slice(0, 40)}`);
+  return { kind: 'decl', code: `--${reg}:`, children: [parseIf(raw.slice(declPrefix.length))] };
+}
+
+// ---------------------------------------------------------------------------
+// The self-check: concatenating every token/comment/trailer in tree order
+// must reproduce the raw sliced text exactly, modulo whitespace. Any
+// parser bug that drops or misattaches text fails here, at generation
+// time, instead of shipping a silently-wrong tree to the site.
+function reconstruct(node) {
+  let s = node.code ?? '';
+  for (const c of node.children ?? []) s += ' ' + reconstruct(c);
+  if (node.trailer) s += node.trailer;
+  if (node.comment) s += ' ' + node.comment;
+  return s;
+}
+
+function assertRoundTrip(declNode, raw, reg) {
+  const strip = (s) => s.replace(/\s+/g, '');
+  const rebuilt = strip(reconstruct(declNode));
+  const original = strip(raw);
+  if (rebuilt !== original) {
+    // Find the first divergence for a useful error message.
+    let i = 0;
+    while (i < rebuilt.length && i < original.length && rebuilt[i] === original[i]) i++;
+    throw new Error(
+      `--${reg}: AST does not round-trip to the raw CSS (diverges at stripped index ${i}):\n` +
+      `  raw:     ...${original.slice(Math.max(0, i - 30), i + 30)}...\n` +
+      `  rebuilt: ...${rebuilt.slice(Math.max(0, i - 30), i + 30)}...`
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Verbatim slicing of non-dispatch exhibits.
+
+// Extracts the full text of one register's real dispatch declaration
+// (e.g. "  --AX: if(...);") out of the real generated .cpu rule, by
+// paren-balanced scanning from `  --${reg}:` to its closing `;`.
+function extractRegisterDispatch(css, reg) {
+  const marker = `  --${reg}: `;
+  const start = css.indexOf(marker);
+  if (start === -1) throw new Error(`register --${reg} not found in generated CSS`);
+  let depth = 0;
+  for (let i = start + marker.length; i < css.length; ) {
+    const skipped = skipComment(css, i);
+    if (skipped !== i) { i = skipped; continue; }
+    const c = css[i];
+    if (c === '(') depth++;
+    else if (c === ')') depth--;
+    else if (c === ';' && depth === 0) return css.slice(start, i + 1).trim();
+    i++;
+  }
+  throw new Error(`--${reg}: dispatch never terminated`);
+}
+
+// Extracts one real `@property --NAME { ... }` block verbatim.
+function extractPropertyBlock(css, name) {
+  const marker = `@property --${name} {`;
+  const start = css.indexOf(marker);
+  if (start === -1) throw new Error(`@property --${name} not found`);
+  return css.slice(start, css.indexOf('\n}', start) + 2);
+}
+
+// Extracts one real `@function --NAME(...) { ... }` block verbatim.
+function extractFunctionBlock(css, name) {
+  const marker = `@function --${name}(`;
+  const start = css.indexOf(marker);
+  if (start === -1) throw new Error(`@function --${name} not found`);
+  return css.slice(start, css.indexOf('\n}', start) + 2);
+}
+
+// A JS template literal embedding real CSS verbatim — escapes backtick/${,
+// never alters content.
+function jsTemplateLiteral(s) {
+  return `\`${s.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${')}\``;
+}
+
+// ---------------------------------------------------------------------------
+// Generation.
+
+const CPU_REGS = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI',
+                  'CS', 'DS', 'ES', 'SS', 'IP', 'flags'];
+
+// Serializes an AST node as a JS object literal, token strings inlined as
+// template literals (they're short — one token each).
+function serializeNode(node, indent) {
+  const pad = '  '.repeat(indent);
+  const props = [`kind: '${node.kind}'`];
+  if (node.code != null) props.push(`code: ${jsTemplateLiteral(node.code)}`);
+  if (node.comment) props.push(`comment: ${jsTemplateLiteral(node.comment)}`);
+  if (node.trailer) props.push(`trailer: ${jsTemplateLiteral(node.trailer)}`);
+  if (node.folded != null) props.push(`folded: ${node.folded}`);
+  if (!node.children || node.children.length === 0) {
+    return `${pad}{ ${props.join(', ')} }`;
+  }
+  const childExprs = node.children.map((c) => serializeNode(c, indent + 1));
+  return `${pad}{\n${pad}  ${props.join(`,\n${pad}  `)},\n${pad}  children: [\n${childExprs.join(',\n')},\n${pad}  ],\n${pad}}`;
+}
+
+// Carves the fold points into one register's AST: the decl itself (the
+// register-level collapse — "[+] --AX: …") and every opcode row whose
+// value is a nested if (so the long lists scan as one line per row).
+// Only nodes carved here are togglable at all — TreeAst renders
+// everything else as plain, always-visible code.
+function carveFolds(decl) {
+  decl.folded = true;
+  const dispatchIf = decl.children[0];
+  const elseBranch = dispatchIf.children.find((b) => b.code === 'else:');
+  const inner = elseBranch?.children[0];
+  if (inner?.kind === 'if') {
+    for (const b of inner.children) {
+      if (b.code.startsWith('style(--opcode:') && b.children[0]?.kind === 'if') {
+        b.folded = true;
+      }
+    }
+  }
+}
+
+function generateCpuTree() {
+  const css = captureRealCSS();
+
+  const regAst = {};
+  for (const reg of CPU_REGS) {
+    const raw = extractRegisterDispatch(css, reg);
+    const decl = parseRegisterDispatch(raw, reg);
+    assertRoundTrip(decl, raw, reg);
+    carveFolds(decl);
+    regAst[reg] = decl;
+    const branchCount = decl.children[0].children.length;
+    console.error(`  --${reg}: ${branchCount} top-level branches, round-trip OK`);
+  }
+
+  const alAlias = (() => {
+    const start = css.indexOf('--AL:');
+    return css.slice(start, css.indexOf(';', start) + 1);
+  })();
+
+  // The flag-arithmetic @function cluster — discovered by scanning the
+  // real file (not a hand-kept list, so new helpers can't silently go
+  // missing): every @function whose name ends in Flags16/8, FlagsN16/8,
+  // or OF16/8, in file order. A contiguous region of the cabinet
+  // (addOF16 … sarFlagsN8); 36 functions as of 2026-07-10.
+  const flagFnNames = [...css.matchAll(/@function --([\w-]+)\(/g)]
+    .map((m) => m[1])
+    .filter((n) => /(FlagsN?(8|16)|OF(8|16))$/.test(n));
+  if (flagFnNames.length < 30) {
+    throw new Error(`flag-function scan looks wrong: only found ${flagFnNames.length} (${flagFnNames.join(', ')})`);
+  }
+  console.error(`  flag-arithmetic @functions: ${flagFnNames.length} found`);
+
+  const lines = [];
+  lines.push(`// cpu-tree.js — GENERATED by tools/extract-tree-data.mjs. Do not hand-edit.`);
+  lines.push(`// Every code string below is real, verbatim cabinet CSS produced by`);
+  lines.push(`// calling kiln/emit-css.mjs's real emitCSS() against a tiny synthetic`);
+  lines.push(`// cart (same technique the real builder uses, tiny input) — never typed`);
+  lines.push(`// by hand, and round-trip-verified against the raw generated text at`);
+  lines.push(`// generation time. Regenerate: node tools/extract-tree-data.mjs cpu > \\`);
+  lines.push(`//   web/site/src/components/anatomy/tree/cpu-tree.js`);
+  lines.push(`// The top-level layout mirrors the REAL file order (nothing is`);
+  lines.push(`// reordered, only curated): @function helpers first, then the .cpu`);
+  lines.push(`// rule with the alias + register dispatches, then the @property`);
+  lines.push(`// registrations near the end of the cabinet. Fold points (folded:)`);
+  lines.push(`// are carved by the tool; everything else renders as plain code.`);
+  lines.push('');
+  lines.push(`const AL_ALIAS = ${jsTemplateLiteral(alAlias)};`);
+  lines.push('');
+
+  const flagFnVarNames = [];
+  for (const name of flagFnNames) {
+    const varName = `FN_${name.toUpperCase()}`;
+    flagFnVarNames.push(varName);
+    lines.push(`const ${varName} = ${jsTemplateLiteral(extractFunctionBlock(css, name))};`);
+  }
+  lines.push('');
+
+  const propVarNames = {};
+  for (const reg of CPU_REGS) {
+    propVarNames[reg] = `${reg}_PROPERTY`;
+    lines.push(`const ${propVarNames[reg]} = ${jsTemplateLiteral(extractPropertyBlock(css, reg))};`);
+  }
+  lines.push('');
+
+  const dispatchVarNames = {};
+  for (const reg of CPU_REGS) {
+    dispatchVarNames[reg] = `${reg}_DISPATCH`;
+    lines.push(`const ${dispatchVarNames[reg]} = ${serializeNode(regAst[reg], 0)};`);
+    lines.push('');
+  }
+
+  // Top level in real file order: the @function cluster (~27-41K into
+  // the cabinet), .cpu rule (alias ~42K, dispatches 61K-233K), @property
+  // blocks (~7.3M, near the end). Verified against the captured CSS's
+  // indexOf offsets.
+  lines.push(`export const CPU_TREE = [`);
+  lines.push(`  {`);
+  lines.push(`    kind: 'section',`);
+  lines.push(`    label: 'flag-arithmetic @functions (${flagFnNames.length} helpers the ALU rows call)',`);
+  lines.push(`    folded: true,`);
+  lines.push(`    children: [`);
+  for (const varName of flagFnVarNames) {
+    lines.push(`      { kind: 'block', code: ${varName}, folded: true },`);
+  }
+  lines.push(`    ],`);
+  lines.push(`  },`);
+  lines.push(`  {`);
+  lines.push(`    kind: 'section',`);
+  lines.push(`    label: '.cpu rule — register dispatch',`);
+  lines.push(`    folded: true,`);
+  lines.push(`    children: [`);
+  lines.push(`      { kind: 'block', code: AL_ALIAS },`);
+  for (const reg of CPU_REGS) {
+    lines.push(`      ${dispatchVarNames[reg]},`);
+  }
+  lines.push(`    ],`);
+  lines.push(`  },`);
+  lines.push(`  {`);
+  lines.push(`    kind: 'section',`);
+  lines.push(`    label: '@property registrations — typed register declarations',`);
+  lines.push(`    folded: true,`);
+  lines.push(`    children: [`);
+  for (const reg of CPU_REGS) {
+    lines.push(`      { kind: 'block', code: ${propVarNames[reg]}, folded: true },`);
+  }
+  lines.push(`    ],`);
+  lines.push(`  },`);
+  lines.push(`];`);
+  lines.push('');
+
+  return lines.join('\n');
+}
+
+function main() {
+  const section = process.argv[2];
+  if (section !== 'cpu') {
+    console.error('Usage: node tools/extract-tree-data.mjs cpu');
+    console.error('(only "cpu" is implemented so far — see file header)');
+    process.exit(1);
+  }
+  process.stdout.write(generateCpuTree());
+}
+
+main();
