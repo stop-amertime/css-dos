@@ -39,9 +39,11 @@
   }
   .step-strip li {
     flex: 1;
-    padding: 4px 8px;
-    font-size: 16px;
-    line-height: 16px;
+    padding: 5px 8px;
+    /* Bigger than body text: the three main tabs are the site's primary
+       navigation, so they get headline weight (owner ask, 2026-07-10). */
+    font-size: 20px;
+    line-height: 20px;
     color: var(--edit-black);
     text-align: center;
     cursor: pointer;
@@ -131,7 +133,7 @@
     .step-strip li {
       min-width: 0;
       padding: 4px 4px;
-      font-size: 14px;
+      font-size: 17px;
       overflow: hidden;
       text-overflow: ellipsis;
     }
@@ -145,7 +147,7 @@
   }
   @media (max-width: 640px) {
     /* Phone: drop the number chips, keep the labels (they wrap fine). */
-    .step-strip li { font-size: 13px; padding: 4px 3px; }
+    .step-strip li { font-size: 16px; padding: 4px 3px; }
     .step-strip li .num { display: none; }
     /* Ten labelled sub-page dots would stack ~250px tall. Collapse to bare
        dots; only the current page keeps its label. */
