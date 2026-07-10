@@ -9,6 +9,8 @@
   import Term from '../Term.svelte';
   import CodeCss from '../CodeCss.svelte';
   import Callout from '../Callout.svelte';
+  import TreeView from './tree/TreeView.svelte';
+  import { CPU_TREE } from './tree/cpu-tree.js';
 
   const AX_TABLE = `--AX: if(
   style(--_irqActive: 1): var(--snapshot-AX);  /* interrupt pending — hardware outranks the program this tick */
@@ -63,6 +65,8 @@ mod(calc(var(--snapshot-DX) * 65536 + var(--snapshot-AX)), max(1, var(--rmVal16)
   const POWER_ON = `@property --CS { … initial-value: 61440; }   /* 0xF000 — the BIOS ROM */
 @property --IP { … initial-value: 0; }`;
 </script>
+
+<TreeView nodes={CPU_TREE} label="Tree view: real cabinet CSS" />
 
 <p>
   This section is the fourteen <Term t="register">registers</Term> &mdash; <code>--AX</code>,
