@@ -886,7 +886,7 @@ And the 8086’s parity flag reports the number of 1-bits in a result. Nothing i
 
 "But why are the values 0 and 4, not 0 and 1?" I hear a solitary person ask from the back. Well, I'm glad you're paying attention: the parity flag lives at bit 2 of the flags register, so the table might as well store the 4 already moved into position, saving a shift on every arithmetic instruction. Optimisation! 
 
-### What else is in the box
+### The rest of the utility functions
 
 The rest of the 66 sort into three rough families: byte plumbing, which splits and splices the two-bytes-per-cell memory (`--extractByte`, `--spliceByte`, `--applySlot` — the [write-formulas section](#about/file/memw) shows the last one at work); instruction decoding, which picks apart x86 operand bytes (`--getReg16`, `--modrmLen`); and thirty-six flag calculators (`--addFlags16`, `--shrFlags8`, …), which [the CPU section](#about/file/cpu) comes back to.
 
@@ -937,7 +937,7 @@ opcode 0255AXCXDXBXSPBPSIDICSDSESSSIPflags
 
 These tables are the same CSS in every cabinet: Doom’s CPU and Zork’s are byte-identical. Everything that differs between two cabinets is memory and disk.
 
-### The instruction decoder — parsing without a parser
+### The instruction decoder
 
 An 8086 instruction is one to six bytes long, and the only way to tell how long, is to look at the instruction itself - for example, an ADD is three bytes. 
 
@@ -1133,12 +1133,23 @@ Next tick, the fetch lands on the same instruction, and the entire machine — f
 
 #### ▸ How an interrupt arrives
 
-[THIS IS WAY TOO DENSE. WHAT IS AN INTERRUPT? WHAT DO YOU MEAN IT 'REFUSES'? CODE CANT REFUSE ANYTHING]
-A keypress or a timer tick has to be able to interrupt the running program between instructions. On real hardware that’s wiring; here it’s the override standing in front of every register table. When an interrupt is pending, the machine **refuses to run the instruction it just fetched** — no register takes its decoded value that tick. Instead: IP and CS load the interrupt handler’s address out of a table in memory, SP drops by six for the three pushed words, and the flags register switches interrupts off so the handler can’t itself be interrupted. The cycle counter even charges 61 cycles — what the real 8086 billed for a hardware interrupt.
+An **interrupt** is how hardware gets the CPU's attention: when a key is pressed or the timer fires, the CPU pauses the running program, runs a small handler routine, then resumes where it left off. On a real chip that's wiring. Here, it's one extra branch at the front of every register table:
 
-Behind that sits a simulated interrupt controller — three variables tracking which interrupts are masked, pending, and currently being serviced, with the timer outranking the keyboard. When a handler finishes, it announces “end of interrupt”, and the controller clears the in-service bit with a classic bit hack: `x AND (x − 1)` deletes the lowest set bit of a number, no loop required.
+```css
+--AX: if(
+  style(--_irqActive: 1): /* deliver the interrupt */;
+  else:                   /* the normal 850-row table */);
+```
 
-[WHY DO WE NEED TO DO THAT? THIS bIT JUST MAKES NO SENSE]
+When `--_irqActive` is 1, every register takes the first branch — the instruction fetched this tick is decoded but never selected. The interrupt is delivered in its place.
+
+- [EXPANDABLE: What happens when an IRQ is active]
+    - **IP and CS** load the handler's address from a table in memory
+    - **SP** drops by six, for the three pushed words: the paused instruction's address (where the handler will return to) and the flags
+    - **flags** clears its interrupt bit, so the handler can't itself be interrupted
+    - **cycleCount** charges 61 cycles — what the real 8086 billed for a hardware interrupt. (The counter is a register table like the others: each opcode's row adds the cost Intel's manual lists for it. What it's actually *for* — see the [clock section](#about/file/clock).)
+
+Behind that sits a simulated interrupt controller — three variables tracking which interrupts are masked, pending, and currently being serviced, with the timer outranking the keyboard. Clearing the serviced bit — the lowest bit set — uses a classic bit hack: `x AND (x − 1)` deletes the lowest set bit of a number, no loop required.
 
 One timing subtlety is kept faithfully: the 8086’s single-step trap fires *after* the traced instruction, not before. The machine reproduces that with a one-tick delay line — verbatim:
 
@@ -1190,7 +1201,8 @@ A CPU register's table ends with "otherwise, keep the old value" — if the curr
         * var(--snapshot-pitReload))));  /* count down; past zero, reload — and IRQ 0 fires */
 ```
 
-[Might be worth an explanation here about why NOT being armed is the if branch instead of the other way around which seems more logical]
+(Note the shape: the *idle* case takes the `if` and the real work is the `else`, which looks backwards. But a `style()` test can only ask *is this variable exactly this value?* — there is no ≠ or >. The only case that can be named as one exact value is `--pitReload` being 0, a timer that was never programmed — so it gets the `if`, and counting falls through to the `else`.)
+
 Every time the counter crosses zero it reloads itself and raises IRQ 0 — the tick DOS keeps its clock by. The interrupt controller's fall-through latches any newly arrived interrupt requests; the keyboard controller's snapshots the current key so the next tick can spot the change. The chips' `else` branches are where the machine's concurrency lives.
 
 ### CAROUSEL SECTION: Keyboard & debug display
@@ -1220,18 +1232,12 @@ press a key. this readout is pure CSS.
 
 Wait, 7777? 8051? Those aren't scancodes. In fact, each number packs the key’s hardware scancode together with its text character (A: 30 × 256 + 97 = 7777). Let go, and it goes back to **0**. 
 
-[QUESTION: WHY DOES IT PACK THE SCANCODE TOGETHER WITH THE TEXT CHARACTER]
 
-### The release-code latch
-
-Real keyboards also send a *release* code, which games depend on. But `:active` only stops matching for the single instant you let go, which can be missed if a tick doesn't line up perfectly. So the machine keeps a **latch**: a variable holding the most recent key event until the next one replaces it.
-
-[I hate these overly purple titles, can we do a pass over these?]
-### Manufacturing the past
+### Detecting presses and releases
 
 `:active` can only answer one question: *is this element held down now?* However, a program only gets round to asking the keyboard hundreds of ticks afterwards. CSS speaks in the present tense; the PC demands past tense.
 
-So the past is reconstructed, like in Crimewatch. The variable `--prevKeyboard`, remembers what `--keyboard` said one tick ago — its entire definition is "copy the current value", and the flip-flop plumbing makes the copy arrive a tick late, which for once is exactly what we want. Compare the two and you get *events* out of a *state*:
+So the past is reconstructed, like in Crimewatch. The variable `--prevKeyboard` remembers what `--keyboard` said one tick ago — its entire definition is "copy the current value", and the flip-flop plumbing makes the copy arrive a tick late, which for once is exactly what we want. Compare the two and you get *events* out of a *state*:
 
 ```css
 --_kbdPress: if(
@@ -1239,10 +1245,12 @@ So the past is reconstructed, like in Crimewatch. The variable `--prevKeyboard`,
   style(--snapshot-prevKeyboard: 0): 1;  /* held now, empty last tick → a press! */
   else: 0);
 ```
-A press edge is one tick wide — under Calcite, gone in about 1/400,000th of a second — so it's immediately latched where the program can find it. 
-[Maybe we should switch this para and the one above? Real opinions]
 
-### The hold wire, or: chords for the one-fingered
+### The release-code latch
+
+A press edge is one tick wide — under Calcite, gone in about 1/400,000th of a second. So it's immediately **latched**: a variable holds the most recent key event until the next one replaces it, where the program can read it at its leisure. Releases get the same treatment — real keyboards send a *release* code when a key comes up, and games depend on it to know when you've stopped moving — so letting go is detected as an event too, and latched the same way.
+
+### Hold mode
 
 A subtler problem: you only have one mouse pointer, so it's impossible to use a shortcut like CTRL+G. So the player has a hold mode, which works by checking if a checkbox is `:checked`:
 
@@ -1343,20 +1351,18 @@ From the CPU's side, we have three consecutive OUTs to the same port, each carry
 
 Mode 13h isn’t the only screen the machine carries. Text mode — the 80×25 grid the DOS prompt lives on — is its own region of video memory at a different address: two bytes per character, the letter and its colours. And the older CGA graphics modes have their own aperture which overlaps the text region. Yikes. That’s how 1981 CGA hardware behaved, since RAM was scarce and you can't use both modes at once. We must mimic it faithfully. 
 
-[AA: THIS SECTION IS A BIT UNCLEAR AND HARD TO FOLLOW. CAN WE TRY TO REPHRASE IT? WHAT REGISTER. ]
-The pure-CSS painter above only draws Mode 13h. For the other modes the cabinet stores everything a renderer needs — including copying the current video mode and the CGA palette register into two spare bytes of the BIOS data area, so the outside of the machine can tell which screen the program meant. That register carries one famous bit: the choice between CGA’s two four-colour palettes, green/red/yellow or cyan/magenta/white — the reason so many old PC games are those exact colours.
+The overlap is authentic; what comes next isn’t. On a real PC, a program’s `OUT 0x3D9, AL` lands in a register *inside* the CGA chip, and the same chip uses it as it paints — the hardware that receives the setting is the hardware that draws. CSS-DOS has no such chip, and its screen is drawn by something else entirely: a separate renderer that reads the finished video memory. So the machine leaves that renderer a note. On the `OUT`, it copies the value into a spare byte of the BIOS data area, and does the same for the current video mode — two shadow bytes recording what the program *asked for*, so whatever draws the screen can tell which of these overlapping modes it meant. A real PC needs no such note, because there the sender and the painter are one piece of silicon.
+
+That palette byte carries one famous bit: the choice between CGA’s two four-colour palettes — green/red/yellow or cyan/magenta/white — the reason so many old PC games are those exact colours.
 
 ### The electron beam
 
-[AA: GAMES DONT FUCKING DO ANYTHING, STOP SAYING 'games ask the screen' and that kind of turn of phrase. be more precise. I removed that phrase ]
 An 80s monitor painted the picture with an electron beam, top to bottom, 70 times a second — and games wait for the beam’s flyback (the *vertical retrace*) to redraw without tearing. They poll a status port for this information. 
 
-We fake its position from a number the CPU already tracks — the running count of cycles each instruction would have cost on the real 4.77 MHz chip. One seventieth of a second is 68,182 cycles, and the beam spends about 5% of each frame flying back, so:
-
-[AA: WHERE DOES THE 5% come into it?? WHERE HAS THE NUMBER 3409 come from?]
+We fake its position from a number the CPU already tracks — the running count of cycles each instruction would have cost on the real 4.77 MHz chip. One seventieth of a second is 68,182 cycles, and the beam spends about 5% of each frame flying back — 5% of 68,182 is 3,409 cycles — so:
 
 ```css
-/* in retrace? — 1 while the beam would be flying back */
+/* in retrace? — 1 during the last 3409 cycles of each frame */
 max(0, sign(3409 - mod(var(--snapshot-cycleCount), 68182)))
 ```
 The electron beam of a CRT monitor, mimicked with a `mod()` and a `sign()` so that games can synchronise to it. 
@@ -1400,7 +1406,7 @@ The one optimisation
 Memory is **packed two bytes per variable** (32861 is really the two bytes 93 and 128), so every sweep over memory mentions half as many cells as there are bytes. Without it, everything memory-related in the file doubles. This had to be done to avoid V8's string size limit, which would have prevented cabinets loading in Chrome entirely. 
 
 [This section I don't find super clear!]
-### Using addresses that aren't addressable
+### Hidden storage above the 1 MB limit
 
 The machine also needs storage the running program must never see. The palette is the clearest case: 768 bytes of colour data that programs write through a port, byte by blind byte — on real hardware those bytes live inside the VGA chip, not in memory. Where do you hide bytes from a CPU that can address everything?
 
@@ -1408,12 +1414,11 @@ You use the one fact in our favour: an 8086 address tops out a shade over one me
 
 One booby trap up here, and it shaped a whole feature: big numbers are safe in a property's *name* but not in its *value*. Chrome keeps only about six significant digits on a computed numeric property, so any computed value past a million quietly loses its low digits. All the arithmetic around these far-flung cells is therefore done in small, disk-local offsets — only the *name* ever carries the big number. It's also why writable floppies are capped at 720 KB: a disk's byte index is a computed value, and past the million mark neighbouring bytes would start blurring into one another.
 
-[WTF IS a hole? Honestly with these titles. We could go for something like: Trick: skip declaring present bytes or Problem: <x> or etc.]
-### The holes are not implemented
+### No bounds checks
 
-A conventional emulator allocates its RAM up front and marks some ranges absent. Kiln does something more absolute: for addresses no program could ever touch, it emits *nothing*. No declaration, no read arm, no write formula — the address simply does not occur anywhere in 300 MB. Read one and you fall through every arm of the big lookup to its final `else: 0`; write one and the broadcast finds no cell whose formula mentions that address, so the write lands nowhere, and nothing complains. (The CPU exploits the same mechanism on purpose when it cancels a write by aiming it at address −1.)
+A conventional emulator spends code on unmapped memory: it allocates the full address space up front, or checks every access against a table of what exists. Here that code is zero lines. For addresses no program could ever touch, Kiln emits *nothing* — no declaration, no read arm, no write formula; the address simply does not occur anywhere in 300 MB. Read one and you fall through every arm of the big lookup to its final `else: 0`; write one and the broadcast finds no cell whose formula mentions that address, so the write lands nowhere, and nothing complains. (The CPU exploits the same mechanism on purpose when it cancels a write by aiming it at address −1.)
 
-There's no bounds check because there is no boundary — just places where the CSS stops. Unmapped memory, implemented as exactly nothing.
+There's no bounds check because there is no boundary — just places where the CSS stops.
 
 ### CAROUSEL SECTION: Memory — read formulas
 
@@ -1786,7 +1791,7 @@ The gearing is real 1981 engineering: the PC’s timer chip ran at exactly one q
 
 So the machine keeps two times: the CSS animation decides how fast the world computes, and the cycle counter decides what the software *believes* the time is. Evaluate the file faster and everything speeds up together, still in step — DOS’s sense of time is tied to work done, not to your wall clock.
 
-### How one animation conducts two more
+### How the store and execute steps get triggered
 
 The store and execute steps are themselves `@keyframes` — and an animation can’t call another animation. So the cabinet attaches both to the machine element permanently, **paused**, and the clock unpauses each one for a single beat — verbatim:
 
