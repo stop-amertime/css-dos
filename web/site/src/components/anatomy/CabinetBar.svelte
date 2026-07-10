@@ -55,7 +55,6 @@
            aria-label="The 309 megabyte cabinet file drawn to scale as a bar. Memory write rules take over half; the utilities, CPU and keyboard are together a 2 pixel sliver at the left edge, expanded below in a 350 times zoom box.">
         {#each SEGS as s}
           <rect class="seg" class:dim={active && active !== s.g}
-                class:sel={selected === s.g}
                 x={s.x} y="2" width={s.w} height="44" fill={colour(s.g)}
                 role="button" tabindex="-1"
                 onclick={() => onselect?.(s.g)}
@@ -68,7 +67,7 @@
                lines pass behind it; .drop-tick continues the line below
                the svg onto the section pane's top edge. -->
           <line x1={tickX} y1={tickY} x2={tickX} y2="100"
-                stroke={cur.c} stroke-width="3" pointer-events="none" />
+                stroke={cur.c} stroke-width="5" pointer-events="none" />
         {/if}
         <!-- utilities + CPU + keyboard: one to-scale sliver (319 KB —
              even 2px flatters it); the zoom box below is the click
@@ -83,7 +82,6 @@
         <line x1="12" y1="46" x2="250" y2="68" stroke="var(--edit-black)" stroke-width="1"/>
         {#each ZOOM as z}
           <rect class="seg" class:dim={active && active !== z.g}
-                class:sel={selected === z.g}
                 x={z.x} y="68" width={z.w} height="26" fill={colour(z.g)}
                 role="button" tabindex="-1"
                 onclick={() => onselect?.(z.g)}
@@ -164,7 +162,7 @@
   .drop-tick {
     position: absolute;
     top: 100%;
-    width: 3px;
+    width: 5px;
     height: 22px;
     transform: translateX(-50%);
     pointer-events: none;
@@ -187,7 +185,6 @@
 
   .cab-bar .seg { cursor: pointer; outline: none; }
   .cab-bar .dim { opacity: 0.3; }
-  .cab-bar rect.seg.sel { stroke: var(--edit-black); stroke-width: 2.5; }
   /* svg text: font-size here is in viewBox units (700-wide), so it
      shrinks with the bar — the phone override keeps it legible. */
   .cab-bar .zoom-label { fill: #555; font-family: inherit; font-size: 13px; }

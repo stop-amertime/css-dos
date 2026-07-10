@@ -26,7 +26,7 @@
    sibling of <CabinetBar>. */
 .anatomy-pane {
   margin-top: 12px;
-  border: 1px solid var(--edit-black);
+  border: 2px solid var(--pane-c, var(--edit-black));
   background: color-mix(in srgb, var(--pane-c, var(--edit-black)) 5%, var(--edit-white));
   padding: 12px 16px 12px;
 }
@@ -37,12 +37,12 @@
   display: flex;
   align-items: baseline;
   gap: 10px;
-  margin-bottom: 8px;
+  margin-bottom: 18px;
 }
 .pane-head .pane-title {
   margin: 0;
-  font-size: 20px;
-  line-height: 22px;
+  font-size: 26px;
+  line-height: 28px;
   font-weight: normal;
   letter-spacing: normal;
   color: var(--edit-black);
@@ -50,7 +50,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.pane-head .pane-title .sz { color: var(--edit-red); font-size: 16px; }
+.pane-head .pane-title .sz { color: var(--edit-red); font-size: 19px; }
 .pane-head .pane-count {
   margin-left: auto;
   flex: none;
@@ -62,7 +62,8 @@
 @media (max-width: 640px) {
   /* Phone: tighter chrome (window-body padding is 12px 10px here). */
   .anatomy-pane { padding: 8px 10px 8px; }
-  .pane-head .pane-title { font-size: 16px; line-height: 18px; }
-  .pane-head .pane-title .sz { font-size: 13px; }
+  .pane-head { margin-bottom: 12px; }
+  .pane-head .pane-title { font-size: 20px; line-height: 22px; }
+  .pane-head .pane-title .sz { font-size: 15px; }
   .pane-head .pane-count { font-size: 13px; }
 }
