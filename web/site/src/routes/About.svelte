@@ -228,7 +228,6 @@
              onclick={() => (nav.carouselSeen = true)}></div>
       {/if}
       <CabinetBar selected={nav.section === 'map' ? null : nav.section}
-                  count="{nav.sectionIdx() + 1} / {FILE_SECTIONS.length}"
                   hint={hintLive}
                   onselect={(g) => nav.sectionJump(g)}
                   onprev={() => nav.sectionStep(-1)}
@@ -236,6 +235,12 @@
                   ondismiss={() => (nav.carouselSeen = true)} />
 
       <div class="anatomy-pane" style="--pane-c:{curGroup.c}">
+        <div class="pane-head">
+          <h2 class="pane-title">
+            {curGroup.label} <span class="sz">{curGroup.size}</span>
+          </h2>
+          <span class="pane-count">{nav.sectionIdx() + 1} / {FILE_SECTIONS.length}</span>
+        </div>
         {#key nav.section}
           <div class="sec-body" in:fly={{ x: 44 * nav.sectionDir, duration: 180 }}>
             <CurSection />

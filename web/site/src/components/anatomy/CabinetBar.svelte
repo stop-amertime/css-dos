@@ -7,10 +7,10 @@
   // sections too small to see at true scale (utilities / CPU /
   // keyboard — 319 KB together) are a single 2px sliver on the bar;
   // the zoom box below expands them into clickable segments. The
-  // current section's title sits in the header row, tied to its
-  // segment by a coloured tick; hovering any segment shows a cursor
-  // tooltip (title + size), clicking jumps there. Groups can span
-  // non-adjacent segments (the clock appears twice in the file).
+  // selected segment drops a coloured connector line out of the bar
+  // onto the section pane below (title + size live in the pane's
+  // header — About.svelte); hovering any segment shows a cursor
+  // tooltip (title + size), clicking jumps there.
   // .hint-overlay / .anatomy-pane stay in cabinet-bar.css: they're
   // rendered by About.svelte as siblings of <CabinetBar>, not inside its
   // own template, so they can't become scoped styles of this component.
@@ -18,29 +18,29 @@
   import { GROUPS, SEGS, TINY, ZOOM } from './groups.js';
   import IconCursor from '~icons/pixelarticons/cursor-minimal';
 
-  let { selected = null, count = '', hint = false, onselect, onprev, onnext, ondismiss } = $props();
+  let { selected = null, hint = false, onselect, onprev, onnext, ondismiss } = $props();
   let hovered = $state(null);
   let tip = $state(null); // cursor position for the tooltip
-  let rowW = $state(0), labelW = $state(0); // measured: title row + label
 
   const colour = (id) => GROUPS.find((g) => g.id === id).c;
   // A segment dims when some OTHER group is hovered/selected.
   const active = $derived(hovered ?? selected);
   const hoverG = $derived(hovered ? GROUPS.find((g) => g.id === hovered) : null);
   const cur = $derived(selected ? GROUPS.find((g) => g.id === selected) : null);
-  // Leader tick position: centre of the group's first drawn segment
-  // (the sliver for the three zoomed sections), as % of the 700-unit
-  // svg width — the svg spans the full row, so % carries over.
-  const tickPct = $derived.by(() => {
+  // Connector position: centre of the selected group's drawn segment —
+  // the zoom-box segment for the tiny sections (that's the highlighted
+  // area the reader sees), the bar segment otherwise. In 700-unit svg
+  // x; tickPct carries the same position as a % for the hanging tick.
+  const tickX = $derived.by(() => {
     if (!selected) return 0;
-    if (TINY.includes(selected)) return (11 / 700) * 100;
+    const z = ZOOM.find((z) => z.g === selected);
+    if (z) return z.x + z.w / 2;
     const s = SEGS.find((s) => s.g === selected);
-    return ((s.x + s.w / 2) / 700) * 100;
+    return s.x + s.w / 2;
   });
-  // Centre the title on the tick, clamped inside the row (64px
-  // reserved for the count on the right).
-  const titleLeft = $derived(
-    Math.max(0, Math.min((rowW * tickPct) / 100 - labelW / 2, rowW - labelW - 64)));
+  const tickPct = $derived((tickX / 700) * 100);
+  // The connector starts at the bottom of whichever segment is lit.
+  const tickY = $derived(selected && ZOOM.some((z) => z.g === selected) ? 94 : 46);
 
   function track(e) { tip = { x: e.clientX, y: e.clientY }; }
 </script>
@@ -50,18 +50,6 @@
     <button class="sec-arrow sec-prev" onclick={() => onprev?.()}
             aria-label="Previous section" title="Previous section">&#9668;</button>
     <div class="cab-mid">
-      <div class="bar-title" bind:clientWidth={rowW}>
-        {#if cur}
-          <span class="t-tick" style="left:{tickPct}%; background:{cur.c}"></span>
-          <h2 class="t-text" bind:clientWidth={labelW} style="left:{titleLeft}px">
-            {cur.label} <span class="sz">{cur.size}</span>
-          </h2>
-        {:else}
-          <h2 class="t-text t-map">The whole 309&nbsp;MB file</h2>
-        {/if}
-        {#if count}<span class="t-count">{count}</span>{/if}
-      </div>
-
       <svg viewBox="0 0 700 100" role="img" onmousemove={track}
            onmouseleave={() => (hovered = null)}
            aria-label="The 309 megabyte cabinet file drawn to scale as a bar. Memory write rules take over half; the utilities, CPU and keyboard are together a 2 pixel sliver at the left edge, expanded below in a 350 times zoom box.">
@@ -74,6 +62,14 @@
                 onmouseenter={() => (hovered = s.g)}
                 onmouseleave={() => (hovered = null)} />
         {/each}
+        {#if cur}
+          <!-- Connector: drops from the lit segment to the svg's bottom
+               edge. Painted BEFORE the zoom box so left-side segments'
+               lines pass behind it; .drop-tick continues the line below
+               the svg onto the section pane's top edge. -->
+          <line x1={tickX} y1={tickY} x2={tickX} y2="100"
+                stroke={cur.c} stroke-width="3" pointer-events="none" />
+        {/if}
         <!-- utilities + CPU + keyboard: one to-scale sliver (319 KB —
              even 2px flatters it); the zoom box below is the click
              target. Coloured as the CPU, 80% of the sliver's bytes. -->
@@ -99,6 +95,9 @@
         <text class="zoom-label" x="258" y="86"
               pointer-events="none">~350&times; zoom &mdash; 0.1% of the file</text>
       </svg>
+      {#if cur}
+        <span class="drop-tick" style="left:{tickPct}%; background:{cur.c}"></span>
+      {/if}
     </div>
     <button class="sec-arrow sec-next" onclick={() => onnext?.()}
             aria-label="Next section" title="Next section">&#9658;</button>
@@ -141,7 +140,7 @@
     top: 0;
     z-index: 8;
     margin: -24px -28px 0;
-    padding: 10px 12px 8px;
+    padding: 8px 12px 8px;
     background: var(--edit-white);
     border-bottom: 1px solid var(--edit-black);
   }
@@ -153,8 +152,23 @@
     gap: 0 12px;
     align-items: stretch;
   }
-  .cab-mid { min-width: 0; }
+  .cab-mid { min-width: 0; position: relative; }
   .cab-mid > svg { width: 100%; height: auto; display: block; }
+
+  /* The hanging half of the connector: continues the svg line down
+     through the topper's bottom padding + border and across the gap,
+     landing on the section pane's top edge (pane margin-top 12px —
+     see cabinet-bar.css). When the reader scrolls and the pane slides
+     under the sticky topper, the tick stays put, still marking where
+     the open section lives on the map. */
+  .drop-tick {
+    position: absolute;
+    top: 100%;
+    width: 3px;
+    height: 22px;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
 
   /* Carousel arrows: tall (full topper height) but narrow, flanking the
      bar. Flat — they belong to the topper, not floating chrome. */
@@ -170,50 +184,6 @@
   }
   .sec-arrow:hover { background: var(--edit-yellow); }
   .sec-arrow:active { background: var(--edit-black); color: var(--edit-white); }
-
-  /* Title row: the current section's name + size, centred over its bar
-     segment (clamped to the row) and tied to it by a coloured tick;
-     "n / N" carousel position at the right. */
-  .bar-title {
-    position: relative;
-    height: 22px;
-    margin-bottom: 8px;
-  }
-  .bar-title .t-text {
-    position: absolute;
-    top: 0;
-    margin: 0;
-    font-size: 20px;
-    line-height: 22px;
-    font-weight: normal;
-    letter-spacing: normal;
-    white-space: nowrap;
-    color: var(--edit-black);
-    /* Never collide with the count at the right edge. */
-    max-width: calc(100% - 56px);
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .bar-title .t-text .sz { color: var(--edit-red); font-size: 16px; }
-  .bar-title .t-map { position: static; }
-  .bar-title .t-count {
-    position: absolute;
-    right: 0;
-    top: 4px;
-    color: #555;
-    font-size: 15px;
-    line-height: 16px;
-  }
-  /* The leader tick: drops from under the title into the segment's top
-     edge (same colour, so the join reads as one mark). */
-  .bar-title .t-tick {
-    position: absolute;
-    top: 22px;
-    width: 3px;
-    height: 12px;
-    transform: translateX(-50%);
-    z-index: 1;
-  }
 
   .cab-bar .seg { cursor: pointer; outline: none; }
   .cab-bar .dim { opacity: 0.3; }
@@ -327,6 +297,7 @@
     /* window-body padding is 16px 14px at this width. */
     .cab-bar { margin: -16px -14px 0; padding: 8px 8px 6px; }
     .sec-arrow { width: 24px; font-size: 16px; }
+    .drop-tick { height: 20px; }
   }
 
   @media (max-width: 640px) {
@@ -335,11 +306,7 @@
     .cab-bar { margin: -12px -10px 0; padding: 6px 6px 5px; }
     .cab-grid { gap: 0 6px; }
     .sec-arrow { width: 20px; font-size: 14px; }
-    .bar-title { height: 18px; margin-bottom: 6px; }
-    .bar-title .t-text { font-size: 16px; line-height: 18px; }
-    .bar-title .t-text .sz { font-size: 13px; }
-    .bar-title .t-count { top: 2px; font-size: 13px; }
-    .bar-title .t-tick { top: 18px; height: 9px; }
+    .drop-tick { height: 19px; }
     .cab-bar .zoom-label { font-size: 22px; }
   }
 </style>
