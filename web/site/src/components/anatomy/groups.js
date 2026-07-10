@@ -11,8 +11,9 @@
 // (CPU dark, chipset light), I/O = cyans (screen dark, keys light),
 // memory = blues (decl light → memr mid → memw dark, biggest =
 // darkest), disk = purple, utilities = green (deliberately
-// unrelated to everything), clock = bright pink — the one thing
-// that moves gets the loudest colour.
+// unrelated to everything), clock = bright yellow — the one thing
+// that moves gets the loudest colour (and stays clear of the warm
+// reds, which read as silicon).
 export const GROUPS = [
   { id: 'util',    label: 'Utility functions',               size: '42 KB',  c: '#00aa00' },
   { id: 'cpu',     label: 'CPU',                             size: '265 KB', c: '#aa0000' },
@@ -23,7 +24,7 @@ export const GROUPS = [
   { id: 'memr',    label: 'Memory — read formulas',          size: '44 MB',  c: '#2222cc' },
   { id: 'memw',    label: 'Memory — write formulas',         size: '171 MB', c: '#0000aa' },
   { id: 'disk',    label: 'Disk',                            size: '13 MB',  c: '#aa00aa' },
-  { id: 'clock',   label: 'Clock',                           size: '43 MB',  c: '#ff55ff' },
+  { id: 'clock',   label: 'Clock',                           size: '43 MB',  c: '#ffff55' },
 ];
 
 // The four sections too small to draw at bar scale — together
