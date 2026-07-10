@@ -10,7 +10,7 @@
 // Colours are semantic families (EGA-leaning): silicon = reds
 // (CPU dark, chipset light), I/O = cyans (screen dark, keys light),
 // memory = blues (decl light → memr mid → memw dark, biggest =
-// darkest), disk = floppy brown, utilities = green (deliberately
+// darkest), disk = purple, utilities = green (deliberately
 // unrelated to everything), clock = bright pink — the one thing
 // that moves gets the loudest colour.
 export const GROUPS = [
@@ -22,7 +22,7 @@ export const GROUPS = [
   { id: 'decl',    label: 'Memory — variable declarations',  size: '32 MB',  c: '#5555ff' },
   { id: 'memr',    label: 'Memory — read formulas',          size: '44 MB',  c: '#2222cc' },
   { id: 'memw',    label: 'Memory — write formulas',         size: '171 MB', c: '#0000aa' },
-  { id: 'disk',    label: 'Disk',                            size: '13 MB',  c: '#aa5500' },
+  { id: 'disk',    label: 'Disk',                            size: '13 MB',  c: '#aa00aa' },
   { id: 'clock',   label: 'Clock',                           size: '43 MB',  c: '#ff55ff' },
 ];
 
