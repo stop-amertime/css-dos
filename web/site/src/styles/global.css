@@ -101,7 +101,10 @@ body {
   left: 0;
   right: 0;
   height: 16px;
-  background: var(--dither-gray) 0 0 / 4px 4px, var(--edit-gray);
+  /* Flat dialog grey — the fixed bars sit on the blue desktop, so they
+     don't need a texture to separate them (owner un-dithered them,
+     2026-07-10). */
+  background: var(--edit-gray);
   color: var(--edit-black);
   display: flex;
   align-items: center;
@@ -131,7 +134,8 @@ body {
   left: 0;
   right: 0;
   height: 16px;
-  background: var(--dither-gray) 0 0 / 4px 4px, var(--edit-gray);
+  /* Flat, like .menu-bar (see there). */
+  background: var(--edit-gray);
   color: var(--edit-black);
   display: flex;
   align-items: center;

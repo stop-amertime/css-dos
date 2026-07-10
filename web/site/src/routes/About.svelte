@@ -73,17 +73,22 @@
           <img src="/assets/css-dos-logo-narrow.png" alt="CSS-DOS">
         </div>
         <div class="intro-text">
-          <h1>A complete 1980s PC, in a stylesheet.</h1>
+          <h1>An entire &rsquo;80s PC in a stylesheet.</h1>
           <p class="lede">
             An IBM PC compatible &mdash;
-            <Term t="i8086">8086</Term> processor, 640&nbsp;KB of
+            <Term t="i8086">8086</Term> processor, 640&nbsp;KB
             RAM, floppy drive, keyboard, VGA screen, and various
-            less-memorable support chips &mdash; in one CSS file.
+            less-memorable support chips &mdash; in one <code>.css</code> file.
           </p>
           <p class="lede">
-            It boots real <b>DOS</b> (the precursor to Windows) from an
-            emulated <Term t="floppy">floppy</Term> and runs unmodified
-            1980s software.
+            That file is a morbidly obese <b>300+&nbsp;MB</b> of
+            spec-compliant <Term t="css">CSS</Term>, albeit abused beyond
+            recognition &mdash; perhaps some of the most circuitous and
+            painfully inefficient code ever written in earnest.
+          </p>
+          <p class="lede">
+            It boots <b>MS-DOS</b> (Microsoft&rsquo;s operating system
+            before Windows) and runs unmodified &rsquo;80s software.
           </p>
           <p class="lede">Yes, it runs <b>Doom</b><span class="flair-star">*</span></p>
           <div class="flair-burst">
@@ -97,11 +102,6 @@
           </div>
           <p class="intro-fn small">
             <span class="fn-star">*</span> barely.
-          </p>
-          <p class="lede">
-            The file that does all this is about <b>300&nbsp;MB of plain
-            text</b>. Every line is spec-compliant
-            <Term t="css">CSS</Term>, albeit abused beyond recognition.
           </p>
           <p class="intro-gh">
             <a href="https://github.com/stop-amertime/css-dos" class="ext-link"
@@ -120,17 +120,23 @@
       </blockquote>
       <!-- TODO(owner): link the Dark Souls bongos run -->
       <p>
-        Cave paintings started with some spare blood being misused to
-        represent a deer. Ten thousand years later, someone beat Dark
-        Souls using the Bongo Drums controller from a Donkey Kong rhythm
-        game, which only has three buttons and a microphone.
+        Cave paintings started when some spare blood was misused to
+        represent a deer. Fifty thousand years later, someone beat
+        <i>Dark Souls</i> using the bongo drums controller from Gamecube
+        rhythm game <i>Donkey Konga</i>.
       </p>
       <p>
-        I&rsquo;m under no illusion here: this project was excruciating
-        to create and serves no practical benefit whatsoever. But it sits
-        in that special nook between &lsquo;might be technically
-        possible&rsquo; and &lsquo;impossible&rsquo; that draws the
-        foolish and the brave recklessly in.
+        <b>I&rsquo;m under no illusion: this project was excruciating to
+        create and serves no practical benefit whatsoever.</b>
+        &ldquo;Dugg, why are you wasting perfectly good blood on the cave
+        walls, you mad idiot? We&rsquo;ll have none left for all the
+        rituals that need doing!&rdquo; Dugg didn&rsquo;t have an answer
+        for &lsquo;why?&rsquo;. The rituals have been lost to time, but
+        the deer is now encased in glass. I don&rsquo;t think
+        anyone&rsquo;s even bothered asking the <i>Dark Souls</i> bongo
+        drums guy why he did it. I also don&rsquo;t have a good answer to
+        the question, only one as vague and meaningless as
+        Mallory&rsquo;s: because it <i>wasn&rsquo;t</i> there.
       </p>
       <div class="why-cta">
         <button class="btn why-cta-btn" onclick={() => nav.go(BUILD)}>

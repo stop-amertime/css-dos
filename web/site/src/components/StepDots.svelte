@@ -49,12 +49,16 @@
     white-space: nowrap;
   }
   .step-strip li .num { color: var(--edit-red); margin-right: 4px; }
-  /* Inactive tabs are flat grey buttons; the CURRENT tab goes
-     transparent so the band's ▒ texture shows through — pressed into
-     the chrome, while the others sit raised. (Owner swapped this from
-     the inverse: a flat current tab didn't line up with the band.)
-     Cyan stays off the strip — CTAs and subdots only. */
-  .step-strip li { background: var(--edit-gray); }
+  /* The CURRENT tab goes transparent so the band's ▒ texture shows
+     through — pressed into the chrome — while the inactive tabs wear a
+     DARKER dither of the same weave, sitting further back (owner call
+     2026-07-10: all tabs dithered, current lightest, not flat-vs-
+     dithered). Cyan stays off the strip — CTAs and subdots only. */
+  .step-strip li {
+    background: conic-gradient(#666 90deg, #0000 90deg 180deg,
+                #666 180deg 270deg, #0000 270deg) 0 0 / 4px 4px,
+                var(--edit-gray);
+  }
   .step-strip li.current {
     background: none;
     color: var(--edit-black);
@@ -68,7 +72,7 @@
   }
   .step-strip li.current::before { content: '\2039 '; }
   .step-strip li.current::after { content: ' \203a'; }
-  .step-strip li.disabled { cursor: not-allowed; opacity: 0.6; background: var(--edit-gray); }
+  .step-strip li.disabled { cursor: not-allowed; opacity: 0.6; }
 
   /* ===== Sub-page dot indicator ===== */
   .subdots {

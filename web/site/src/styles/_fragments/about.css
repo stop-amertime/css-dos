@@ -371,11 +371,12 @@
 .epigraph cite { font-style: normal; font-size: 13px; color: #555; }
 
 /* The Why? page's fork: skip straight to Build, or read on. Stacked,
-   matching widths, so the choice reads as THE call to action. */
+   matching widths, centred in the column, so the choice reads as THE
+   call to action. */
 .why-cta {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
   margin-top: 24px;
 }
@@ -475,4 +476,14 @@
    combined `.hero-row, .hero-machine, .machine-row` rule ===== */
 @media (max-width: 900px) {
   .hero-row, .hero-machine { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  /* Phone: the one-line title box (24px, nowrap) is wider than the
+     screen and its min-content width drags the whole dialog into
+     horizontal overflow — let it wrap at the global phone h1 size. */
+  .window.wizard .intro-hero h1 {
+    white-space: normal;
+    font-size: 22px;
+    line-height: 24px;
+  }
 }
