@@ -67,7 +67,8 @@
                lines pass behind it; .drop-tick continues the line below
                the svg onto the section pane's top edge. -->
           <line x1={tickX} y1={tickY} x2={tickX} y2="100"
-                stroke={cur.c} stroke-width="5" pointer-events="none" />
+                stroke={cur.c} stroke-width="5" pointer-events="none"
+                vector-effect="non-scaling-stroke" />
         {/if}
         <!-- utilities + CPU + keyboard: one to-scale sliver (319 KB —
              even 2px flatters it); the zoom box below is the click
@@ -130,10 +131,12 @@
 
 <style>
   .cab-bar {
-    /* Pinned to the top of the wizard's scroll band (.wiz-scroll): the
-       map stays put while the section text scrolls under it. The
-       negative margins cancel .window-body's padding so the topper runs
-       edge to edge (values mirror global.css's responsive paddings). */
+    /* Since 2026-07-10 the section PANE is the scroll container on
+       this subpage (cabinet-bar.css), so the bar never scrolls at all
+       and the connector stays joined; sticky remains as a harmless
+       belt-and-braces. The negative margins cancel .window-body's
+       padding so the topper runs edge to edge (values mirror
+       global.css's responsive paddings). */
     position: sticky;
     top: 0;
     z-index: 8;

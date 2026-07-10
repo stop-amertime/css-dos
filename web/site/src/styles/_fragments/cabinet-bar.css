@@ -23,8 +23,31 @@
    section's colour, tied to its bar segment by the connector line that
    CabinetBar drops onto its top edge (.drop-tick — pane margin-top and
    the tick height are matched). Also rendered by About.svelte, as a
-   sibling of <CabinetBar>. */
+   sibling of <CabinetBar>.
+
+   The PANE is the scroll container on this subpage, not .wiz-scroll:
+   the bar + connector + pane frame stay put and only the section text
+   scrolls, so the connector never detaches. The :has chain hands the
+   band's height down to the pane (min-height:0 at every flex level or
+   the column refuses to shrink). */
+.wiz-scroll:has(.subpage[data-subpage='4']) { overflow-y: hidden; display: flex; flex-direction: column; }
+.wiz-scroll:has(.subpage[data-subpage='4']) > .window-body,
+.wiz-scroll:has(.subpage[data-subpage='4']) .learn-step {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.subpage[data-subpage='4'] {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
 .anatomy-pane {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   margin-top: 12px;
   border: 2px solid var(--pane-c, var(--edit-black));
   background: color-mix(in srgb, var(--pane-c, var(--edit-black)) 5%, var(--edit-white));

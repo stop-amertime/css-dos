@@ -434,13 +434,18 @@ body:has(.window.wizard) {
 }
 /* ── DOS scrollbar: a ▒-dithered track and a flat block thumb, the way
    EDIT drew them (track = dither glyphs, thumb = solid block). Square,
-   no hover niceties. Webkit-only; Firefox falls back gracefully. ── */
-.wiz-scroll::-webkit-scrollbar { width: 16px; }
-.wiz-scroll::-webkit-scrollbar-track {
+   no hover niceties. Webkit-only; Firefox falls back gracefully.
+   (.anatomy-pane scrolls in .wiz-scroll's place on the file-map
+   carousel — see cabinet-bar.css — so it wears the same scrollbar.) ── */
+.wiz-scroll::-webkit-scrollbar,
+.anatomy-pane::-webkit-scrollbar { width: 16px; }
+.wiz-scroll::-webkit-scrollbar-track,
+.anatomy-pane::-webkit-scrollbar-track {
   /* The empty channel is the MORE dithered surface… */
   background: var(--dither-dark) 0 0 / 4px 4px, var(--edit-gray);
 }
-.wiz-scroll::-webkit-scrollbar-thumb {
+.wiz-scroll::-webkit-scrollbar-thumb,
+.anatomy-pane::-webkit-scrollbar-thumb {
   /* …and the thumb dithers LIGHTER than the chrome bands (white ▒ on
      grey, vs their #999-on-grey) so it blends with neither the track
      nor the header/footer. Density ladder: dark track, medium chrome,
@@ -449,7 +454,8 @@ body:has(.window.wizard) {
               var(--edit-white) 180deg 270deg, #0000 270deg) 0 0 / 4px 4px,
               var(--edit-gray);
 }
-.wiz-scroll::-webkit-scrollbar-button { display: none; }
+.wiz-scroll::-webkit-scrollbar-button,
+.anatomy-pane::-webkit-scrollbar-button { display: none; }
 .window.wizard .window-body {
   padding: 24px 28px 16px;
 }
