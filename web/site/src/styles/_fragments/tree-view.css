@@ -236,6 +236,20 @@
   color: var(--edit-white);
 }
 
+/* Prism token palette — mirrors .byte-example's (about.css) exactly.
+   The tree must colour its code EVERYWHERE: since the 2026-07-11
+   de-ceremony pass, hoisted panes render content with no .byte-example
+   ancestor, so the palette is scoped to the tree itself. */
+.tree-view .token.comment { color: #777; }
+.tree-view .token.variable { color: var(--edit-red); }
+.tree-view .token.selector { color: var(--edit-red); }
+.tree-view .token.number { color: #006600; }
+.tree-view .token.function { color: var(--edit-blue); }
+.tree-view .token.atrule { color: #aa00aa; }
+.tree-view .token.atrule .token.variable { color: var(--edit-red); }
+.tree-view .token.atrule .token.number { color: #006600; }
+.tree-view .token.string { color: #aa5500; }
+
 /* Editorial lines that are NOT source text: the truncation `note` rows
    the extraction tool plants where a giant uniform run was capped, and
    the transient loading indicator. Styled clearly as annotation, not
