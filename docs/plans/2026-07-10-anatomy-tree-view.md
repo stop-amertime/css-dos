@@ -107,18 +107,18 @@ then how the pieces fit, then the wishlist.
   nodes carry `lazy: { ref, count }` instead of `children`; chunk
   pages carry `next: { ref, remaining }` so "(N more…)" always shows
   the true tail before it downloads. Chunking is TRANSPORT, not
-  structure — the parse is still verified whole, then split. The one
-  genuinely huge uniform run (64,000 pixel rules) is capped at
-  CAP_ROWS=1024 with an explicit editorial `note` node stating the
-  real total (no silent caps). Skeletons total ~19 KB; the site
-  bundle dropped 740 → 235 KB.
+  structure — the parse is still verified whole, then split. Uniform
+  stretches ship as lossless `run` nodes (see above) — no caps, no
+  notes. Skeletons stay in the KBs; the site bundle dropped
+  740 → 235 KB.
 - Node model: `section` (label; `boxed:` = one tinted pane per file
   region) / `block` (verbatim chunk, folds to first line) / `decl`
   (also used for rules/functions: code = header + `{`, `trailer` =
   `}`) / `if` (carries `trailer`, its real closing text) / `branch`
-  (carries `comment`) / `value` / `note` (editorial truncation marker,
-  excluded from round-trip). `folded:` on any = togglable;
-  `lazy: { ref, count }` = children fetched on demand (`lazy.js`).
+  (carries `comment`) / `value` / `run` (lossless compressed uniform
+  stretch: `period` templates + numeric columns, expanded on demand).
+  `folded:` on any = togglable; `lazy: { ref, count }` = children
+  fetched on demand (`lazy.js`).
 - `TreeAst.svelte` — the ONE renderer (root/sections/blocks/notes/AST).
   One-lining works on single-path CHAINS (a short one-liner source rule
   joins whole, trailer included) against a line budget MEASURED by
