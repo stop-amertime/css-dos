@@ -42,6 +42,21 @@ then how the pieces fit, then the wishlist.
    at all. Verified 2026-07-11 (+ smoke). Safe for the huge memory
    dispatches too; only cost is the one-pass byte scan.
 
+7. **Depth is always shown, exactly once.** One structural level deeper
+   = one tint-ramp step, whether rendered as a block (an if body's
+   `.ast-children`), a value on its own line (`.ast-continuation`), or
+   a value inline on its condition's row (the `.ast-depth` chip). Never
+   two treatments on the same text (that double-highlights).
+8. **Uniformity is a property of the sibling run, not the node.**
+   Within a comment-delimited run, branches sharing a condition shape
+   (condition text with numbers masked — `style(--opcode: #):`) get
+   identical treatment: if one wraps, all wrap (renderer,
+   `runForcedKeys`); if one folds, all fold (tool carve pass, so folds
+   stay data-carved — one-line rows fold to hide just their value). A
+   list of like rows must read as a table, no per-row lottery;
+   different-shaped members (a trailing `else:`) keep their own
+   treatment, which is what makes the genuinely-different row visible.
+
 ## How the pieces fit
 
 - `tools/extract-tree-data.mjs` — the generator. Runs the real

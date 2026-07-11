@@ -30,7 +30,10 @@
   import Prism from '../../../lib/prism.js';
   import TreeAst from './TreeAst.svelte'; // self-import: Svelte 5 deprecates <svelte:self>
 
-  let { node } = $props();
+  // forceSplit: set by the PARENT when this node sits in a run of
+  // same-shaped siblings where any member exceeds the line budget —
+  // uniform lists wrap together (see runForcedKeys below).
+  let { node, forceSplit = false } = $props();
 
   const PAGE = 20;
   // ~chars that fit one line of WebVGA 14px in the tree column before
@@ -59,22 +62,39 @@
   const onlyChildIsLeaf = $derived(
     onlyChild != null && onlyChild.code != null && (onlyChild.children ?? []).length === 0
   );
+  // Comment length doesn't count toward the budget — comments render as
+  // their own right-aligned flex column now, not inline after the code.
   const joinedLen = $derived(!onlyChildIsLeaf ? Infinity
-    : (node.code ?? '').length + 1 + onlyChild.code.length
-      + (node.comment ? node.comment.length + 1 : 0));
-  const oneLine = $derived(!isSection && !isBlock && onlyChildIsLeaf && joinedLen <= LINE_BUDGET);
+    : (node.code ?? '').length + 1 + onlyChild.code.length);
+  const oneLine = $derived(
+    !isSection && !isBlock && onlyChildIsLeaf && !forceSplit && joinedLen <= LINE_BUDGET
+  );
 
-  // Only tool-carved nodes fold — and only if they really hide something.
+  // Only tool-carved nodes fold. A carved ONE-LINE row is foldable too
+  // (run uniformity: it folds to hide just its value, so a list of
+  // like rows all carry the same [+] affordance).
   const foldable = $derived(
     node.folded != null && (
       isSection ? children.length > 0
       : isBlock ? blockMultiline
-      : !oneLine && children.length > 0
+      : children.length > 0
     )
   );
 
-  // The node's own visual line, as one trusted HTML string: code
-  // (+ one-lined child), dim ellipsis when folded, comment last.
+  // A branch whose only child is a leaf value that just didn't fit the
+  // line budget is a WRAPPED CONTINUATION, not a deeper structural
+  // level — it renders indented but without the tint step or the
+  // dashed guide (those mean "you've descended into nesting"). The
+  // continuation line soft-wraps within its own code box, so its own
+  // wrap aligns under its own first character.
+  const isContinuation = $derived(!isSection && !isBlock && onlyChildIsLeaf && !oneLine);
+
+  // The node's own visual line: its own token, dim ellipsis when
+  // folded. A one-lined child value renders in its OWN flex box
+  // (valueHtml) — so if the browser soft-wraps it, the continuation
+  // aligns to the VALUE's start (end of the condition), not the row
+  // start, at any viewport width. The trailing comment is its own
+  // non-shrinkable flex item at the line's right edge.
   const lineHtml = $derived.by(() => {
     if (isSection) return null;
     if (isBlock) {
@@ -87,11 +107,23 @@
         : hl(first);
       return `${preview}<span class="ast-ellipsis"> …</span>`;
     }
-    let h = hl((node.code ?? '') + (oneLine ? ` ${onlyChild.code}` : ''));
+    let h = hl(node.code ?? '');
     if (foldable && !open) h += '<span class="ast-ellipsis"> …</span>';
-    if (node.comment) h += hl(` ${node.comment}`);
     return h;
   });
+  // A value is structurally one level deeper than its condition. When it
+  // SHARES the line it shows that as an .ast-depth chip; on its own line
+  // the .ast-continuation container carries the same tint step instead —
+  // never both (that double-highlighted split values). Hidden while a
+  // carved one-line row is folded.
+  const valueHtml = $derived(
+    oneLine && (!foldable || open)
+      ? `<span class="ast-depth">${hl(onlyChild.code)}</span>`
+      : null
+  );
+  const commentHtml = $derived(
+    !isSection && !isBlock && node.comment ? hl(node.comment) : null
+  );
 
   // Children render in RUNS delimited by standalone comment nodes: the
   // comment is always visible and each run paginates independently — so
@@ -115,6 +147,33 @@
   });
   const shownFor = (i) => runShown[i] ?? PAGE;
 
+  // RUN UNIFORMITY (wrap): within a run, branches sharing a condition
+  // shape (condition text with numbers masked — "style(--opcode: #):")
+  // wrap together: if any same-shaped sibling exceeds the line budget,
+  // they all split. No per-row layout lottery in a list of like rows.
+  const maskKey = (n) =>
+    n.kind === 'branch' ? (n.code ?? '').replace(/\d+/g, '#') : null;
+  const isLeafBranch = (n) =>
+    n.kind === 'branch' && (n.children ?? []).length === 1
+    && n.children[0].code != null && (n.children[0].children ?? []).length === 0;
+  const runForcedKeys = $derived(runs.map((run) => {
+    const groups = new Map();
+    for (const m of run.items) {
+      const k = maskKey(m);
+      if (!k) continue;
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(m);
+    }
+    const forced = new Set();
+    for (const [k, members] of groups) {
+      if (members.length < 2) continue;
+      const overBudget = members.some((m) =>
+        isLeafBranch(m) && m.code.length + 1 + m.children[0].code.length > LINE_BUDGET);
+      if (overBudget) forced.add(k);
+    }
+    return forced;
+  }));
+
   function toggle() { if (foldable) open = !open; }
 </script>
 
@@ -124,7 +183,7 @@
       <TreeAst node={run.comment} />
     {/if}
     {#each run.items.slice(0, shownFor(i)) as child}
-      <TreeAst node={child} />
+      <TreeAst node={child} forceSplit={runForcedKeys[i].has(maskKey(child))} />
     {/each}
     {#if run.items.length > shownFor(i)}
       <div class="tree-more">
@@ -149,10 +208,10 @@
 {:else}
   <pre class="ast-line" class:is-foldable={foldable}
        role={foldable ? 'button' : undefined} tabindex={foldable ? 0 : undefined}
-       onclick={toggle} onkeydown={(e) => e.key === 'Enter' && toggle()}><span class="tree-glyph" class:is-open={open} aria-hidden="true">{foldable ? (open ? '-' : '+') : ''}</span><code>{@html lineHtml}</code></pre>
+       onclick={toggle} onkeydown={(e) => e.key === 'Enter' && toggle()}><span class="tree-glyph" class:is-open={open} aria-hidden="true">{foldable ? (open ? '-' : '+') : ''}</span><code class:ast-cond={valueHtml != null}>{@html lineHtml}</code>{#if valueHtml}<code class="ast-val">{@html valueHtml}</code>{/if}{#if commentHtml}<code class="ast-comment">{@html commentHtml}</code>{/if}</pre>
 
   {#if !isBlock && open && runs.length > 0}
-    <div class="ast-children">
+    <div class={isContinuation ? 'ast-continuation' : 'ast-children'}>
       {@render childList()}
     </div>
   {/if}

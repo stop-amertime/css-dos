@@ -357,20 +357,56 @@ function serializeNode(node, indent) {
   return `${pad}{\n${pad}  ${props.join(`,\n${pad}  `)},\n${pad}  children: [\n${childExprs.join(',\n')},\n${pad}  ],\n${pad}}`;
 }
 
-// Carves the fold points into one register's AST: the decl itself (the
-// register-level collapse — "[+] --AX: …") and every opcode row whose
-// value is a nested if (so the long lists scan as one line per row).
-// Only nodes carved here are togglable at all — TreeAst renders
-// everything else as plain, always-visible code.
+// Carves the fold points into one declaration's AST. Only nodes carved
+// here are togglable at all — TreeAst renders everything else as plain,
+// always-visible code. Rules:
+//   1. The decl itself folds (the register-level collapse — "[+] --AX: …").
+//   2. Any branch whose value is a nested if folds (a multi-line row
+//      scans as one line).
+//   3. RUN UNIFORMITY: within a comment-delimited run, branches sharing
+//      a condition shape (condition text with numbers masked —
+//      "style(--opcode: #):") fold TOGETHER: if any same-shaped sibling
+//      folds, they all do, including one-line rows (which fold to hide
+//      just their value). A list of like rows must read uniformly — no
+//      per-row affordance lottery. Different-shaped members of the run
+//      (a trailing "else:") keep their own treatment.
 function carveFolds(decl) {
   decl.folded = true;
-  const dispatchIf = decl.children[0];
-  const elseBranch = dispatchIf.children.find((b) => b.code === 'else:');
-  const inner = elseBranch?.children[0];
-  if (inner?.kind === 'if') {
-    for (const b of inner.children) {
-      if (b.code.startsWith('style(--opcode:') && b.children[0]?.kind === 'if') {
-        b.folded = true;
+  const walk = (node) => {
+    if (node.kind === 'if') carveIfChildren(node.children);
+    for (const c of node.children ?? []) walk(c);
+  };
+  walk(decl);
+}
+
+function carveIfChildren(children) {
+  // Rule 2: nested-if rows fold.
+  for (const b of children) {
+    if (b.kind === 'branch' && b.children?.[0]?.kind === 'if') b.folded = true;
+  }
+  // Rule 3: fold contagion within comment-delimited, same-shaped runs.
+  const runs = [];
+  let cur = [];
+  for (const c of children) {
+    if (c.kind === 'block' && (c.code ?? '').startsWith('/*')) {
+      if (cur.length) runs.push(cur);
+      cur = [];
+    } else {
+      cur.push(c);
+    }
+  }
+  if (cur.length) runs.push(cur);
+  for (const run of runs) {
+    const groups = new Map();
+    for (const m of run) {
+      if (m.kind !== 'branch') continue;
+      const key = m.code.replace(/\d+/g, '#');
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(m);
+    }
+    for (const members of groups.values()) {
+      if (members.length >= 2 && members.some((m) => m.folded)) {
+        for (const m of members) m.folded = true;
       }
     }
   }

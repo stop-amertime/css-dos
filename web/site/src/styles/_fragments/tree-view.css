@@ -40,6 +40,11 @@
    reset the pre defaults here. */
 .ast-line {
   display: flex;
+  /* wrap-reverse: the first flex line sits at the BOTTOM, so the only
+     item allowed to wrap (the comment — everything else has basis 0 or
+     is rigid) stacks ABOVE the code line when the row gets tight,
+     instead of both squeezing side by side. When it fits, one line. */
+  flex-wrap: wrap-reverse;
   align-items: baseline;
   padding: 1px 0;
   margin: 0;
@@ -54,16 +59,21 @@
    the interactable accent; the palette's --edit-cyan is BRIGHT cyan 11,
    unreadable on this light pane). Every line keeps the slot so code
    columns align; only foldable rows draw the box. */
+/* The empty slot is width-only — giving it a fixed HEIGHT makes its
+   baseline its bottom edge (empty box + baseline alignment), which
+   pushed glyphless lines' text down ~7px and made wrapped continuations
+   look detached from their parent row. Only the drawn foldable box
+   below carries a height. */
 .ast-line .tree-glyph {
   flex: none;
   width: 22px;
-  height: 22px;
   margin-right: 7px;
   font-family: 'WebVGA', monospace;
   letter-spacing: normal;
   user-select: none;
 }
 .ast-line.is-foldable .tree-glyph {
+  height: 22px;
   border: 1px solid #00aaaa;
   color: #00aaaa;
   font-weight: bold;
@@ -84,10 +94,41 @@
   background: #00aaaa;
   color: var(--edit-white);
 }
+/* Code boxes get flex-basis 0 (not content size): with wrap-reverse
+   enabled, an item whose hypothetical size overflows the line would
+   wrap to the line ABOVE — basis 0 means code can never trigger that;
+   it stays on its line and absorbs leftover width, wrapping internally.
+   Only the comment (basis auto, flex none) can wrap up. */
 .ast-line code {
+  flex: 1 1 0;
+  min-width: 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   line-height: 20px;
+}
+/* A one-lined row's value gets its own box taking the remaining width:
+   if it soft-wraps, the continuation aligns to the VALUE's start (the
+   end of the condition), not the row start. The condition box beside it
+   is RIGID — a condition is an atomic label and must never wrap; the
+   value column absorbs all the squeeze. */
+.ast-line code.ast-cond {
+  flex: none;
+  white-space: pre;
+}
+.ast-line .ast-val {
+  flex: 1 1 0;
+  min-width: 0;
+  margin-left: 1ch;
+}
+/* Trailing row comments: their own NON-shrinkable flex item at the
+   line's right edge — an annotation column. Never compresses (that
+   orphaned "*​/" onto its own line); the code column yields instead.
+   Baseline-aligned, so on a wrapped code row it sits at the top right. */
+.ast-line .ast-comment {
+  margin-left: auto;
+  padding-left: 16px;
+  text-align: right;
+  flex: none;
 }
 .ast-line.is-foldable { cursor: pointer; user-select: none; }
 .ast-line.is-foldable:hover { background: rgba(0, 0, 0, 0.05); }
@@ -110,12 +151,52 @@
   padding: 2px 4px 2px 8px;
   border-left: 1px dashed #ccd;
 }
+/* A wrapped continuation (a branch's over-budget value on its own line):
+   one structural level deeper, so it gets the SAME one-step tint as an
+   .ast-children container at its depth — consistent with inline values,
+   which show the same step via the .ast-depth chip. No guide (it's a
+   single value, not a child list). */
+.ast-continuation {
+  margin-left: 14px;
+  padding: 0 4px 0 8px;
+  /* Tight to the row it wrapped from; the breathing room goes BELOW,
+     separating the pair from the next row. */
+  margin-bottom: 4px;
+}
+.tree-ast .ast-continuation { background: #e9eaf5; }
+.tree-ast .ast-children .ast-continuation { background: #e1e3f1; }
+.tree-ast .ast-children .ast-children .ast-continuation { background: #d9dcec; }
+.tree-ast .ast-children .ast-children .ast-children .ast-continuation { background: #d1d5e8; }
+.tree-ast .ast-children .ast-children .ast-children .ast-children .ast-continuation { background: #c9cee3; }
+.tree-ast .ast-children .ast-children .ast-children .ast-children .ast-children .ast-continuation { background: #c1c7df; }
+
 .tree-ast .ast-children { background: #e9eaf5; }
 .tree-ast .ast-children .ast-children { background: #e1e3f1; }
 .tree-ast .ast-children .ast-children .ast-children { background: #d9dcec; }
 .tree-ast .ast-children .ast-children .ast-children .ast-children { background: #d1d5e8; }
 .tree-ast .ast-children .ast-children .ast-children .ast-children .ast-children { background: #c9cee3; }
 .tree-ast .ast-children .ast-children .ast-children .ast-children .ast-children .ast-children { background: #c1c7df; }
+
+/* Structural depth shows even INLINE: a branch's value is one level
+   deeper than its condition, so it carries the next tint step as a
+   text-hugging chip (an inner span — the value's flex box stretches to
+   fill the row, so the box itself can't carry the colour). Same chain
+   arithmetic as .ast-children, one rung deeper. clone keeps the chip's
+   padding on each fragment when it wraps. */
+/* Chip colours run TWO rungs deeper than their row's background — a
+   small text chip needs real contrast where a large container area can
+   afford a subtle step. */
+.tree-ast .ast-depth {
+  padding: 0 3px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  background: #dfe2f0;
+}
+.tree-ast .ast-children .ast-depth { background: #d6daeb; }
+.tree-ast .ast-children .ast-children .ast-depth { background: #cdd2e5; }
+.tree-ast .ast-children .ast-children .ast-children .ast-depth { background: #c4cadf; }
+.tree-ast .ast-children .ast-children .ast-children .ast-children .ast-depth { background: #bbc2d9; }
+.tree-ast .ast-children .ast-children .ast-children .ast-children .ast-children .ast-depth { background: #b2bad3; }
 
 /* A boxed section's children pane: ONE tinted box per real file region
    (the @function cluster, the .cpu rule, the @property blocks) —
@@ -156,4 +237,9 @@
   .tree-ast { font-size: 13px; }
   .ast-children { margin-left: 8px; padding-left: 5px; }
   .ast-line .tree-glyph { width: 22px; }
+  /* On a phone-width pane, comments ALWAYS stack above their line
+     (flex-basis 100% = never shares a line; wrap-reverse puts its line
+     on top) instead of even attempting inline — no per-row layout
+     lottery on narrow screens. */
+  .ast-line .ast-comment { flex: 0 1 100%; padding-left: 0; }
 }
