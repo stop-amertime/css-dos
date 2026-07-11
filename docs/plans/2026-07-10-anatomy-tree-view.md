@@ -66,8 +66,66 @@ then how the pieces fit, then the wishlist.
   illegible on the light pane). Depth reads via a subtle blue tint
   ramp per `.ast-children` level.
 
+## Playbook: giving another section this treatment
+
+The CPU section took several owner-steered passes; this is the distilled
+sequence so the next section takes one. Work top-down; the tree is a
+mirror, so almost all the real work is IN KILN.
+
+1. **Survey the real region first.** Capture real output
+   (`captureRealCSS()`), then probe: what declarations/rules are
+   actually there, in what order, with what existing comments, at what
+   file offsets. Never work from assumptions or from what the site
+   currently excerpts — both went stale twice during the CPU work
+   (`--AL` "aliases", one lone flag function).
+2. **Restructure the Kiln emitter** (functionality-inert only —
+   custom-prop order within a rule is name-resolved; comments are
+   tokenizer-stripped; when unsure whether a move is inert, don't):
+   - **Headings**: two banner levels, `/* ===== MAJOR ===== */` and
+     `/* --- sub --- */`, names simple and descriptive ("prefix
+     detection", not "PREFIX-ADJUSTED INSTRUCTION QUEUE").
+   - **Logical grouping + order**: move declarations so related things
+     sit together and the order tells the dataflow story (fetch →
+     decode → registers → writes). If the file reads badly, fix the
+     file — the tree inherits it.
+   - **Even commenting density**: every region should be commented to a
+     comparable level. Register dispatches have a comment per opcode
+     row; MEMORY WRITE SLOTS currently launches into raw slot code with
+     nothing — that unevenness is a bug, not a style. Rows that differ
+     meaningfully get row comments; repetitive runs get a comment at
+     the run boundary instead.
+   - **Run-delimiter comments in long lists**: where a list changes
+     kind, or before an interesting tail (a lone `else` after N twins),
+     plant a standalone comment — the renderer breaks pagination there
+     and keeps it visible. Judicious, not mechanical.
+3. **Write the extraction recipe** (`tools/extract-tree-data.mjs`):
+   slice the region, parse with the shared primitives (comment-aware
+   `splitTopLevel`/`matchParen`/`parseIf`), banner-driven grouping,
+   `assertRoundTrip` (mandatory), plus a sanity check against an
+   independent source (e.g. the CPU recipe asserts all 14 register
+   dispatches present; opcode counts were cross-checked against
+   `cpu-coverage.js`).
+4. **Carve the folds** in the recipe: sections folded; big branching
+   decls folded; rows whose value nests an `if` folded; tiny regions
+   `'label'` (flat) via the banner-style map. Never make everything
+   collapsible.
+5. **Wire the pane**: emit `<SECTION>_TREE` + `_TREE_META.bytes`
+   (real measured size), mount `<TreeView nodes title bytes>` in the
+   section's `Section*.svelte`, pane titles short and plain.
+6. **Verify + gate**: regeneration round-trips by construction; dump
+   the structure and eyeball it; site build. Any Kiln change → smoke
+   minimum; emission changes that touch every cabinet → also writable
+   + msdos.
+7. **Log it**: entry + LOGBOOK row per protocol; tick the running
+   list here.
+
 ## Running list
 
+- [ ] **Commenting-consistency pass over the .cpu tree** (owner,
+      2026-07-11): commenting level is uneven — register dispatches
+      comment every opcode row, but MEMORY WRITE SLOTS launches
+      straight into slot code with no comments at all. Bring every
+      region up to a comparable density (in Kiln).
 - [ ] Extraction recipes for the other 9 sections (util, chipset,
       keys, screen, decl, memr, memw, disk, clock). memr/memw/disk are
       the big ones — pure-streaming emitters, fakeable with tiny
