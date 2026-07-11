@@ -4,6 +4,8 @@
   // (grep -c '@property --mc' → 368,256).
   import CodeCss from '../CodeCss.svelte';
   import Callout from '../Callout.svelte';
+  import TreeView from './tree/TreeView.svelte';
+  import { DECL_TREE, DECL_TREE_META } from './tree/decl-tree.js';
 
   const DECL = `@property --mc5000 {
   syntax: '<integer>';
@@ -14,6 +16,9 @@
   const FALLBACKS = `--snapshot-mc5000: var(--staged-mc5000, 32861);
 --staged-mc5000: var(--held-mc5000, 32861);`;
 </script>
+
+<TreeView nodes={DECL_TREE} title="Memory — variable declarations" bytes={DECL_TREE_META.bytes}
+  note="exhibit from a minimal 1.5 KB-RAM build — a real cabinet’s declarations run ~32 MB" />
 
 <p>
   Before CSS lets you use a variable as a typed integer, you have to

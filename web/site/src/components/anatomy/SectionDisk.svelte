@@ -5,6 +5,8 @@
   import Foldable from '../Foldable.svelte';
   import Term from '../Term.svelte';
   import CodeCss from '../CodeCss.svelte';
+  import TreeView from './tree/TreeView.svelte';
+  import { DISK_TREE, DISK_TREE_META } from './tree/disk-tree.js';
 
   const DISK_FN = `@function --readDiskByte(--idx <integer>) returns <integer> {
   result: if(
@@ -16,6 +18,9 @@
   const WINDOW_ARM = `style(--at: 852016): --readDiskByte(calc(
   (mod(var(--snapshot-mc632), 256) + round(down, var(--snapshot-mc632) / 256) * 256) * 512 + 48));`;
 </script>
+
+<TreeView nodes={DISK_TREE} title="Disk" bytes={DISK_TREE_META.bytes}
+  note="exhibit from a minimal 512-byte rom disk — a real floppy’s read function is ~13 MB" />
 
 <p>
   CSS can&rsquo;t open anything at runtime &mdash; no files, no

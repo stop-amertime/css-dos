@@ -232,6 +232,25 @@
   color: var(--edit-white);
 }
 
+/* Editorial lines that are NOT source text: the truncation `note` rows
+   the extraction tool plants where a giant uniform run was capped, and
+   the transient loading indicator. Styled clearly as annotation, not
+   code — italic, dim. */
+.ast-line .ast-note {
+  font-style: italic;
+  color: #666;
+}
+
+/* A one-line real-scale annotation under the tree header ("a real
+   cabinet's version of this section is ~44 MB"). */
+.tree-view-note {
+  margin: 2px 0 6px;
+  padding-left: 2px;
+  font-size: 13px;
+  font-style: italic;
+  color: #666;
+}
+
 @media (max-width: 640px) {
   .tree-view { padding: 8px; font-size: 14px; }
   .tree-ast { font-size: 13px; }

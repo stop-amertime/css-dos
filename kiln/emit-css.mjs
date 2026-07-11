@@ -1127,6 +1127,7 @@ function emitMemoryPropertiesStreaming(opts, ws) {
   const { addresses } = opts;
   if (PACK_SIZE === 1) {
     const initMem = buildInitialMemory(opts);
+    ws.write(`/* memory bytes: one @property per byte (--mN);\n   initial-value = the assembled memory image, so power-on state costs no writes */\n`);
     let buf = '';
     let count = 0;
     for (const addr of addresses) {
@@ -1140,9 +1141,16 @@ function emitMemoryPropertiesStreaming(opts, ws) {
   // Packed: one @property per cell. `--mc{cellIdx}` holds PACK_SIZE bytes.
   const cells = buildCellSet(addresses);
   const cellInit = buildInitialMemoryPacked(opts);
+  const diskCellStart = opts.writableDisk ? cellIdxOf(opts.writableDisk.base) : -1;
+  ws.write(`/* memory cells: one @property per ${PACK_SIZE}-byte cell (--mcN holds bytes 2N and 2N+1);\n   initial-value = the assembled memory image, so power-on state costs no writes */\n`);
   let buf = '';
   let count = 0;
+  let inDiskCells = false;
   for (const idx of cells) {
+    if (!inDiskCells && diskCellStart !== -1 && idx >= diskCellStart) {
+      buf += `/* disk-shadow cells: the writable floppy's bytes, named outside the 1 MB guest space */\n`;
+      inDiskCells = true;
+    }
     const init = cellInit.get(idx) || 0;
     buf += `@property --mc${idx} {\n  syntax: '<integer>';\n  inherits: true;\n  initial-value: ${init};\n}\n\n`;
     if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
@@ -1166,6 +1174,10 @@ function emitReadMemStreaming(opts, ws) {
   // bridge, so MS-DOS 4.0 boot died at "Non-System disk". 0x4F2/0x4F3
   // are taken too (corduroy's requested-video-mode and CGA pal-reg
   // shadows) — every platform register gets its own address.
+  // Region run-delimiter comments below (RAM / bridge / ROM / disk window)
+  // are for the reader — every evaluator strips comments at tokenize time.
+  buf += `    /* conventional RAM: one arm per byte, reading its backing cell */\n`;
+  let afterBridge = false;
   for (const addr of addresses) {
     // Disk-shadow cells are not guest-addressable — the CPU can only reach
     // them through the 0xD0000 window (whose arms are emitted below). Skip
@@ -1173,10 +1185,17 @@ function emitReadMemStreaming(opts, ws) {
     if (writableDisk && addr >= writableDisk.base && addr < writableDisk.base + writableDisk.length) {
       continue;
     }
+    if (afterBridge && addr > 0x04F5) {
+      buf += `    /* conventional RAM (continued) */\n`;
+      afterBridge = false;
+    }
     if (addr === 0x04F4) {
+      buf += `    /* keyboard MMIO bridge: BIOS INT 16h reads the player's --keyboard word here */\n`;
       buf += `    style(--at: 1268): --lowerBytes(var(--__1keyboard), 8);\n`;
+      afterBridge = true;
     } else if (addr === 0x04F5) {
       buf += `    style(--at: 1269): --rightShift(var(--__1keyboard), 8);\n`;
+      afterBridge = true;
     } else if (PACK_SIZE === 1) {
       buf += `    style(--at: ${addr}): var(--__1m${addr});\n`;
     } else {
@@ -1194,6 +1213,7 @@ function emitReadMemStreaming(opts, ws) {
   }
   // BIOS region (read-only constants) — always included
   if (biosBytes && biosBytes.length > 0) {
+    buf += `    /* BIOS ROM at 0xF0000: read-only, so each byte is a baked literal (zero bytes omitted — the else arm returns 0) */\n`;
     for (let i = 0; i < biosBytes.length; i++) {
       if (biosBytes[i] !== 0) {
         buf += `    style(--at: ${0xF0000 + i}): ${biosBytes[i]};\n`;
@@ -1218,6 +1238,7 @@ function emitReadMemStreaming(opts, ws) {
     // dispatch in a spec-compliant evaluator. (Disk indices themselves
     // stay exact up to ~1e6, i.e. ~1 MB of disk — a pre-existing bound
     // shared with rom mode.)
+    buf += `    /* rom-disk window at 0xD0000 (512 bytes): reads route to --readDiskByte at sector LBA*512 + offset; the LBA register is the RAM word at 0x4F0 */\n`;
     for (let i = 0; i < DISK_WINDOW_SIZE; i++) {
       const addr = DISK_WINDOW_BASE + i;
       buf += `    style(--at: ${addr}): --readDiskByte(calc((${lbaLowExpr} + ${lbaHighExpr} * 256) * 512 + ${i}));\n`;
@@ -1245,6 +1266,7 @@ function emitReadDiskByteStreaming(diskBytes, ws, writableDisk) {
   ws.write(`@function --readDiskByte(--idx <integer>) returns <integer> {\n  result: if(\n`);
   let buf = '';
   if (writableDisk) {
+    buf += `    /* writable disk: one arm per byte, reading its shadow cell (zero bytes included — a freshly written sector must read back) */\n`;
     const { base } = writableDisk;
     for (let idx = 0; idx < diskBytes.length; idx++) {
       const nameAddr = base + idx;
@@ -1261,6 +1283,7 @@ function emitReadDiskByteStreaming(diskBytes, ws, writableDisk) {
       if (buf.length > 8192) { ws.write(buf); buf = ''; }
     }
   } else {
+    buf += `    /* rom disk: one literal arm per non-zero byte (zero bytes fall to the else) */\n`;
     for (let idx = 0; idx < diskBytes.length; idx++) {
       const b = diskBytes[idx];
       if (b !== 0) {
@@ -1275,6 +1298,7 @@ function emitReadDiskByteStreaming(diskBytes, ws, writableDisk) {
 
 function emitMemoryBufferReadsStreaming(opts, ws) {
   const { addresses } = opts;
+  ws.write(`  /* memory-cell double-buffer reads: this tick's stable view of every cell */\n`);
   if (PACK_SIZE === 1) {
     const initMem = buildInitialMemory(opts);
     let buf = '';
@@ -1328,6 +1352,7 @@ function emitMemoryWriteRulesStreaming(opts, ws) {
     //   (1) memAddrN == A             : slot's lo half lands here.
     //                                    width=1 → val is byte; width=2 → val is word, take lo via --lowerBytes.
     //   (2) memAddrN == A-1, width=2  : slot's hi half lands here. Take hi via --rightShift.
+    ws.write(`  /* one write rule per byte: ${NUM_WRITE_SLOTS} slots x (lo half at addr, hi half at addr-1) checks, else hold */\n`);
     let buf = '';
     let count = 0;
     for (const addr of addresses) {
@@ -1369,10 +1394,16 @@ function emitMemoryWriteRulesStreaming(opts, ws) {
   // straddle cases (loOff=1 → lo half lands here at off 1; hiOff=0 → hi half
   // lands here at off 0, both gated on width=2), and width=1 byte writes.
   const cells = buildCellSet(addresses);
+  ws.write(`  /* one write rule per cell: a ${NUM_WRITE_SLOTS}-slot --applySlot cascade (slot 0 outermost, so it wins same-cell collisions). Idle slots short-circuit at their --_slotNLive gate. */\n`);
   let buf = '';
   let count = 0;
   const diskBaseCell = writableDisk ? cellIdxOf(writableDisk.base) : -1;
+  let inDiskCells = false;
   for (const idx of cells) {
+    if (!inDiskCells && diskBaseCell !== -1 && idx >= diskBaseCell) {
+      buf += `  /* disk-shadow cells: keyed on --_dskOffN (disk-local offsets) instead of --memAddrN */\n`;
+      inDiskCells = true;
+    }
     // Build the cascade inside-out: start with __1mcIDX, then slot N-1, ..., slot 0.
     // The `${idx} * ${PACK_SIZE}` arithmetic (rather than the pre-folded
     // `${cellBase(idx)}`) is deliberate: it keeps the per-cell digit run
@@ -1398,6 +1429,7 @@ function emitMemoryWriteRulesStreaming(opts, ws) {
 
 function emitMemoryStoreKeyframeStreaming(opts, ws) {
   const { addresses } = opts;
+  ws.write(`    /* memory cells: latch last tick's computed values into the __2 buffer */\n`);
   if (PACK_SIZE === 1) {
     const initMem = buildInitialMemory(opts);
     let buf = '';
@@ -1424,6 +1456,7 @@ function emitMemoryStoreKeyframeStreaming(opts, ws) {
 
 function emitMemoryExecuteKeyframeStreaming(opts, ws) {
   const { addresses } = opts;
+  ws.write(`    /* memory cells: expose the freshly computed values as __0 for the next store */\n`);
   if (PACK_SIZE === 1) {
     let buf = '';
     let count = 0;

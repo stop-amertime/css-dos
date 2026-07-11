@@ -4,7 +4,11 @@
   // from CABINET-ANATOMY.md §7.
   import KeyboardDemo from '../KeyboardDemo.svelte';
   import Callout from '../Callout.svelte';
+  import TreeView from './tree/TreeView.svelte';
+  import { KEYS_TREE, KEYS_TREE_META } from './tree/keys-tree.js';
 </script>
+
+<TreeView nodes={KEYS_TREE} title="Keyboard & debug display" bytes={KEYS_TREE_META.bytes} />
 
 <p>
   CSS has no input events. The one thing it can ask is

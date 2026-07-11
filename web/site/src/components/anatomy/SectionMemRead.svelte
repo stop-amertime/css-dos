@@ -6,10 +6,15 @@
   import FetchLadder from '../FetchLadder.svelte';
   import Term from '../Term.svelte';
   import CodeCss from '../CodeCss.svelte';
+  import TreeView from './tree/TreeView.svelte';
+  import { MEMR_TREE, MEMR_TREE_META } from './tree/memr-tree.js';
 
   const KBD_ARMS = `style(--at: 1280): --lowerBytes(var(--snapshot-keyboard), 8);
 style(--at: 1281): --rightShift(var(--snapshot-keyboard), 8);`;
 </script>
+
+<TreeView nodes={MEMR_TREE} title="Memory — read formulas" bytes={MEMR_TREE_META.bytes}
+  note="exhibit from a minimal build — Doom’s version of this function is ~44 MB" />
 
 <p>
   Reading sounds like the easy half &mdash; nothing changes, you just

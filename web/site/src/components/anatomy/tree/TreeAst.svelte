@@ -29,6 +29,7 @@
   //     designed to skip code inside a <pre>.
   import Prism from '../../../lib/prism.js';
   import TreeAst from './TreeAst.svelte'; // self-import: Svelte 5 deprecates <svelte:self>
+  import { fetchChunk } from './lazy.js';
 
   // forceSplit: set by the PARENT when this node sits in a run of
   // same-shaped siblings where any member exceeds the line budget —
@@ -43,9 +44,50 @@
   let open = $state(!node.folded);
   let runShown = $state({}); // run index -> items revealed (default PAGE)
 
+  // PROGRESSIVE DISCLOSURE: a node with `lazy: { ref, count }` has its
+  // children in paged JSON chunks (see lazy.js / extract-tree-data.mjs).
+  // The first page loads when the node is first opened — or on mount for
+  // non-foldable lazy nodes, which only mount once an ancestor fold opened,
+  // so nothing is fetched for parts of the tree the reader never visits.
+  // Further pages ride the "(N more…)" button.
+  let fetched = $state(null);     // loaded chunk nodes, once any page is in
+  let nextPage = $state(null);    // { ref, remaining } | null
+  let loadState = $state('idle'); // 'idle' | 'loading' | 'error'
+
   const isSection = $derived(node.kind === 'section');
   const isBlock = $derived(node.kind === 'block');
-  const children = $derived(node.children ?? []);
+  const isNote = $derived(node.kind === 'note');
+  const children = $derived(fetched ?? node.children ?? []);
+
+  async function loadFirst() {
+    if (!node.lazy || fetched != null || loadState === 'loading') return;
+    loadState = 'loading';
+    try {
+      const page = await fetchChunk(node.lazy.ref);
+      fetched = page.nodes;
+      nextPage = page.next;
+      loadState = 'idle';
+    } catch {
+      loadState = 'error';
+    }
+  }
+  async function loadNext() {
+    if (!nextPage || loadState === 'loading') return;
+    loadState = 'loading';
+    try {
+      const page = await fetchChunk(nextPage.ref);
+      fetched = [...fetched, ...page.nodes];
+      nextPage = page.next;
+      loadState = 'idle';
+    } catch {
+      loadState = 'error';
+    }
+  }
+  // Non-foldable lazy nodes (an if( whose arm list was externalized) render
+  // their line immediately and stream their children in on mount.
+  $effect(() => {
+    if (node.lazy && !node.folded) loadFirst();
+  });
 
   const hl = (s) => Prism.highlight(s, Prism.languages.css, 'css');
   const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -57,10 +99,13 @@
   // lines' styling.
   const blockMultiline = $derived(isBlock && node.code.includes('\n'));
 
-  // One-line rule for AST nodes.
+  // One-line rule for AST nodes. A lazy child is NOT a leaf even though
+  // its children aren't loaded yet — it must mount as its own component
+  // so it can fetch them.
   const onlyChild = $derived(children.length === 1 ? children[0] : null);
   const onlyChildIsLeaf = $derived(
-    onlyChild != null && onlyChild.code != null && (onlyChild.children ?? []).length === 0
+    onlyChild != null && onlyChild.code != null
+    && (onlyChild.children ?? []).length === 0 && onlyChild.lazy == null
   );
   // Comment length doesn't count toward the budget — comments render as
   // their own right-aligned flex column now, not inline after the code.
@@ -72,13 +117,11 @@
 
   // Only tool-carved nodes fold. A carved ONE-LINE row is foldable too
   // (run uniformity: it folds to hide just its value, so a list of
-  // like rows all carry the same [+] affordance).
+  // like rows all carry the same [+] affordance). A lazy node's children
+  // aren't loaded yet but it folds all the same.
+  const hasContent = $derived(children.length > 0 || node.lazy != null);
   const foldable = $derived(
-    node.folded != null && (
-      isSection ? children.length > 0
-      : isBlock ? blockMultiline
-      : children.length > 0
-    )
+    node.folded != null && (isBlock ? blockMultiline : hasContent)
   );
 
   // A branch whose only child is a leaf value that just didn't fit the
@@ -174,7 +217,26 @@
     return forced;
   }));
 
-  function toggle() { if (foldable) open = !open; }
+  function toggle() {
+    if (!foldable) return;
+    open = !open;
+    if (open) loadFirst();
+  }
+
+  // "(N more…)": reveals another display page; when the loaded items run
+  // short and more pages exist on the wire, pull the next chunk first. The
+  // shown count always includes what's still on the server, so totals are
+  // honest before anything downloads.
+  async function more(i, run) {
+    const target = shownFor(i) + PAGE;
+    if (run.items.length < target && nextPage) await loadNext();
+    runShown[i] = target;
+  }
+  function retry() {
+    loadState = 'idle';
+    if (fetched == null) loadFirst();
+    else loadNext();
+  }
 </script>
 
 {#snippet childList()}
@@ -185,22 +247,33 @@
     {#each run.items.slice(0, shownFor(i)) as child}
       <TreeAst node={child} forceSplit={runForcedKeys[i].has(maskKey(child))} />
     {/each}
-    {#if run.items.length > shownFor(i)}
+    {@const netMore = i === runs.length - 1 && nextPage ? nextPage.remaining : 0}
+    {@const hidden = run.items.length - shownFor(i) + netMore}
+    {#if hidden > 0 && loadState !== 'error'}
       <div class="tree-more">
-        <button onclick={() => (runShown[i] = shownFor(i) + PAGE)}>({run.items.length - shownFor(i)} more&hellip;)</button>
+        <button onclick={() => more(i, run)}>({hidden.toLocaleString('en-US')} more&hellip;)</button>
       </div>
     {/if}
   {/each}
+  {#if loadState === 'loading' && runs.length === 0}
+    <pre class="ast-line"><span class="tree-glyph" aria-hidden="true"></span><code class="ast-note">loading&hellip;</code></pre>
+  {:else if loadState === 'error'}
+    <div class="tree-more">
+      <button onclick={retry}>failed to load &mdash; retry</button>
+    </div>
+  {/if}
 {/snippet}
 
-{#if isSection}
+{#if isNote}
+  <pre class="ast-line"><span class="tree-glyph" aria-hidden="true"></span><code class="ast-note">{node.text}</code></pre>
+{:else if isSection}
   <div class="ast-line is-section" class:is-foldable={foldable}
        role={foldable ? 'button' : undefined} tabindex={foldable ? 0 : undefined}
        onclick={toggle} onkeydown={(e) => e.key === 'Enter' && toggle()}>
     <span class="tree-glyph" class:is-open={open} aria-hidden="true">{foldable ? (open ? '-' : '+') : ''}</span>
     <span class="tree-label-group">{node.label}</span>
   </div>
-  {#if open && runs.length > 0}
+  {#if open && (runs.length > 0 || loadState !== 'idle')}
     <div class="ast-children" class:byte-example={node.boxed} class:tree-ast={node.boxed}>
       {@render childList()}
     </div>
@@ -210,7 +283,7 @@
        role={foldable ? 'button' : undefined} tabindex={foldable ? 0 : undefined}
        onclick={toggle} onkeydown={(e) => e.key === 'Enter' && toggle()}><span class="tree-glyph" class:is-open={open} aria-hidden="true">{foldable ? (open ? '-' : '+') : ''}</span><code class:ast-cond={valueHtml != null}>{@html lineHtml}</code>{#if valueHtml}<code class="ast-val">{@html valueHtml}</code>{/if}{#if commentHtml}<code class="ast-comment">{@html commentHtml}</code>{/if}</pre>
 
-  {#if !isBlock && open && runs.length > 0}
+  {#if !isBlock && open && (runs.length > 0 || loadState !== 'idle')}
     <div class={isContinuation ? 'ast-continuation' : 'ast-children'}>
       {@render childList()}
     </div>

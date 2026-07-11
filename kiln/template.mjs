@@ -97,6 +97,7 @@ export const STATE_VARS = [
 export function emitPropertyDecls(opts) {
   const all = getAllVars(opts);
   const lines = [];
+  lines.push(`/* platform wires: the clock heartbeat + the player's keyboard bridge */`);
   lines.push(`@property --clock {
   syntax: '<integer>';
   inherits: true;
@@ -112,6 +113,8 @@ export function emitPropertyDecls(opts) {
   inherits: true;
   initial-value: 0;
 }`);
+  lines.push(`/* machine state: registers, chipset latches, execution bookkeeping.
+   initial-value is the power-on state (CS:IP starts at the BIOS entry). */`);
   for (const v of all) {
     lines.push(`@property --${v.name} {
   syntax: '<integer>';

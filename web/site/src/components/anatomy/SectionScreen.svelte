@@ -6,6 +6,8 @@
   import PixelScreen from '../PixelScreen.svelte';
   import CodeCss from '../CodeCss.svelte';
   import Term from '../Term.svelte';
+  import TreeView from './tree/TreeView.svelte';
+  import { SCREEN_TREE, SCREEN_TREE_META } from './tree/screen-tree.js';
 
   const RETRACE = `/* in retrace? — 1 while the beam would be flying back */
 max(0, sign(3409 - mod(var(--snapshot-cycleCount), 68182)))`;
@@ -21,6 +23,9 @@ max(0, sign(3409 - mod(var(--snapshot-cycleCount), 68182)))`;
     else: rgb(0 0 0));
 }`;
 </script>
+
+<TreeView nodes={SCREEN_TREE} title="Screen — pixel painter" bytes={SCREEN_TREE_META.bytes}
+  note="the painter is identical in every cabinet — 64,000 pixel rules (~7 MB); the tree ships the palette and the head of the list" />
 
 <p>
   CSS can&rsquo;t draw pixels. It can colour elements. So the screen is
