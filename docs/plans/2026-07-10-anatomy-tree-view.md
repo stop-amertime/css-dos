@@ -59,18 +59,37 @@ then how the pieces fit, then the wishlist.
 
 ## How the pieces fit
 
-- `tools/extract-tree-data.mjs` — the generator. Runs the real
-  `emitCSS()` on a tiny synthetic cart, slices/parses per section,
-  writes `web/site/src/components/anatomy/tree/<section>-tree.js`.
-  Reusable primitives: `captureRealCSS`, comment-aware `splitTopLevel`
-  / `matchParen`, `parseIf` (recursive if/branch/value AST),
-  `assertRoundTrip`. Each section needs its own small recipe (the .cpu
-  one parses the whole rule + banner grouping). Regenerate:
-  `node tools/extract-tree-data.mjs cpu > web/site/src/components/anatomy/tree/cpu-tree.js`.
+- `tools/extract-tree-data.mjs` — the generator, now covering ALL TEN
+  file sections (2026-07-11). Runs the real `emitCSS()` on a tiny
+  synthetic cart (1.5 KB RAM zone + 512 B rom disk so every section
+  exists), slices the file at the ten section banners, and parses each
+  region with one generic parser (comments/banners, @property,
+  @function, rules incl. nested one-liners and @keyframes percent
+  blocks). Reusable primitives: `captureRealCSS`, comment-aware
+  `splitTopLevel` / `matchParen` / `matchBrace`, `parseIf`,
+  `assertRoundTrip` (still mandatory, per region). The cpu pane keeps
+  its curated three-group layout. Regenerate:
+  `node tools/extract-tree-data.mjs all` (writes everything itself).
+- **Progressive disclosure (2026-07-11, owner-requested):** each
+  section emits a small SKELETON module
+  (`web/site/src/components/anatomy/tree/<id>-tree.js`, bundled) plus
+  paged JSON CHUNKS (`web/site/public/anatomy/<id>/NNN.json`, fetched
+  by `TreeAst` only when a fold opens / a lazy node mounts). Heavy
+  nodes carry `lazy: { ref, count }` instead of `children`; chunk
+  pages carry `next: { ref, remaining }` so "(N more…)" always shows
+  the true tail before it downloads. Chunking is TRANSPORT, not
+  structure — the parse is still verified whole, then split. The one
+  genuinely huge uniform run (64,000 pixel rules) is capped at
+  CAP_ROWS=1024 with an explicit editorial `note` node stating the
+  real total (no silent caps). Skeletons total ~19 KB; the site
+  bundle dropped 740 → 235 KB.
 - Node model: `section` (label; `boxed:` = one tinted pane per file
-  region) / `block` (verbatim chunk, folds to first line) / `decl` /
-  `if` (carries `trailer`, its real closing text) / `branch` (carries
-  `comment`) / `value`. `folded:` on any = togglable.
+  region) / `block` (verbatim chunk, folds to first line) / `decl`
+  (also used for rules/functions: code = header + `{`, `trailer` =
+  `}`) / `if` (carries `trailer`, its real closing text) / `branch`
+  (carries `comment`) / `value` / `note` (editorial truncation marker,
+  excluded from round-trip). `folded:` on any = togglable;
+  `lazy: { ref, count }` = children fetched on demand (`lazy.js`).
 - `TreeAst.svelte` — the ONE renderer (sections, blocks, AST). Line
   budget ~80 chars decides one-lining vs split-at-child. `<pre>` lines
   dodge the wizard's inline-code white-chip rule by design.
@@ -104,11 +123,10 @@ mirror, so almost all the real work is IN KILN.
      decode → registers → writes). If the file reads badly, fix the
      file — the tree inherits it.
    - **Even commenting density**: every region should be commented to a
-     comparable level. Register dispatches have a comment per opcode
-     row; MEMORY WRITE SLOTS currently launches into raw slot code with
-     nothing — that unevenness is a bug, not a style. Rows that differ
-     meaningfully get row comments; repetitive runs get a comment at
-     the run boundary instead.
+     comparable level. Rows that differ meaningfully get row comments;
+     repetitive runs get a comment at the run boundary instead. (The
+     canonical bug of this kind — MEMORY WRITE SLOTS launching into raw
+     slot code with nothing — was fixed 2026-07-11.)
    - **Run-delimiter comments in long lists**: where a list changes
      kind, or before an interesting tail (a lone `else` after N twins),
      plant a standalone comment — the renderer breaks pagination there
@@ -136,22 +154,32 @@ mirror, so almost all the real work is IN KILN.
 
 ## Running list
 
-- [ ] **Commenting-consistency pass over the .cpu tree** (owner,
-      2026-07-11): commenting level is uneven — register dispatches
-      comment every opcode row, but MEMORY WRITE SLOTS launches
-      straight into slot code with no comments at all. Bring every
-      region up to a comparable density (in Kiln).
-- [ ] Extraction recipes for the other 9 sections (util, chipset,
-      keys, screen, decl, memr, memw, disk, clock). memr/memw/disk are
-      the big ones — pure-streaming emitters, fakeable with tiny
-      synthetic opts (surveyed 2026-07-10).
-- [ ] Memory section: plant region-boundary comments in Kiln
-      (`/* RAM cells */`, `/* BIOS ROM */`, `/* disk window */`) so
-      the run-splitting shows the memory map's real shape.
+- [x] **Commenting-consistency pass over the .cpu tree** (owner,
+      2026-07-11): DONE same day, landed to master (LOGBOOK
+      2026-07-11-kiln-cpu-commenting-pass). MEMORY WRITE SLOTS got an
+      intro comment, `--- slot N ---` / `--- write gates ---`
+      sub-banners, rows regrouped by destination kind with
+      run-delimiter comments, and per-row comments on the gates.
+      Old-vs-new output proved equivalent (arm order only, distinct
+      --opcode keys, TF/IRQ pinned first); websmoke PASS.
+- [x] Extraction recipes for the other 9 sections: DONE 2026-07-11, landed to master — one generic
+      region parser replaced per-section recipes; all 10 panes mount
+      `TreeView`; lazy chunk format (see "How the pieces fit");
+      Playwright browse-test green (trees on all panes, no fetch
+      before expand, cross-page pagination, honest totals).
+- [x] Memory section region-boundary comments in Kiln: DONE 2026-07-11,
+      landed to master — readMem gets `conventional RAM` / `keyboard MMIO
+      bridge` / `BIOS ROM` / `rom-disk window` run delimiters; decl
+      gets platform/machine-state/memory-cells/disk-shadow headers;
+      memw, buffer reads, store/execute sweeps and readDiskByte get
+      one-line headers. Comment-only (old-vs-new equivalence checker
+      clean on rom + writable configs).
 - [x] Calcite comment safety: verified 2026-07-11 — servo cssparser
       tokenizer drops comments before recognizers run (see principle 6).
-- [ ] Maybe: opcode-family comments inside register dispatches
-      (`/* string ops */`, ...) — tasteful, not mechanical.
+- [x] Opcode-family comments inside register dispatches: done with the
+      2026-07-11 commenting pass — 8086 opcode-map family boundaries
+      (`OPCODE_FAMILIES` in emit-css.mjs), only in dispatches ≥24 rows
+      so short lists stay unbroken.
 - [ ] Decided against for now: moving register `@property` emission
       adjacent to `.cpu` (would fragment the decl block + the site's
       file-map measurements). Revisit only if the owner asks.

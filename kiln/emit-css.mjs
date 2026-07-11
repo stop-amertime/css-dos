@@ -27,6 +27,70 @@ import { emitAllShifts, emitShiftFlagFunctions, emitShiftByNFlagFunctions } from
 import { emitAll186 } from './patterns/extended186.mjs';
 import { emitCycleCounts } from './cycle-counts.mjs';
 
+// ---------------------------------------------------------------------------
+// Run-delimiter comments for long dispatch lists.
+//
+// A 60-232-row if() dispatch is unreadable as one wall of rows. Standalone
+// comments are legal wherever whitespace is and every spec-compliant
+// evaluator strips them at tokenize time (verified for Chrome and calcite —
+// see docs/plans/2026-07-10-anatomy-tree-view.md, principle 6), so we plant
+// one wherever the list changes kind. The site's anatomy Tree View breaks
+// pagination at exactly these comments, turning each list into labelled runs.
+
+// The 8086 opcode map's natural rows. Register dispatches are emitted in
+// ascending opcode order, so each family is one contiguous run.
+const OPCODE_FAMILIES = [
+  [0x00, 'ALU: ADD/OR/ADC/SBB/AND/SUB/XOR/CMP + BCD adjusts'],
+  [0x40, 'INC/DEC reg16'],
+  [0x50, 'PUSH/POP reg16'],
+  [0x60, '80186: PUSH/IMUL immediate'],
+  [0x70, 'conditional jumps'],
+  [0x80, 'Group 80-83: ALU r/m, imm'],
+  [0x84, 'TEST/XCHG, MOV r/m, LEA, MOV segreg, POP r/m'],
+  [0x90, 'XCHG AX/NOP, CBW/CWD, CALL far, PUSHF/POPF, SAHF/LAHF'],
+  [0xA0, 'MOV accumulator/[mem], string ops, TEST acc'],
+  [0xB0, 'MOV reg, imm'],
+  [0xC0, 'RET/RETF, LES/LDS, MOV r/m imm, INT/INTO/IRET'],
+  [0xD0, 'shifts & rotates, AAM/AAD, XLAT'],
+  [0xE0, 'LOOP/JCXZ, IN/OUT, CALL/JMP'],
+  [0xF0, 'HLT/CMC, Group F6/F7, CLC..STD, Group FE/FF'],
+];
+
+// Short dispatches read fine without family labels; only label long ones.
+const FAMILY_COMMENT_MIN_ROWS = 24;
+
+function opcodeFamily(opcode) {
+  let label = OPCODE_FAMILIES[0][1];
+  for (const [start, l] of OPCODE_FAMILIES) {
+    if (opcode < start) break;
+    label = l;
+  }
+  return label;
+}
+
+// Memory write slots are grouped by where the write lands (the address
+// expression's shape), so each slot dispatch reads as a table of
+// destinations rather than emitter-registration order. Classification is
+// shape-based so a new addMemWrite call site lands in the right run
+// without touching a table here.
+const WRITE_GROUPS = [
+  ['ea',     'ModR/M memory destination (--ea; -1 when mod=3 targets a register)', 'ModR/M memory writes'],
+  ['direct', 'direct-address MOV: accumulator to [imm16]',                         'direct-address MOVs'],
+  ['string', 'string stores to ES:DI',                                             'string stores'],
+  ['stack',  'stack pushes',                                                       'stack pushes'],
+  ['group',  'group opcodes: destination picked by the /reg field',                'group opcodes'],
+  ['io',     'OUT side-effects: VGA DAC / CGA palette shadow registers',           'OUT side-effects'],
+];
+
+function classifyWrite(addrExpr, comment = '') {
+  if (/dacWriteIndex/.test(addrExpr) || /^OUT\b/.test(comment)) return 'io';
+  if (/--directSeg/.test(addrExpr)) return 'direct';
+  if (/--__1DI/.test(addrExpr)) return 'string';
+  if (/style\(--reg:/.test(addrExpr) && /--__1SP/.test(addrExpr)) return 'group';
+  if (/--__1SP/.test(addrExpr)) return 'stack';
+  return 'ea';
+}
+
 /**
  * Dispatch table builder. Collects per-register entries keyed by opcode.
  */
@@ -68,7 +132,13 @@ class DispatchTable {
     if (!ipEntries) return '  --unknownOp: 1;';
     const opcodes = [...ipEntries.keys()].sort((a, b) => a - b);
     const lines = ['  --unknownOp: if('];
+    let prevFamily = null;
     for (const op of opcodes) {
+      const family = opcodeFamily(op);
+      if (family !== prevFamily) {
+        lines.push(`    /* ${family} */`);
+        prevFamily = family;
+      }
       lines.push(`    style(--opcode: ${op}): 0;`);
     }
     lines.push('    /* any opcode not implemented above is unknown — halt */');
@@ -125,9 +195,23 @@ class DispatchTable {
     } else {
       const dispatchLines = [];
       const sorted = [...entries.entries()].sort(([a], [b]) => a - b);
+      // Long lists get a run-delimiter comment at each opcode-family
+      // boundary (see OPCODE_FAMILIES above); short ones stay unbroken.
+      const labelFamilies = sorted.length >= FAMILY_COMMENT_MIN_ROWS;
+      let prevFamily = null;
       for (const [opcode, { expr, comment }] of sorted) {
+        if (labelFamilies) {
+          const family = opcodeFamily(opcode);
+          if (family !== prevFamily) {
+            dispatchLines.push(`    /* ${family} */`);
+            prevFamily = family;
+          }
+        }
         const commentStr = comment ? ` /* ${comment} */` : '';
         dispatchLines.push(`    style(--opcode: ${opcode}): ${expr};${commentStr}`);
+      }
+      if (defaultExpr === `var(--__1${reg})`) {
+        dispatchLines.push(`    /* no entry for this opcode: ${reg} holds */`);
       }
       if (wrapIP) {
         normalExpr = `calc(if(\n${dispatchLines.join('\n')}\n  else: ${defaultExpr}) + var(--prefixLen))`;
@@ -231,9 +315,20 @@ class DispatchTable {
         slots[i].push({ opcode, ...fused[i] });
       }
     }
-    // Stash per-slot {opcode, width} lists so emitSlotLiveGates / emitSlotWidthGates
-    // can emit the corresponding dispatches.
-    this._slotMeta = slots.map(entries => entries.map(e => ({ opcode: e.opcode, width: e.width })));
+    // Order each slot's rows by destination kind (classifyWrite), ascending
+    // opcode within a kind, so the dispatch reads as a table of where
+    // writes land instead of emitter-registration order. Safe to reorder:
+    // every row keys on a distinct --opcode, so at most one arm matches.
+    const groupRank = new Map(WRITE_GROUPS.map(([key], i) => [key, i]));
+    for (const entries of slots) {
+      for (const e of entries) e.group = classifyWrite(e.addrExpr, e.comment);
+      entries.sort((a, b) =>
+        (groupRank.get(a.group) - groupRank.get(b.group)) || (a.opcode - b.opcode));
+    }
+    // Stash per-slot {opcode, width, comment} lists (grouped order) so
+    // emitSlotLiveGates / emitWriteWidthGate emit matching dispatches.
+    this._slotMeta = slots.map(entries => entries.map(
+      e => ({ opcode: e.opcode, width: e.width, comment: e.comment, group: e.group })));
 
     // TF trap and IRQ delivery both push FLAGS/CS/IP — three word-aligned
     // pushes. Each lands in one width=2 slot. Stack is always even-aligned
@@ -253,23 +348,50 @@ class DispatchTable {
       `var(--__1CS)`,
       `var(--__1IP)`,
     ];
+    const intFrameWord = [
+      'FLAGS at SS:SP-2',
+      'CS at SS:SP-4',
+      'IP at SS:SP-6',
+    ];
+    const slotRole = [
+      'every writing opcode\'s first (or only) write',
+      'used only by multi-write opcodes: the second byte/word they write this tick',
+      'used only by the INT family: the third frame word',
+    ];
+    const groupLabel = new Map(WRITE_GROUPS.map(([key, label]) => [key, label]));
 
     const lines = [];
+    // Emits the rows of one slot dispatch (shared by --memAddrN and
+    // --memValN so both list identical opcodes in identical order), with a
+    // run-delimiter comment wherever the destination kind changes.
+    const pushRows = (slot, exprOf) => {
+      let prevGroup = null;
+      for (const entry of slots[slot]) {
+        if (entry.group !== prevGroup) {
+          lines.push(`    /* ${groupLabel.get(entry.group)} */`);
+          prevGroup = entry.group;
+        }
+        const commentStr = entry.comment ? ` /* ${entry.comment} */` : '';
+        lines.push(`    style(--opcode: ${entry.opcode}): ${exprOf(entry)};${commentStr}`);
+      }
+    };
     for (let slot = 0; slot < NUM_WRITE_SLOTS; slot++) {
+      lines.push(`  /* --- slot ${slot} --- */`);
+      lines.push(`  /* ${slotRole[slot]} */`);
       lines.push(`  --memAddr${slot}: if(`);
+      lines.push(`    /* interrupt frame: ${intFrameWord[slot]} (TF trap / hardware IRQ) */`);
       lines.push(`    style(--_tf: 1): ${intAddr[slot]};`);
       lines.push(`    style(--_irqActive: 1): ${intAddr[slot]};`);
-      for (const { opcode, addrExpr, comment } of slots[slot]) {
-        lines.push(`    style(--opcode: ${opcode}): ${addrExpr}; /* ${comment || ''} */`);
-      }
+      pushRows(slot, (e) => e.addrExpr);
+      lines.push(`    /* any other opcode: slot idle this tick */`);
       lines.push(`  else: -1);`);
 
       lines.push(`  --memVal${slot}: if(`);
+      lines.push(`    /* interrupt frame: ${intFrameWord[slot]} (TF trap / hardware IRQ) */`);
       lines.push(`    style(--_tf: 1): ${intVal[slot]};`);
       lines.push(`    style(--_irqActive: 1): ${intVal[slot]};`);
-      for (const { opcode, valExpr, comment } of slots[slot]) {
-        lines.push(`    style(--opcode: ${opcode}): ${valExpr}; /* ${comment || ''} */`);
-      }
+      pushRows(slot, (e) => e.valExpr);
+      lines.push(`    /* slot idle: value unused (addr is -1) */`);
       lines.push(`  else: 0);`);
     }
 
@@ -290,15 +412,23 @@ class DispatchTable {
     if (!this._slotMeta) {
       throw new Error('emitMemoryWriteSlots must be called before emitSlotLiveGates');
     }
-    const lines = ['  /* Slot-live gates — skip per-byte memory write checks when no slot fires this tick */'];
+    const shortLabel = new Map(WRITE_GROUPS.map(([key, , short]) => [key, short]));
+    const lines = ['  /* Slot-live gates — skip per-byte memory write checks when no slot fires this tick. */',
+                   '  /* Rows mirror the slot dispatches above: same opcodes, same order. */'];
     for (let slot = 0; slot < NUM_WRITE_SLOTS; slot++) {
       const meta = this._slotMeta[slot];
       const branches = [];
-      // TF trap and IRQ delivery push FLAGS/CS/IP — all slots live.
+      branches.push(`    /* TF trap and IRQ delivery push FLAGS/CS/IP — all slots live */`);
       branches.push(`    style(--_tf: 1): 1;`);
       branches.push(`    style(--_irqActive: 1): 1;`);
-      for (const { opcode } of meta) {
-        branches.push(`    style(--opcode: ${opcode}): 1;`);
+      let prevGroup = null;
+      for (const { opcode, comment, group } of meta) {
+        if (group !== prevGroup) {
+          branches.push(`    /* ${shortLabel.get(group)} */`);
+          prevGroup = group;
+        }
+        const commentStr = comment ? ` /* ${comment} */` : '';
+        branches.push(`    style(--opcode: ${opcode}): 1;${commentStr}`);
       }
       lines.push(`  --_slot${slot}Live: if(`);
       lines.push(branches.join('\n'));
@@ -361,14 +491,27 @@ class DispatchTable {
       if (widths.has(2)) wordOpcodes.push(opcode);
     }
     wordOpcodes.sort((a, b) => a - b);
+    // A representative comment per word-writing opcode, lifted from its
+    // first slot entry, so the gate's rows name their instructions.
+    const commentByOpcode = new Map();
+    for (let slot = 0; slot < NUM_WRITE_SLOTS; slot++) {
+      for (const { opcode, comment } of this._slotMeta[slot]) {
+        if (comment && !commentByOpcode.has(opcode)) commentByOpcode.set(opcode, comment);
+      }
+    }
 
     const lines = ['  /* Global write-width gate — 1=byte, 2=word (addr+1 carries hi byte). Shared across slots. */'];
     const branches = [];
+    branches.push(`    /* interrupt frame pushes are words */`);
     branches.push(`    style(--_tf: 1): 2;`);
     branches.push(`    style(--_irqActive: 1): 2;`);
+    branches.push(`    /* word-writing opcodes */`);
     for (const op of wordOpcodes) {
-      branches.push(`    style(--opcode: ${op}): 2;`);
+      const comment = commentByOpcode.get(op);
+      const commentStr = comment ? ` /* ${comment} */` : '';
+      branches.push(`    style(--opcode: ${op}): 2;${commentStr}`);
     }
+    branches.push(`    /* everything else writes single bytes */`);
     lines.push(`  --_writeWidth: if(`);
     lines.push(branches.join('\n'));
     lines.push(`  else: 1);`);
@@ -726,19 +869,18 @@ export function emitCSS(opts, writeStream) {
   // Unknown opcode detection — sets --unknownOp=1 and --haltCode=opcode
   writeStream.write('  /* --- unknown opcode flag --- */\n');
   writeStream.write(dispatch.emitUnknownOpFlag() + '\n');
-  writeStream.write('  --haltCode: calc(var(--unknownOp) * var(--opcode));\n\n');
+  writeStream.write('  --haltCode: calc(var(--unknownOp) * var(--opcode)); /* the offending opcode, 0 while running */\n\n');
 
   writeStream.write('  /* ===== REGISTERS ===== */\n');
   writeStream.write('  /* --- register aliases (8-bit halves) --- */\n');
+  writeStream.write('  /* Read-only views of the previous tick\'s (--__1) word registers. */\n');
   w(emitRegisterAliases());
   writeStream.write('\n');
 
   // Per-register dispatch tables — the heart of instruction execution
   writeStream.write('  /* --- register update formulas --- */\n');
   writeStream.write('  /* Each register\'s next value is selected by opcode via a\n');
-  writeStream.write('     giant if(style(--instId: N)) dispatch. This is the CPU. */\n');
-  const cpuRegs = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI',
-                   'CS', 'DS', 'ES', 'SS', 'IP', 'flags', 'halt', 'cycleCount'];
+  writeStream.write('     giant if(style(--opcode: N)) dispatch. This is the CPU. */\n');
   // Chipset state — the support chips around the CPU, driven by the same
   // dispatch-table machinery (OUT handlers in patterns/misc.mjs) but
   // emitted under the CHIPSET banner in the .motherboard rule below.
@@ -801,12 +943,29 @@ export function emitCSS(opts, writeStream) {
       writeStream.write(dispatch.emitRegisterDispatch(reg, defaultExpr) + '\n');
     }
   };
-  emitDispatchFor(cpuRegs);
+  // Emitted in four labelled runs so the 16 dispatches scan as the
+  // programmer-visible machine: data registers, then segments, then
+  // control flow, then bookkeeping.
+  writeStream.write('  /* general-purpose registers */\n');
+  emitDispatchFor(['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI']);
+  writeStream.write('  /* segment registers */\n');
+  emitDispatchFor(['CS', 'DS', 'ES', 'SS']);
+  writeStream.write('  /* instruction pointer & FLAGS */\n');
+  emitDispatchFor(['IP', 'flags']);
+  writeStream.write('  /* execution bookkeeping: halt latch + 8086 cycle counter */\n');
+  emitDispatchFor(['halt', 'cycleCount']);
   writeStream.write('\n');
 
   // Memory write slots — the CPU's write port onto the bus
   writeStream.write('  /* ===== MEMORY WRITE SLOTS ===== */\n');
+  writeStream.write('  /* The CPU\'s write port onto the bus: three (addr, val) slot pairs.\n');
+  writeStream.write('     Slot N writes --memValN to linear address --memAddrN this tick\n');
+  writeStream.write('     (addr -1 = slot idle); the shared --_writeWidth below picks byte\n');
+  writeStream.write('     or word for every live slot. Three slots is the worst case: INT\n');
+  writeStream.write('     (and the TF-trap / hardware-IRQ frame) pushes FLAGS, CS and IP\n');
+  writeStream.write('     in one tick. */\n');
   writeStream.write(dispatch.emitMemoryWriteSlots() + '\n\n');
+  writeStream.write('  /* --- write gates --- */\n');
   writeStream.write(dispatch.emitSlotLiveGates() + '\n\n');
   writeStream.write(dispatch.emitWriteWidthGate() + '\n\n');
   if (writableDisk) {
@@ -944,7 +1103,11 @@ function emitDiskWriteRemap(writableDisk) {
   const { lo, hi } = lbaByteExprs();
   const winLo = DISK_WINDOW_BASE;            // first window byte
   const winEnd = DISK_WINDOW_BASE + DISK_WINDOW_SIZE; // one past last
-  const lines = ['  /* ===== WRITABLE-DISK WRITE REMAP (--_dskInN / --_dskOffN) ===== */'];
+  const lines = ['  /* ===== WRITABLE-DISK WRITE REMAP (--_dskInN / --_dskOffN) ===== */',
+                 '  /* Per slot: --_dskInN = 1 when memAddrN falls inside the rom-disk window,',
+                 '     --_dskOffN = the disk-local byte offset of that write (-1 outside).',
+                 '     Disk-shadow cells key their write cascade on --_dskOffN instead of',
+                 '     --memAddrN — see the memory write rules. */'];
   for (let i = 0; i < NUM_WRITE_SLOTS; i++) {
     lines.push(
       `  --_dskIn${i}: calc(` +
@@ -964,6 +1127,7 @@ function emitMemoryPropertiesStreaming(opts, ws) {
   const { addresses } = opts;
   if (PACK_SIZE === 1) {
     const initMem = buildInitialMemory(opts);
+    ws.write(`/* memory bytes: one @property per byte (--mN);\n   initial-value = the assembled memory image, so power-on state costs no writes */\n`);
     let buf = '';
     let count = 0;
     for (const addr of addresses) {
@@ -977,9 +1141,16 @@ function emitMemoryPropertiesStreaming(opts, ws) {
   // Packed: one @property per cell. `--mc{cellIdx}` holds PACK_SIZE bytes.
   const cells = buildCellSet(addresses);
   const cellInit = buildInitialMemoryPacked(opts);
+  const diskCellStart = opts.writableDisk ? cellIdxOf(opts.writableDisk.base) : -1;
+  ws.write(`/* memory cells: one @property per ${PACK_SIZE}-byte cell (--mcN holds bytes 2N and 2N+1);\n   initial-value = the assembled memory image, so power-on state costs no writes */\n`);
   let buf = '';
   let count = 0;
+  let inDiskCells = false;
   for (const idx of cells) {
+    if (!inDiskCells && diskCellStart !== -1 && idx >= diskCellStart) {
+      buf += `/* disk-shadow cells: the writable floppy's bytes, named outside the 1 MB guest space */\n`;
+      inDiskCells = true;
+    }
     const init = cellInit.get(idx) || 0;
     buf += `@property --mc${idx} {\n  syntax: '<integer>';\n  inherits: true;\n  initial-value: ${init};\n}\n\n`;
     if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
@@ -1003,6 +1174,10 @@ function emitReadMemStreaming(opts, ws) {
   // bridge, so MS-DOS 4.0 boot died at "Non-System disk". 0x4F2/0x4F3
   // are taken too (corduroy's requested-video-mode and CGA pal-reg
   // shadows) — every platform register gets its own address.
+  // Region run-delimiter comments below (RAM / bridge / ROM / disk window)
+  // are for the reader — every evaluator strips comments at tokenize time.
+  buf += `    /* conventional RAM: one arm per byte, reading its backing cell */\n`;
+  let afterBridge = false;
   for (const addr of addresses) {
     // Disk-shadow cells are not guest-addressable — the CPU can only reach
     // them through the 0xD0000 window (whose arms are emitted below). Skip
@@ -1010,10 +1185,17 @@ function emitReadMemStreaming(opts, ws) {
     if (writableDisk && addr >= writableDisk.base && addr < writableDisk.base + writableDisk.length) {
       continue;
     }
+    if (afterBridge && addr > 0x04F5) {
+      buf += `    /* conventional RAM (continued) */\n`;
+      afterBridge = false;
+    }
     if (addr === 0x04F4) {
+      buf += `    /* keyboard MMIO bridge: BIOS INT 16h reads the player's --keyboard word here */\n`;
       buf += `    style(--at: 1268): --lowerBytes(var(--__1keyboard), 8);\n`;
+      afterBridge = true;
     } else if (addr === 0x04F5) {
       buf += `    style(--at: 1269): --rightShift(var(--__1keyboard), 8);\n`;
+      afterBridge = true;
     } else if (PACK_SIZE === 1) {
       buf += `    style(--at: ${addr}): var(--__1m${addr});\n`;
     } else {
@@ -1031,6 +1213,7 @@ function emitReadMemStreaming(opts, ws) {
   }
   // BIOS region (read-only constants) — always included
   if (biosBytes && biosBytes.length > 0) {
+    buf += `    /* BIOS ROM at 0xF0000: read-only, so each byte is a baked literal (zero bytes omitted — the else arm returns 0) */\n`;
     for (let i = 0; i < biosBytes.length; i++) {
       if (biosBytes[i] !== 0) {
         buf += `    style(--at: ${0xF0000 + i}): ${biosBytes[i]};\n`;
@@ -1055,6 +1238,7 @@ function emitReadMemStreaming(opts, ws) {
     // dispatch in a spec-compliant evaluator. (Disk indices themselves
     // stay exact up to ~1e6, i.e. ~1 MB of disk — a pre-existing bound
     // shared with rom mode.)
+    buf += `    /* rom-disk window at 0xD0000 (512 bytes): reads route to --readDiskByte at sector LBA*512 + offset; the LBA register is the RAM word at 0x4F0 */\n`;
     for (let i = 0; i < DISK_WINDOW_SIZE; i++) {
       const addr = DISK_WINDOW_BASE + i;
       buf += `    style(--at: ${addr}): --readDiskByte(calc((${lbaLowExpr} + ${lbaHighExpr} * 256) * 512 + ${i}));\n`;
@@ -1082,6 +1266,7 @@ function emitReadDiskByteStreaming(diskBytes, ws, writableDisk) {
   ws.write(`@function --readDiskByte(--idx <integer>) returns <integer> {\n  result: if(\n`);
   let buf = '';
   if (writableDisk) {
+    buf += `    /* writable disk: one arm per byte, reading its shadow cell (zero bytes included — a freshly written sector must read back) */\n`;
     const { base } = writableDisk;
     for (let idx = 0; idx < diskBytes.length; idx++) {
       const nameAddr = base + idx;
@@ -1098,6 +1283,7 @@ function emitReadDiskByteStreaming(diskBytes, ws, writableDisk) {
       if (buf.length > 8192) { ws.write(buf); buf = ''; }
     }
   } else {
+    buf += `    /* rom disk: one literal arm per non-zero byte (zero bytes fall to the else) */\n`;
     for (let idx = 0; idx < diskBytes.length; idx++) {
       const b = diskBytes[idx];
       if (b !== 0) {
@@ -1112,6 +1298,7 @@ function emitReadDiskByteStreaming(diskBytes, ws, writableDisk) {
 
 function emitMemoryBufferReadsStreaming(opts, ws) {
   const { addresses } = opts;
+  ws.write(`  /* memory-cell double-buffer reads: this tick's stable view of every cell */\n`);
   if (PACK_SIZE === 1) {
     const initMem = buildInitialMemory(opts);
     let buf = '';
@@ -1165,6 +1352,7 @@ function emitMemoryWriteRulesStreaming(opts, ws) {
     //   (1) memAddrN == A             : slot's lo half lands here.
     //                                    width=1 → val is byte; width=2 → val is word, take lo via --lowerBytes.
     //   (2) memAddrN == A-1, width=2  : slot's hi half lands here. Take hi via --rightShift.
+    ws.write(`  /* one write rule per byte: ${NUM_WRITE_SLOTS} slots x (lo half at addr, hi half at addr-1) checks, else hold */\n`);
     let buf = '';
     let count = 0;
     for (const addr of addresses) {
@@ -1206,10 +1394,16 @@ function emitMemoryWriteRulesStreaming(opts, ws) {
   // straddle cases (loOff=1 → lo half lands here at off 1; hiOff=0 → hi half
   // lands here at off 0, both gated on width=2), and width=1 byte writes.
   const cells = buildCellSet(addresses);
+  ws.write(`  /* one write rule per cell: a ${NUM_WRITE_SLOTS}-slot --applySlot cascade (slot 0 outermost, so it wins same-cell collisions). Idle slots short-circuit at their --_slotNLive gate. */\n`);
   let buf = '';
   let count = 0;
   const diskBaseCell = writableDisk ? cellIdxOf(writableDisk.base) : -1;
+  let inDiskCells = false;
   for (const idx of cells) {
+    if (!inDiskCells && diskBaseCell !== -1 && idx >= diskBaseCell) {
+      buf += `  /* disk-shadow cells: keyed on --_dskOffN (disk-local offsets) instead of --memAddrN */\n`;
+      inDiskCells = true;
+    }
     // Build the cascade inside-out: start with __1mcIDX, then slot N-1, ..., slot 0.
     // The `${idx} * ${PACK_SIZE}` arithmetic (rather than the pre-folded
     // `${cellBase(idx)}`) is deliberate: it keeps the per-cell digit run
@@ -1235,6 +1429,7 @@ function emitMemoryWriteRulesStreaming(opts, ws) {
 
 function emitMemoryStoreKeyframeStreaming(opts, ws) {
   const { addresses } = opts;
+  ws.write(`    /* memory cells: latch last tick's computed values into the __2 buffer */\n`);
   if (PACK_SIZE === 1) {
     const initMem = buildInitialMemory(opts);
     let buf = '';
@@ -1261,6 +1456,7 @@ function emitMemoryStoreKeyframeStreaming(opts, ws) {
 
 function emitMemoryExecuteKeyframeStreaming(opts, ws) {
   const { addresses } = opts;
+  ws.write(`    /* memory cells: expose the freshly computed values as __0 for the next store */\n`);
   if (PACK_SIZE === 1) {
     let buf = '';
     let count = 0;

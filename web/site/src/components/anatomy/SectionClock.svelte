@@ -8,6 +8,8 @@
   import TickClock from '../TickClock.svelte';
   import CodeCss from '../CodeCss.svelte';
   import Term from '../Term.svelte';
+  import TreeView from './tree/TreeView.svelte';
+  import { CLOCK_TREE, CLOCK_TREE_META } from './tree/clock-tree.js';
 
   const CLOCK_ANIM = `.clock {
   animation: anim-play 400ms steps(4, jump-end) infinite;
@@ -47,6 +49,9 @@ style(--opcode: 212): calc(var(--snapshot-cycleCount) + 83);  /* AAM: 83 — div
   @container style(--clock: 1) { animation-play-state: running, paused }
   @container style(--clock: 3) { animation-play-state: paused, running }`;
 </script>
+
+<TreeView nodes={CLOCK_TREE} title="Clock" bytes={CLOCK_TREE_META.bytes}
+  note="exhibit from a minimal build — a real cabinet’s clock sweeps run ~43 MB" />
 
 <p>
   Exactly one thing in CSS changes on its own: an <b>animation</b>. At

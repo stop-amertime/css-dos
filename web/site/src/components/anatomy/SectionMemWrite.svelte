@@ -9,6 +9,8 @@
   import RamWrite from '../RamWrite.svelte';
   import Term from '../Term.svelte';
   import CodeCss from '../CodeCss.svelte';
+  import TreeView from './tree/TreeView.svelte';
+  import { MEMW_TREE, MEMW_TREE_META } from './tree/memw-tree.js';
 
   const APPLY_SLOT = `@function --applySlot(--cell, --live, --loOff, --hiOff, --val, --width) returns <integer> {
   result: if(
@@ -31,6 +33,9 @@
   var(--_slot0Live), calc(var(--memAddr0) - 5000 * 2),
   calc(var(--memAddr0) + 1 - 5000 * 2), var(--memVal0), var(--_writeWidth));`;
 </script>
+
+<TreeView nodes={MEMW_TREE} title="Memory — write formulas" bytes={MEMW_TREE_META.bytes}
+  note="exhibit from a minimal build — a real cabinet’s write rules run ~171 MB" />
 
 <p>
   The single biggest section of the file, and the reason for most of

@@ -6,6 +6,8 @@
   // classes on the same player element). Extracts verbatim from
   // sokoban.css (names tidied per the CPU section's NOTE callout).
   import CodeCss from '../CodeCss.svelte';
+  import TreeView from './tree/TreeView.svelte';
+  import { CHIPSET_TREE, CHIPSET_TREE_META } from './tree/chipset-tree.js';
 
   const CHIP_VARS = `--picMask --picPending --picInService     /* interrupt controller */
 --pitMode --pitReload --pitCounter …      /* timer chip */
@@ -20,6 +22,8 @@
       + max(0, sign(calc(var(--_pitDecrement) - var(--snapshot-pitCounter) + 1)))
         * var(--snapshot-pitReload))));  /* count down; past zero, reload — and IRQ 0 fires */`;
 </script>
+
+<TreeView nodes={CHIPSET_TREE} title="Chipset" bytes={CHIPSET_TREE_META.bytes} />
 
 <p>
   A PC was never one chip. Around the CPU sits a small crowd of

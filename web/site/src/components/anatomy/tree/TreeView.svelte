@@ -10,9 +10,13 @@
   import TreeAst from './TreeAst.svelte';
   import IconCodeFile from '~icons/pixelarticons/script-text';
 
-  let { nodes, title, bytes = null } = $props();
+  let { nodes, title, bytes = null, note = null } = $props();
 
-  const kb = $derived(bytes != null ? `${Math.round(bytes / 1000)} KB` : null);
+  const kb = $derived.by(() => {
+    if (bytes == null) return null;
+    if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(1)} MB`;
+    return `${Math.round(bytes / 1000)} KB`;
+  });
 </script>
 
 <section class="tree-view" aria-label="{title} — real cabinet CSS">
@@ -21,6 +25,7 @@
     <span class="tree-view-title">{title}</span>
     {#if kb}<span class="tree-view-kb">{kb}</span>{/if}
   </div>
+  {#if note}<div class="tree-view-note">{note}</div>{/if}
   {#each nodes as node}
     <TreeAst {node} />
   {/each}
