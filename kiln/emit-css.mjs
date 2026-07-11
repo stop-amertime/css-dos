@@ -21,7 +21,7 @@ import { emitMOV_RegImm16, emitMOV_RegImm8, emitMOV_RegRM, emitMOV_SegRM, emitMO
 import { emitAllALU } from './patterns/alu.mjs';
 import { emitAllControl } from './patterns/control.mjs';
 import { emitAllStack } from './patterns/stack.mjs';
-import { emitAllMisc, emitPeripheralCompute, emitIRQCompute, pitCounterDefaultExpr, picPendingDefaultExpr } from './patterns/misc.mjs';
+import { emitAllMisc, emitPitDerivation, emitKeyboardWires, emitIRQArbitration, pitCounterDefaultExpr, picPendingDefaultExpr } from './patterns/misc.mjs';
 import { emitAllGroups } from './patterns/group.mjs';
 import { emitAllShifts, emitShiftFlagFunctions, emitShiftByNFlagFunctions } from './patterns/shift.mjs';
 import { emitAll186 } from './patterns/extended186.mjs';
@@ -883,30 +883,25 @@ export function emitCSS(opts, writeStream) {
   writeStream.write('     giant if(style(--opcode: N)) dispatch. This is the CPU. */\n');
   // Chipset state — the support chips around the CPU, driven by the same
   // dispatch-table machinery (OUT handlers in patterns/misc.mjs) but
-  // emitted under the CHIPSET banner in the .motherboard rule below.
+  // emitted PER CHIP in the .motherboard rule below (each chip's derived
+  // wires and registers sit together — see the CHIPSET section).
   // Vars with no dispatch entries fall through to defaultExpr.
-  const chipsetRegs = [
-                    'picMask', 'picPending', 'picInService',
-                    'pitMode', 'pitReload', 'pitCounter', 'pitWriteState',
-                    // Keyboard-edge detection: snapshot current --keyboard.
-                    'prevKeyboard',
-                    // Port 0x60 latch: holds the most recent scancode (make
-                    // or break) until the next edge. Without it, the break
-                    // code is only readable on the single tick that
-                    // _kbdRelease fires; if the IRQ-09h ISR runs even one
-                    // tick later (typical when CLI flag was clear during
-                    // the release tick), it reads scancode 0 and never
-                    // sees the release. DOOM's key-held state then sticks.
-                    'kbdScancodeLatch',
-                    // Hold-wire held set: scancodes latched while --kbdHold
-                    // was up, drained as break codes when it drops. See
-                    // kiln/patterns/misc.mjs emitIRQCompute.
+  const PIT_REGS = ['pitMode', 'pitReload', 'pitCounter', 'pitWriteState'];
+  const PIC_REGS = ['picMask', 'picPending', 'picInService'];
+  // Keyboard controller registers: prevKeyboard snapshots --keyboard for
+  // edge detection; kbdScancodeLatch backs port 0x60 (holds the most
+  // recent make/break code until the next edge — without it, the break
+  // code is only readable on the single tick _kbdRelease fires, and if
+  // the IRQ-09h ISR runs even one tick later it reads scancode 0 and
+  // DOOM's key-held state sticks); kbdHeld0-7 is the hold-wire held set
+  // (scancodes latched while --kbdHold was up, drained as break codes
+  // when it drops — see kiln/patterns/misc.mjs emitKeyboardWires).
+  const KBD_REGS = ['prevKeyboard', 'kbdScancodeLatch',
                     'kbdHeld0', 'kbdHeld1', 'kbdHeld2', 'kbdHeld3',
-                    'kbdHeld4', 'kbdHeld5', 'kbdHeld6', 'kbdHeld7',
-                    // VGA DAC state machines — write side updated by OUT
-                    // 0x3C8 / 0x3C9, read side updated by OUT 0x3C7 / IN 0x3C9.
-                    // See kiln/patterns/misc.mjs emitIO() for protocol.
-                    'dacWriteIndex', 'dacSubIndex',
+                    'kbdHeld4', 'kbdHeld5', 'kbdHeld6', 'kbdHeld7'];
+  // VGA DAC state machines — write side updated by OUT 0x3C8 / 0x3C9,
+  // read side by OUT 0x3C7 / IN 0x3C9. See patterns/misc.mjs emitIO().
+  const DAC_REGS = ['dacWriteIndex', 'dacSubIndex',
                     'dacReadIndex', 'dacReadSubIndex'];
   // Custom defaults: the fall-through expression when no dispatch entry fires
   // for this opcode. pitCounter ticks every instruction; picPending latches
@@ -918,7 +913,7 @@ export function emitCSS(opts, writeStream) {
     prevKeyboard: 'var(--keyboard)',
     // On a press tick: latch the new scancode. On a release tick: latch the
     // break code (prev scancode | 0x80). Otherwise: hold. The expression
-    // here mirrors --_kbdPort60 (see emitIRQCompute) so port 0x60 reads
+    // here mirrors --_kbdPort60 (see emitKeyboardWires) so port 0x60 reads
     // can use the latch as a level-readable backing store.
     kbdScancodeLatch: `if(
       style(--_kbdPress: 1): --rightShift(var(--keyboard), 8);
@@ -929,7 +924,7 @@ export function emitCSS(opts, writeStream) {
   };
   // Hold-wire held set: append the latched scancode into this slot when
   // its --_kbdApp flag fires, clear it when its --_kbdPop flag fires
-  // (drain), otherwise carry. Flags come from emitIRQCompute.
+  // (drain), otherwise carry. Flags come from emitKeyboardWires.
   for (let i = 0; i < 8; i++) {
     customDefaults[`kbdHeld${i}`] = `if(
       style(--_kbdApp${i}: 1): var(--_kbdLatchSc);
@@ -974,17 +969,32 @@ export function emitCSS(opts, writeStream) {
 
   w('}');
 
-  // 3. Chipset — PIT, PIC, keyboard controller, VGA DAC. Same dispatch
-  // machinery as the registers, but conceptually the support chips
-  // around the CPU, so they get their own rule (same element).
+  // 3. Chipset — the support chips around the CPU, one group PER CHIP,
+  // each with its derived wires first and its registers after. Same
+  // dispatch machinery as the CPU registers; custom-property order
+  // within the rule is name-resolved, so the per-chip grouping is free.
+  // Story order: the timer (time source) → the keyboard (input source) →
+  // the interrupt controller (arbitrates both) → the DAC (output side).
   w('/* ===== CHIPSET ===== */');
   writeStream.write('.motherboard {\n');
-  writeStream.write('  /* ===== PIT TIMER DERIVATION ===== */\n');
-  w(emitPeripheralCompute());
-  writeStream.write('  /* ===== KEYBOARD EDGES & IRQ ARBITRATION ===== */\n');
-  w(emitIRQCompute());
-  writeStream.write('  /* ===== CHIP DISPATCH TABLES ===== */\n');
-  emitDispatchFor(chipsetRegs);
+  writeStream.write('  /* ===== PIT — INTERVAL TIMER (8253, channel 0) ===== */\n');
+  writeStream.write('  /* --- ticks elapsed this instruction --- */\n');
+  w(emitPitDerivation());
+  writeStream.write('  /* --- timer registers --- */\n');
+  emitDispatchFor(PIT_REGS);
+  writeStream.write('\n  /* ===== KEYBOARD CONTROLLER ===== */\n');
+  writeStream.write('  /* --- press/release edge wires + the hold-wire held set --- */\n');
+  w(emitKeyboardWires());
+  writeStream.write('  /* --- keyboard registers --- */\n');
+  emitDispatchFor(KBD_REGS);
+  writeStream.write('\n  /* ===== PIC — INTERRUPT CONTROLLER (8259) ===== */\n');
+  writeStream.write('  /* --- which IRQ fires this tick --- */\n');
+  w(emitIRQArbitration());
+  writeStream.write('  /* --- controller registers --- */\n');
+  emitDispatchFor(PIC_REGS);
+  writeStream.write('\n  /* ===== VGA DAC — PALETTE STATE MACHINE ===== */\n');
+  writeStream.write('  /* --- read & write cursors (OUT 0x3C7/0x3C8, data via 0x3C9) --- */\n');
+  emitDispatchFor(DAC_REGS);
   w('}');
 
   // 4. Keyboard :active rules (separate .motherboard block)

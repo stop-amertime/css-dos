@@ -111,7 +111,7 @@ let batchMsEma = TARGET_MS;
 //     --kbdHold wire). The MACHINE does the holding: while the wire is
 //     up it latches key releases (presses accumulate as held keys —
 //     chords); when it drops it drains break codes back out. See
-//     kiln/patterns/misc.mjs emitIRQCompute.
+//     kiln/patterns/misc.mjs emitKeyboardWires.
 // The gaps guarantee every make/break lands on its own tick so the
 // cabinet's 0 ↔ non-zero edge detector sees each transition.
 //
@@ -994,7 +994,7 @@ bus.onmessage = (ev) => {
     // Player keyboard form submission: `key` is the clicked key.
     // kb-hold is the hold-mode toggle — flip the mode and mirror it
     // onto the --kbdHold wire NOW. The MACHINE does the holding (kiln
-    // emitIRQCompute): while the wire is up, releases latch (keys
+    // emitKeyboardWires): while the wire is up, releases latch (keys
     // accumulate as held — chords); the moment it drops the machine
     // drains the break codes, so turning the mode off releases every
     // held key immediately, no follow-up key press needed.

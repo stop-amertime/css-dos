@@ -7,8 +7,37 @@
 // Regenerate: node tools/extract-tree-data.mjs screen
 
 export const SCREEN_TREE = [
-  { kind: 'root', lazy: {"ref":"screen/002","count":64002} },
+  {
+    kind: 'root',
+    children: [
+    { kind: 'block', code: `/* ===== MODE 13h PIXEL PAINTER (raw player only) ===== */` },
+    {
+      kind: 'section',
+      label: "the 256-colour palette: index → rgb(), read live from the DAC bytes in memory",
+      code: `/* --- the 256-colour palette: index → rgb(), read live from the DAC bytes in memory --- */`,
+      folded: true,
+      boxed: true,
+      children: [
+      {
+        kind: 'decl',
+        code: `@function --paletteRGB(--idx <integer>) returns <color> {`,
+        trailer: `}`,
+        children: [
+        {
+          kind: 'decl',
+          code: `result:`,
+          children: [
+          { kind: 'if', code: `if(`, trailer: `);`, lazy: {"ref":"screen/000","count":257} },
+          ],
+        },
+        ],
+      },
+      ],
+    },
+    { kind: 'section', label: "the screen itself: one rule per pixel (320×200 = 64,000), each reading its framebuffer byte", code: `/* --- the screen itself: one rule per pixel (320×200 = 64,000), each reading its framebuffer byte --- */`, folded: true, boxed: true, lazy: {"ref":"screen/002","count":64000} },
+    ],
+  },
 ];
 
 // Real measured size of this region in the synthetic cabinet.
-export const SCREEN_TREE_META = { bytes: 6979913 };
+export const SCREEN_TREE_META = { bytes: 6980111 };

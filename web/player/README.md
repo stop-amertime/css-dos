@@ -81,7 +81,7 @@ Details: `--keyboard` is still a single cascade-resolved value (one
 key *transitions* at a time — fine, since holding is what the slots
 are for); the slots cap at 8 held keys, duplicates allowed;
 Shift/Ctrl/Alt stay usable as ordinary tap keys outside hold mode.
-Emit side: `kiln/patterns/misc.mjs` `emitIRQCompute()` (latch/drain)
+Emit side: `kiln/patterns/misc.mjs` `emitKeyboardWires()` (latch/drain)
 + `kiln/template.mjs` (wire + slots). Regression:
 `web/tests/kbd-e2e.playwright.mjs` chords LEFT+CTRL+ALT in-game and
 asserts the mode-off drain needs no follow-up key press.

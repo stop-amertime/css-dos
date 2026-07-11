@@ -64,10 +64,16 @@ then how the pieces fit, then the wishlist.
    `@function`'s `result:` chain) renders open — no click-ceremony, no
    box that just restates the pane title. Costs at most one own-section
    chunk on pane load; folds and "(N more…)" gate everything deeper.
-   Corollary: internal Kiln banner names ARE the categories readers
-   see — write them for readers ("PIT TIMER DERIVATION"), never
-   implementation notes ("ADD FLAGS (6 locals)"), and never leave a
-   region's opening block bannerless (that's what "(preamble)" means).
+   Corollary (sharpened by owner, same day): categories must DIVIDE by
+   the domain's real structure first, and only then be labelled — a
+   label over an undivided lump ("CHIP DISPATCH TABLES") is not a
+   category. The chipset divides by CHIP (PIT / keyboard controller /
+   PIC / VGA DAC, each wires-then-registers); when the emission order
+   doesn't match the honest division, REORDER it in Kiln (declaration
+   order in a rule is name-resolved — prove inertness with the A/B
+   set-compare). Banner names are reader-facing: never implementation
+   notes ("ADD FLAGS (6 locals)"), never a bannerless opening block
+   (that's what "(preamble)" means).
 
 ## How the pieces fit
 

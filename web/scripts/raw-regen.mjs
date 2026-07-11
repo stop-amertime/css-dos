@@ -102,7 +102,7 @@ html = html.replace('</head>', `${gridStyle}</head>`);
 //     #kb-holdmode checkbox, which IS the cabinet's --kbdHold wire
 //     (`&:has(#kb-holdmode:checked)`). The machine latches key
 //     releases while it is up and drains them when it drops; the
-//     shared :checked rules light the key. See kiln emitIRQCompute.
+//     shared :checked rules light the key. See kiln emitKeyboardWires.
 {
   const btnRe = /<!-- Hold-mode toggle:[\s\S]*?<button id="kb-hold"[\s\S]*?<\/button>/;
   if (!btnRe.test(html)) throw new Error('raw-regen: calcite #kb-hold button not found');

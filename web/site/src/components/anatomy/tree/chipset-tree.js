@@ -18,78 +18,255 @@ export const CHIPSET_TREE = [
       children: [
       {
         kind: 'section',
-        label: "PIT TIMER DERIVATION",
-        code: `/* ===== PIT TIMER DERIVATION ===== */`,
+        label: "PIT — INTERVAL TIMER (8253, channel 0)",
+        code: `/* ===== PIT — INTERVAL TIMER (8253, channel 0) ===== */`,
         folded: true,
         children: [
-        { kind: 'block', code: `/* Peripheral clocks derived from this tick's --cycleCount */` },
         {
-          kind: 'decl',
-          code: `--_pitTicks:`,
-          children: [
-          { kind: 'value', code: `calc(round(down, var(--cycleCount) / 4) - round(down, var(--__1cycleCount) / 4));` },
-          ],
-        },
-        {
-          kind: 'decl',
-          code: `--_pitDecrement:`,
+          kind: 'section',
+          label: "ticks elapsed this instruction",
+          code: `/* --- ticks elapsed this instruction --- */`,
           folded: true,
           children: [
+          { kind: 'block', code: `/* PIT ticks elapsed this instruction, derived from --cycleCount (4.77 MHz / 4) */` },
           {
-            kind: 'if',
-            code: `if(`,
-            trailer: `);`,
+            kind: 'decl',
+            code: `--_pitTicks:`,
+            children: [
+            { kind: 'value', code: `calc(round(down, var(--cycleCount) / 4) - round(down, var(--__1cycleCount) / 4));` },
+            ],
+          },
+          {
+            kind: 'decl',
+            code: `--_pitDecrement:`,
+            folded: true,
             children: [
             {
-              kind: 'branch',
-              code: `style(--__1pitMode: 3):`,
+              kind: 'if',
+              code: `if(`,
+              trailer: `);`,
               children: [
-              { kind: 'value', code: `calc(var(--_pitTicks) * 2);` },
+              {
+                kind: 'branch',
+                code: `style(--__1pitMode: 3):`,
+                children: [
+                { kind: 'value', code: `calc(var(--_pitTicks) * 2);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `else:`,
+                children: [
+                { kind: 'value', code: `var(--_pitTicks)` },
+                ],
+              },
               ],
             },
+            ],
+          },
+          {
+            kind: 'decl',
+            code: `--_pitFired:`,
+            folded: true,
+            children: [
             {
-              kind: 'branch',
-              code: `else:`,
+              kind: 'if',
+              code: `if(`,
+              trailer: `);`,
               children: [
-              { kind: 'value', code: `var(--_pitTicks)` },
+              {
+                kind: 'branch',
+                code: `style(--__1pitReload: 0):`,
+                children: [
+                { kind: 'value', code: `0;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `else:`,
+                children: [
+                { kind: 'value', code: `min(1, max(0, sign(calc(var(--_pitDecrement) - var(--__1pitCounter) + 1))))` },
+                ],
+              },
               ],
             },
             ],
           },
           ],
         },
-        {
-          kind: 'decl',
-          code: `--_pitFired:`,
-          folded: true,
-          children: [
-          {
-            kind: 'if',
-            code: `if(`,
-            trailer: `);`,
-            children: [
-            {
-              kind: 'branch',
-              code: `style(--__1pitReload: 0):`,
-              children: [
-              { kind: 'value', code: `0;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `else:`,
-              children: [
-              { kind: 'value', code: `min(1, max(0, sign(calc(var(--_pitDecrement) - var(--__1pitCounter) + 1))))` },
-              ],
-            },
-            ],
-          },
-          ],
-        },
+        { kind: 'section', label: "timer registers", code: `/* --- timer registers --- */`, folded: true, lazy: {"ref":"chipset/002","count":4} },
         ],
       },
-      { kind: 'section', label: "KEYBOARD EDGES & IRQ ARBITRATION", code: `/* ===== KEYBOARD EDGES & IRQ ARBITRATION ===== */`, folded: true, lazy: {"ref":"chipset/000","count":34} },
-      { kind: 'section', label: "CHIP DISPATCH TABLES", code: `/* ===== CHIP DISPATCH TABLES ===== */`, folded: true, lazy: {"ref":"chipset/005","count":21} },
+      {
+        kind: 'section',
+        label: "KEYBOARD CONTROLLER",
+        code: `/* ===== KEYBOARD CONTROLLER ===== */`,
+        folded: true,
+        children: [
+        { kind: 'section', label: "press/release edge wires + the hold-wire held set", code: `/* --- press/release edge wires + the hold-wire held set --- */`, folded: true, lazy: {"ref":"chipset/003","count":28} },
+        { kind: 'section', label: "keyboard registers", code: `/* --- keyboard registers --- */`, folded: true, lazy: {"ref":"chipset/004","count":10} },
+        ],
+      },
+      {
+        kind: 'section',
+        label: "PIC — INTERRUPT CONTROLLER (8259)",
+        code: `/* ===== PIC — INTERRUPT CONTROLLER (8259) ===== */`,
+        folded: true,
+        children: [
+        {
+          kind: 'section',
+          label: "which IRQ fires this tick",
+          code: `/* --- which IRQ fires this tick --- */`,
+          folded: true,
+          children: [
+          { kind: 'block', code: `/* which unmasked pending IRQ wins this tick (IRQ 0 outranks IRQ 1) */` },
+          {
+            kind: 'decl',
+            code: `--_picEffective:`,
+            folded: true,
+            children: [
+            {
+              kind: 'if',
+              code: `if(`,
+              trailer: `);`,
+              children: [
+              {
+                kind: 'branch',
+                code: `style(--__1picInService: 0):`,
+                children: [
+                { kind: 'value', code: `--and(var(--__1picPending), --not(var(--__1picMask)));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `else:`,
+                children: [
+                { kind: 'value', code: `0` },
+                ],
+              },
+              ],
+            },
+            ],
+          },
+          {
+            kind: 'decl',
+            code: `--_ifFlag:`,
+            children: [
+            { kind: 'value', code: `--bit(var(--__1flags), 9);` },
+            ],
+          },
+          {
+            kind: 'decl',
+            code: `--_irqActive:`,
+            folded: true,
+            children: [
+            {
+              kind: 'if',
+              code: `if(`,
+              trailer: `);`,
+              children: [
+              {
+                kind: 'branch',
+                code: `style(--_ifFlag: 0):`,
+                children: [
+                { kind: 'value', code: `0;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--_picEffective: 0):`,
+                children: [
+                { kind: 'value', code: `0;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `else:`,
+                children: [
+                { kind: 'value', code: `1` },
+                ],
+              },
+              ],
+            },
+            ],
+          },
+          {
+            kind: 'decl',
+            code: `--_irq0Pending:`,
+            children: [
+            { kind: 'value', code: `--and(var(--_picEffective), 1);` },
+            ],
+          },
+          {
+            kind: 'decl',
+            code: `--picVector:`,
+            folded: true,
+            children: [
+            {
+              kind: 'if',
+              code: `if(`,
+              trailer: `);`,
+              children: [
+              {
+                kind: 'branch',
+                code: `style(--_irq0Pending: 1):`,
+                children: [
+                { kind: 'value', code: `8;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `else:`,
+                children: [
+                { kind: 'value', code: `9` },
+                ],
+              },
+              ],
+            },
+            ],
+          },
+          {
+            kind: 'decl',
+            code: `--_irqBit:`,
+            folded: true,
+            children: [
+            {
+              kind: 'if',
+              code: `if(`,
+              trailer: `);`,
+              children: [
+              {
+                kind: 'branch',
+                code: `style(--_irq0Pending: 1):`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `else:`,
+                children: [
+                { kind: 'value', code: `2` },
+                ],
+              },
+              ],
+            },
+            ],
+          },
+          ],
+        },
+        { kind: 'section', label: "controller registers", code: `/* --- controller registers --- */`, folded: true, lazy: {"ref":"chipset/005","count":3} },
+        ],
+      },
+      {
+        kind: 'section',
+        label: "VGA DAC — PALETTE STATE MACHINE",
+        code: `/* ===== VGA DAC — PALETTE STATE MACHINE ===== */`,
+        folded: true,
+        children: [
+        { kind: 'section', label: "read & write cursors (OUT 0x3C7/0x3C8, data via 0x3C9)", code: `/* --- read & write cursors (OUT 0x3C7/0x3C8, data via 0x3C9) --- */`, folded: true, lazy: {"ref":"chipset/008","count":4} },
+        ],
+      },
       ],
     },
     ],
@@ -97,4 +274,4 @@ export const CHIPSET_TREE = [
 ];
 
 // Real measured size of this region in the synthetic cabinet.
-export const CHIPSET_TREE_META = { bytes: 17010 };
+export const CHIPSET_TREE_META = { bytes: 17567 };

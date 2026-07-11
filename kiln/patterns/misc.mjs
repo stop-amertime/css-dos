@@ -477,12 +477,12 @@ export function emitLAHF_SAHF(dispatch) {
  *   decrement is at least counter (i.e. counter reaches 0 or below),
  *   clamped to [0, 1].
  */
-export function emitPeripheralCompute() {
+export function emitPitDerivation() {
   const pitTicks = `calc(round(down, var(--cycleCount) / 4) - round(down, var(--__1cycleCount) / 4))`;
   const pitDecrement = `if(style(--__1pitMode: 3): calc(var(--_pitTicks) * 2); else: var(--_pitTicks))`;
   const pitFired = `if(style(--__1pitReload: 0): 0; else: min(1, max(0, sign(calc(var(--_pitDecrement) - var(--__1pitCounter) + 1)))))`;
   return [
-    `  /* Peripheral clocks derived from this tick's --cycleCount */`,
+    `  /* PIT ticks elapsed this instruction, derived from --cycleCount (4.77 MHz / 4) */`,
     `  --_pitTicks: ${pitTicks};`,
     `  --_pitDecrement: ${pitDecrement};`,
     `  --_pitFired: ${pitFired};`,
@@ -548,7 +548,7 @@ export function picPendingDefaultExpr() {
  * of scancodes read from port 0x60. On a release tick we fire IRQ 1 and port
  * 0x60 must return the *previous* scancode with bit 7 set.
  */
-export function emitIRQCompute() {
+export function emitKeyboardWires() {
   const kbdPress = `if(
     style(--keyboard: 0): 0;
     style(--__1prevKeyboard: 0): 1;
@@ -629,12 +629,8 @@ ${top}
     style(--_kbdDrain: 1): calc(var(--_kbdPopSc) + 128);
     else: var(--__1kbdScancodeLatch)
   )`;
-  const picEffective = `if(
-    style(--__1picInService: 0): --and(var(--__1picPending), --not(var(--__1picMask)));
-    else: 0
-  )`;
   return [
-    `  /* IRQ delivery state */`,
+    `  /* press/release edge wires, the hold-wire held set, and port 0x60's latch input */`,
     `  --_kbdPress: ${kbdPress};`,
     `  --_kbdRawRelease: ${kbdRawRelease};`,
     `  --_kbdRelease: ${kbdRelease};`,
@@ -648,6 +644,22 @@ ${top}
     `  --_kbdPopSc: calc(${popSc});`,
     `  --_kbdEdge: --or(--or(var(--_kbdPress), var(--_kbdRelease)), var(--_kbdDrain));`,
     `  --_kbdPort60: ${kbdPort60};`,
+  ].join('\n');
+}
+
+/**
+ * PIC arbitration: which IRQ (if any) fires this tick. Consumed by the
+ * CPU rule's register overrides (see DispatchTable.emitRegisterDispatch)
+ * — when --_irqActive is 1 the fetched instruction is refused and the
+ * FLAGS/CS/IP frame is pushed instead.
+ */
+export function emitIRQArbitration() {
+  const picEffective = `if(
+    style(--__1picInService: 0): --and(var(--__1picPending), --not(var(--__1picMask)));
+    else: 0
+  )`;
+  return [
+    `  /* which unmasked pending IRQ wins this tick (IRQ 0 outranks IRQ 1) */`,
     `  --_picEffective: ${picEffective};`,
     `  --_ifFlag: --bit(var(--__1flags), 9);`,
     `  --_irqActive: if(style(--_ifFlag: 0): 0; style(--_picEffective: 0): 0; else: 1);`,

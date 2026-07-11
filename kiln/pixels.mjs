@@ -56,8 +56,10 @@ ${arms.join('\n')}
 export function emitPixelPaintRules({ width = 320, height = 200 } = {}) {
   const lines = [];
   lines.push('/* ===== MODE 13h PIXEL PAINTER (raw player only) ===== */');
+  lines.push('/* --- the 256-colour palette: index → rgb(), read live from the DAC bytes in memory --- */');
   lines.push(emitPaletteFunction());
   const count = width * height;
+  lines.push(`/* --- the screen itself: one rule per pixel (${width}×${height} = ${count.toLocaleString('en-US')}), each reading its framebuffer byte --- */`);
   for (let i = 0; i < count; i++) {
     lines.push(
       `.motherboard #p${i} { --ci: ${cellByteExpr(FB_BASE + i)}; ` +

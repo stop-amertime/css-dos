@@ -60,7 +60,7 @@ export const STATE_VARS = [
   // --kbdHold was 1 (0 = empty slot). Filled lowest-slot-first; drained
   // highest-slot-first as synthesized break codes once --kbdHold drops.
   // 8 slots; presses beyond that still deliver their make code but the
-  // break is lost (stuck key until re-press) — see emitIRQCompute.
+  // break is lost (stuck key until re-press) — see emitKeyboardWires.
   { name: 'kbdHeld0', init: 0 },
   { name: 'kbdHeld1', init: 0 },
   { name: 'kbdHeld2', init: 0 },
@@ -327,7 +327,7 @@ const KEYBOARD_KEYS = [
  *                          delivering them: presses accumulate as held
  *                          keys (chords), and when the wire drops every
  *                          latched key's break code is drained back out.
- *                          See patterns/misc.mjs emitIRQCompute. In the
+ *                          See patterns/misc.mjs emitKeyboardWires. In the
  *                          raw player the player's hold-mode checkbox
  *                          drives this directly; the calcite bridge
  *                          mirrors it via set_pseudo_class_active.
