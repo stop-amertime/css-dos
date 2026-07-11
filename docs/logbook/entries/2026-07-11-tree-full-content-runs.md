@@ -18,3 +18,8 @@ cabinet is now reachable in the trees:
   runs; whole anatomy dir 15 MB raw (disk 4.3 MB = the floppy's bytes,
   decl 3.2 MB = the memory image, clock 6 MB = sweep inits). Site/tool
   only — no kiln changes this round.
+- Owner follow-up same day: RUN_MIN raised 16 → 256 so runs exist ONLY in
+  the flat memory-scale lists (memr/memw/decl/disk/clock/pixels + the
+  256-arm parity table) — there is no tree to break those up by. Every
+  tree-shaped section (cpu/chipset/keys/util rest) ships plain nodes
+  chunked along the tree, zero runs. Verified by a per-section run census.

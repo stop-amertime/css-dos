@@ -625,7 +625,12 @@ function unfoldCeremony(node) {
 // stretch that does not reproduce exactly stays as explicit rows. The
 // client expands rows on demand (web/site/.../tree/lazy.js expandRun), so
 // a 655,000-arm dispatch is fully pageable from a few-KB spec.
-const RUN_MIN = 16;
+// Run compression exists for the flat memory-scale lists (hundreds of
+// thousands of uniform siblings under one node — there is no tree to
+// break those up by). Everything tree-shaped ships as plain nodes,
+// chunked along the tree — so the threshold is deliberately high: below
+// it, explicit rows are only kilobytes and simplicity wins.
+const RUN_MIN = 256;
 // Masks may CYCLE (memr's arms alternate mod/round for even/odd bytes) —
 // a run carries `period` templates and rows use templates[i % period].
 const MAX_PERIOD = 4;
