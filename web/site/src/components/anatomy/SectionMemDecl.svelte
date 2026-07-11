@@ -17,8 +17,7 @@
 --staged-mc5000: var(--held-mc5000, 32861);`;
 </script>
 
-<TreeView nodes={DECL_TREE} bytes={DECL_TREE_META.bytes}
-  note="exhibit from a minimal 1.5 KB-RAM build — a real cabinet’s declarations run ~32 MB" />
+<TreeView nodes={DECL_TREE} title="Memory — variable declarations" bytes={DECL_TREE_META.bytes} />
 
 <p>
   Before CSS lets you use a variable as a typed integer, you have to

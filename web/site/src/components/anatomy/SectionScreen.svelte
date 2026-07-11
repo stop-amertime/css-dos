@@ -24,8 +24,7 @@ max(0, sign(3409 - mod(var(--snapshot-cycleCount), 68182)))`;
 }`;
 </script>
 
-<TreeView nodes={SCREEN_TREE} bytes={SCREEN_TREE_META.bytes}
-  note="the painter is identical in every cabinet — 64,000 pixel rules (~7 MB); the tree ships the palette and the head of the list" />
+<TreeView nodes={SCREEN_TREE} title="Screen" bytes={SCREEN_TREE_META.bytes} />
 
 <p>
   CSS can&rsquo;t draw pixels. It can colour elements. So the screen is

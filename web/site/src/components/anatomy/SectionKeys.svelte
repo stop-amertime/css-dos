@@ -8,7 +8,7 @@
   import { KEYS_TREE, KEYS_TREE_META } from './tree/keys-tree.js';
 </script>
 
-<TreeView nodes={KEYS_TREE} bytes={KEYS_TREE_META.bytes} />
+<TreeView nodes={KEYS_TREE} title="Keyboard" bytes={KEYS_TREE_META.bytes} />
 
 <p>
   CSS has no input events. The one thing it can ask is

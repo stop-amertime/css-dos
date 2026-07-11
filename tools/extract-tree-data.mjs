@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // extract-tree-data.mjs — generates the website's anatomy Tree View data
-// from REAL Kiln output, never hand-typed CSS. Runs the same
-// emitCSS(opts, writeStream) entry point builder/build.mjs uses, against a
-// tiny synthetic cart, slices the file into its ten sections (the same
-// regions the site's file carousel shows), and parses each into the tree
-// node model.
+// from a REAL cabinet, never hand-typed CSS. Builds carts/sokoban with the
+// real builder, slices the file into its ten sections (the same regions
+// the site's file carousel shows), and parses each into the tree node
+// model. Giant uniform runs ship a capped head per run plus a note row
+// with the remaining count (see capRuns).
 //
 // OUTPUT IS SPLIT FOR LAZY LOADING (progressive disclosure):
 //   web/site/src/components/anatomy/tree/<id>-tree.js   — the SKELETON: the
@@ -30,9 +30,7 @@
 //            real closing text).
 //   if/branch/value  the dispatch AST (see parseIf).
 //   note     EDITORIAL truncation marker (not source text; excluded from
-//            round-trip): giant uniform runs (the 64,000 pixel rules) ship
-//            only their head, and the note states the real total. This is
-//            the no-silent-caps rule made visible.
+//            round-trip): each capped run ends with the remaining count.
 // Nothing is re-nested or reordered at the DATA level — a node's `code` is
 // ONLY its own token. Display (one-lining, pagination) lives in
 // TreeAst.svelte.
@@ -46,8 +44,8 @@
 //   node tools/extract-tree-data.mjs cpu memr     # just these sections
 // (Output paths are fixed; the tool writes the files itself.)
 
-import { emitCSS } from '../kiln/emit-css.mjs';
-import { writeFileSync, mkdirSync, rmSync } from 'node:fs';
+import { writeFileSync, mkdirSync, rmSync, readFileSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -55,30 +53,18 @@ const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SKELETON_DIR = resolve(REPO, 'web/site/src/components/anatomy/tree');
 const CHUNK_DIR = resolve(REPO, 'web/site/public/anatomy');
 
-// A tiny synthetic cart: 1.5 KB of conventional memory (IVT + BDA + the
-// program — so the keyboard-bridge and LBA-register arms exist), a 6-byte
-// program at 0x100, and a 512-byte rom disk (so the DISK section exists).
-// Real emitter logic, fake-small input.
-const SYNTHETIC_DISK = new Uint8Array(512);
-for (let i = 0; i < 64; i++) SYNTHETIC_DISK[i] = (i * 7 + 3) & 0xff;
-const SYNTHETIC_OPTS = {
-  memoryZones: [[0x0, 0x600]],
-  programBytes: new Uint8Array([0xb8, 0x05, 0x00, 0xcd, 0x20, 0x00]), // MOV AX,5; INT 0x20
-  biosBytes: new Uint8Array(0),
-  embeddedData: [],
-  programOffset: 0x100,
-  initialCS: 0,
-  initialIP: 0x100,
-  diskBytes: SYNTHETIC_DISK,
-  writableDisk: null,
-  header: null,
-};
+// The data comes from a REAL cart build — the same Sokoban cabinet the
+// rest of the site is measured against (groups.js sizes, the File Map,
+// SectionCpu's prose). The tool rebuilds it (~12 s) so the tree always
+// matches current kiln output.
+const EXHIBIT_CART = 'carts/sokoban';
+const CABINET_PATH = resolve(REPO, 'tests/harness/cache/sokoban.css');
 
-function captureRealCSS(opts = SYNTHETIC_OPTS) {
-  const chunks = [];
-  const fakeStream = { write: (s) => { chunks.push(s); return true; } };
-  emitCSS(opts, fakeStream);
-  return chunks.join('');
+function readCabinet() {
+  console.error(`  building ${EXHIBIT_CART} → ${CABINET_PATH} ...`);
+  execFileSync(process.execPath, [resolve(REPO, 'builder/build.mjs'), resolve(REPO, EXHIBIT_CART), '-o', CABINET_PATH], { stdio: ['ignore', 'ignore', 'inherit'] });
+  if (!existsSync(CABINET_PATH)) throw new Error('cabinet build produced no file');
+  return readFileSync(CABINET_PATH, 'utf8');
 }
 
 // ---------------------------------------------------------------------------
@@ -176,9 +162,7 @@ function splitTopLevel(body) {
     if (c === '(') depth++;
     else if (c === ')') depth--;
     else if (c === ';' && depth === 0) {
-      let end = j + 1;
-      const m = body.slice(end).match(/^[ \t]*\/\*[\s\S]*?\*\//);
-      if (m) end += m[0].length;
+      let end = trailingCommentEnd(body, j + 1);
       parts.push(body.slice(start, end));
       start = end;
       j = end;
@@ -308,12 +292,28 @@ class Grouper {
 // rules (including nested one-liner rules — the keyboard block — and
 // @keyframes percent blocks), and plain declarations.
 
-// Grabs one trailing same-line comment after position `i` (spaces/tabs
-// only in between). Returns [commentText|null, nextIndex].
+// Index just past a trailing comment that STARTS on the same line as
+// position `i` (spaces/tabs only in between); `i` if there is none.
+// Index-based on purpose — slicing the remainder of a 44 MB region per
+// row is O(n²).
+function trailingCommentEnd(text, i) {
+  let j = i;
+  while (text[j] === ' ' || text[j] === '\t') j++;
+  if (text[j] === '/' && text[j + 1] === '*') {
+    const close = text.indexOf('*/', j + 2);
+    if (close !== -1) return close + 2;
+  }
+  return i;
+}
+
+// Grabs one trailing same-line comment after position `i`. Returns
+// [commentText|null, nextIndex].
 function takeSameLineComment(text, i) {
-  const m = text.slice(i).match(/^[ \t]*\/\*[\s\S]*?\*\//);
-  if (!m || m[0].includes('\n')) return [null, i];
-  return [m[0].trimStart(), i + m[0].length];
+  const end = trailingCommentEnd(text, i);
+  if (end === i) return [null, i];
+  const comment = text.slice(i, end).trimStart();
+  if (comment.includes('\n')) return [null, i];
+  return [comment, end];
 }
 
 // Parses the inside of a `{ ... }` body into child nodes (with banner
@@ -590,7 +590,7 @@ function hoistAndRoot(nodes) {
   if (items.length === 1 && items[0].kind === 'section') {
     const root = items[0];
     items = root.code ? [{ kind: 'block', code: root.code }] : [];
-    items.push(...root.children);
+    items = items.concat(root.children); // no spread — child lists reach 200k+
   } else {
     // A leading empty group (the region banner immediately followed by the
     // first real banner) renders as a plain comment line, not an empty box.
@@ -614,29 +614,44 @@ function unfoldCeremony(node) {
 }
 
 // ---------------------------------------------------------------------------
-// The cap pass: a children array of more than CAP_ROWS uniform one-line
-// `block` rows (the 64,000 pixel rules — nothing else comes close) ships
-// only its head plus an explicit editorial `note` stating the real total
-// (the no-silent-caps rule). Structured dispatch lists (branch nodes) are
-// never capped — they ship fully, just paged.
-const CAP_ROWS = 1024;
+// The cap pass, PER RUN: within any child list, rows between two
+// run-delimiter comments cap at CAP_ROWS — the head ships, a `note` row
+// carries the remaining count, and the next run (the comment after it)
+// survives. This keeps the shape of a region visible (RAM head … bridge …
+// ROM head … window head) while a 655,000-arm dispatch ships kilobytes.
+const CAP_ROWS = 512;
 
-function capLongLists(node) {
-  for (const c of node.children ?? []) capLongLists(c);
+function capRuns(node) {
+  for (const c of node.children ?? []) capRuns(c);
   const kids = node.children ?? [];
   if (kids.length <= CAP_ROWS) return;
-  // Only rows-of-rules/blocks cap (the pixel painter); dispatch arm lists
-  // (branch nodes — memr's 2,000+ arms) always ship fully, just paged.
-  const uniform = kids.filter((c) => c.kind === 'block' || c.kind === 'decl').length;
-  if (uniform / kids.length < 0.9) return;
-  const total = kids.length;
-  const dropped = total - CAP_ROWS;
-  node.children = kids.slice(0, CAP_ROWS);
-  node.children.push({
-    kind: 'note',
-    text: `… ${dropped.toLocaleString('en-US')} more rows of the same shape continue in the real file — truncated here to keep the site data small (tools/extract-tree-data.mjs CAP_ROWS)`,
-  });
-  node.capTotal = total;
+  const out = [];
+  let run = [];
+  let capped = 0;
+  const flushRun = () => {
+    if (run.length > CAP_ROWS) {
+      const dropped = run.length - CAP_ROWS;
+      capped += dropped;
+      for (const x of run.slice(0, CAP_ROWS)) out.push(x); // no spread — runs reach 600k+
+      out.push({ kind: 'note', text: `… ${dropped.toLocaleString('en-US')} more rows` });
+    } else {
+      for (const x of run) out.push(x);
+    }
+    run = [];
+  };
+  for (const c of kids) {
+    if (c.kind === 'block' && (c.code ?? '').startsWith('/*')) {
+      flushRun();
+      out.push(c);
+    } else {
+      run.push(c);
+    }
+  }
+  flushRun();
+  if (capped > 0) {
+    node.children = out;
+    node.capTotal = kids.length;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -741,8 +756,8 @@ function writeSkeleton(id, nodes, bytes) {
   const NAME = id.toUpperCase();
   const lines = [];
   lines.push(`// ${id}-tree.js — GENERATED by tools/extract-tree-data.mjs. Do not hand-edit.`);
-  lines.push(`// Every code string is real, verbatim cabinet CSS from kiln's emitCSS()`);
-  lines.push(`// against a tiny synthetic cart, round-trip-verified at generation time.`);
+  lines.push(`// Every code string is real, verbatim CSS from a full carts/sokoban`);
+  lines.push(`// build, round-trip-verified against the cabinet at generation time.`);
   lines.push(`// This module is the section's SKELETON; heavy folded nodes carry`);
   lines.push(`// lazy: { ref, count } and their children live in paged JSON chunks`);
   lines.push(`// under /anatomy/${id}/ (see the tool header for the format).`);
@@ -752,7 +767,7 @@ function writeSkeleton(id, nodes, bytes) {
   for (const n of nodes) lines.push(`${serializeNode(n, 1)},`);
   lines.push(`];`);
   lines.push('');
-  lines.push(`// Real measured size of this region in the synthetic cabinet.`);
+  lines.push(`// Real measured size of this region in the sokoban cabinet.`);
   lines.push(`export const ${NAME}_TREE_META = { bytes: ${bytes} };`);
   lines.push('');
   writeFileSync(resolve(SKELETON_DIR, `${id}-tree.js`), lines.join('\n'));
@@ -796,31 +811,28 @@ const SANITY = {
   },
   screen: (nodes) => {
     const px = countWhere(nodes, (n) => /#p\d+ \{/.test(n.code ?? ''));
-    const noted = countWhere(nodes, (n) => n.kind === 'note');
-    if (px < CAP_ROWS - 2 || noted < 1) {
-      throw new Error(`screen: pixel rules=${px}, notes=${noted} — expected a capped ${CAP_ROWS}-row head + note`);
-    }
+    if (px !== 64000) throw new Error(`screen: ${px} pixel rules (expected 64,000)`);
   },
   decl: (nodes) => {
     const props = countWhere(nodes, (n) => (n.code ?? '').startsWith('@property'));
-    if (props < 700) throw new Error(`decl: only ${props} @property blocks (expected 700+)`);
+    if (props < 10_000) throw new Error(`decl: only ${props} @property blocks (expected 10k+ from a real cart)`);
   },
   memr: (nodes) => {
     const arms = countWhere(nodes, (n) => (n.code ?? '').startsWith('style(--at:'));
-    if (arms < 1500) throw new Error(`memr: only ${arms} read arms (expected ~1536 RAM + 512 window)`);
+    if (arms < 100_000) throw new Error(`memr: only ${arms} read arms (expected 100k+ from a real cart)`);
   },
   memw: (nodes) => {
     const rules = countWhere(nodes, (n) => /^--mc\d+:/.test(n.code ?? ''));
-    if (rules < 700) throw new Error(`memw: only ${rules} cell write rules (expected ~768)`);
+    if (rules < 10_000) throw new Error(`memw: only ${rules} cell write rules (expected 10k+)`);
   },
   disk: (nodes) => {
     const arms = countWhere(nodes, (n) => (n.code ?? '').startsWith('style(--idx:'));
-    if (arms !== 64) throw new Error(`disk: ${arms} arms (expected exactly 64 non-zero bytes)`);
+    if (arms < 1000) throw new Error(`disk: only ${arms} arms (expected 1000+ from a real floppy)`);
   },
   clock: (nodes) => {
     const kf = countWhere(nodes, (n) => (n.code ?? '').startsWith('@keyframes'));
     const reads = countWhere(nodes, (n) => /^--__1mc\d+:/.test(n.code ?? ''));
-    if (kf < 3 || reads < 700) throw new Error(`clock: keyframes=${kf}, cell buffer reads=${reads}`);
+    if (kf < 3 || reads < 10_000) throw new Error(`clock: keyframes=${kf}, cell buffer reads=${reads}`);
   },
 };
 
@@ -906,7 +918,7 @@ function buildCpuNodes(css) {
 }
 
 function generate(ids) {
-  const css = captureRealCSS();
+  const css = readCabinet();
   const regions = sliceRegions(css);
   for (const id of ids) {
     const region = regions.get(id);
@@ -924,8 +936,8 @@ function generate(ids) {
     unfoldCeremony(root);
     // Top-level groups render boxed (one tinted pane per group).
     for (const n of root.children) if (n.kind === 'section') n.boxed = true;
-    capLongLists(root);
     SANITY[id]?.([root]);
+    capRuns(root);
     const writer = new ChunkWriter(id);
     externalize(root, writer);
     const chunkCount = writer.flush();

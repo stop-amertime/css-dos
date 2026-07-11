@@ -10,10 +10,7 @@
   import TreeAst from './TreeAst.svelte';
   import IconCodeFile from '~icons/pixelarticons/script-text';
 
-  // No title prop: the pane heading above already names the section, so
-  // the tree header is a constant strip — icon, "the real CSS", measured
-  // size — rather than a duplicate title (owner feedback 2026-07-11).
-  let { nodes, title = 'the real CSS', bytes = null, note = null } = $props();
+  let { nodes, title, bytes = null } = $props();
 
   // The one-lining budget is MEASURED, not guessed: chars that fit one
   // row at this container's real width (~8px/char WebVGA + the glyph
@@ -37,7 +34,6 @@
     <span class="tree-view-title">{title}</span>
     {#if kb}<span class="tree-view-kb">{kb}</span>{/if}
   </div>
-  {#if note}<div class="tree-view-note">{note}</div>{/if}
   {#each nodes as node}
     <TreeAst {node} {budget} />
   {/each}

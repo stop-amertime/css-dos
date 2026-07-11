@@ -77,17 +77,24 @@ then how the pieces fit, then the wishlist.
 
 ## How the pieces fit
 
-- `tools/extract-tree-data.mjs` — the generator, now covering ALL TEN
-  file sections (2026-07-11). Runs the real `emitCSS()` on a tiny
-  synthetic cart (1.5 KB RAM zone + 512 B rom disk so every section
-  exists), slices the file at the ten section banners, and parses each
-  region with one generic parser (comments/banners, @property,
-  @function, rules incl. nested one-liners and @keyframes percent
-  blocks). Reusable primitives: `captureRealCSS`, comment-aware
-  `splitTopLevel` / `matchParen` / `matchBrace`, `parseIf`,
-  `assertRoundTrip` (still mandatory, per region). The cpu pane keeps
-  its curated three-group layout. Regenerate:
-  `node tools/extract-tree-data.mjs all` (writes everything itself).
+- `tools/extract-tree-data.mjs` — the generator, covering ALL TEN file
+  sections (2026-07-11). Builds the REAL `carts/sokoban` cabinet (the
+  one the whole site is measured against — owner rejected synthetic
+  exhibits same day) and parses it: headers show true region sizes
+  (memr 43.8 MB, memw 170.7 MB). One generic parser (comments/banners,
+  @property, @function, rules incl. nested one-liners and @keyframes
+  percent blocks); comment-aware `splitTopLevel` / `matchParen` /
+  `matchBrace`, `parseIf`, `assertRoundTrip` (still mandatory, per
+  region — yes, on the 171 MB one). Giant lists cap PER RUN
+  (CAP_ROWS=512 between run-delimiter comments; each capped run ends
+  with a plain "… N more rows" note) so committed chunks stay ~2 MB
+  and the memory-map shape survives. Parser is index-based where it
+  counts (no slice-per-row lookaheads, no spreads on 200k+ arrays).
+  The cpu pane keeps its curated three-group layout. Regenerate:
+  `node tools/extract-tree-data.mjs all` (~12 s build + ~70 s parse).
+  **Heading style is CPU-section style: bare descriptions** ("palette
+  function", "tick derivation", "store keyframe") — no explanations,
+  no metaphors, no colon-clauses (owner, 2026-07-11).
 - **Progressive disclosure (2026-07-11, owner-requested):** each
   section emits a small SKELETON module
   (`web/site/src/components/anatomy/tree/<id>-tree.js`, bundled) plus

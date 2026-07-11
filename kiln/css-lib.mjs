@@ -52,7 +52,7 @@ export function emitCSSLib() {
   result: mod(--rightShift(var(--val), var(--idx)), 2);
 }
 
-/* --- bitwise AND/OR/XOR/NOT, built from per-bit arithmetic --- */
+/* --- bitwise AND/OR/XOR/NOT --- */
 
 ${emitBitwiseXor()}
 
@@ -81,7 +81,7 @@ ${emitBitwiseNot()}
   result: --lowerBytes(var(--full), 8);
 }
 
-/* --- byte merges: write one half of a 16-bit register --- */
+/* --- byte merges --- */
 
 @function --mergelow(--old <integer>, --new <integer>) returns <integer> {
   result: calc(round(down, var(--old) / 256) * 256 + --lowerBytes(var(--new), 8));
@@ -97,7 +97,7 @@ ${emitBitwiseNot()}
   result: calc(--readMem(var(--at)) + --readMem(calc(var(--at) + 1)) * 256);
 }
 
-/* --- packed-cell read & write splice --- */
+/* --- packed-cell helpers --- */
 /*
    Memory is packed 2 bytes to a cell (cell holds b0 | b1<<8 — a 16-bit word).
    Value range 0..65535 stays well inside i32, so calcite's sign semantics

@@ -977,23 +977,23 @@ export function emitCSS(opts, writeStream) {
   // the interrupt controller (arbitrates both) → the DAC (output side).
   w('/* ===== CHIPSET ===== */');
   writeStream.write('.motherboard {\n');
-  writeStream.write('  /* ===== PIT — INTERVAL TIMER (8253, channel 0) ===== */\n');
-  writeStream.write('  /* --- ticks elapsed this instruction --- */\n');
+  writeStream.write('  /* ===== PIT TIMER (8253) ===== */\n');
+  writeStream.write('  /* --- tick derivation --- */\n');
   w(emitPitDerivation());
-  writeStream.write('  /* --- timer registers --- */\n');
+  writeStream.write('  /* --- registers --- */\n');
   emitDispatchFor(PIT_REGS);
   writeStream.write('\n  /* ===== KEYBOARD CONTROLLER ===== */\n');
-  writeStream.write('  /* --- press/release edge wires + the hold-wire held set --- */\n');
+  writeStream.write('  /* --- edge detection --- */\n');
   w(emitKeyboardWires());
-  writeStream.write('  /* --- keyboard registers --- */\n');
+  writeStream.write('  /* --- registers --- */\n');
   emitDispatchFor(KBD_REGS);
-  writeStream.write('\n  /* ===== PIC — INTERRUPT CONTROLLER (8259) ===== */\n');
-  writeStream.write('  /* --- which IRQ fires this tick --- */\n');
+  writeStream.write('\n  /* ===== PIC INTERRUPT CONTROLLER (8259) ===== */\n');
+  writeStream.write('  /* --- IRQ arbitration --- */\n');
   w(emitIRQArbitration());
-  writeStream.write('  /* --- controller registers --- */\n');
+  writeStream.write('  /* --- registers --- */\n');
   emitDispatchFor(PIC_REGS);
-  writeStream.write('\n  /* ===== VGA DAC — PALETTE STATE MACHINE ===== */\n');
-  writeStream.write('  /* --- read & write cursors (OUT 0x3C7/0x3C8, data via 0x3C9) --- */\n');
+  writeStream.write('\n  /* ===== VGA DAC ===== */\n');
+  writeStream.write('  /* --- index registers --- */\n');
   emitDispatchFor(DAC_REGS);
   w('}');
 
@@ -1040,9 +1040,9 @@ export function emitCSS(opts, writeStream) {
   // rule (paused store/execute animations + all double-buffer reads),
   // and the keyframes that do the handover.
   w('/* ===== CLOCK ===== */');
-  w('/* --- the heartbeat: a 4-step animation is the machine\'s only clock --- */');
+  w('/* --- clock animation --- */');
   w(emitClockRule());
-  w('/* --- double-buffer plumbing: paused store/execute animations + this tick\'s stable reads --- */');
+  w('/* --- double-buffer plumbing --- */');
   writeStream.write(emitClockPlumbingOpen() + '\n');
   writeStream.write('  /* Double-buffer reads */\n');
   w(emitBufferReads(templateOpts));
@@ -1050,7 +1050,7 @@ export function emitCSS(opts, writeStream) {
   w('}');
 
   // Keyframes — store
-  w('/* --- store sweep: latch every computed value into the __2 buffer --- */');
+  w('/* --- store keyframe --- */');
   const storeKf = emitStoreKeyframe(templateOpts);
   const storeKfOpen = storeKf.replace('  }\n}', '');
   writeStream.write(storeKfOpen);
@@ -1058,14 +1058,14 @@ export function emitCSS(opts, writeStream) {
   writeStream.write('  }\n}\n\n');
 
   // Execute keyframe
-  w('/* --- execute sweep: expose the freshly computed values as __0 --- */');
+  w('/* --- execute keyframe --- */');
   const execKf = emitExecuteKeyframe(templateOpts);
   const execKfOpen = execKf.replace('  }\n}', '');
   writeStream.write(execKfOpen);
   emitMemoryExecuteKeyframeStreaming(memOpts, writeStream);
   writeStream.write('  }\n}\n\n');
 
-  w('/* --- the clock wave the heartbeat plays --- */');
+  w('/* --- clock keyframes --- */');
   w(emitClockKeyframes());
 }
 

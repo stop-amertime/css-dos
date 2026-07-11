@@ -259,15 +259,6 @@
   color: #666;
 }
 
-/* A one-line real-scale annotation under the tree header ("a real
-   cabinet's version of this section is ~44 MB"). */
-.tree-view-note {
-  margin: 2px 0 6px;
-  padding-left: 2px;
-  font-size: 13px;
-  font-style: italic;
-  color: #666;
-}
 
 @media (max-width: 640px) {
   .tree-view { padding: 8px; font-size: 14px; }
