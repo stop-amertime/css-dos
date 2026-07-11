@@ -1352,6 +1352,7 @@ export const CPU_TREE = [
               code: `if(`,
               trailer: `);`,
               children: [
+              { kind: 'block', code: `/* ALU: ADD/OR/ADC/SBB/AND/SUB/XOR/CMP + BCD adjusts */` },
               {
                 kind: 'branch',
                 code: `style(--opcode: 0):`,
@@ -1772,6 +1773,7 @@ export const CPU_TREE = [
                 { kind: 'value', code: `0;` },
                 ],
               },
+              { kind: 'block', code: `/* INC/DEC reg16 */` },
               {
                 kind: 'branch',
                 code: `style(--opcode: 64):`,
@@ -1884,6 +1886,7 @@ export const CPU_TREE = [
                 { kind: 'value', code: `0;` },
                 ],
               },
+              { kind: 'block', code: `/* PUSH/POP reg16 */` },
               {
                 kind: 'branch',
                 code: `style(--opcode: 80):`,
@@ -1996,6 +1999,7 @@ export const CPU_TREE = [
                 { kind: 'value', code: `0;` },
                 ],
               },
+              { kind: 'block', code: `/* 80186: PUSH/IMUL immediate */` },
               {
                 kind: 'branch',
                 code: `style(--opcode: 104):`,
@@ -2024,6 +2028,7 @@ export const CPU_TREE = [
                 { kind: 'value', code: `0;` },
                 ],
               },
+              { kind: 'block', code: `/* conditional jumps */` },
               {
                 kind: 'branch',
                 code: `style(--opcode: 112):`,
@@ -2136,6 +2141,7 @@ export const CPU_TREE = [
                 { kind: 'value', code: `0;` },
                 ],
               },
+              { kind: 'block', code: `/* Group 80-83: ALU r/m, imm */` },
               {
                 kind: 'branch',
                 code: `style(--opcode: 128):`,
@@ -2164,6 +2170,7 @@ export const CPU_TREE = [
                 { kind: 'value', code: `0;` },
                 ],
               },
+              { kind: 'block', code: `/* TEST/XCHG, MOV r/m, LEA, MOV segreg, POP r/m */` },
               {
                 kind: 'branch',
                 code: `style(--opcode: 132):`,
@@ -2248,6 +2255,7 @@ export const CPU_TREE = [
                 { kind: 'value', code: `0;` },
                 ],
               },
+              { kind: 'block', code: `/* XCHG AX/NOP, CBW/CWD, CALL far, PUSHF/POPF, SAHF/LAHF */` },
               {
                 kind: 'branch',
                 code: `style(--opcode: 144):`,
@@ -2360,6 +2368,7 @@ export const CPU_TREE = [
                 { kind: 'value', code: `0;` },
                 ],
               },
+              { kind: 'block', code: `/* MOV accumulator/[mem], string ops, TEST acc */` },
               {
                 kind: 'branch',
                 code: `style(--opcode: 160):`,
@@ -2472,6 +2481,7 @@ export const CPU_TREE = [
                 { kind: 'value', code: `0;` },
                 ],
               },
+              { kind: 'block', code: `/* MOV reg, imm */` },
               {
                 kind: 'branch',
                 code: `style(--opcode: 176):`,
@@ -2584,6 +2594,7 @@ export const CPU_TREE = [
                 { kind: 'value', code: `0;` },
                 ],
               },
+              { kind: 'block', code: `/* RET/RETF, LES/LDS, MOV r/m imm, INT/INTO/IRET */` },
               {
                 kind: 'branch',
                 code: `style(--opcode: 194):`,
@@ -2668,6 +2679,7 @@ export const CPU_TREE = [
                 { kind: 'value', code: `0;` },
                 ],
               },
+              { kind: 'block', code: `/* shifts & rotates, AAM/AAD, XLAT */` },
               {
                 kind: 'branch',
                 code: `style(--opcode: 208):`,
@@ -2773,6 +2785,7 @@ export const CPU_TREE = [
                 { kind: 'value', code: `0;` },
                 ],
               },
+              { kind: 'block', code: `/* LOOP/JCXZ, IN/OUT, CALL/JMP */` },
               {
                 kind: 'branch',
                 code: `style(--opcode: 224):`,
@@ -2885,6 +2898,7 @@ export const CPU_TREE = [
                 { kind: 'value', code: `0;` },
                 ],
               },
+              { kind: 'block', code: `/* HLT/CMC, Group F6/F7, CLC..STD, Group FE/FF */` },
               {
                 kind: 'branch',
                 code: `style(--opcode: 240):`,
@@ -2988,7 +3002,7 @@ export const CPU_TREE = [
             },
             ],
           },
-          { kind: 'block', code: `--haltCode: calc(var(--unknownOp) * var(--opcode));` },
+          { kind: 'block', code: `--haltCode: calc(var(--unknownOp) * var(--opcode)); /* the offending opcode, 0 while running */` },
           ],
         },
         ],
@@ -3005,6 +3019,7 @@ export const CPU_TREE = [
           code: `/* --- register aliases (8-bit halves) --- */`,
           folded: true,
           children: [
+          { kind: 'block', code: `/* Read-only views of the previous tick's (--__1) word registers. */` },
           { kind: 'block', code: `--AL: --lowerBytes(var(--__1AX), 8);` },
           { kind: 'block', code: `--CL: --lowerBytes(var(--__1CX), 8);` },
           { kind: 'block', code: `--DL: --lowerBytes(var(--__1DX), 8);` },
@@ -3022,7 +3037,8 @@ export const CPU_TREE = [
           folded: true,
           children: [
           { kind: 'block', code: `/* Each register's next value is selected by opcode via a
-     giant if(style(--instId: N)) dispatch. This is the CPU. */` },
+     giant if(style(--opcode: N)) dispatch. This is the CPU. */` },
+          { kind: 'block', code: `/* general-purpose registers */` },
           {
             kind: 'decl',
             code: `--AX:`,
@@ -3057,6 +3073,7 @@ export const CPU_TREE = [
                   code: `if(`,
                   trailer: `)`,
                   children: [
+                  { kind: 'block', code: `/* ALU: ADD/OR/ADC/SBB/AND/SUB/XOR/CMP + BCD adjusts */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 0):`,
@@ -4129,11 +4146,11 @@ export const CPU_TREE = [
                     { kind: 'value', code: `calc(mod(calc(var(--AH) - min(1, calc(round(down, mod(var(--AL), 16) / 10) + mod(round(down, var(--__1flags) / 16), 2))) + 256), 256) * 256 + mod(calc(var(--AL) - min(1, calc(round(down, mod(var(--AL), 16) / 10) + mod(round(down, var(--__1flags) / 16), 2))) * 6 + 16), 16));` },
                     ],
                   },
+                  { kind: 'block', code: `/* INC/DEC reg16 */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 64):`,
                     comment: `/* INC AX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1AX) + 1), 16);` },
                     ],
@@ -4142,20 +4159,20 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 72):`,
                     comment: `/* DEC AX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1AX) - 1 + 65536), 16);` },
                     ],
                   },
+                  { kind: 'block', code: `/* PUSH/POP reg16 */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 88):`,
                     comment: `/* POP AX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--read2(calc(var(--__1SS) * 16 + var(--__1SP)));` },
                     ],
                   },
+                  { kind: 'block', code: `/* 80186: PUSH/IMUL immediate */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 105):`,
@@ -4214,6 +4231,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* Group 80-83: ALU r/m, imm */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 128):`,
@@ -4596,6 +4614,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* TEST/XCHG, MOV r/m, LEA, MOV segreg, POP r/m */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 134):`,
@@ -4976,11 +4995,11 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* XCHG AX/NOP, CBW/CWD, CALL far, PUSHF/POPF, SAHF/LAHF */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 145):`,
                     comment: `/* XCHG AX, CX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `var(--__1CX);` },
                     ],
@@ -4989,7 +5008,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 146):`,
                     comment: `/* XCHG AX, DX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `var(--__1DX);` },
                     ],
@@ -4998,7 +5016,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 147):`,
                     comment: `/* XCHG AX, BX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `var(--__1BX);` },
                     ],
@@ -5007,7 +5024,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 148):`,
                     comment: `/* XCHG AX, SP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `var(--__1SP);` },
                     ],
@@ -5016,7 +5032,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 149):`,
                     comment: `/* XCHG AX, BP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `var(--__1BP);` },
                     ],
@@ -5025,7 +5040,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 150):`,
                     comment: `/* XCHG AX, SI */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `var(--__1SI);` },
                     ],
@@ -5034,7 +5048,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 151):`,
                     comment: `/* XCHG AX, DI */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `var(--__1DI);` },
                     ],
@@ -5043,7 +5056,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 152):`,
                     comment: `/* CBW */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--AL) + --bit(var(--AL), 7) * 65280);` },
                     ],
@@ -5052,11 +5064,11 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 159):`,
                     comment: `/* LAHF */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--mergehigh(var(--__1AX), --lowerBytes(var(--__1flags), 8));` },
                     ],
                   },
+                  { kind: 'block', code: `/* MOV accumulator/[mem], string ops, TEST acc */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 160):`,
@@ -5133,11 +5145,11 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* MOV reg, imm */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 176):`,
                     comment: `/* MOV AL, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--mergelow(var(--__1AX), var(--q1));` },
                     ],
@@ -5146,7 +5158,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 180):`,
                     comment: `/* MOV AH, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--mergehigh(var(--__1AX), var(--q1));` },
                     ],
@@ -5155,11 +5166,11 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 184):`,
                     comment: `/* MOV AX, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--q1) + var(--q2) * 256);` },
                     ],
                   },
+                  { kind: 'block', code: `/* RET/RETF, LES/LDS, MOV r/m imm, INT/INTO/IRET */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 196):`,
@@ -5283,6 +5294,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* shifts & rotates, AAM/AAD, XLAT */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 208):`,
@@ -5650,6 +5662,7 @@ export const CPU_TREE = [
                     { kind: 'value', code: `--mergelow(var(--__1AX), var(--_xlatByte));` },
                     ],
                   },
+                  { kind: 'block', code: `/* LOOP/JCXZ, IN/OUT, CALL/JMP */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 228):`,
@@ -5796,6 +5809,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* HLT/CMC, Group F6/F7, CLC..STD, Group FE/FF */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 246):`,
@@ -6024,6 +6038,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* no entry for this opcode: AX holds */` },
                   {
                     kind: 'branch',
                     code: `else:`,
@@ -6073,6 +6088,7 @@ export const CPU_TREE = [
                   code: `if(`,
                   trailer: `)`,
                   children: [
+                  { kind: 'block', code: `/* ALU: ADD/OR/ADC/SBB/AND/SUB/XOR/CMP + BCD adjusts */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 0):`,
@@ -6983,11 +6999,11 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* INC/DEC reg16 */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 65):`,
                     comment: `/* INC CX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1CX) + 1), 16);` },
                     ],
@@ -6996,20 +7012,20 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 73):`,
                     comment: `/* DEC CX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1CX) - 1 + 65536), 16);` },
                     ],
                   },
+                  { kind: 'block', code: `/* PUSH/POP reg16 */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 89):`,
                     comment: `/* POP CX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--read2(calc(var(--__1SS) * 16 + var(--__1SP)));` },
                     ],
                   },
+                  { kind: 'block', code: `/* 80186: PUSH/IMUL immediate */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 105):`,
@@ -7068,6 +7084,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* Group 80-83: ALU r/m, imm */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 128):`,
@@ -7450,6 +7467,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* TEST/XCHG, MOV r/m, LEA, MOV segreg, POP r/m */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 134):`,
@@ -7830,15 +7848,16 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* XCHG AX/NOP, CBW/CWD, CALL far, PUSHF/POPF, SAHF/LAHF */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 145):`,
                     comment: `/* XCHG AX, CX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `var(--__1AX);` },
                     ],
                   },
+                  { kind: 'block', code: `/* MOV accumulator/[mem], string ops, TEST acc */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 164):`,
@@ -8129,11 +8148,11 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* MOV reg, imm */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 177):`,
                     comment: `/* MOV CL, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--mergelow(var(--__1CX), var(--q1));` },
                     ],
@@ -8142,7 +8161,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 181):`,
                     comment: `/* MOV CH, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--mergehigh(var(--__1CX), var(--q1));` },
                     ],
@@ -8151,11 +8169,11 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 185):`,
                     comment: `/* MOV CX, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--q1) + var(--q2) * 256);` },
                     ],
                   },
+                  { kind: 'block', code: `/* RET/RETF, LES/LDS, MOV r/m imm, INT/INTO/IRET */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 196):`,
@@ -8279,6 +8297,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* shifts & rotates, AAM/AAD, XLAT */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 208):`,
@@ -8619,11 +8638,11 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* LOOP/JCXZ, IN/OUT, CALL/JMP */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 224):`,
                     comment: `/* LOOPNE (CX-=1) */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1CX) - 1 + 65536), 16);` },
                     ],
@@ -8632,7 +8651,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 225):`,
                     comment: `/* LOOPE (CX-=1) */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1CX) - 1 + 65536), 16);` },
                     ],
@@ -8641,11 +8659,11 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 226):`,
                     comment: `/* LOOP (CX-=1) */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1CX) - 1 + 65536), 16);` },
                     ],
                   },
+                  { kind: 'block', code: `/* HLT/CMC, Group F6/F7, CLC..STD, Group FE/FF */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 246):`,
@@ -8818,6 +8836,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* no entry for this opcode: CX holds */` },
                   {
                     kind: 'branch',
                     code: `else:`,
@@ -8867,6 +8886,7 @@ export const CPU_TREE = [
                   code: `if(`,
                   trailer: `)`,
                   children: [
+                  { kind: 'block', code: `/* ALU: ADD/OR/ADC/SBB/AND/SUB/XOR/CMP + BCD adjusts */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 0):`,
@@ -9777,11 +9797,11 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* INC/DEC reg16 */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 66):`,
                     comment: `/* INC DX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1DX) + 1), 16);` },
                     ],
@@ -9790,20 +9810,20 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 74):`,
                     comment: `/* DEC DX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1DX) - 1 + 65536), 16);` },
                     ],
                   },
+                  { kind: 'block', code: `/* PUSH/POP reg16 */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 90):`,
                     comment: `/* POP DX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--read2(calc(var(--__1SS) * 16 + var(--__1SP)));` },
                     ],
                   },
+                  { kind: 'block', code: `/* 80186: PUSH/IMUL immediate */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 105):`,
@@ -9862,6 +9882,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* Group 80-83: ALU r/m, imm */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 128):`,
@@ -10244,6 +10265,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* TEST/XCHG, MOV r/m, LEA, MOV segreg, POP r/m */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 134):`,
@@ -10624,11 +10646,11 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* XCHG AX/NOP, CBW/CWD, CALL far, PUSHF/POPF, SAHF/LAHF */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 146):`,
                     comment: `/* XCHG AX, DX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `var(--__1AX);` },
                     ],
@@ -10637,16 +10659,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 153):`,
                     comment: `/* CWD */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--bit(var(--__1AX), 15) * 65535);` },
                     ],
                   },
+                  { kind: 'block', code: `/* MOV reg, imm */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 178):`,
                     comment: `/* MOV DL, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--mergelow(var(--__1DX), var(--q1));` },
                     ],
@@ -10655,7 +10676,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 182):`,
                     comment: `/* MOV DH, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--mergehigh(var(--__1DX), var(--q1));` },
                     ],
@@ -10664,11 +10684,11 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 186):`,
                     comment: `/* MOV DX, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--q1) + var(--q2) * 256);` },
                     ],
                   },
+                  { kind: 'block', code: `/* RET/RETF, LES/LDS, MOV r/m imm, INT/INTO/IRET */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 196):`,
@@ -10792,6 +10812,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* shifts & rotates, AAM/AAD, XLAT */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 208):`,
@@ -11132,6 +11153,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* HLT/CMC, Group F6/F7, CLC..STD, Group FE/FF */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 246):`,
@@ -11332,6 +11354,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* no entry for this opcode: DX holds */` },
                   {
                     kind: 'branch',
                     code: `else:`,
@@ -11381,6 +11404,7 @@ export const CPU_TREE = [
                   code: `if(`,
                   trailer: `)`,
                   children: [
+                  { kind: 'block', code: `/* ALU: ADD/OR/ADC/SBB/AND/SUB/XOR/CMP + BCD adjusts */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 0):`,
@@ -12291,11 +12315,11 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* INC/DEC reg16 */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 67):`,
                     comment: `/* INC BX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1BX) + 1), 16);` },
                     ],
@@ -12304,20 +12328,20 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 75):`,
                     comment: `/* DEC BX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1BX) - 1 + 65536), 16);` },
                     ],
                   },
+                  { kind: 'block', code: `/* PUSH/POP reg16 */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 91):`,
                     comment: `/* POP BX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--read2(calc(var(--__1SS) * 16 + var(--__1SP)));` },
                     ],
                   },
+                  { kind: 'block', code: `/* 80186: PUSH/IMUL immediate */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 105):`,
@@ -12376,6 +12400,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* Group 80-83: ALU r/m, imm */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 128):`,
@@ -12758,6 +12783,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* TEST/XCHG, MOV r/m, LEA, MOV segreg, POP r/m */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 134):`,
@@ -13138,20 +13164,20 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* XCHG AX/NOP, CBW/CWD, CALL far, PUSHF/POPF, SAHF/LAHF */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 147):`,
                     comment: `/* XCHG AX, BX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `var(--__1AX);` },
                     ],
                   },
+                  { kind: 'block', code: `/* MOV reg, imm */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 179):`,
                     comment: `/* MOV BL, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--mergelow(var(--__1BX), var(--q1));` },
                     ],
@@ -13160,7 +13186,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 183):`,
                     comment: `/* MOV BH, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--mergehigh(var(--__1BX), var(--q1));` },
                     ],
@@ -13169,11 +13194,11 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 187):`,
                     comment: `/* MOV BX, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--q1) + var(--q2) * 256);` },
                     ],
                   },
+                  { kind: 'block', code: `/* RET/RETF, LES/LDS, MOV r/m imm, INT/INTO/IRET */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 196):`,
@@ -13297,6 +13322,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* shifts & rotates, AAM/AAD, XLAT */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 208):`,
@@ -13637,6 +13663,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* HLT/CMC, Group F6/F7, CLC..STD, Group FE/FF */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 246):`,
@@ -13809,6 +13836,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* no entry for this opcode: BX holds */` },
                   {
                     kind: 'branch',
                     code: `else:`,
@@ -13858,6 +13886,7 @@ export const CPU_TREE = [
                   code: `if(`,
                   trailer: `)`,
                   children: [
+                  { kind: 'block', code: `/* ALU: ADD/OR/ADC/SBB/AND/SUB/XOR/CMP + BCD adjusts */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 1):`,
@@ -14336,11 +14365,11 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* INC/DEC reg16 */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 68):`,
                     comment: `/* INC SP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1SP) + 1), 16);` },
                     ],
@@ -14349,16 +14378,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 76):`,
                     comment: `/* DEC SP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1SP) - 1 + 65536), 16);` },
                     ],
                   },
+                  { kind: 'block', code: `/* PUSH/POP reg16 */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 80):`,
                     comment: `/* PUSH AX (SP-=2) */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1SP) - 2 + 65536), 16);` },
                     ],
@@ -14367,7 +14395,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 81):`,
                     comment: `/* PUSH CX (SP-=2) */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1SP) - 2 + 65536), 16);` },
                     ],
@@ -14376,7 +14403,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 82):`,
                     comment: `/* PUSH DX (SP-=2) */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1SP) - 2 + 65536), 16);` },
                     ],
@@ -14385,7 +14411,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 83):`,
                     comment: `/* PUSH BX (SP-=2) */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1SP) - 2 + 65536), 16);` },
                     ],
@@ -14394,7 +14419,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 84):`,
                     comment: `/* PUSH SP (SP-=2) */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1SP) - 2 + 65536), 16);` },
                     ],
@@ -14403,7 +14427,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 85):`,
                     comment: `/* PUSH BP (SP-=2) */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1SP) - 2 + 65536), 16);` },
                     ],
@@ -14412,7 +14435,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 86):`,
                     comment: `/* PUSH SI (SP-=2) */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1SP) - 2 + 65536), 16);` },
                     ],
@@ -14421,7 +14443,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 87):`,
                     comment: `/* PUSH DI (SP-=2) */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1SP) - 2 + 65536), 16);` },
                     ],
@@ -14430,7 +14451,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 88):`,
                     comment: `/* POP AX (SP+=2) */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1SP) + 2), 16);` },
                     ],
@@ -14439,7 +14459,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 89):`,
                     comment: `/* POP CX (SP+=2) */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1SP) + 2), 16);` },
                     ],
@@ -14448,7 +14467,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 90):`,
                     comment: `/* POP DX (SP+=2) */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1SP) + 2), 16);` },
                     ],
@@ -14457,7 +14475,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 91):`,
                     comment: `/* POP BX (SP+=2) */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1SP) + 2), 16);` },
                     ],
@@ -14466,7 +14483,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 92):`,
                     comment: `/* POP SP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--read2(calc(var(--__1SS) * 16 + var(--__1SP)));` },
                     ],
@@ -14475,7 +14491,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 93):`,
                     comment: `/* POP BP (SP+=2) */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1SP) + 2), 16);` },
                     ],
@@ -14484,7 +14499,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 94):`,
                     comment: `/* POP SI (SP+=2) */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1SP) + 2), 16);` },
                     ],
@@ -14493,11 +14507,11 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 95):`,
                     comment: `/* POP DI (SP+=2) */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1SP) + 2), 16);` },
                     ],
                   },
+                  { kind: 'block', code: `/* 80186: PUSH/IMUL immediate */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 104):`,
@@ -14574,6 +14588,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* Group 80-83: ALU r/m, imm */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 129):`,
@@ -14716,6 +14731,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* TEST/XCHG, MOV r/m, LEA, MOV segreg, POP r/m */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 135):`,
@@ -14960,11 +14976,11 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* XCHG AX/NOP, CBW/CWD, CALL far, PUSHF/POPF, SAHF/LAHF */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 148):`,
                     comment: `/* XCHG AX, SP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `var(--__1AX);` },
                     ],
@@ -14973,7 +14989,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 154):`,
                     comment: `/* CALL far (SP-=4) */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1SP) - 4 + 65536), 16);` },
                     ],
@@ -14982,7 +14997,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 156):`,
                     comment: `/* PUSHF (SP-=2) */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1SP) - 2 + 65536), 16);` },
                     ],
@@ -14991,20 +15005,20 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 157):`,
                     comment: `/* POPF (SP+=2) */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1SP) + 2), 16);` },
                     ],
                   },
+                  { kind: 'block', code: `/* MOV reg, imm */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 188):`,
                     comment: `/* MOV SP, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--q1) + var(--q2) * 256);` },
                     ],
                   },
+                  { kind: 'block', code: `/* RET/RETF, LES/LDS, MOV r/m imm, INT/INTO/IRET */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 194):`,
@@ -15164,6 +15178,7 @@ export const CPU_TREE = [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1SP) + 6), 16);` },
                     ],
                   },
+                  { kind: 'block', code: `/* shifts & rotates, AAM/AAD, XLAT */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 209):`,
@@ -15292,15 +15307,16 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* LOOP/JCXZ, IN/OUT, CALL/JMP */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 232):`,
                     comment: `/* CALL near (SP-=2) */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1SP) - 2 + 65536), 16);` },
                     ],
                   },
+                  { kind: 'block', code: `/* HLT/CMC, Group F6/F7, CLC..STD, Group FE/FF */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 247):`,
@@ -15394,6 +15410,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* no entry for this opcode: SP holds */` },
                   {
                     kind: 'branch',
                     code: `else:`,
@@ -15443,6 +15460,7 @@ export const CPU_TREE = [
                   code: `if(`,
                   trailer: `)`,
                   children: [
+                  { kind: 'block', code: `/* ALU: ADD/OR/ADC/SBB/AND/SUB/XOR/CMP + BCD adjusts */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 1):`,
@@ -15849,11 +15867,11 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* INC/DEC reg16 */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 69):`,
                     comment: `/* INC BP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1BP) + 1), 16);` },
                     ],
@@ -15862,20 +15880,20 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 77):`,
                     comment: `/* DEC BP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1BP) - 1 + 65536), 16);` },
                     ],
                   },
+                  { kind: 'block', code: `/* PUSH/POP reg16 */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 93):`,
                     comment: `/* POP BP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--read2(calc(var(--__1SS) * 16 + var(--__1SP)));` },
                     ],
                   },
+                  { kind: 'block', code: `/* 80186: PUSH/IMUL immediate */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 105):`,
@@ -15934,6 +15952,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* Group 80-83: ALU r/m, imm */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 129):`,
@@ -16076,6 +16095,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* TEST/XCHG, MOV r/m, LEA, MOV segreg, POP r/m */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 135):`,
@@ -16320,24 +16340,25 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* XCHG AX/NOP, CBW/CWD, CALL far, PUSHF/POPF, SAHF/LAHF */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 149):`,
                     comment: `/* XCHG AX, BP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `var(--__1AX);` },
                     ],
                   },
+                  { kind: 'block', code: `/* MOV reg, imm */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 189):`,
                     comment: `/* MOV BP, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--q1) + var(--q2) * 256);` },
                     ],
                   },
+                  { kind: 'block', code: `/* RET/RETF, LES/LDS, MOV r/m imm, INT/INTO/IRET */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 196):`,
@@ -16425,6 +16446,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* shifts & rotates, AAM/AAD, XLAT */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 209):`,
@@ -16553,6 +16575,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* HLT/CMC, Group F6/F7, CLC..STD, Group FE/FF */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 247):`,
@@ -16625,6 +16648,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* no entry for this opcode: BP holds */` },
                   {
                     kind: 'branch',
                     code: `else:`,
@@ -16674,6 +16698,7 @@ export const CPU_TREE = [
                   code: `if(`,
                   trailer: `)`,
                   children: [
+                  { kind: 'block', code: `/* ALU: ADD/OR/ADC/SBB/AND/SUB/XOR/CMP + BCD adjusts */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 1):`,
@@ -17080,11 +17105,11 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* INC/DEC reg16 */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 70):`,
                     comment: `/* INC SI */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1SI) + 1), 16);` },
                     ],
@@ -17093,20 +17118,20 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 78):`,
                     comment: `/* DEC SI */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1SI) - 1 + 65536), 16);` },
                     ],
                   },
+                  { kind: 'block', code: `/* PUSH/POP reg16 */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 94):`,
                     comment: `/* POP SI */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--read2(calc(var(--__1SS) * 16 + var(--__1SP)));` },
                     ],
                   },
+                  { kind: 'block', code: `/* 80186: PUSH/IMUL immediate */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 105):`,
@@ -17165,6 +17190,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* Group 80-83: ALU r/m, imm */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 129):`,
@@ -17307,6 +17333,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* TEST/XCHG, MOV r/m, LEA, MOV segreg, POP r/m */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 135):`,
@@ -17551,15 +17578,16 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* XCHG AX/NOP, CBW/CWD, CALL far, PUSHF/POPF, SAHF/LAHF */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 150):`,
                     comment: `/* XCHG AX, SI */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `var(--__1AX);` },
                     ],
                   },
+                  { kind: 'block', code: `/* MOV accumulator/[mem], string ops, TEST acc */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 164):`,
@@ -17734,15 +17762,16 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* MOV reg, imm */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 190):`,
                     comment: `/* MOV SI, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--q1) + var(--q2) * 256);` },
                     ],
                   },
+                  { kind: 'block', code: `/* RET/RETF, LES/LDS, MOV r/m imm, INT/INTO/IRET */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 196):`,
@@ -17830,6 +17859,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* shifts & rotates, AAM/AAD, XLAT */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 209):`,
@@ -17958,6 +17988,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* HLT/CMC, Group F6/F7, CLC..STD, Group FE/FF */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 247):`,
@@ -18030,6 +18061,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* no entry for this opcode: SI holds */` },
                   {
                     kind: 'branch',
                     code: `else:`,
@@ -18079,6 +18111,7 @@ export const CPU_TREE = [
                   code: `if(`,
                   trailer: `)`,
                   children: [
+                  { kind: 'block', code: `/* ALU: ADD/OR/ADC/SBB/AND/SUB/XOR/CMP + BCD adjusts */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 1):`,
@@ -18485,11 +18518,11 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* INC/DEC reg16 */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 71):`,
                     comment: `/* INC DI */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1DI) + 1), 16);` },
                     ],
@@ -18498,20 +18531,20 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 79):`,
                     comment: `/* DEC DI */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1DI) - 1 + 65536), 16);` },
                     ],
                   },
+                  { kind: 'block', code: `/* PUSH/POP reg16 */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 95):`,
                     comment: `/* POP DI */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--read2(calc(var(--__1SS) * 16 + var(--__1SP)));` },
                     ],
                   },
+                  { kind: 'block', code: `/* 80186: PUSH/IMUL immediate */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 105):`,
@@ -18570,6 +18603,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* Group 80-83: ALU r/m, imm */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 129):`,
@@ -18712,6 +18746,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* TEST/XCHG, MOV r/m, LEA, MOV segreg, POP r/m */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 135):`,
@@ -18956,15 +18991,16 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* XCHG AX/NOP, CBW/CWD, CALL far, PUSHF/POPF, SAHF/LAHF */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 151):`,
                     comment: `/* XCHG AX, DI */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `var(--__1AX);` },
                     ],
                   },
+                  { kind: 'block', code: `/* MOV accumulator/[mem], string ops, TEST acc */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 164):`,
@@ -19197,15 +19233,16 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* MOV reg, imm */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 191):`,
                     comment: `/* MOV DI, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--q1) + var(--q2) * 256);` },
                     ],
                   },
+                  { kind: 'block', code: `/* RET/RETF, LES/LDS, MOV r/m imm, INT/INTO/IRET */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 196):`,
@@ -19293,6 +19330,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* shifts & rotates, AAM/AAD, XLAT */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 209):`,
@@ -19421,6 +19459,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* HLT/CMC, Group F6/F7, CLC..STD, Group FE/FF */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 247):`,
@@ -19493,6 +19532,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* no entry for this opcode: DI holds */` },
                   {
                     kind: 'branch',
                     code: `else:`,
@@ -19508,6 +19548,7 @@ export const CPU_TREE = [
             },
             ],
           },
+          { kind: 'block', code: `/* segment registers */` },
           {
             kind: 'decl',
             code: `--CS:`,
@@ -19688,6 +19729,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* no entry for this opcode: CS holds */` },
                   {
                     kind: 'branch',
                     code: `else:`,
@@ -19784,6 +19826,7 @@ export const CPU_TREE = [
                     { kind: 'value', code: `--read2(calc(var(--ea) + 2));` },
                     ],
                   },
+                  { kind: 'block', code: `/* no entry for this opcode: DS holds */` },
                   {
                     kind: 'branch',
                     code: `else:`,
@@ -19880,6 +19923,7 @@ export const CPU_TREE = [
                     { kind: 'value', code: `--read2(calc(var(--ea) + 2));` },
                     ],
                   },
+                  { kind: 'block', code: `/* no entry for this opcode: ES holds */` },
                   {
                     kind: 'branch',
                     code: `else:`,
@@ -19967,6 +20011,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* no entry for this opcode: SS holds */` },
                   {
                     kind: 'branch',
                     code: `else:`,
@@ -19982,6 +20027,7 @@ export const CPU_TREE = [
             },
             ],
           },
+          { kind: 'block', code: `/* instruction pointer & FLAGS */` },
           {
             kind: 'decl',
             code: `--IP:`,
@@ -20016,11 +20062,11 @@ export const CPU_TREE = [
                   code: `calc(if(`,
                   trailer: `) + var(--prefixLen))`,
                   children: [
+                  { kind: 'block', code: `/* ALU: ADD/OR/ADC/SBB/AND/SUB/XOR/CMP + BCD adjusts */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 0):`,
                     comment: `/* ADD r/m8, reg8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20029,7 +20075,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 1):`,
                     comment: `/* ADD r/m16, reg16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20038,7 +20083,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 2):`,
                     comment: `/* ADD reg8, r/m8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20047,7 +20091,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 3):`,
                     comment: `/* ADD reg16, r/m16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20056,7 +20099,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 4):`,
                     comment: `/* ADD AL, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2);` },
                     ],
@@ -20065,7 +20107,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 5):`,
                     comment: `/* ADD AX, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 3);` },
                     ],
@@ -20074,7 +20115,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 6):`,
                     comment: `/* PUSH ES */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20083,7 +20123,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 7):`,
                     comment: `/* POP ES */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20092,7 +20131,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 8):`,
                     comment: `/* OR r/m8, reg8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20101,7 +20139,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 9):`,
                     comment: `/* OR r/m16, reg16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20110,7 +20147,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 10):`,
                     comment: `/* OR reg8, r/m8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20119,7 +20155,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 11):`,
                     comment: `/* OR reg16, r/m16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20128,7 +20163,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 12):`,
                     comment: `/* OR AL, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2);` },
                     ],
@@ -20137,7 +20171,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 13):`,
                     comment: `/* OR AX, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 3);` },
                     ],
@@ -20146,7 +20179,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 14):`,
                     comment: `/* PUSH CS */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20155,7 +20187,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 15):`,
                     comment: `/* POP CS */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20164,7 +20195,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 16):`,
                     comment: `/* ADC r/m8, reg8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20173,7 +20203,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 17):`,
                     comment: `/* ADC r/m16, reg16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20182,7 +20211,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 18):`,
                     comment: `/* ADC reg8, r/m8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20191,7 +20219,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 19):`,
                     comment: `/* ADC reg16, r/m16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20200,7 +20227,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 20):`,
                     comment: `/* ADC AL, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2);` },
                     ],
@@ -20209,7 +20235,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 21):`,
                     comment: `/* ADC AX, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 3);` },
                     ],
@@ -20218,7 +20243,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 22):`,
                     comment: `/* PUSH SS */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20227,7 +20251,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 23):`,
                     comment: `/* POP SS */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20236,7 +20259,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 24):`,
                     comment: `/* SBB r/m8, reg8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20245,7 +20267,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 25):`,
                     comment: `/* SBB r/m16, reg16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20254,7 +20275,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 26):`,
                     comment: `/* SBB reg8, r/m8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20263,7 +20283,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 27):`,
                     comment: `/* SBB reg16, r/m16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20272,7 +20291,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 28):`,
                     comment: `/* SBB AL, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2);` },
                     ],
@@ -20281,7 +20299,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 29):`,
                     comment: `/* SBB AX, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 3);` },
                     ],
@@ -20290,7 +20307,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 30):`,
                     comment: `/* PUSH DS */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20299,7 +20315,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 31):`,
                     comment: `/* POP DS */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20308,7 +20323,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 32):`,
                     comment: `/* AND r/m8, reg8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20317,7 +20331,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 33):`,
                     comment: `/* AND r/m16, reg16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20326,7 +20339,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 34):`,
                     comment: `/* AND reg8, r/m8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20335,7 +20347,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 35):`,
                     comment: `/* AND reg16, r/m16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20344,7 +20355,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 36):`,
                     comment: `/* AND AL, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2);` },
                     ],
@@ -20353,7 +20363,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 37):`,
                     comment: `/* AND AX, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 3);` },
                     ],
@@ -20362,7 +20371,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 39):`,
                     comment: `/* DAA */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20371,7 +20379,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 40):`,
                     comment: `/* SUB r/m8, reg8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20380,7 +20387,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 41):`,
                     comment: `/* SUB r/m16, reg16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20389,7 +20395,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 42):`,
                     comment: `/* SUB reg8, r/m8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20398,7 +20403,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 43):`,
                     comment: `/* SUB reg16, r/m16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20407,7 +20411,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 44):`,
                     comment: `/* SUB AL, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2);` },
                     ],
@@ -20416,7 +20419,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 45):`,
                     comment: `/* SUB AX, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 3);` },
                     ],
@@ -20425,7 +20427,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 47):`,
                     comment: `/* DAS */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20434,7 +20435,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 48):`,
                     comment: `/* XOR r/m8, reg8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20443,7 +20443,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 49):`,
                     comment: `/* XOR r/m16, reg16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20452,7 +20451,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 50):`,
                     comment: `/* XOR reg8, r/m8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20461,7 +20459,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 51):`,
                     comment: `/* XOR reg16, r/m16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20470,7 +20467,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 52):`,
                     comment: `/* XOR AL, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2);` },
                     ],
@@ -20479,7 +20475,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 53):`,
                     comment: `/* XOR AX, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 3);` },
                     ],
@@ -20488,7 +20483,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 55):`,
                     comment: `/* AAA */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20497,7 +20491,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 56):`,
                     comment: `/* CMP r/m8, reg8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20506,7 +20499,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 57):`,
                     comment: `/* CMP r/m16, reg16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20515,7 +20507,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 58):`,
                     comment: `/* CMP reg8, r/m8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20524,7 +20515,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 59):`,
                     comment: `/* CMP reg16, r/m16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -20533,7 +20523,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 60):`,
                     comment: `/* CMP AL, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2);` },
                     ],
@@ -20542,7 +20531,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 61):`,
                     comment: `/* CMP AX, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 3);` },
                     ],
@@ -20551,16 +20539,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 63):`,
                     comment: `/* AAS */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
                   },
+                  { kind: 'block', code: `/* INC/DEC reg16 */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 64):`,
                     comment: `/* INC AX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20569,7 +20556,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 65):`,
                     comment: `/* INC CX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20578,7 +20564,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 66):`,
                     comment: `/* INC DX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20587,7 +20572,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 67):`,
                     comment: `/* INC BX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20596,7 +20580,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 68):`,
                     comment: `/* INC SP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20605,7 +20588,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 69):`,
                     comment: `/* INC BP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20614,7 +20596,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 70):`,
                     comment: `/* INC SI */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20623,7 +20604,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 71):`,
                     comment: `/* INC DI */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20632,7 +20612,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 72):`,
                     comment: `/* DEC AX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20641,7 +20620,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 73):`,
                     comment: `/* DEC CX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20650,7 +20628,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 74):`,
                     comment: `/* DEC DX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20659,7 +20636,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 75):`,
                     comment: `/* DEC BX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20668,7 +20644,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 76):`,
                     comment: `/* DEC SP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20677,7 +20652,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 77):`,
                     comment: `/* DEC BP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20686,7 +20660,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 78):`,
                     comment: `/* DEC SI */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20695,16 +20668,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 79):`,
                     comment: `/* DEC DI */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
                   },
+                  { kind: 'block', code: `/* PUSH/POP reg16 */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 80):`,
                     comment: `/* PUSH AX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20713,7 +20685,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 81):`,
                     comment: `/* PUSH CX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20722,7 +20693,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 82):`,
                     comment: `/* PUSH DX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20731,7 +20701,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 83):`,
                     comment: `/* PUSH BX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20740,7 +20709,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 84):`,
                     comment: `/* PUSH SP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20749,7 +20717,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 85):`,
                     comment: `/* PUSH BP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20758,7 +20725,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 86):`,
                     comment: `/* PUSH SI */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20767,7 +20733,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 87):`,
                     comment: `/* PUSH DI */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20776,7 +20741,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 88):`,
                     comment: `/* POP AX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20785,7 +20749,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 89):`,
                     comment: `/* POP CX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20794,7 +20757,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 90):`,
                     comment: `/* POP DX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20803,7 +20765,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 91):`,
                     comment: `/* POP BX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20812,7 +20773,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 92):`,
                     comment: `/* POP SP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20821,7 +20781,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 93):`,
                     comment: `/* POP BP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20830,7 +20789,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 94):`,
                     comment: `/* POP SI */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -20839,16 +20797,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 95):`,
                     comment: `/* POP DI */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
                   },
+                  { kind: 'block', code: `/* 80186: PUSH/IMUL immediate */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 104):`,
                     comment: `/* PUSH imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 3);` },
                     ],
@@ -20857,7 +20814,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 105):`,
                     comment: `/* IMUL r/m16, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra) + 2);` },
                     ],
@@ -20866,7 +20822,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 106):`,
                     comment: `/* PUSH imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2);` },
                     ],
@@ -20875,16 +20830,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 107):`,
                     comment: `/* IMUL r/m16, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra) + 1);` },
                     ],
                   },
+                  { kind: 'block', code: `/* conditional jumps */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 112):`,
                     comment: `/* JO short */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1IP) + 2 + --bit(var(--__1flags), 11) * --u2s1(var(--q1))), 16);` },
                     ],
@@ -20893,7 +20847,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 113):`,
                     comment: `/* JNO short */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1IP) + 2 + calc(1 - --bit(var(--__1flags), 11)) * --u2s1(var(--q1))), 16);` },
                     ],
@@ -20902,7 +20855,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 114):`,
                     comment: `/* JB short */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1IP) + 2 + --bit(var(--__1flags), 0) * --u2s1(var(--q1))), 16);` },
                     ],
@@ -20911,7 +20863,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 115):`,
                     comment: `/* JNB short */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1IP) + 2 + calc(1 - --bit(var(--__1flags), 0)) * --u2s1(var(--q1))), 16);` },
                     ],
@@ -20920,7 +20871,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 116):`,
                     comment: `/* JZ short */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1IP) + 2 + --bit(var(--__1flags), 6) * --u2s1(var(--q1))), 16);` },
                     ],
@@ -20929,7 +20879,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 117):`,
                     comment: `/* JNZ short */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1IP) + 2 + calc(1 - --bit(var(--__1flags), 6)) * --u2s1(var(--q1))), 16);` },
                     ],
@@ -20938,7 +20887,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 118):`,
                     comment: `/* JBE short */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1IP) + 2 + min(1, calc(--bit(var(--__1flags), 0) + --bit(var(--__1flags), 6))) * --u2s1(var(--q1))), 16);` },
                     ],
@@ -20947,7 +20895,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 119):`,
                     comment: `/* JA short */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1IP) + 2 + calc((1 - --bit(var(--__1flags), 0)) * (1 - --bit(var(--__1flags), 6))) * --u2s1(var(--q1))), 16);` },
                     ],
@@ -20956,7 +20903,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 120):`,
                     comment: `/* JS short */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1IP) + 2 + --bit(var(--__1flags), 7) * --u2s1(var(--q1))), 16);` },
                     ],
@@ -20965,7 +20911,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 121):`,
                     comment: `/* JNS short */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1IP) + 2 + calc(1 - --bit(var(--__1flags), 7)) * --u2s1(var(--q1))), 16);` },
                     ],
@@ -20974,7 +20919,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 122):`,
                     comment: `/* JP short */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1IP) + 2 + --bit(var(--__1flags), 2) * --u2s1(var(--q1))), 16);` },
                     ],
@@ -20983,7 +20927,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 123):`,
                     comment: `/* JNP short */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1IP) + 2 + calc(1 - --bit(var(--__1flags), 2)) * --u2s1(var(--q1))), 16);` },
                     ],
@@ -20992,7 +20935,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 124):`,
                     comment: `/* JL short */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1IP) + 2 + calc(--bit(var(--__1flags), 7) + --bit(var(--__1flags), 11) - 2 * --bit(var(--__1flags), 7) * --bit(var(--__1flags), 11)) * --u2s1(var(--q1))), 16);` },
                     ],
@@ -21001,7 +20943,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 125):`,
                     comment: `/* JGE short */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1IP) + 2 + calc(1 - --bit(var(--__1flags), 7) - --bit(var(--__1flags), 11) + 2 * --bit(var(--__1flags), 7) * --bit(var(--__1flags), 11)) * --u2s1(var(--q1))), 16);` },
                     ],
@@ -21010,7 +20951,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 126):`,
                     comment: `/* JLE short */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1IP) + 2 + min(1, calc(--bit(var(--__1flags), 6) + --bit(var(--__1flags), 7) + --bit(var(--__1flags), 11) - 2 * --bit(var(--__1flags), 7) * --bit(var(--__1flags), 11))) * --u2s1(var(--q1))), 16);` },
                     ],
@@ -21019,16 +20959,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 127):`,
                     comment: `/* JG short */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--lowerBytes(calc(var(--__1IP) + 2 + calc((1 - --bit(var(--__1flags), 6)) * (1 - --bit(var(--__1flags), 7) - --bit(var(--__1flags), 11) + 2 * --bit(var(--__1flags), 7) * --bit(var(--__1flags), 11))) * --u2s1(var(--q1))), 16);` },
                     ],
                   },
+                  { kind: 'block', code: `/* Group 80-83: ALU r/m, imm */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 128):`,
                     comment: `/* Group 80 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra) + 1);` },
                     ],
@@ -21037,7 +20976,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 129):`,
                     comment: `/* Group 81 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra) + 2);` },
                     ],
@@ -21046,7 +20984,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 130):`,
                     comment: `/* Group 82 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra) + 1);` },
                     ],
@@ -21055,16 +20992,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 131):`,
                     comment: `/* Group 83 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra) + 1);` },
                     ],
                   },
+                  { kind: 'block', code: `/* TEST/XCHG, MOV r/m, LEA, MOV segreg, POP r/m */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 132):`,
                     comment: `/* TEST r/m8, reg8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -21073,7 +21009,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 133):`,
                     comment: `/* TEST r/m16, reg16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -21082,7 +21017,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 134):`,
                     comment: `/* XCHG r/m8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -21091,7 +21025,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 135):`,
                     comment: `/* XCHG r/m16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -21100,7 +21033,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 136):`,
                     comment: `/* MOV r/m8, reg8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -21109,7 +21041,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 137):`,
                     comment: `/* MOV r/m16, reg16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -21118,7 +21049,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 138):`,
                     comment: `/* MOV reg8, r/m8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -21127,7 +21057,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 139):`,
                     comment: `/* MOV reg16, r/m16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -21136,7 +21065,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 140):`,
                     comment: `/* MOV r/m16, segreg */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -21145,7 +21073,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 141):`,
                     comment: `/* LEA */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -21154,7 +21081,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 142):`,
                     comment: `/* MOV segreg, r/m16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -21163,16 +21089,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 143):`,
                     comment: `/* POP r/m16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
                   },
+                  { kind: 'block', code: `/* XCHG AX/NOP, CBW/CWD, CALL far, PUSHF/POPF, SAHF/LAHF */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 144):`,
                     comment: `/* NOP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -21181,7 +21106,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 145):`,
                     comment: `/* XCHG AX, CX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -21190,7 +21114,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 146):`,
                     comment: `/* XCHG AX, DX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -21199,7 +21122,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 147):`,
                     comment: `/* XCHG AX, BX */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -21208,7 +21130,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 148):`,
                     comment: `/* XCHG AX, SP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -21217,7 +21138,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 149):`,
                     comment: `/* XCHG AX, BP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -21226,7 +21146,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 150):`,
                     comment: `/* XCHG AX, SI */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -21235,7 +21154,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 151):`,
                     comment: `/* XCHG AX, DI */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -21244,7 +21162,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 152):`,
                     comment: `/* CBW */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -21253,7 +21170,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 153):`,
                     comment: `/* CWD */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -21262,7 +21178,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 154):`,
                     comment: `/* CALL far load IP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--q1) + var(--q2) * 256);` },
                     ],
@@ -21271,7 +21186,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 155):`,
                     comment: `/* WAIT */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -21280,7 +21194,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 156):`,
                     comment: `/* PUSHF */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -21289,7 +21202,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 157):`,
                     comment: `/* POPF */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -21298,7 +21210,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 158):`,
                     comment: `/* SAHF */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -21307,11 +21218,11 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 159):`,
                     comment: `/* LAHF */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
                   },
+                  { kind: 'block', code: `/* MOV accumulator/[mem], string ops, TEST acc */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 160):`,
@@ -21684,11 +21595,11 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* MOV reg, imm */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 176):`,
                     comment: `/* MOV AL, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2);` },
                     ],
@@ -21697,7 +21608,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 177):`,
                     comment: `/* MOV CL, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2);` },
                     ],
@@ -21706,7 +21616,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 178):`,
                     comment: `/* MOV DL, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2);` },
                     ],
@@ -21715,7 +21624,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 179):`,
                     comment: `/* MOV BL, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2);` },
                     ],
@@ -21724,7 +21632,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 180):`,
                     comment: `/* MOV AH, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2);` },
                     ],
@@ -21733,7 +21640,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 181):`,
                     comment: `/* MOV CH, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2);` },
                     ],
@@ -21742,7 +21648,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 182):`,
                     comment: `/* MOV DH, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2);` },
                     ],
@@ -21751,7 +21656,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 183):`,
                     comment: `/* MOV BH, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2);` },
                     ],
@@ -21760,7 +21664,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 184):`,
                     comment: `/* MOV AX, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 3);` },
                     ],
@@ -21769,7 +21672,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 185):`,
                     comment: `/* MOV CX, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 3);` },
                     ],
@@ -21778,7 +21680,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 186):`,
                     comment: `/* MOV DX, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 3);` },
                     ],
@@ -21787,7 +21688,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 187):`,
                     comment: `/* MOV BX, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 3);` },
                     ],
@@ -21796,7 +21696,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 188):`,
                     comment: `/* MOV SP, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 3);` },
                     ],
@@ -21805,7 +21704,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 189):`,
                     comment: `/* MOV BP, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 3);` },
                     ],
@@ -21814,7 +21712,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 190):`,
                     comment: `/* MOV SI, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 3);` },
                     ],
@@ -21823,16 +21720,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 191):`,
                     comment: `/* MOV DI, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 3);` },
                     ],
                   },
+                  { kind: 'block', code: `/* RET/RETF, LES/LDS, MOV r/m imm, INT/INTO/IRET */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 194):`,
                     comment: `/* RET imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--read2(calc(var(--__1SS) * 16 + var(--__1SP)));` },
                     ],
@@ -21841,7 +21737,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 195):`,
                     comment: `/* RET near */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--read2(calc(var(--__1SS) * 16 + var(--__1SP)));` },
                     ],
@@ -21850,7 +21745,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 196):`,
                     comment: `/* LES */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -21859,7 +21753,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 197):`,
                     comment: `/* LDS */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -21868,7 +21761,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 198):`,
                     comment: `/* MOV r/m8, imm8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra) + 1);` },
                     ],
@@ -21877,7 +21769,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 199):`,
                     comment: `/* MOV r/m16, imm16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra) + 2);` },
                     ],
@@ -21886,7 +21777,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 202):`,
                     comment: `/* RET far imm pop IP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--read2(calc(calc(var(--__1SS) * 16) + var(--__1SP)));` },
                     ],
@@ -21895,7 +21785,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 203):`,
                     comment: `/* RET far pop IP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--read2(calc(calc(var(--__1SS) * 16) + var(--__1SP)));` },
                     ],
@@ -21904,7 +21793,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 204):`,
                     comment: `/* INT 3 load IP from IVT */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--read2(12);` },
                     ],
@@ -21913,7 +21801,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 205):`,
                     comment: `/* INT load IP from IVT */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--read2(calc(var(--q1) * 4));` },
                     ],
@@ -21922,7 +21809,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 206):`,
                     comment: `/* INTO load IP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--bit(var(--__1flags), 11) * --read2(16) + (1 - --bit(var(--__1flags), 11)) * (var(--__1IP) + 1));` },
                     ],
@@ -21931,16 +21817,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 207):`,
                     comment: `/* IRET pop IP */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--read2(calc(calc(var(--__1SS) * 16) + var(--__1SP)));` },
                     ],
                   },
+                  { kind: 'block', code: `/* shifts & rotates, AAM/AAD, XLAT */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 208):`,
                     comment: `/* Shift D0 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -21949,7 +21834,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 209):`,
                     comment: `/* Shift D1 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -21958,7 +21842,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 210):`,
                     comment: `/* Shift D2 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -21967,7 +21850,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 211):`,
                     comment: `/* Shift D3 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -21976,7 +21858,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 212):`,
                     comment: `/* AAM */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2);` },
                     ],
@@ -21985,7 +21866,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 213):`,
                     comment: `/* AAD */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2);` },
                     ],
@@ -21994,7 +21874,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 215):`,
                     comment: `/* XLAT */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
@@ -22003,7 +21882,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 216):`,
                     comment: `/* ESC 0 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -22012,7 +21890,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 217):`,
                     comment: `/* ESC 1 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -22021,7 +21898,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 218):`,
                     comment: `/* ESC 2 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -22030,7 +21906,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 219):`,
                     comment: `/* ESC 3 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -22039,7 +21914,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 220):`,
                     comment: `/* ESC 4 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -22048,7 +21922,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 221):`,
                     comment: `/* ESC 5 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -22057,7 +21930,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 222):`,
                     comment: `/* ESC 6 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
@@ -22066,11 +21938,11 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 223):`,
                     comment: `/* ESC 7 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1IP) + 2 + var(--modrmExtra));` },
                     ],
                   },
+                  { kind: 'block', code: `/* LOOP/JCXZ, IN/OUT, CALL/JMP */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 224):`,
@@ -22337,6 +22209,7 @@ export const CPU_TREE = [
                     { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                     ],
                   },
+                  { kind: 'block', code: `/* HLT/CMC, Group F6/F7, CLC..STD, Group FE/FF */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 240):`,
@@ -22535,6 +22408,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* no entry for this opcode: IP holds */` },
                   {
                     kind: 'branch',
                     code: `else:`,
@@ -22584,11 +22458,11 @@ export const CPU_TREE = [
                   code: `if(`,
                   trailer: `)`,
                   children: [
+                  { kind: 'block', code: `/* ALU: ADD/OR/ADC/SBB/AND/SUB/XOR/CMP + BCD adjusts */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 0):`,
                     comment: `/* ADD r/m8, reg8 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--addFlags8(var(--rmVal8), var(--regVal8)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -22597,7 +22471,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 1):`,
                     comment: `/* ADD r/m16, reg16 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--addFlags16(var(--rmVal16), var(--regVal16)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -22606,7 +22479,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 2):`,
                     comment: `/* ADD reg8, r/m8 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--addFlags8(var(--regVal8), var(--rmVal8)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -22615,7 +22487,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 3):`,
                     comment: `/* ADD reg16, r/m16 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--addFlags16(var(--regVal16), var(--rmVal16)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -22624,7 +22495,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 4):`,
                     comment: `/* ADD AL, imm8 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--addFlags8(var(--AL), var(--imm8)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -22633,7 +22503,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 5):`,
                     comment: `/* ADD AX, imm16 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--addFlags16(var(--__1AX), var(--imm16)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -22642,7 +22511,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 8):`,
                     comment: `/* OR r/m8, reg8 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--orFlags8(var(--rmVal8), var(--regVal8)) + --and(var(--__1flags), 1808));` },
                     ],
@@ -22651,7 +22519,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 9):`,
                     comment: `/* OR r/m16, reg16 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--orFlags16(var(--rmVal16), var(--regVal16)) + --and(var(--__1flags), 1808));` },
                     ],
@@ -22660,7 +22527,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 10):`,
                     comment: `/* OR reg8, r/m8 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--orFlags8(var(--regVal8), var(--rmVal8)) + --and(var(--__1flags), 1808));` },
                     ],
@@ -22669,7 +22535,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 11):`,
                     comment: `/* OR reg16, r/m16 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--orFlags16(var(--regVal16), var(--rmVal16)) + --and(var(--__1flags), 1808));` },
                     ],
@@ -22678,7 +22543,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 12):`,
                     comment: `/* OR AL, imm8 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--orFlags8(var(--AL), var(--imm8)) + --and(var(--__1flags), 1808));` },
                     ],
@@ -22687,7 +22551,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 13):`,
                     comment: `/* OR AX, imm16 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--orFlags16(var(--__1AX), var(--imm16)) + --and(var(--__1flags), 1808));` },
                     ],
@@ -22696,7 +22559,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 16):`,
                     comment: `/* ADC r/m8, reg8 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--adcFlags8(var(--rmVal8), var(--regVal8), var(--_cf)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -22705,7 +22567,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 17):`,
                     comment: `/* ADC r/m16, reg16 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--adcFlags16(var(--rmVal16), var(--regVal16), var(--_cf)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -22714,7 +22575,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 18):`,
                     comment: `/* ADC reg8, r/m8 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--adcFlags8(var(--regVal8), var(--rmVal8), var(--_cf)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -22723,7 +22583,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 19):`,
                     comment: `/* ADC reg16, r/m16 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--adcFlags16(var(--regVal16), var(--rmVal16), var(--_cf)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -22732,7 +22591,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 20):`,
                     comment: `/* ADC AL, imm8 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--adcFlags8(var(--AL), var(--imm8), var(--_cf)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -22741,7 +22599,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 21):`,
                     comment: `/* ADC AX, imm16 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--adcFlags16(var(--__1AX), var(--imm16), var(--_cf)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -22750,7 +22607,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 24):`,
                     comment: `/* SBB r/m8, reg8 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--sbbFlags8(var(--rmVal8), var(--regVal8), var(--_cf)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -22759,7 +22615,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 25):`,
                     comment: `/* SBB r/m16, reg16 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--sbbFlags16(var(--rmVal16), var(--regVal16), var(--_cf)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -22768,7 +22623,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 26):`,
                     comment: `/* SBB reg8, r/m8 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--sbbFlags8(var(--regVal8), var(--rmVal8), var(--_cf)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -22777,7 +22631,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 27):`,
                     comment: `/* SBB reg16, r/m16 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--sbbFlags16(var(--regVal16), var(--rmVal16), var(--_cf)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -22786,7 +22639,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 28):`,
                     comment: `/* SBB AL, imm8 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--sbbFlags8(var(--AL), var(--imm8), var(--_cf)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -22795,7 +22647,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 29):`,
                     comment: `/* SBB AX, imm16 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--sbbFlags16(var(--__1AX), var(--imm16), var(--_cf)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -22804,7 +22655,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 32):`,
                     comment: `/* AND r/m8, reg8 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--andFlags8(var(--rmVal8), var(--regVal8)) + --and(var(--__1flags), 1808));` },
                     ],
@@ -22813,7 +22663,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 33):`,
                     comment: `/* AND r/m16, reg16 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--andFlags16(var(--rmVal16), var(--regVal16)) + --and(var(--__1flags), 1808));` },
                     ],
@@ -22822,7 +22671,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 34):`,
                     comment: `/* AND reg8, r/m8 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--andFlags8(var(--regVal8), var(--rmVal8)) + --and(var(--__1flags), 1808));` },
                     ],
@@ -22831,7 +22679,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 35):`,
                     comment: `/* AND reg16, r/m16 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--andFlags16(var(--regVal16), var(--rmVal16)) + --and(var(--__1flags), 1808));` },
                     ],
@@ -22840,7 +22687,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 36):`,
                     comment: `/* AND AL, imm8 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--andFlags8(var(--AL), var(--imm8)) + --and(var(--__1flags), 1808));` },
                     ],
@@ -22849,7 +22695,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 37):`,
                     comment: `/* AND AX, imm16 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--andFlags16(var(--__1AX), var(--imm16)) + --and(var(--__1flags), 1808));` },
                     ],
@@ -22858,7 +22703,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 39):`,
                     comment: `/* DAA flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--logicFlags8(mod(calc(var(--AL) + calc(min(1, calc(round(down, mod(var(--AL), 16) / 10) + mod(round(down, var(--__1flags) / 16), 2))) * 6) + calc(min(1, calc(round(down, var(--AL) / 154) + mod(var(--__1flags), 2))) * 96)), 256)) + min(1, calc(round(down, var(--AL) / 154) + mod(var(--__1flags), 2))) + min(1, calc(round(down, mod(var(--AL), 16) / 10) + mod(round(down, var(--__1flags) / 16), 2))) * 16 + --and(var(--__1flags), 1792));` },
                     ],
@@ -22867,7 +22711,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 40):`,
                     comment: `/* SUB r/m8, reg8 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--subFlags8(var(--rmVal8), var(--regVal8)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -22876,7 +22719,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 41):`,
                     comment: `/* SUB r/m16, reg16 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--subFlags16(var(--rmVal16), var(--regVal16)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -22885,7 +22727,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 42):`,
                     comment: `/* SUB reg8, r/m8 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--subFlags8(var(--regVal8), var(--rmVal8)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -22894,7 +22735,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 43):`,
                     comment: `/* SUB reg16, r/m16 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--subFlags16(var(--regVal16), var(--rmVal16)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -22903,7 +22743,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 44):`,
                     comment: `/* SUB AL, imm8 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--subFlags8(var(--AL), var(--imm8)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -22912,7 +22751,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 45):`,
                     comment: `/* SUB AX, imm16 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--subFlags16(var(--__1AX), var(--imm16)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -22921,7 +22759,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 47):`,
                     comment: `/* DAS flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--logicFlags8(mod(calc(var(--AL) - calc(min(1, calc(round(down, mod(var(--AL), 16) / 10) + mod(round(down, var(--__1flags) / 16), 2))) * 6) - calc(min(1, calc(round(down, var(--AL) / 154) + mod(var(--__1flags), 2))) * 96) + 256), 256)) + min(1, calc(round(down, var(--AL) / 154) + mod(var(--__1flags), 2))) + min(1, calc(round(down, mod(var(--AL), 16) / 10) + mod(round(down, var(--__1flags) / 16), 2))) * 16 + --and(var(--__1flags), 1792));` },
                     ],
@@ -22930,7 +22767,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 48):`,
                     comment: `/* XOR r/m8, reg8 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--xorFlags8(var(--rmVal8), var(--regVal8)) + --and(var(--__1flags), 1808));` },
                     ],
@@ -22939,7 +22775,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 49):`,
                     comment: `/* XOR r/m16, reg16 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--xorFlags16(var(--rmVal16), var(--regVal16)) + --and(var(--__1flags), 1808));` },
                     ],
@@ -22948,7 +22783,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 50):`,
                     comment: `/* XOR reg8, r/m8 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--xorFlags8(var(--regVal8), var(--rmVal8)) + --and(var(--__1flags), 1808));` },
                     ],
@@ -22957,7 +22791,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 51):`,
                     comment: `/* XOR reg16, r/m16 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--xorFlags16(var(--regVal16), var(--rmVal16)) + --and(var(--__1flags), 1808));` },
                     ],
@@ -22966,7 +22799,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 52):`,
                     comment: `/* XOR AL, imm8 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--xorFlags8(var(--AL), var(--imm8)) + --and(var(--__1flags), 1808));` },
                     ],
@@ -22975,7 +22807,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 53):`,
                     comment: `/* XOR AX, imm16 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--xorFlags16(var(--__1AX), var(--imm16)) + --and(var(--__1flags), 1808));` },
                     ],
@@ -22984,7 +22815,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 55):`,
                     comment: `/* AAA flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--logicFlags8(mod(calc(var(--AL) + min(1, calc(round(down, mod(var(--AL), 16) / 10) + mod(round(down, var(--__1flags) / 16), 2))) * 6), 16)) + min(1, calc(round(down, mod(var(--AL), 16) / 10) + mod(round(down, var(--__1flags) / 16), 2))) + min(1, calc(round(down, mod(var(--AL), 16) / 10) + mod(round(down, var(--__1flags) / 16), 2))) * 16 + --and(var(--__1flags), 1792));` },
                     ],
@@ -22993,7 +22823,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 56):`,
                     comment: `/* CMP r/m8, reg8 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--subFlags8(var(--rmVal8), var(--regVal8)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -23002,7 +22831,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 57):`,
                     comment: `/* CMP r/m16, reg16 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--subFlags16(var(--rmVal16), var(--regVal16)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -23011,7 +22839,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 58):`,
                     comment: `/* CMP reg8, r/m8 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--subFlags8(var(--regVal8), var(--rmVal8)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -23020,7 +22847,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 59):`,
                     comment: `/* CMP reg16, r/m16 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--subFlags16(var(--regVal16), var(--rmVal16)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -23029,7 +22855,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 60):`,
                     comment: `/* CMP AL, imm8 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--subFlags8(var(--AL), var(--imm8)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -23038,7 +22863,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 61):`,
                     comment: `/* CMP AX, imm16 flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--subFlags16(var(--__1AX), var(--imm16)) + --and(var(--__1flags), 1792));` },
                     ],
@@ -23047,16 +22871,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 63):`,
                     comment: `/* AAS flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--logicFlags8(mod(calc(var(--AL) - min(1, calc(round(down, mod(var(--AL), 16) / 10) + mod(round(down, var(--__1flags) / 16), 2))) * 6 + 16), 16)) + min(1, calc(round(down, mod(var(--AL), 16) / 10) + mod(round(down, var(--__1flags) / 16), 2))) + min(1, calc(round(down, mod(var(--AL), 16) / 10) + mod(round(down, var(--__1flags) / 16), 2))) * 16 + --and(var(--__1flags), 1792));` },
                     ],
                   },
+                  { kind: 'block', code: `/* INC/DEC reg16 */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 64):`,
                     comment: `/* INC AX flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--incFlags16(var(--__1AX), --lowerBytes(calc(var(--__1AX) + 1), 16), var(--__1flags));` },
                     ],
@@ -23065,7 +22888,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 65):`,
                     comment: `/* INC CX flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--incFlags16(var(--__1CX), --lowerBytes(calc(var(--__1CX) + 1), 16), var(--__1flags));` },
                     ],
@@ -23074,7 +22896,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 66):`,
                     comment: `/* INC DX flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--incFlags16(var(--__1DX), --lowerBytes(calc(var(--__1DX) + 1), 16), var(--__1flags));` },
                     ],
@@ -23083,7 +22904,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 67):`,
                     comment: `/* INC BX flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--incFlags16(var(--__1BX), --lowerBytes(calc(var(--__1BX) + 1), 16), var(--__1flags));` },
                     ],
@@ -23092,7 +22912,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 68):`,
                     comment: `/* INC SP flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--incFlags16(var(--__1SP), --lowerBytes(calc(var(--__1SP) + 1), 16), var(--__1flags));` },
                     ],
@@ -23101,7 +22920,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 69):`,
                     comment: `/* INC BP flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--incFlags16(var(--__1BP), --lowerBytes(calc(var(--__1BP) + 1), 16), var(--__1flags));` },
                     ],
@@ -23110,7 +22928,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 70):`,
                     comment: `/* INC SI flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--incFlags16(var(--__1SI), --lowerBytes(calc(var(--__1SI) + 1), 16), var(--__1flags));` },
                     ],
@@ -23119,7 +22936,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 71):`,
                     comment: `/* INC DI flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--incFlags16(var(--__1DI), --lowerBytes(calc(var(--__1DI) + 1), 16), var(--__1flags));` },
                     ],
@@ -23128,7 +22944,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 72):`,
                     comment: `/* DEC AX flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--decFlags16(var(--__1AX), --lowerBytes(calc(var(--__1AX) - 1 + 65536), 16), var(--__1flags));` },
                     ],
@@ -23137,7 +22952,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 73):`,
                     comment: `/* DEC CX flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--decFlags16(var(--__1CX), --lowerBytes(calc(var(--__1CX) - 1 + 65536), 16), var(--__1flags));` },
                     ],
@@ -23146,7 +22960,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 74):`,
                     comment: `/* DEC DX flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--decFlags16(var(--__1DX), --lowerBytes(calc(var(--__1DX) - 1 + 65536), 16), var(--__1flags));` },
                     ],
@@ -23155,7 +22968,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 75):`,
                     comment: `/* DEC BX flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--decFlags16(var(--__1BX), --lowerBytes(calc(var(--__1BX) - 1 + 65536), 16), var(--__1flags));` },
                     ],
@@ -23164,7 +22976,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 76):`,
                     comment: `/* DEC SP flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--decFlags16(var(--__1SP), --lowerBytes(calc(var(--__1SP) - 1 + 65536), 16), var(--__1flags));` },
                     ],
@@ -23173,7 +22984,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 77):`,
                     comment: `/* DEC BP flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--decFlags16(var(--__1BP), --lowerBytes(calc(var(--__1BP) - 1 + 65536), 16), var(--__1flags));` },
                     ],
@@ -23182,7 +22992,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 78):`,
                     comment: `/* DEC SI flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--decFlags16(var(--__1SI), --lowerBytes(calc(var(--__1SI) - 1 + 65536), 16), var(--__1flags));` },
                     ],
@@ -23191,16 +23000,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 79):`,
                     comment: `/* DEC DI flags */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--decFlags16(var(--__1DI), --lowerBytes(calc(var(--__1DI) - 1 + 65536), 16), var(--__1flags));` },
                     ],
                   },
+                  { kind: 'block', code: `/* 80186: PUSH/IMUL immediate */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 105):`,
                     comment: `/* IMUL r/m16, imm16 flags (CF=OF) */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1flags) - --bit(var(--__1flags), 0) - --bit(var(--__1flags), 11) * 2048 + min(1, abs(--lowerBytes(round(down, calc(calc(var(--rmVal16) - --bit(var(--rmVal16), 15) * 65536) * calc(var(--immWord) - --bit(var(--immWord), 15) * 65536)) / 65536), 16) - --bit(--lowerBytes(calc(calc(var(--rmVal16) - --bit(var(--rmVal16), 15) * 65536) * calc(var(--immWord) - --bit(var(--immWord), 15) * 65536)), 16), 15) * 65535)) * 2049);` },
                     ],
@@ -23209,11 +23017,11 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 107):`,
                     comment: `/* IMUL r/m16, imm8 flags (CF=OF) */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1flags) - --bit(var(--__1flags), 0) - --bit(var(--__1flags), 11) * 2048 + min(1, abs(--lowerBytes(round(down, calc(calc(var(--rmVal16) - --bit(var(--rmVal16), 15) * 65536) * --u2s1(var(--immByte))) / 65536), 16) - --bit(--lowerBytes(calc(calc(var(--rmVal16) - --bit(var(--rmVal16), 15) * 65536) * --u2s1(var(--immByte))), 16), 15) * 65535)) * 2049);` },
                     ],
                   },
+                  { kind: 'block', code: `/* Group 80-83: ALU r/m, imm */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 128):`,
@@ -23526,11 +23334,11 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* TEST/XCHG, MOV r/m, LEA, MOV segreg, POP r/m */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 132):`,
                     comment: `/* TEST r/m8, reg8 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--andFlags8(var(--rmVal8), var(--regVal8)) + --and(var(--__1flags), 1808));` },
                     ],
@@ -23539,16 +23347,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 133):`,
                     comment: `/* TEST r/m16, reg16 */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--andFlags16(var(--rmVal16), var(--regVal16)) + --and(var(--__1flags), 1808));` },
                     ],
                   },
+                  { kind: 'block', code: `/* XCHG AX/NOP, CBW/CWD, CALL far, PUSHF/POPF, SAHF/LAHF */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 157):`,
                     comment: `/* POPF */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--and(var(--_stackWord0), 4053) + 2);` },
                     ],
@@ -23557,11 +23364,11 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 158):`,
                     comment: `/* SAHF */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--rightShift(var(--__1flags), 8) * 256 + --and(var(--AH), 213) + 2);` },
                     ],
                   },
+                  { kind: 'block', code: `/* MOV accumulator/[mem], string ops, TEST acc */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 166):`,
@@ -23696,11 +23503,11 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* RET/RETF, LES/LDS, MOV r/m imm, INT/INTO/IRET */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 204):`,
                     comment: `/* INT 3 clear IF+TF */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--and(var(--__1flags), 64767);` },
                     ],
@@ -23709,7 +23516,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 205):`,
                     comment: `/* INT clear IF+TF */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `--and(var(--__1flags), 64767);` },
                     ],
@@ -23718,7 +23524,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 206):`,
                     comment: `/* INTO clear IF+TF if OF */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--bit(var(--__1flags), 11) * --and(var(--__1flags), 64767) + (1 - --bit(var(--__1flags), 11)) * var(--__1flags));` },
                     ],
@@ -23727,11 +23532,11 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 207):`,
                     comment: `/* IRET pop FLAGS */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(--and(var(--_stackWord2), 4053) + 2);` },
                     ],
                   },
+                  { kind: 'block', code: `/* shifts & rotates, AAM/AAD, XLAT */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 208):`,
@@ -24006,6 +23811,7 @@ export const CPU_TREE = [
                     { kind: 'value', code: `calc(--logicFlags8(mod(calc(var(--AH) * var(--q1) + var(--AL)), 256)) + --and(var(--__1flags), 1808));` },
                     ],
                   },
+                  { kind: 'block', code: `/* HLT/CMC, Group F6/F7, CLC..STD, Group FE/FF */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 245):`,
@@ -24248,6 +24054,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* no entry for this opcode: flags holds */` },
                   {
                     kind: 'branch',
                     code: `else:`,
@@ -24263,6 +24070,7 @@ export const CPU_TREE = [
             },
             ],
           },
+          { kind: 'block', code: `/* execution bookkeeping: halt latch + 8086 cycle counter */` },
           {
             kind: 'decl',
             code: `--halt:`,
@@ -24305,6 +24113,7 @@ export const CPU_TREE = [
                     { kind: 'value', code: `1;` },
                     ],
                   },
+                  { kind: 'block', code: `/* no entry for this opcode: halt holds */` },
                   {
                     kind: 'branch',
                     code: `else:`,
@@ -24354,11 +24163,11 @@ export const CPU_TREE = [
                   code: `if(`,
                   trailer: `)`,
                   children: [
+                  { kind: 'block', code: `/* ALU: ADD/OR/ADC/SBB/AND/SUB/XOR/CMP + BCD adjusts */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 0):`,
                     comment: `/* ALU r/m,r clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 16));` },
                     ],
@@ -24367,7 +24176,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 1):`,
                     comment: `/* ALU r/m,r clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 16));` },
                     ],
@@ -24376,7 +24184,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 2):`,
                     comment: `/* ALU r,r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 9));` },
                     ],
@@ -24385,7 +24192,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 3):`,
                     comment: `/* ALU r,r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 9));` },
                     ],
@@ -24394,7 +24200,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 4):`,
                     comment: `/* ALU acc,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -24403,7 +24208,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 5):`,
                     comment: `/* ALU acc,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -24412,7 +24216,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 6):`,
                     comment: `/* PUSH seg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 10);` },
                     ],
@@ -24421,7 +24224,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 7):`,
                     comment: `/* POP seg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 8);` },
                     ],
@@ -24430,7 +24232,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 8):`,
                     comment: `/* ALU r/m,r clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 16));` },
                     ],
@@ -24439,7 +24240,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 9):`,
                     comment: `/* ALU r/m,r clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 16));` },
                     ],
@@ -24448,7 +24248,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 10):`,
                     comment: `/* ALU r,r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 9));` },
                     ],
@@ -24457,7 +24256,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 11):`,
                     comment: `/* ALU r,r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 9));` },
                     ],
@@ -24466,7 +24264,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 12):`,
                     comment: `/* ALU acc,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -24475,7 +24272,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 13):`,
                     comment: `/* ALU acc,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -24484,7 +24280,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 14):`,
                     comment: `/* PUSH seg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 10);` },
                     ],
@@ -24493,7 +24288,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 15):`,
                     comment: `/* POP seg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 8);` },
                     ],
@@ -24502,7 +24296,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 16):`,
                     comment: `/* ALU r/m,r clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 16));` },
                     ],
@@ -24511,7 +24304,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 17):`,
                     comment: `/* ALU r/m,r clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 16));` },
                     ],
@@ -24520,7 +24312,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 18):`,
                     comment: `/* ALU r,r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 9));` },
                     ],
@@ -24529,7 +24320,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 19):`,
                     comment: `/* ALU r,r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 9));` },
                     ],
@@ -24538,7 +24328,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 20):`,
                     comment: `/* ALU acc,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -24547,7 +24336,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 21):`,
                     comment: `/* ALU acc,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -24556,7 +24344,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 22):`,
                     comment: `/* PUSH seg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 10);` },
                     ],
@@ -24565,7 +24352,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 23):`,
                     comment: `/* POP seg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 8);` },
                     ],
@@ -24574,7 +24360,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 24):`,
                     comment: `/* ALU r/m,r clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 16));` },
                     ],
@@ -24583,7 +24368,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 25):`,
                     comment: `/* ALU r/m,r clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 16));` },
                     ],
@@ -24592,7 +24376,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 26):`,
                     comment: `/* ALU r,r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 9));` },
                     ],
@@ -24601,7 +24384,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 27):`,
                     comment: `/* ALU r,r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 9));` },
                     ],
@@ -24610,7 +24392,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 28):`,
                     comment: `/* ALU acc,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -24619,7 +24400,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 29):`,
                     comment: `/* ALU acc,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -24628,7 +24408,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 30):`,
                     comment: `/* PUSH seg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 10);` },
                     ],
@@ -24637,7 +24416,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 31):`,
                     comment: `/* POP seg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 8);` },
                     ],
@@ -24646,7 +24424,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 32):`,
                     comment: `/* ALU r/m,r clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 16));` },
                     ],
@@ -24655,7 +24432,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 33):`,
                     comment: `/* ALU r/m,r clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 16));` },
                     ],
@@ -24664,7 +24440,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 34):`,
                     comment: `/* ALU r,r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 9));` },
                     ],
@@ -24673,7 +24448,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 35):`,
                     comment: `/* ALU r,r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 9));` },
                     ],
@@ -24682,7 +24456,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 36):`,
                     comment: `/* ALU acc,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -24691,7 +24464,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 37):`,
                     comment: `/* ALU acc,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -24700,7 +24472,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 39):`,
                     comment: `/* DAA clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -24709,7 +24480,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 40):`,
                     comment: `/* ALU r/m,r clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 16));` },
                     ],
@@ -24718,7 +24488,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 41):`,
                     comment: `/* ALU r/m,r clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 16));` },
                     ],
@@ -24727,7 +24496,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 42):`,
                     comment: `/* ALU r,r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 9));` },
                     ],
@@ -24736,7 +24504,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 43):`,
                     comment: `/* ALU r,r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 9));` },
                     ],
@@ -24745,7 +24512,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 44):`,
                     comment: `/* ALU acc,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -24754,7 +24520,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 45):`,
                     comment: `/* ALU acc,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -24763,7 +24528,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 47):`,
                     comment: `/* DAS clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -24772,7 +24536,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 48):`,
                     comment: `/* ALU r/m,r clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 16));` },
                     ],
@@ -24781,7 +24544,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 49):`,
                     comment: `/* ALU r/m,r clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 16));` },
                     ],
@@ -24790,7 +24552,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 50):`,
                     comment: `/* ALU r,r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 9));` },
                     ],
@@ -24799,7 +24560,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 51):`,
                     comment: `/* ALU r,r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 9));` },
                     ],
@@ -24808,7 +24568,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 52):`,
                     comment: `/* ALU acc,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -24817,7 +24576,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 53):`,
                     comment: `/* ALU acc,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -24826,7 +24584,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 55):`,
                     comment: `/* AAA clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -24835,7 +24592,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 56):`,
                     comment: `/* CMP r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 9));` },
                     ],
@@ -24844,7 +24600,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 57):`,
                     comment: `/* CMP r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 9));` },
                     ],
@@ -24853,7 +24608,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 58):`,
                     comment: `/* CMP r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 9));` },
                     ],
@@ -24862,7 +24616,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 59):`,
                     comment: `/* CMP r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 9));` },
                     ],
@@ -24871,7 +24624,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 60):`,
                     comment: `/* CMP acc,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -24880,7 +24632,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 61):`,
                     comment: `/* CMP acc,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -24889,16 +24640,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 63):`,
                     comment: `/* AAS clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
                   },
+                  { kind: 'block', code: `/* INC/DEC reg16 */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 64):`,
                     comment: `/* INC/DEC reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 2);` },
                     ],
@@ -24907,7 +24657,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 65):`,
                     comment: `/* INC/DEC reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 2);` },
                     ],
@@ -24916,7 +24665,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 66):`,
                     comment: `/* INC/DEC reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 2);` },
                     ],
@@ -24925,7 +24673,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 67):`,
                     comment: `/* INC/DEC reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 2);` },
                     ],
@@ -24934,7 +24681,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 68):`,
                     comment: `/* INC/DEC reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 2);` },
                     ],
@@ -24943,7 +24689,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 69):`,
                     comment: `/* INC/DEC reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 2);` },
                     ],
@@ -24952,7 +24697,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 70):`,
                     comment: `/* INC/DEC reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 2);` },
                     ],
@@ -24961,7 +24705,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 71):`,
                     comment: `/* INC/DEC reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 2);` },
                     ],
@@ -24970,7 +24713,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 72):`,
                     comment: `/* INC/DEC reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 2);` },
                     ],
@@ -24979,7 +24721,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 73):`,
                     comment: `/* INC/DEC reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 2);` },
                     ],
@@ -24988,7 +24729,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 74):`,
                     comment: `/* INC/DEC reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 2);` },
                     ],
@@ -24997,7 +24737,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 75):`,
                     comment: `/* INC/DEC reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 2);` },
                     ],
@@ -25006,7 +24745,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 76):`,
                     comment: `/* INC/DEC reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 2);` },
                     ],
@@ -25015,7 +24753,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 77):`,
                     comment: `/* INC/DEC reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 2);` },
                     ],
@@ -25024,7 +24761,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 78):`,
                     comment: `/* INC/DEC reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 2);` },
                     ],
@@ -25033,16 +24769,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 79):`,
                     comment: `/* INC/DEC reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 2);` },
                     ],
                   },
+                  { kind: 'block', code: `/* PUSH/POP reg16 */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 80):`,
                     comment: `/* PUSH reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 11);` },
                     ],
@@ -25051,7 +24786,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 81):`,
                     comment: `/* PUSH reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 11);` },
                     ],
@@ -25060,7 +24794,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 82):`,
                     comment: `/* PUSH reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 11);` },
                     ],
@@ -25069,7 +24802,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 83):`,
                     comment: `/* PUSH reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 11);` },
                     ],
@@ -25078,7 +24810,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 84):`,
                     comment: `/* PUSH reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 11);` },
                     ],
@@ -25087,7 +24818,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 85):`,
                     comment: `/* PUSH reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 11);` },
                     ],
@@ -25096,7 +24826,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 86):`,
                     comment: `/* PUSH reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 11);` },
                     ],
@@ -25105,7 +24834,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 87):`,
                     comment: `/* PUSH reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 11);` },
                     ],
@@ -25114,7 +24842,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 88):`,
                     comment: `/* POP reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 8);` },
                     ],
@@ -25123,7 +24850,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 89):`,
                     comment: `/* POP reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 8);` },
                     ],
@@ -25132,7 +24858,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 90):`,
                     comment: `/* POP reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 8);` },
                     ],
@@ -25141,7 +24866,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 91):`,
                     comment: `/* POP reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 8);` },
                     ],
@@ -25150,7 +24874,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 92):`,
                     comment: `/* POP reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 8);` },
                     ],
@@ -25159,7 +24882,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 93):`,
                     comment: `/* POP reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 8);` },
                     ],
@@ -25168,7 +24890,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 94):`,
                     comment: `/* POP reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 8);` },
                     ],
@@ -25177,16 +24898,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 95):`,
                     comment: `/* POP reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 8);` },
                     ],
                   },
+                  { kind: 'block', code: `/* conditional jumps */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 112):`,
                     comment: `/* Jcc clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 16);` },
                     ],
@@ -25195,7 +24915,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 113):`,
                     comment: `/* Jcc clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 16);` },
                     ],
@@ -25204,7 +24923,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 114):`,
                     comment: `/* Jcc clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 16);` },
                     ],
@@ -25213,7 +24931,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 115):`,
                     comment: `/* Jcc clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 16);` },
                     ],
@@ -25222,7 +24939,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 116):`,
                     comment: `/* Jcc clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 16);` },
                     ],
@@ -25231,7 +24947,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 117):`,
                     comment: `/* Jcc clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 16);` },
                     ],
@@ -25240,7 +24955,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 118):`,
                     comment: `/* Jcc clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 16);` },
                     ],
@@ -25249,7 +24963,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 119):`,
                     comment: `/* Jcc clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 16);` },
                     ],
@@ -25258,7 +24971,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 120):`,
                     comment: `/* Jcc clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 16);` },
                     ],
@@ -25267,7 +24979,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 121):`,
                     comment: `/* Jcc clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 16);` },
                     ],
@@ -25276,7 +24987,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 122):`,
                     comment: `/* Jcc clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 16);` },
                     ],
@@ -25285,7 +24995,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 123):`,
                     comment: `/* Jcc clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 16);` },
                     ],
@@ -25294,7 +25003,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 124):`,
                     comment: `/* Jcc clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 16);` },
                     ],
@@ -25303,7 +25011,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 125):`,
                     comment: `/* Jcc clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 16);` },
                     ],
@@ -25312,7 +25019,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 126):`,
                     comment: `/* Jcc clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 16);` },
                     ],
@@ -25321,16 +25027,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 127):`,
                     comment: `/* Jcc clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 16);` },
                     ],
                   },
+                  { kind: 'block', code: `/* Group 80-83: ALU r/m, imm */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 128):`,
                     comment: `/* ALU imm,r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 4; else: 17));` },
                     ],
@@ -25339,7 +25044,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 129):`,
                     comment: `/* ALU imm,r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 4; else: 17));` },
                     ],
@@ -25348,7 +25052,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 130):`,
                     comment: `/* ALU imm,r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 4; else: 17));` },
                     ],
@@ -25357,16 +25060,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 131):`,
                     comment: `/* ALU imm,r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 4; else: 17));` },
                     ],
                   },
+                  { kind: 'block', code: `/* TEST/XCHG, MOV r/m, LEA, MOV segreg, POP r/m */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 132):`,
                     comment: `/* TEST r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 9));` },
                     ],
@@ -25375,7 +25077,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 133):`,
                     comment: `/* TEST r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 9));` },
                     ],
@@ -25384,7 +25085,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 134):`,
                     comment: `/* XCHG r/m,r8 clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 17));` },
                     ],
@@ -25393,7 +25093,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 135):`,
                     comment: `/* XCHG r/m,r16 clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 3; else: 17));` },
                     ],
@@ -25402,7 +25101,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 136):`,
                     comment: `/* MOV r/m,r clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 2; else: 9));` },
                     ],
@@ -25411,7 +25109,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 137):`,
                     comment: `/* MOV r/m,r clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 2; else: 9));` },
                     ],
@@ -25420,7 +25117,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 138):`,
                     comment: `/* MOV r,r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 2; else: 8));` },
                     ],
@@ -25429,7 +25125,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 139):`,
                     comment: `/* MOV r,r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 2; else: 8));` },
                     ],
@@ -25438,7 +25133,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 140):`,
                     comment: `/* MOV r/m,seg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 2; else: 9));` },
                     ],
@@ -25447,7 +25141,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 141):`,
                     comment: `/* LEA clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 2);` },
                     ],
@@ -25456,7 +25149,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 142):`,
                     comment: `/* MOV seg,r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 2; else: 8));` },
                     ],
@@ -25465,16 +25157,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 143):`,
                     comment: `/* POP r/m clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 8; else: 17));` },
                     ],
                   },
+                  { kind: 'block', code: `/* XCHG AX/NOP, CBW/CWD, CALL far, PUSHF/POPF, SAHF/LAHF */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 144):`,
                     comment: `/* NOP clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 3);` },
                     ],
@@ -25483,7 +25174,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 145):`,
                     comment: `/* XCHG AX,reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 3);` },
                     ],
@@ -25492,7 +25182,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 146):`,
                     comment: `/* XCHG AX,reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 3);` },
                     ],
@@ -25501,7 +25190,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 147):`,
                     comment: `/* XCHG AX,reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 3);` },
                     ],
@@ -25510,7 +25198,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 148):`,
                     comment: `/* XCHG AX,reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 3);` },
                     ],
@@ -25519,7 +25206,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 149):`,
                     comment: `/* XCHG AX,reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 3);` },
                     ],
@@ -25528,7 +25214,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 150):`,
                     comment: `/* XCHG AX,reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 3);` },
                     ],
@@ -25537,7 +25222,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 151):`,
                     comment: `/* XCHG AX,reg clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 3);` },
                     ],
@@ -25546,7 +25230,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 152):`,
                     comment: `/* CBW clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 2);` },
                     ],
@@ -25555,7 +25238,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 153):`,
                     comment: `/* CWD clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 5);` },
                     ],
@@ -25564,7 +25246,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 154):`,
                     comment: `/* CALL far clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 28);` },
                     ],
@@ -25573,7 +25254,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 155):`,
                     comment: `/* WAIT clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 3);` },
                     ],
@@ -25582,7 +25262,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 156):`,
                     comment: `/* PUSHF clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 10);` },
                     ],
@@ -25591,7 +25270,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 157):`,
                     comment: `/* POPF clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 8);` },
                     ],
@@ -25600,7 +25278,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 158):`,
                     comment: `/* SAHF clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -25609,16 +25286,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 159):`,
                     comment: `/* LAHF clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
                   },
+                  { kind: 'block', code: `/* MOV accumulator/[mem], string ops, TEST acc */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 160):`,
                     comment: `/* MOV acc/mem clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 10);` },
                     ],
@@ -25627,7 +25303,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 161):`,
                     comment: `/* MOV acc/mem clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 10);` },
                     ],
@@ -25636,7 +25311,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 162):`,
                     comment: `/* MOV acc/mem clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 10);` },
                     ],
@@ -25645,7 +25319,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 163):`,
                     comment: `/* MOV acc/mem clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 10);` },
                     ],
@@ -25654,7 +25327,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 164):`,
                     comment: `/* MOVSB clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 17);` },
                     ],
@@ -25663,7 +25335,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 165):`,
                     comment: `/* MOVSW clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 17);` },
                     ],
@@ -25672,7 +25343,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 166):`,
                     comment: `/* CMPSB clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 22);` },
                     ],
@@ -25681,7 +25351,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 167):`,
                     comment: `/* CMPSW clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 22);` },
                     ],
@@ -25690,7 +25359,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 168):`,
                     comment: `/* TEST acc,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -25699,7 +25367,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 169):`,
                     comment: `/* TEST acc,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -25708,7 +25375,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 170):`,
                     comment: `/* STOSB clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 10);` },
                     ],
@@ -25717,7 +25383,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 171):`,
                     comment: `/* STOSW clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 10);` },
                     ],
@@ -25726,7 +25391,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 172):`,
                     comment: `/* LODSB clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 13);` },
                     ],
@@ -25735,7 +25399,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 173):`,
                     comment: `/* LODSW clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 13);` },
                     ],
@@ -25744,7 +25407,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 174):`,
                     comment: `/* SCASB clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 15);` },
                     ],
@@ -25753,16 +25415,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 175):`,
                     comment: `/* SCASW clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 15);` },
                     ],
                   },
+                  { kind: 'block', code: `/* MOV reg, imm */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 176):`,
                     comment: `/* MOV reg,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -25771,7 +25432,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 177):`,
                     comment: `/* MOV reg,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -25780,7 +25440,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 178):`,
                     comment: `/* MOV reg,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -25789,7 +25448,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 179):`,
                     comment: `/* MOV reg,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -25798,7 +25456,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 180):`,
                     comment: `/* MOV reg,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -25807,7 +25464,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 181):`,
                     comment: `/* MOV reg,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -25816,7 +25472,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 182):`,
                     comment: `/* MOV reg,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -25825,7 +25480,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 183):`,
                     comment: `/* MOV reg,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -25834,7 +25488,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 184):`,
                     comment: `/* MOV reg,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -25843,7 +25496,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 185):`,
                     comment: `/* MOV reg,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -25852,7 +25504,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 186):`,
                     comment: `/* MOV reg,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -25861,7 +25512,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 187):`,
                     comment: `/* MOV reg,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -25870,7 +25520,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 188):`,
                     comment: `/* MOV reg,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -25879,7 +25528,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 189):`,
                     comment: `/* MOV reg,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -25888,7 +25536,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 190):`,
                     comment: `/* MOV reg,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
@@ -25897,16 +25544,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 191):`,
                     comment: `/* MOV reg,imm clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 4);` },
                     ],
                   },
+                  { kind: 'block', code: `/* RET/RETF, LES/LDS, MOV r/m imm, INT/INTO/IRET */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 194):`,
                     comment: `/* RET imm16 clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 12);` },
                     ],
@@ -25915,7 +25561,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 195):`,
                     comment: `/* RET clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 8);` },
                     ],
@@ -25924,7 +25569,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 196):`,
                     comment: `/* LES clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 16);` },
                     ],
@@ -25933,7 +25577,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 197):`,
                     comment: `/* LDS clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 16);` },
                     ],
@@ -25942,7 +25585,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 198):`,
                     comment: `/* MOV r/m,imm8 clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 4; else: 10));` },
                     ],
@@ -25951,7 +25593,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 199):`,
                     comment: `/* MOV r/m,imm16 clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 4; else: 10));` },
                     ],
@@ -25960,7 +25601,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 202):`,
                     comment: `/* RETF imm16 clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 17);` },
                     ],
@@ -25969,7 +25609,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 203):`,
                     comment: `/* RETF clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 18);` },
                     ],
@@ -25978,7 +25617,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 204):`,
                     comment: `/* INT3 clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 52);` },
                     ],
@@ -25987,7 +25625,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 205):`,
                     comment: `/* INT clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 51);` },
                     ],
@@ -25996,7 +25633,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 206):`,
                     comment: `/* INTO clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 53);` },
                     ],
@@ -26005,16 +25641,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 207):`,
                     comment: `/* IRET clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 24);` },
                     ],
                   },
+                  { kind: 'block', code: `/* shifts & rotates, AAM/AAD, XLAT */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 208):`,
                     comment: `/* shift by 1 (byte) clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 2; else: 15));` },
                     ],
@@ -26023,7 +25658,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 209):`,
                     comment: `/* shift by 1 (word) clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + if(style(--mod: 3): 2; else: 15));` },
                     ],
@@ -26032,7 +25666,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 210):`,
                     comment: `/* shift by CL (byte) clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 20);` },
                     ],
@@ -26041,7 +25674,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 211):`,
                     comment: `/* shift by CL (word) clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 20);` },
                     ],
@@ -26050,7 +25682,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 212):`,
                     comment: `/* AAM clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 83);` },
                     ],
@@ -26059,7 +25690,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 213):`,
                     comment: `/* AAD clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 60);` },
                     ],
@@ -26068,16 +25698,15 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 215):`,
                     comment: `/* XLAT clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 11);` },
                     ],
                   },
+                  { kind: 'block', code: `/* LOOP/JCXZ, IN/OUT, CALL/JMP */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 224):`,
                     comment: `/* LOOPNE clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 19);` },
                     ],
@@ -26086,7 +25715,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 225):`,
                     comment: `/* LOOPE clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 18);` },
                     ],
@@ -26095,7 +25723,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 226):`,
                     comment: `/* LOOP clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 17);` },
                     ],
@@ -26104,7 +25731,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 227):`,
                     comment: `/* JCXZ clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 18);` },
                     ],
@@ -26113,7 +25739,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 228):`,
                     comment: `/* IN AL,imm8 clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 10);` },
                     ],
@@ -26122,7 +25747,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 229):`,
                     comment: `/* IN AX,imm8 clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 10);` },
                     ],
@@ -26131,7 +25755,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 230):`,
                     comment: `/* OUT imm8,AL clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 10);` },
                     ],
@@ -26140,7 +25763,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 231):`,
                     comment: `/* OUT imm8,AX clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 10);` },
                     ],
@@ -26149,7 +25771,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 232):`,
                     comment: `/* CALL near clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 19);` },
                     ],
@@ -26158,7 +25779,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 233):`,
                     comment: `/* JMP near clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 15);` },
                     ],
@@ -26167,7 +25787,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 234):`,
                     comment: `/* JMP far clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 15);` },
                     ],
@@ -26176,7 +25795,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 235):`,
                     comment: `/* JMP short clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 15);` },
                     ],
@@ -26185,7 +25803,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 236):`,
                     comment: `/* IN AL,DX clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 8);` },
                     ],
@@ -26194,7 +25811,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 237):`,
                     comment: `/* IN AX,DX clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 8);` },
                     ],
@@ -26203,7 +25819,6 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 238):`,
                     comment: `/* OUT DX,AL clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 8);` },
                     ],
@@ -26212,11 +25827,11 @@ export const CPU_TREE = [
                     kind: 'branch',
                     code: `style(--opcode: 239):`,
                     comment: `/* OUT DX,AX clocks */`,
-                    folded: true,
                     children: [
                     { kind: 'value', code: `calc(var(--__1cycleCount) + 8);` },
                     ],
                   },
+                  { kind: 'block', code: `/* HLT/CMC, Group F6/F7, CLC..STD, Group FE/FF */` },
                   {
                     kind: 'branch',
                     code: `style(--opcode: 244):`,
@@ -26511,6 +26126,7 @@ export const CPU_TREE = [
                     },
                     ],
                   },
+                  { kind: 'block', code: `/* no entry for this opcode: cycleCount holds */` },
                   {
                     kind: 'branch',
                     code: `else:`,
@@ -26536,1491 +26152,2655 @@ export const CPU_TREE = [
         code: `/* ===== MEMORY WRITE SLOTS ===== */`,
         folded: true,
         children: [
+        { kind: 'block', code: `/* The CPU's write port onto the bus: three (addr, val) slot pairs.
+     Slot N writes --memValN to linear address --memAddrN this tick
+     (addr -1 = slot idle); the shared --_writeWidth below picks byte
+     or word for every live slot. Three slots is the worst case: INT
+     (and the TF-trap / hardware-IRQ frame) pushes FLAGS, CS and IP
+     in one tick. */` },
         {
-          kind: 'decl',
-          code: `--memAddr0:`,
+          kind: 'section',
+          label: "slot 0",
+          code: `/* --- slot 0 --- */`,
           folded: true,
           children: [
+          { kind: 'block', code: `/* every writing opcode's first (or only) write */` },
           {
-            kind: 'if',
-            code: `if(`,
-            trailer: `);`,
+            kind: 'decl',
+            code: `--memAddr0:`,
+            folded: true,
             children: [
             {
-              kind: 'branch',
-              code: `style(--_tf: 1):`,
+              kind: 'if',
+              code: `if(`,
+              trailer: `);`,
               children: [
-              { kind: 'value', code: `calc(calc(var(--__1SS) * 16) + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--_irqActive: 1):`,
-              children: [
-              { kind: 'value', code: `calc(calc(var(--__1SS) * 16) + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 137):`,
-              comment: `/* MOV r/m16(mem), reg16 low byte */`,
-              folded: true,
-              children: [
+              { kind: 'block', code: `/* interrupt frame: FLAGS at SS:SP-2 (TF trap / hardware IRQ) */` },
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--_tf: 1):`,
+                children: [
+                { kind: 'value', code: `calc(calc(var(--__1SS) * 16) + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--_irqActive: 1):`,
+                children: [
+                { kind: 'value', code: `calc(calc(var(--__1SS) * 16) + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
+                ],
+              },
+              { kind: 'block', code: `/* ModR/M memory destination (--ea; -1 when mod=3 targets a register) */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 0):`,
+                comment: `/* ADD r/m8, reg8 → mem */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 136):`,
-              comment: `/* MOV r/m8(mem), reg8 */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 1):`,
+                comment: `/* ADD r/m16, reg16 → mem lo */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 140):`,
-              comment: `/* MOV r/m16, segreg → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 8):`,
+                comment: `/* OR r/m8, reg8 → mem */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 162):`,
-              comment: `/* MOV [mem], AL */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--directSeg) + var(--q1) + var(--q2) * 256);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 163):`,
-              comment: `/* MOV [mem], AX lo */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--directSeg) + var(--q1) + var(--q2) * 256);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 1):`,
-              comment: `/* ADD r/m16, reg16 → mem lo */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 9):`,
+                comment: `/* OR r/m16, reg16 → mem */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 0):`,
-              comment: `/* ADD r/m8, reg8 → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 16):`,
+                comment: `/* ADC r/m8, reg8 → mem */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 9):`,
-              comment: `/* OR r/m16, reg16 → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 17):`,
+                comment: `/* ADC r/m16, reg16 → mem lo */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 8):`,
-              comment: `/* OR r/m8, reg8 → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 24):`,
+                comment: `/* SBB r/m8, reg8 → mem */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 17):`,
-              comment: `/* ADC r/m16, reg16 → mem lo */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 25):`,
+                comment: `/* SBB r/m16, reg16 → mem lo */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 16):`,
-              comment: `/* ADC r/m8, reg8 → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 32):`,
+                comment: `/* AND r/m8, reg8 → mem */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 25):`,
-              comment: `/* SBB r/m16, reg16 → mem lo */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 33):`,
+                comment: `/* AND r/m16, reg16 → mem */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 24):`,
-              comment: `/* SBB r/m8, reg8 → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 40):`,
+                comment: `/* SUB r/m8, reg8 → mem */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 33):`,
-              comment: `/* AND r/m16, reg16 → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 41):`,
+                comment: `/* SUB r/m16, reg16 → mem lo */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 32):`,
-              comment: `/* AND r/m8, reg8 → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 48):`,
+                comment: `/* XOR r/m8, reg8 → mem */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 41):`,
-              comment: `/* SUB r/m16, reg16 → mem lo */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 49):`,
+                comment: `/* XOR r/m16, reg16 → mem */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 40):`,
-              comment: `/* SUB r/m8, reg8 → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 128):`,
+                comment: `/* Group 80 r/m8,imm8 → mem */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 7):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 49):`,
-              comment: `/* XOR r/m16, reg16 → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 129):`,
+                comment: `/* Group 81 r/m16,imm16 → mem lo */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 7):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 48):`,
-              comment: `/* XOR r/m8, reg8 → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 130):`,
+                comment: `/* Group 82 r/m8,imm8 → mem */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 7):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 232):`,
-              comment: `/* CALL near push ret */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 205):`,
-              comment: `/* INT push FLAGS */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 154):`,
-              comment: `/* CALL far push CS */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 80):`,
-              comment: `/* PUSH AX */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 81):`,
-              comment: `/* PUSH CX */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 82):`,
-              comment: `/* PUSH DX */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 83):`,
-              comment: `/* PUSH BX */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 84):`,
-              comment: `/* PUSH SP lo */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 85):`,
-              comment: `/* PUSH BP */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 86):`,
-              comment: `/* PUSH SI */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 87):`,
-              comment: `/* PUSH DI */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 6):`,
-              comment: `/* PUSH ES */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 14):`,
-              comment: `/* PUSH CS */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 22):`,
-              comment: `/* PUSH SS */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 30):`,
-              comment: `/* PUSH DS */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 156):`,
-              comment: `/* PUSHF */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 170):`,
-              comment: `/* STOSB */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 131):`,
+                comment: `/* Group 83 → mem lo */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--hasREP: 1) and style(--_repActive: 0):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `calc(var(--__1ES) * 16 + var(--__1DI))` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 7):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 171):`,
-              comment: `/* STOSW lo */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 134):`,
+                comment: `/* XCHG r/m8 → mem */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--hasREP: 1) and style(--_repActive: 0):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `calc(var(--__1ES) * 16 + var(--__1DI))` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 164):`,
-              comment: `/* MOVSB */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 135):`,
+                comment: `/* XCHG r/m16 → mem */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--hasREP: 1) and style(--_repActive: 0):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `calc(var(--__1ES) * 16 + var(--__1DI))` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 165):`,
-              comment: `/* MOVSW lo */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 136):`,
+                comment: `/* MOV r/m8(mem), reg8 */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--hasREP: 1) and style(--_repActive: 0):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `calc(var(--__1ES) * 16 + var(--__1DI))` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 199):`,
-              comment: `/* MOV r/m16, imm16 → mem lo */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 137):`,
+                comment: `/* MOV r/m16(mem), reg16 low byte */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 198):`,
-              comment: `/* MOV r/m8, imm8 → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 140):`,
+                comment: `/* MOV r/m16, segreg → mem */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 135):`,
-              comment: `/* XCHG r/m16 → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 143):`,
+                comment: `/* POP r/m16 → mem */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 134):`,
-              comment: `/* XCHG r/m8 → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 198):`,
+                comment: `/* MOV r/m8, imm8 → mem */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 143):`,
-              comment: `/* POP r/m16 → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 199):`,
+                comment: `/* MOV r/m16, imm16 → mem lo */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 230):`,
-              comment: `/* OUT 0x3C9: DAC byte (6-bit) */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 208):`,
+                comment: `/* Shift D0 → mem */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--q1: 969):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `calc(1048576 + var(--__1dacWriteIndex) * 3 + var(--__1dacSubIndex));` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `-1` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 238):`,
-              comment: `/* OUT DX=0x3C9: DAC byte (6-bit) */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 209):`,
+                comment: `/* Shift D1 → mem */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--__1DX: 969):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `calc(1048576 + var(--__1dacWriteIndex) * 3 + var(--__1dacSubIndex));` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `-1` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 204):`,
-              comment: `/* INT 3 push FLAGS */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 206):`,
-              comment: `/* INTO push FLAGS */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(--bit(var(--__1flags), 11) * (calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16))) + (1 - --bit(var(--__1flags), 11)) * (-1));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 254):`,
-              comment: `/* Group FE INC/DEC r/m8 → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 210):`,
+                comment: `/* Shift D2 → mem */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 247):`,
-              comment: `/* Group F7 NEG/NOT → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 211):`,
+                comment: `/* Shift D3 → mem lo */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 3):`,
-                  children: [
-                  { kind: 'value', code: `var(--ea);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 2):`,
-                  children: [
-                  { kind: 'value', code: `var(--ea);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `-1` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 246):`,
-              comment: `/* Group F6 NEG/NOT → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 246):`,
+                comment: `/* Group F6 NEG/NOT → mem */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 3):`,
-                  children: [
-                  { kind: 'value', code: `var(--ea);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 2):`,
-                  children: [
-                  { kind: 'value', code: `var(--ea);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `-1` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 3):`,
+                    children: [
+                    { kind: 'value', code: `var(--ea);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 2):`,
+                    children: [
+                    { kind: 'value', code: `var(--ea);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `-1` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 128):`,
-              comment: `/* Group 80 r/m8,imm8 → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 247):`,
+                comment: `/* Group F7 NEG/NOT → mem */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 7):`,
-                  children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 3):`,
+                    children: [
+                    { kind: 'value', code: `var(--ea);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 2):`,
+                    children: [
+                    { kind: 'value', code: `var(--ea);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `-1` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 130):`,
-              comment: `/* Group 82 r/m8,imm8 → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 254):`,
+                comment: `/* Group FE INC/DEC r/m8 → mem */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 7):`,
-                  children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `var(--ea)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 129):`,
-              comment: `/* Group 81 r/m16,imm16 → mem lo */`,
-              folded: true,
-              children: [
+              { kind: 'block', code: `/* direct-address MOV: accumulator to [imm16] */` },
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 162):`,
+                comment: `/* MOV [mem], AL */`,
+                children: [
+                { kind: 'value', code: `calc(var(--directSeg) + var(--q1) + var(--q2) * 256);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 163):`,
+                comment: `/* MOV [mem], AX lo */`,
+                children: [
+                { kind: 'value', code: `calc(var(--directSeg) + var(--q1) + var(--q2) * 256);` },
+                ],
+              },
+              { kind: 'block', code: `/* string stores to ES:DI */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 164):`,
+                comment: `/* MOVSB */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 7):`,
-                  children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--hasREP: 1) and style(--_repActive: 0):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--__1ES) * 16 + var(--__1DI))` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 131):`,
-              comment: `/* Group 83 → mem lo */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 165):`,
+                comment: `/* MOVSW lo */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 7):`,
-                  children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--hasREP: 1) and style(--_repActive: 0):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--__1ES) * 16 + var(--__1DI))` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 255):`,
-              comment: `/* Group FF mem/push */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 170):`,
+                comment: `/* STOSB */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3) and style(--reg: 0):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--mod: 3) and style(--reg: 1):`,
-                  children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 0):`,
-                  children: [
-                  { kind: 'value', code: `var(--ea);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 1):`,
-                  children: [
-                  { kind: 'value', code: `var(--ea);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 2):`,
-                  children: [
-                  { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 3):`,
-                  children: [
-                  { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 6):`,
-                  children: [
-                  { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `-1` },
+                  {
+                    kind: 'branch',
+                    code: `style(--hasREP: 1) and style(--_repActive: 0):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--__1ES) * 16 + var(--__1DI))` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 209):`,
-              comment: `/* Shift D1 → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 171):`,
+                comment: `/* STOSW lo */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--hasREP: 1) and style(--_repActive: 0):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--__1ES) * 16 + var(--__1DI))` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 208):`,
-              comment: `/* Shift D0 → mem */`,
-              folded: true,
-              children: [
+              { kind: 'block', code: `/* stack pushes */` },
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 6):`,
+                comment: `/* PUSH ES */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 14):`,
+                comment: `/* PUSH CS */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 22):`,
+                comment: `/* PUSH SS */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 30):`,
+                comment: `/* PUSH DS */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 80):`,
+                comment: `/* PUSH AX */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 81):`,
+                comment: `/* PUSH CX */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 82):`,
+                comment: `/* PUSH DX */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 83):`,
+                comment: `/* PUSH BX */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 84):`,
+                comment: `/* PUSH SP lo */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 85):`,
+                comment: `/* PUSH BP */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 86):`,
+                comment: `/* PUSH SI */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 87):`,
+                comment: `/* PUSH DI */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 104):`,
+                comment: `/* PUSH imm16 lo */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 106):`,
+                comment: `/* PUSH imm8 sx lo */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 154):`,
+                comment: `/* CALL far push CS */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 156):`,
+                comment: `/* PUSHF */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 204):`,
+                comment: `/* INT 3 push FLAGS */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 205):`,
+                comment: `/* INT push FLAGS */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 206):`,
+                comment: `/* INTO push FLAGS */`,
+                children: [
+                { kind: 'value', code: `calc(--bit(var(--__1flags), 11) * (calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16))) + (1 - --bit(var(--__1flags), 11)) * (-1));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 232):`,
+                comment: `/* CALL near push ret */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
+                ],
+              },
+              { kind: 'block', code: `/* group opcodes: destination picked by the /reg field */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 255):`,
+                comment: `/* Group FF mem/push */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3) and style(--reg: 0):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3) and style(--reg: 1):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 0):`,
+                    children: [
+                    { kind: 'value', code: `var(--ea);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 1):`,
+                    children: [
+                    { kind: 'value', code: `var(--ea);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 2):`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 3):`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 6):`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `-1` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 211):`,
-              comment: `/* Shift D3 → mem lo */`,
-              folded: true,
-              children: [
+              { kind: 'block', code: `/* OUT side-effects: VGA DAC / CGA palette shadow registers */` },
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 230):`,
+                comment: `/* OUT 0x3C9: DAC byte (6-bit) */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--q1: 969):`,
+                    children: [
+                    { kind: 'value', code: `calc(1048576 + var(--__1dacWriteIndex) * 3 + var(--__1dacSubIndex));` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `-1` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 210):`,
-              comment: `/* Shift D2 → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 238):`,
+                comment: `/* OUT DX=0x3C9: DAC byte (6-bit) */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `var(--ea)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--__1DX: 969):`,
+                    children: [
+                    { kind: 'value', code: `calc(1048576 + var(--__1dacWriteIndex) * 3 + var(--__1dacSubIndex));` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `-1` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
+              { kind: 'block', code: `/* any other opcode: slot idle this tick */` },
+              {
+                kind: 'branch',
+                code: `else:`,
+                children: [
+                { kind: 'value', code: `-1` },
+                ],
+              },
               ],
             },
+            ],
+          },
+          {
+            kind: 'decl',
+            code: `--memVal0:`,
+            folded: true,
+            children: [
             {
-              kind: 'branch',
-              code: `style(--opcode: 104):`,
-              comment: `/* PUSH imm16 lo */`,
-              folded: true,
+              kind: 'if',
+              code: `if(`,
+              trailer: `);`,
               children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 106):`,
-              comment: `/* PUSH imm8 sx lo */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `else:`,
-              children: [
-              { kind: 'value', code: `-1` },
+              { kind: 'block', code: `/* interrupt frame: FLAGS at SS:SP-2 (TF trap / hardware IRQ) */` },
+              {
+                kind: 'branch',
+                code: `style(--_tf: 1):`,
+                children: [
+                { kind: 'value', code: `var(--__1flags);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--_irqActive: 1):`,
+                children: [
+                { kind: 'value', code: `var(--__1flags);` },
+                ],
+              },
+              { kind: 'block', code: `/* ModR/M memory destination (--ea; -1 when mod=3 targets a register) */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 0):`,
+                comment: `/* ADD r/m8, reg8 → mem */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) + var(--regVal8)), 8);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 1):`,
+                comment: `/* ADD r/m16, reg16 → mem lo */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--rmVal16) + var(--regVal16)), 16), 8);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 8):`,
+                comment: `/* OR r/m8, reg8 → mem */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `--or8(var(--rmVal8), var(--regVal8));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 9):`,
+                comment: `/* OR r/m16, reg16 → mem */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `--or(var(--rmVal16), var(--regVal16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 16):`,
+                comment: `/* ADC r/m8, reg8 → mem */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) + var(--regVal8) + var(--_cf)), 8);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 17):`,
+                comment: `/* ADC r/m16, reg16 → mem lo */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--rmVal16) + var(--regVal16) + var(--_cf)), 16), 8);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 24):`,
+                comment: `/* SBB r/m8, reg8 → mem */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) - var(--regVal8) - var(--_cf) + 256), 8);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 25):`,
+                comment: `/* SBB r/m16, reg16 → mem lo */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--rmVal16) - var(--regVal16) - var(--_cf) + 65536), 16), 8);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 32):`,
+                comment: `/* AND r/m8, reg8 → mem */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `--and8(var(--rmVal8), var(--regVal8));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 33):`,
+                comment: `/* AND r/m16, reg16 → mem */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `--and(var(--rmVal16), var(--regVal16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 40):`,
+                comment: `/* SUB r/m8, reg8 → mem */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) - var(--regVal8) + 256), 8);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 41):`,
+                comment: `/* SUB r/m16, reg16 → mem lo */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--rmVal16) - var(--regVal16) + 65536), 16), 8);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 48):`,
+                comment: `/* XOR r/m8, reg8 → mem */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `--xor8(var(--rmVal8), var(--regVal8));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 49):`,
+                comment: `/* XOR r/m16, reg16 → mem */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `--xor(var(--rmVal16), var(--regVal16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 128):`,
+                comment: `/* Group 80 r/m8,imm8 → mem */`,
+                folded: true,
+                children: [
+                {
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
+                  children: [
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 0):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) + var(--immByte)), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 1):`,
+                    children: [
+                    { kind: 'value', code: `--or8(var(--rmVal8), var(--immByte));` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 2):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) + var(--immByte) + var(--_cf)), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 3):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) - var(--immByte) - var(--_cf) + 256), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 4):`,
+                    children: [
+                    { kind: 'value', code: `--and8(var(--rmVal8), var(--immByte));` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 5):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) - var(--immByte) + 256), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 6):`,
+                    children: [
+                    { kind: 'value', code: `--xor8(var(--rmVal8), var(--immByte));` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `0` },
+                    ],
+                  },
+                  ],
+                },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 129):`,
+                comment: `/* Group 81 r/m16,imm16 → mem lo */`,
+                folded: true,
+                children: [
+                {
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
+                  children: [
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 0):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--rmVal16) + var(--immWord)), 16), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 1):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(--or(var(--rmVal16), var(--immWord)), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 2):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--rmVal16) + var(--immWord) + var(--_cf)), 16), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 3):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--rmVal16) - var(--immWord) - var(--_cf) + 65536), 16), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 4):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(--and(var(--rmVal16), var(--immWord)), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 5):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--rmVal16) - var(--immWord) + 65536), 16), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 6):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(--xor(var(--rmVal16), var(--immWord)), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `0` },
+                    ],
+                  },
+                  ],
+                },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 130):`,
+                comment: `/* Group 82 r/m8,imm8 → mem */`,
+                folded: true,
+                children: [
+                {
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
+                  children: [
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 0):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) + var(--immByte)), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 1):`,
+                    children: [
+                    { kind: 'value', code: `--or8(var(--rmVal8), var(--immByte));` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 2):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) + var(--immByte) + var(--_cf)), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 3):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) - var(--immByte) - var(--_cf) + 256), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 4):`,
+                    children: [
+                    { kind: 'value', code: `--and8(var(--rmVal8), var(--immByte));` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 5):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) - var(--immByte) + 256), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 6):`,
+                    children: [
+                    { kind: 'value', code: `--xor8(var(--rmVal8), var(--immByte));` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `0` },
+                    ],
+                  },
+                  ],
+                },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 131):`,
+                comment: `/* Group 83 → mem lo */`,
+                folded: true,
+                children: [
+                {
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
+                  children: [
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 0):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--rmVal16) + calc(var(--immByte) + --bit(var(--immByte), 7) * 65280)), 16), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 1):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(--or(var(--rmVal16), calc(var(--immByte) + --bit(var(--immByte), 7) * 65280)), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 2):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--rmVal16) + calc(var(--immByte) + --bit(var(--immByte), 7) * 65280) + var(--_cf)), 16), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 3):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--rmVal16) - calc(var(--immByte) + --bit(var(--immByte), 7) * 65280) - var(--_cf) + 65536), 16), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 4):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(--and(var(--rmVal16), calc(var(--immByte) + --bit(var(--immByte), 7) * 65280)), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 5):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--rmVal16) - calc(var(--immByte) + --bit(var(--immByte), 7) * 65280) + 65536), 16), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 6):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(--xor(var(--rmVal16), calc(var(--immByte) + --bit(var(--immByte), 7) * 65280)), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `0` },
+                    ],
+                  },
+                  ],
+                },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 134):`,
+                comment: `/* XCHG r/m8 → mem */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `var(--regVal8);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 135):`,
+                comment: `/* XCHG r/m16 → mem */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `var(--regVal16);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 136):`,
+                comment: `/* MOV r/m8(mem), reg8 */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `var(--regVal8);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 137):`,
+                comment: `/* MOV r/m16(mem), reg16 low byte */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `var(--regVal16);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 140):`,
+                comment: `/* MOV r/m16, segreg → mem */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `var(--segRegVal);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 143):`,
+                comment: `/* POP r/m16 → mem */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `--read2(calc(var(--__1SS) * 16 + var(--__1SP)));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 198):`,
+                comment: `/* MOV r/m8, imm8 → mem */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `var(--immByte);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 199):`,
+                comment: `/* MOV r/m16, imm16 → mem lo */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `var(--immByte);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 208):`,
+                comment: `/* Shift D0 → mem */`,
+                folded: true,
+                children: [
+                {
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
+                  children: [
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 0):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) * 2 + --bit(var(--rmVal8), 7)), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 1):`,
+                    children: [
+                    { kind: 'value', code: `calc(round(down, var(--rmVal8) / 2) + --bit(var(--rmVal8), 0) * 128);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 2):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) * 2 + var(--_cf)), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 3):`,
+                    children: [
+                    { kind: 'value', code: `calc(round(down, var(--rmVal8) / 2) + var(--_cf) * 128);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 4):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) * 2), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 5):`,
+                    children: [
+                    { kind: 'value', code: `round(down, var(--rmVal8) / 2);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 7):`,
+                    children: [
+                    { kind: 'value', code: `calc(round(down, var(--rmVal8) / 2) + --bit(var(--rmVal8), 7) * 128);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `0` },
+                    ],
+                  },
+                  ],
+                },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 209):`,
+                comment: `/* Shift D1 → mem */`,
+                folded: true,
+                children: [
+                {
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
+                  children: [
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 4):`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--rmVal16) * 2);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 5):`,
+                    children: [
+                    { kind: 'value', code: `round(down, var(--rmVal16) / 2);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 7):`,
+                    children: [
+                    { kind: 'value', code: `calc(round(down, var(--rmVal16) / 2) + --bit(var(--rmVal16), 15) * 32768);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 0):`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--rmVal16) * 2 + --bit(var(--rmVal16), 15));` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 1):`,
+                    children: [
+                    { kind: 'value', code: `calc(round(down, var(--rmVal16) / 2) + --bit(var(--rmVal16), 0) * 32768);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 2):`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--rmVal16) * 2 + var(--_cf));` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 3):`,
+                    children: [
+                    { kind: 'value', code: `calc(round(down, var(--rmVal16) / 2) + var(--_cf) * 32768);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `0` },
+                    ],
+                  },
+                  ],
+                },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 210):`,
+                comment: `/* Shift D2 → mem */`,
+                folded: true,
+                children: [
+                {
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
+                  children: [
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 4):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(round(nearest, calc(var(--rmVal8) * var(--_pow2CL))), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 5):`,
+                    children: [
+                    { kind: 'value', code: `round(down, var(--rmVal8) / max(1, var(--_pow2CL)));` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 7):`,
+                    children: [
+                    { kind: 'value', code: `calc(round(down, var(--rmVal8) / max(1, var(--_pow2CL))) + --bit(var(--rmVal8), 7) * max(0, calc(255 - round(down, 255 / max(1, var(--_pow2CL))))));` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 0):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(calc(round(nearest, var(--rmVal8) * var(--_pow2CL)) + round(down, var(--rmVal8) / max(1, var(--_pow2inv8)))), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 1):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(calc(round(down, var(--rmVal8) / max(1, var(--_pow2CL))) + round(nearest, var(--rmVal8) * var(--_pow2inv8))), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `0` },
+                    ],
+                  },
+                  ],
+                },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 211):`,
+                comment: `/* Shift D3 → mem lo */`,
+                folded: true,
+                children: [
+                {
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
+                  children: [
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 4):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(--lowerBytes(round(nearest, calc(var(--rmVal16) * var(--_pow2CL))), 16), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 5):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(round(down, var(--rmVal16) / max(1, var(--_pow2CL))), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 7):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(calc(round(down, var(--rmVal16) / max(1, var(--_pow2CL))) + --bit(var(--rmVal16), 15) * max(0, calc(65535 - round(down, 65535 / max(1, var(--_pow2CL)))))), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 0):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(round(nearest, var(--rmVal16) * var(--_pow2CL)) + round(down, var(--rmVal16) / max(1, var(--_pow2inv16)))), 16), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 1):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(round(down, var(--rmVal16) / max(1, var(--_pow2CL))) + round(nearest, var(--rmVal16) * var(--_pow2inv16))), 16), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `0` },
+                    ],
+                  },
+                  ],
+                },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 246):`,
+                comment: `/* Group F6 NEG/NOT → mem */`,
+                folded: true,
+                children: [
+                {
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
+                  children: [
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 3):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(calc(0 - var(--rmVal8) + 256), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 2):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(--not(var(--rmVal8)), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `0` },
+                    ],
+                  },
+                  ],
+                },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 247):`,
+                comment: `/* Group F7 NEG/NOT → mem */`,
+                folded: true,
+                children: [
+                {
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
+                  children: [
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 3):`,
+                    children: [
+                    { kind: 'value', code: `calc(0 - var(--rmVal16) + 65536);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 2):`,
+                    children: [
+                    { kind: 'value', code: `--not(var(--rmVal16));` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `0` },
+                    ],
+                  },
+                  ],
+                },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 254):`,
+                comment: `/* Group FE INC/DEC r/m8 → mem */`,
+                folded: true,
+                children: [
+                {
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
+                  children: [
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 0):`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) + 1), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) - 1 + 256), 8)` },
+                    ],
+                  },
+                  ],
+                },
+                ],
+              },
+              { kind: 'block', code: `/* direct-address MOV: accumulator to [imm16] */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 162):`,
+                comment: `/* MOV [mem], AL */`,
+                children: [
+                { kind: 'value', code: `var(--AL);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 163):`,
+                comment: `/* MOV [mem], AX lo */`,
+                children: [
+                { kind: 'value', code: `var(--AL);` },
+                ],
+              },
+              { kind: 'block', code: `/* string stores to ES:DI */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 164):`,
+                comment: `/* MOVSB */`,
+                children: [
+                { kind: 'value', code: `var(--_strSrcByte);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 165):`,
+                comment: `/* MOVSW lo */`,
+                children: [
+                { kind: 'value', code: `var(--_strSrcByte);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 170):`,
+                comment: `/* STOSB */`,
+                children: [
+                { kind: 'value', code: `var(--AL);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 171):`,
+                comment: `/* STOSW lo */`,
+                children: [
+                { kind: 'value', code: `var(--AL);` },
+                ],
+              },
+              { kind: 'block', code: `/* stack pushes */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 6):`,
+                comment: `/* PUSH ES */`,
+                children: [
+                { kind: 'value', code: `var(--__1ES);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 14):`,
+                comment: `/* PUSH CS */`,
+                children: [
+                { kind: 'value', code: `var(--__1CS);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 22):`,
+                comment: `/* PUSH SS */`,
+                children: [
+                { kind: 'value', code: `var(--__1SS);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 30):`,
+                comment: `/* PUSH DS */`,
+                children: [
+                { kind: 'value', code: `var(--__1DS);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 80):`,
+                comment: `/* PUSH AX */`,
+                children: [
+                { kind: 'value', code: `var(--__1AX);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 81):`,
+                comment: `/* PUSH CX */`,
+                children: [
+                { kind: 'value', code: `var(--__1CX);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 82):`,
+                comment: `/* PUSH DX */`,
+                children: [
+                { kind: 'value', code: `var(--__1DX);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 83):`,
+                comment: `/* PUSH BX */`,
+                children: [
+                { kind: 'value', code: `var(--__1BX);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 84):`,
+                comment: `/* PUSH SP lo */`,
+                children: [
+                { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--__1SP) - 2 + 65536), 16), 8);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 85):`,
+                comment: `/* PUSH BP */`,
+                children: [
+                { kind: 'value', code: `var(--__1BP);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 86):`,
+                comment: `/* PUSH SI */`,
+                children: [
+                { kind: 'value', code: `var(--__1SI);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 87):`,
+                comment: `/* PUSH DI */`,
+                children: [
+                { kind: 'value', code: `var(--__1DI);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 104):`,
+                comment: `/* PUSH imm16 lo */`,
+                children: [
+                { kind: 'value', code: `var(--q1);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 106):`,
+                comment: `/* PUSH imm8 sx lo */`,
+                children: [
+                { kind: 'value', code: `var(--q1);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 154):`,
+                comment: `/* CALL far push CS */`,
+                children: [
+                { kind: 'value', code: `var(--__1CS);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 156):`,
+                comment: `/* PUSHF */`,
+                children: [
+                { kind: 'value', code: `var(--__1flags);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 204):`,
+                comment: `/* INT 3 push FLAGS */`,
+                children: [
+                { kind: 'value', code: `var(--__1flags);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 205):`,
+                comment: `/* INT push FLAGS */`,
+                children: [
+                { kind: 'value', code: `var(--__1flags);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 206):`,
+                comment: `/* INTO push FLAGS */`,
+                children: [
+                { kind: 'value', code: `var(--__1flags);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 232):`,
+                comment: `/* CALL near push ret */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1IP) + 3);` },
+                ],
+              },
+              { kind: 'block', code: `/* group opcodes: destination picked by the /reg field */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 255):`,
+                comment: `/* Group FF mem/push */`,
+                folded: true,
+                children: [
+                {
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
+                  children: [
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 0):`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--rmVal16) + 1);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 1):`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--rmVal16) - 1 + 65536);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 2):`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--__1IP) + var(--prefixLen) + 2 + var(--modrmExtra));` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 3):`,
+                    children: [
+                    { kind: 'value', code: `var(--__1CS);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 6):`,
+                    children: [
+                    { kind: 'value', code: `var(--rmVal16);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `0` },
+                    ],
+                  },
+                  ],
+                },
+                ],
+              },
+              { kind: 'block', code: `/* OUT side-effects: VGA DAC / CGA palette shadow registers */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 230):`,
+                comment: `/* OUT 0x3C9: DAC byte (6-bit) */`,
+                children: [
+                { kind: 'value', code: `--and(--lowerBytes(var(--__1AX), 8), 63);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 238):`,
+                comment: `/* OUT DX=0x3C9: DAC byte (6-bit) */`,
+                children: [
+                { kind: 'value', code: `--and(--lowerBytes(var(--__1AX), 8), 63);` },
+                ],
+              },
+              { kind: 'block', code: `/* slot idle: value unused (addr is -1) */` },
+              {
+                kind: 'branch',
+                code: `else:`,
+                children: [
+                { kind: 'value', code: `0` },
+                ],
+              },
               ],
             },
             ],
@@ -28028,1182 +28808,918 @@ export const CPU_TREE = [
           ],
         },
         {
-          kind: 'decl',
-          code: `--memVal0:`,
+          kind: 'section',
+          label: "slot 1",
+          code: `/* --- slot 1 --- */`,
           folded: true,
           children: [
+          { kind: 'block', code: `/* used only by multi-write opcodes: the second byte/word they write this tick */` },
           {
-            kind: 'if',
-            code: `if(`,
-            trailer: `);`,
+            kind: 'decl',
+            code: `--memAddr1:`,
+            folded: true,
             children: [
             {
-              kind: 'branch',
-              code: `style(--_tf: 1):`,
+              kind: 'if',
+              code: `if(`,
+              trailer: `);`,
               children: [
-              { kind: 'value', code: `var(--__1flags);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--_irqActive: 1):`,
-              children: [
-              { kind: 'value', code: `var(--__1flags);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 137):`,
-              comment: `/* MOV r/m16(mem), reg16 low byte */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--regVal16);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 136):`,
-              comment: `/* MOV r/m8(mem), reg8 */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--regVal8);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 140):`,
-              comment: `/* MOV r/m16, segreg → mem */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--segRegVal);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 162):`,
-              comment: `/* MOV [mem], AL */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--AL);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 163):`,
-              comment: `/* MOV [mem], AX lo */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--AL);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 1):`,
-              comment: `/* ADD r/m16, reg16 → mem lo */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--rmVal16) + var(--regVal16)), 16), 8);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 0):`,
-              comment: `/* ADD r/m8, reg8 → mem */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) + var(--regVal8)), 8);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 9):`,
-              comment: `/* OR r/m16, reg16 → mem */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--or(var(--rmVal16), var(--regVal16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 8):`,
-              comment: `/* OR r/m8, reg8 → mem */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--or8(var(--rmVal8), var(--regVal8));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 17):`,
-              comment: `/* ADC r/m16, reg16 → mem lo */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--rmVal16) + var(--regVal16) + var(--_cf)), 16), 8);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 16):`,
-              comment: `/* ADC r/m8, reg8 → mem */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) + var(--regVal8) + var(--_cf)), 8);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 25):`,
-              comment: `/* SBB r/m16, reg16 → mem lo */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--rmVal16) - var(--regVal16) - var(--_cf) + 65536), 16), 8);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 24):`,
-              comment: `/* SBB r/m8, reg8 → mem */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) - var(--regVal8) - var(--_cf) + 256), 8);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 33):`,
-              comment: `/* AND r/m16, reg16 → mem */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--and(var(--rmVal16), var(--regVal16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 32):`,
-              comment: `/* AND r/m8, reg8 → mem */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--and8(var(--rmVal8), var(--regVal8));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 41):`,
-              comment: `/* SUB r/m16, reg16 → mem lo */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--rmVal16) - var(--regVal16) + 65536), 16), 8);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 40):`,
-              comment: `/* SUB r/m8, reg8 → mem */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) - var(--regVal8) + 256), 8);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 49):`,
-              comment: `/* XOR r/m16, reg16 → mem */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--xor(var(--rmVal16), var(--regVal16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 48):`,
-              comment: `/* XOR r/m8, reg8 → mem */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--xor8(var(--rmVal8), var(--regVal8));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 232):`,
-              comment: `/* CALL near push ret */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1IP) + 3);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 205):`,
-              comment: `/* INT push FLAGS */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--__1flags);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 154):`,
-              comment: `/* CALL far push CS */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--__1CS);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 80):`,
-              comment: `/* PUSH AX */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--__1AX);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 81):`,
-              comment: `/* PUSH CX */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--__1CX);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 82):`,
-              comment: `/* PUSH DX */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--__1DX);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 83):`,
-              comment: `/* PUSH BX */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--__1BX);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 84):`,
-              comment: `/* PUSH SP lo */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--__1SP) - 2 + 65536), 16), 8);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 85):`,
-              comment: `/* PUSH BP */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--__1BP);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 86):`,
-              comment: `/* PUSH SI */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--__1SI);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 87):`,
-              comment: `/* PUSH DI */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--__1DI);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 6):`,
-              comment: `/* PUSH ES */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--__1ES);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 14):`,
-              comment: `/* PUSH CS */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--__1CS);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 22):`,
-              comment: `/* PUSH SS */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--__1SS);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 30):`,
-              comment: `/* PUSH DS */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--__1DS);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 156):`,
-              comment: `/* PUSHF */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--__1flags);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 170):`,
-              comment: `/* STOSB */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--AL);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 171):`,
-              comment: `/* STOSW lo */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--AL);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 164):`,
-              comment: `/* MOVSB */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--_strSrcByte);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 165):`,
-              comment: `/* MOVSW lo */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--_strSrcByte);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 199):`,
-              comment: `/* MOV r/m16, imm16 → mem lo */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--immByte);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 198):`,
-              comment: `/* MOV r/m8, imm8 → mem */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--immByte);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 135):`,
-              comment: `/* XCHG r/m16 → mem */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--regVal16);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 134):`,
-              comment: `/* XCHG r/m8 → mem */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--regVal8);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 143):`,
-              comment: `/* POP r/m16 → mem */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--read2(calc(var(--__1SS) * 16 + var(--__1SP)));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 230):`,
-              comment: `/* OUT 0x3C9: DAC byte (6-bit) */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--and(--lowerBytes(var(--__1AX), 8), 63);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 238):`,
-              comment: `/* OUT DX=0x3C9: DAC byte (6-bit) */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--and(--lowerBytes(var(--__1AX), 8), 63);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 204):`,
-              comment: `/* INT 3 push FLAGS */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--__1flags);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 206):`,
-              comment: `/* INTO push FLAGS */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--__1flags);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 254):`,
-              comment: `/* Group FE INC/DEC r/m8 → mem */`,
-              folded: true,
-              children: [
+              { kind: 'block', code: `/* interrupt frame: CS at SS:SP-4 (TF trap / hardware IRQ) */` },
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--_tf: 1):`,
+                children: [
+                { kind: 'value', code: `calc(calc(var(--__1SS) * 16) + --lowerBytes(calc(var(--__1SP) - 4 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--_irqActive: 1):`,
+                children: [
+                { kind: 'value', code: `calc(calc(var(--__1SS) * 16) + --lowerBytes(calc(var(--__1SP) - 4 + 65536), 16));` },
+                ],
+              },
+              { kind: 'block', code: `/* ModR/M memory destination (--ea; -1 when mod=3 targets a register) */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 1):`,
+                comment: `/* ADD r/m16, reg16 → mem hi */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--reg: 0):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) + 1), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) - 1 + 256), 8)` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--ea) + 1)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 247):`,
-              comment: `/* Group F7 NEG/NOT → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 17):`,
+                comment: `/* ADC r/m16, reg16 → mem hi */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--reg: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `calc(0 - var(--rmVal16) + 65536);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 2):`,
-                  children: [
-                  { kind: 'value', code: `--not(var(--rmVal16));` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `0` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--ea) + 1)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 246):`,
-              comment: `/* Group F6 NEG/NOT → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 25):`,
+                comment: `/* SBB r/m16, reg16 → mem hi */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--reg: 3):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `--lowerBytes(calc(0 - var(--rmVal8) + 256), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 2):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(--not(var(--rmVal8)), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `0` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--ea) + 1)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 128):`,
-              comment: `/* Group 80 r/m8,imm8 → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 41):`,
+                comment: `/* SUB r/m16, reg16 → mem hi */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--reg: 0):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) + var(--immByte)), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 1):`,
-                  children: [
-                  { kind: 'value', code: `--or8(var(--rmVal8), var(--immByte));` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 2):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) + var(--immByte) + var(--_cf)), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 3):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) - var(--immByte) - var(--_cf) + 256), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 4):`,
-                  children: [
-                  { kind: 'value', code: `--and8(var(--rmVal8), var(--immByte));` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 5):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) - var(--immByte) + 256), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 6):`,
-                  children: [
-                  { kind: 'value', code: `--xor8(var(--rmVal8), var(--immByte));` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `0` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--ea) + 1)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 130):`,
-              comment: `/* Group 82 r/m8,imm8 → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 129):`,
+                comment: `/* Group 81 r/m16,imm16 → mem hi */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--reg: 0):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) + var(--immByte)), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 1):`,
-                  children: [
-                  { kind: 'value', code: `--or8(var(--rmVal8), var(--immByte));` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 2):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) + var(--immByte) + var(--_cf)), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 3):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) - var(--immByte) - var(--_cf) + 256), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 4):`,
-                  children: [
-                  { kind: 'value', code: `--and8(var(--rmVal8), var(--immByte));` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 5):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) - var(--immByte) + 256), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 6):`,
-                  children: [
-                  { kind: 'value', code: `--xor8(var(--rmVal8), var(--immByte));` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `0` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 7):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--ea) + 1)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 129):`,
-              comment: `/* Group 81 r/m16,imm16 → mem lo */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 131):`,
+                comment: `/* Group 83 → mem hi */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--reg: 0):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--rmVal16) + var(--immWord)), 16), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 1):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(--or(var(--rmVal16), var(--immWord)), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 2):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--rmVal16) + var(--immWord) + var(--_cf)), 16), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 3):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--rmVal16) - var(--immWord) - var(--_cf) + 65536), 16), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 4):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(--and(var(--rmVal16), var(--immWord)), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 5):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--rmVal16) - var(--immWord) + 65536), 16), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 6):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(--xor(var(--rmVal16), var(--immWord)), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `0` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 7):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--ea) + 1)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 131):`,
-              comment: `/* Group 83 → mem lo */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 199):`,
+                comment: `/* MOV r/m16, imm16 → mem hi */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--reg: 0):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--rmVal16) + calc(var(--immByte) + --bit(var(--immByte), 7) * 65280)), 16), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 1):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(--or(var(--rmVal16), calc(var(--immByte) + --bit(var(--immByte), 7) * 65280)), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 2):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--rmVal16) + calc(var(--immByte) + --bit(var(--immByte), 7) * 65280) + var(--_cf)), 16), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 3):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--rmVal16) - calc(var(--immByte) + --bit(var(--immByte), 7) * 65280) - var(--_cf) + 65536), 16), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 4):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(--and(var(--rmVal16), calc(var(--immByte) + --bit(var(--immByte), 7) * 65280)), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 5):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(var(--rmVal16) - calc(var(--immByte) + --bit(var(--immByte), 7) * 65280) + 65536), 16), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 6):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(--xor(var(--rmVal16), calc(var(--immByte) + --bit(var(--immByte), 7) * 65280)), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `0` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--ea) + 1)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 255):`,
-              comment: `/* Group FF mem/push */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 211):`,
+                comment: `/* Shift D3 → mem hi */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--reg: 0):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `calc(var(--rmVal16) + 1);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 1):`,
-                  children: [
-                  { kind: 'value', code: `calc(var(--rmVal16) - 1 + 65536);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 2):`,
-                  children: [
-                  { kind: 'value', code: `calc(var(--__1IP) + var(--prefixLen) + 2 + var(--modrmExtra));` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 3):`,
-                  children: [
-                  { kind: 'value', code: `var(--__1CS);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 6):`,
-                  children: [
-                  { kind: 'value', code: `var(--rmVal16);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `0` },
+                  {
+                    kind: 'branch',
+                    code: `style(--mod: 3):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--ea) + 1)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 209):`,
-              comment: `/* Shift D1 → mem */`,
-              folded: true,
-              children: [
+              { kind: 'block', code: `/* direct-address MOV: accumulator to [imm16] */` },
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 163):`,
+                comment: `/* MOV [mem], AX hi */`,
+                children: [
+                { kind: 'value', code: `calc(var(--directSeg) + var(--q1) + var(--q2) * 256 + 1);` },
+                ],
+              },
+              { kind: 'block', code: `/* string stores to ES:DI */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 165):`,
+                comment: `/* MOVSW hi */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--reg: 4):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `calc(var(--rmVal16) * 2);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 5):`,
-                  children: [
-                  { kind: 'value', code: `round(down, var(--rmVal16) / 2);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 7):`,
-                  children: [
-                  { kind: 'value', code: `calc(round(down, var(--rmVal16) / 2) + --bit(var(--rmVal16), 15) * 32768);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 0):`,
-                  children: [
-                  { kind: 'value', code: `calc(var(--rmVal16) * 2 + --bit(var(--rmVal16), 15));` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 1):`,
-                  children: [
-                  { kind: 'value', code: `calc(round(down, var(--rmVal16) / 2) + --bit(var(--rmVal16), 0) * 32768);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 2):`,
-                  children: [
-                  { kind: 'value', code: `calc(var(--rmVal16) * 2 + var(--_cf));` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 3):`,
-                  children: [
-                  { kind: 'value', code: `calc(round(down, var(--rmVal16) / 2) + var(--_cf) * 32768);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `0` },
+                  {
+                    kind: 'branch',
+                    code: `style(--hasREP: 1) and style(--_repActive: 0):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--__1ES) * 16 + var(--__1DI) + 1)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 208):`,
-              comment: `/* Shift D0 → mem */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 171):`,
+                comment: `/* STOSW hi */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--reg: 0):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) * 2 + --bit(var(--rmVal8), 7)), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 1):`,
-                  children: [
-                  { kind: 'value', code: `calc(round(down, var(--rmVal8) / 2) + --bit(var(--rmVal8), 0) * 128);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 2):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) * 2 + var(--_cf)), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 3):`,
-                  children: [
-                  { kind: 'value', code: `calc(round(down, var(--rmVal8) / 2) + var(--_cf) * 128);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 4):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(calc(var(--rmVal8) * 2), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 5):`,
-                  children: [
-                  { kind: 'value', code: `round(down, var(--rmVal8) / 2);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 7):`,
-                  children: [
-                  { kind: 'value', code: `calc(round(down, var(--rmVal8) / 2) + --bit(var(--rmVal8), 7) * 128);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `0` },
+                  {
+                    kind: 'branch',
+                    code: `style(--hasREP: 1) and style(--_repActive: 0):`,
+                    children: [
+                    { kind: 'value', code: `-1;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--__1ES) * 16 + var(--__1DI) + 1)` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 211):`,
-              comment: `/* Shift D3 → mem lo */`,
-              folded: true,
-              children: [
+              { kind: 'block', code: `/* stack pushes */` },
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 84):`,
+                comment: `/* PUSH SP hi */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 1 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 104):`,
+                comment: `/* PUSH imm16 hi */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 1 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 106):`,
+                comment: `/* PUSH imm8 sx hi */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 1 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 154):`,
+                comment: `/* CALL far push IP */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 4 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 204):`,
+                comment: `/* INT 3 push CS */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 4 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 205):`,
+                comment: `/* INT push CS */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 4 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 206):`,
+                comment: `/* INTO push CS */`,
+                children: [
+                { kind: 'value', code: `calc(--bit(var(--__1flags), 11) * (calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 4 + 65536), 16))) + (1 - --bit(var(--__1flags), 11)) * (-1));` },
+                ],
+              },
+              { kind: 'block', code: `/* group opcodes: destination picked by the /reg field */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 255):`,
+                comment: `/* Group FF CALL FAR push IP */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--reg: 4):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `--lowerBytes(--lowerBytes(round(nearest, calc(var(--rmVal16) * var(--_pow2CL))), 16), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 5):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(round(down, var(--rmVal16) / max(1, var(--_pow2CL))), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 7):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(calc(round(down, var(--rmVal16) / max(1, var(--_pow2CL))) + --bit(var(--rmVal16), 15) * max(0, calc(65535 - round(down, 65535 / max(1, var(--_pow2CL)))))), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 0):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(round(nearest, var(--rmVal16) * var(--_pow2CL)) + round(down, var(--rmVal16) / max(1, var(--_pow2inv16)))), 16), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 1):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(--lowerBytes(calc(round(down, var(--rmVal16) / max(1, var(--_pow2CL))) + round(nearest, var(--rmVal16) * var(--_pow2inv16))), 16), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `0` },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 3):`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 4 + 65536), 16));` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `-1` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 210):`,
-              comment: `/* Shift D2 → mem */`,
-              folded: true,
-              children: [
+              { kind: 'block', code: `/* OUT side-effects: VGA DAC / CGA palette shadow registers */` },
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 230):`,
+                comment: `/* OUT 0x3D9: CGA palette mode register */`,
+                folded: true,
                 children: [
                 {
-                  kind: 'branch',
-                  code: `style(--reg: 4):`,
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
                   children: [
-                  { kind: 'value', code: `--lowerBytes(round(nearest, calc(var(--rmVal8) * var(--_pow2CL))), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 5):`,
-                  children: [
-                  { kind: 'value', code: `round(down, var(--rmVal8) / max(1, var(--_pow2CL)));` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 7):`,
-                  children: [
-                  { kind: 'value', code: `calc(round(down, var(--rmVal8) / max(1, var(--_pow2CL))) + --bit(var(--rmVal8), 7) * max(0, calc(255 - round(down, 255 / max(1, var(--_pow2CL))))));` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 0):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(calc(round(nearest, var(--rmVal8) * var(--_pow2CL)) + round(down, var(--rmVal8) / max(1, var(--_pow2inv8)))), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 1):`,
-                  children: [
-                  { kind: 'value', code: `--lowerBytes(calc(round(down, var(--rmVal8) / max(1, var(--_pow2CL))) + round(nearest, var(--rmVal8) * var(--_pow2inv8))), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `0` },
+                  {
+                    kind: 'branch',
+                    code: `style(--q1: 985):`,
+                    children: [
+                    { kind: 'value', code: `1267;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `-1` },
+                    ],
+                  },
                   ],
                 },
                 ],
               },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 238):`,
+                comment: `/* OUT DX=0x3D9: CGA palette mode register */`,
+                folded: true,
+                children: [
+                {
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
+                  children: [
+                  {
+                    kind: 'branch',
+                    code: `style(--__1DX: 985):`,
+                    children: [
+                    { kind: 'value', code: `1267;` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `-1` },
+                    ],
+                  },
+                  ],
+                },
+                ],
+              },
+              { kind: 'block', code: `/* any other opcode: slot idle this tick */` },
+              {
+                kind: 'branch',
+                code: `else:`,
+                children: [
+                { kind: 'value', code: `-1` },
+                ],
+              },
               ],
             },
+            ],
+          },
+          {
+            kind: 'decl',
+            code: `--memVal1:`,
+            folded: true,
+            children: [
             {
-              kind: 'branch',
-              code: `style(--opcode: 104):`,
-              comment: `/* PUSH imm16 lo */`,
-              folded: true,
+              kind: 'if',
+              code: `if(`,
+              trailer: `);`,
               children: [
-              { kind: 'value', code: `var(--q1);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 106):`,
-              comment: `/* PUSH imm8 sx lo */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--q1);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `else:`,
-              children: [
-              { kind: 'value', code: `0` },
+              { kind: 'block', code: `/* interrupt frame: CS at SS:SP-4 (TF trap / hardware IRQ) */` },
+              {
+                kind: 'branch',
+                code: `style(--_tf: 1):`,
+                children: [
+                { kind: 'value', code: `var(--__1CS);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--_irqActive: 1):`,
+                children: [
+                { kind: 'value', code: `var(--__1CS);` },
+                ],
+              },
+              { kind: 'block', code: `/* ModR/M memory destination (--ea; -1 when mod=3 targets a register) */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 1):`,
+                comment: `/* ADD r/m16, reg16 → mem hi */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--rmVal16) + var(--regVal16)), 16), 8);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 17):`,
+                comment: `/* ADC r/m16, reg16 → mem hi */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--rmVal16) + var(--regVal16) + var(--_cf)), 16), 8);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 25):`,
+                comment: `/* SBB r/m16, reg16 → mem hi */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--rmVal16) - var(--regVal16) - var(--_cf) + 65536), 16), 8);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 41):`,
+                comment: `/* SUB r/m16, reg16 → mem hi */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--rmVal16) - var(--regVal16) + 65536), 16), 8);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 129):`,
+                comment: `/* Group 81 r/m16,imm16 → mem hi */`,
+                folded: true,
+                children: [
+                {
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
+                  children: [
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 0):`,
+                    children: [
+                    { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--rmVal16) + var(--immWord)), 16), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 1):`,
+                    children: [
+                    { kind: 'value', code: `--rightShift(--or(var(--rmVal16), var(--immWord)), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 2):`,
+                    children: [
+                    { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--rmVal16) + var(--immWord) + var(--_cf)), 16), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 3):`,
+                    children: [
+                    { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--rmVal16) - var(--immWord) - var(--_cf) + 65536), 16), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 4):`,
+                    children: [
+                    { kind: 'value', code: `--rightShift(--and(var(--rmVal16), var(--immWord)), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 5):`,
+                    children: [
+                    { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--rmVal16) - var(--immWord) + 65536), 16), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 6):`,
+                    children: [
+                    { kind: 'value', code: `--rightShift(--xor(var(--rmVal16), var(--immWord)), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `0` },
+                    ],
+                  },
+                  ],
+                },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 131):`,
+                comment: `/* Group 83 → mem hi */`,
+                folded: true,
+                children: [
+                {
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
+                  children: [
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 0):`,
+                    children: [
+                    { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--rmVal16) + calc(var(--immByte) + --bit(var(--immByte), 7) * 65280)), 16), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 1):`,
+                    children: [
+                    { kind: 'value', code: `--rightShift(--or(var(--rmVal16), calc(var(--immByte) + --bit(var(--immByte), 7) * 65280)), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 2):`,
+                    children: [
+                    { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--rmVal16) + calc(var(--immByte) + --bit(var(--immByte), 7) * 65280) + var(--_cf)), 16), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 3):`,
+                    children: [
+                    { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--rmVal16) - calc(var(--immByte) + --bit(var(--immByte), 7) * 65280) - var(--_cf) + 65536), 16), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 4):`,
+                    children: [
+                    { kind: 'value', code: `--rightShift(--and(var(--rmVal16), calc(var(--immByte) + --bit(var(--immByte), 7) * 65280)), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 5):`,
+                    children: [
+                    { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--rmVal16) - calc(var(--immByte) + --bit(var(--immByte), 7) * 65280) + 65536), 16), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 6):`,
+                    children: [
+                    { kind: 'value', code: `--rightShift(--xor(var(--rmVal16), calc(var(--immByte) + --bit(var(--immByte), 7) * 65280)), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `0` },
+                    ],
+                  },
+                  ],
+                },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 199):`,
+                comment: `/* MOV r/m16, imm16 → mem hi */`,
+                folded: true,
+                children: [
+                { kind: 'value', code: `--rightShift(var(--immWord), 8);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 211):`,
+                comment: `/* Shift D3 → mem hi */`,
+                folded: true,
+                children: [
+                {
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
+                  children: [
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 4):`,
+                    children: [
+                    { kind: 'value', code: `--rightShift(--lowerBytes(round(nearest, calc(var(--rmVal16) * var(--_pow2CL))), 16), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 5):`,
+                    children: [
+                    { kind: 'value', code: `--rightShift(round(down, var(--rmVal16) / max(1, var(--_pow2CL))), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 7):`,
+                    children: [
+                    { kind: 'value', code: `--rightShift(calc(round(down, var(--rmVal16) / max(1, var(--_pow2CL))) + --bit(var(--rmVal16), 15) * max(0, calc(65535 - round(down, 65535 / max(1, var(--_pow2CL)))))), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 0):`,
+                    children: [
+                    { kind: 'value', code: `--rightShift(--lowerBytes(calc(round(nearest, var(--rmVal16) * var(--_pow2CL)) + round(down, var(--rmVal16) / max(1, var(--_pow2inv16)))), 16), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 1):`,
+                    children: [
+                    { kind: 'value', code: `--rightShift(--lowerBytes(calc(round(down, var(--rmVal16) / max(1, var(--_pow2CL))) + round(nearest, var(--rmVal16) * var(--_pow2inv16))), 16), 8);` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `0` },
+                    ],
+                  },
+                  ],
+                },
+                ],
+              },
+              { kind: 'block', code: `/* direct-address MOV: accumulator to [imm16] */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 163):`,
+                comment: `/* MOV [mem], AX hi */`,
+                children: [
+                { kind: 'value', code: `var(--AH);` },
+                ],
+              },
+              { kind: 'block', code: `/* string stores to ES:DI */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 165):`,
+                comment: `/* MOVSW hi */`,
+                children: [
+                { kind: 'value', code: `var(--_strSrcHiByte);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 171):`,
+                comment: `/* STOSW hi */`,
+                children: [
+                { kind: 'value', code: `var(--AH);` },
+                ],
+              },
+              { kind: 'block', code: `/* stack pushes */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 84):`,
+                comment: `/* PUSH SP hi */`,
+                children: [
+                { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--__1SP) - 2 + 65536), 16), 8);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 104):`,
+                comment: `/* PUSH imm16 hi */`,
+                children: [
+                { kind: 'value', code: `var(--q2);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 106):`,
+                comment: `/* PUSH imm8 sx hi */`,
+                children: [
+                { kind: 'value', code: `calc(--bit(var(--q1), 7) * 255);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 154):`,
+                comment: `/* CALL far push IP */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1IP) + 5);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 204):`,
+                comment: `/* INT 3 push CS */`,
+                children: [
+                { kind: 'value', code: `var(--__1CS);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 205):`,
+                comment: `/* INT push CS */`,
+                children: [
+                { kind: 'value', code: `var(--__1CS);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 206):`,
+                comment: `/* INTO push CS */`,
+                children: [
+                { kind: 'value', code: `var(--__1CS);` },
+                ],
+              },
+              { kind: 'block', code: `/* group opcodes: destination picked by the /reg field */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 255):`,
+                comment: `/* Group FF CALL FAR push IP */`,
+                folded: true,
+                children: [
+                {
+                  kind: 'if',
+                  code: `if(`,
+                  trailer: `);`,
+                  children: [
+                  {
+                    kind: 'branch',
+                    code: `style(--reg: 3):`,
+                    children: [
+                    { kind: 'value', code: `calc(var(--__1IP) + var(--prefixLen) + 2 + var(--modrmExtra));` },
+                    ],
+                  },
+                  {
+                    kind: 'branch',
+                    code: `else:`,
+                    children: [
+                    { kind: 'value', code: `0` },
+                    ],
+                  },
+                  ],
+                },
+                ],
+              },
+              { kind: 'block', code: `/* OUT side-effects: VGA DAC / CGA palette shadow registers */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 230):`,
+                comment: `/* OUT 0x3D9: CGA palette mode register */`,
+                children: [
+                { kind: 'value', code: `--lowerBytes(var(--__1AX), 8);` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 238):`,
+                comment: `/* OUT DX=0x3D9: CGA palette mode register */`,
+                children: [
+                { kind: 'value', code: `--lowerBytes(var(--__1AX), 8);` },
+                ],
+              },
+              { kind: 'block', code: `/* slot idle: value unused (addr is -1) */` },
+              {
+                kind: 'branch',
+                code: `else:`,
+                children: [
+                { kind: 'value', code: `0` },
+                ],
+              },
               ],
             },
             ],
@@ -29211,497 +29727,132 @@ export const CPU_TREE = [
           ],
         },
         {
-          kind: 'decl',
-          code: `--memAddr1:`,
+          kind: 'section',
+          label: "slot 2",
+          code: `/* --- slot 2 --- */`,
           folded: true,
           children: [
+          { kind: 'block', code: `/* used only by the INT family: the third frame word */` },
           {
-            kind: 'if',
-            code: `if(`,
-            trailer: `);`,
+            kind: 'decl',
+            code: `--memAddr2:`,
+            folded: true,
             children: [
             {
-              kind: 'branch',
-              code: `style(--_tf: 1):`,
+              kind: 'if',
+              code: `if(`,
+              trailer: `);`,
               children: [
-              { kind: 'value', code: `calc(calc(var(--__1SS) * 16) + --lowerBytes(calc(var(--__1SP) - 4 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--_irqActive: 1):`,
-              children: [
-              { kind: 'value', code: `calc(calc(var(--__1SS) * 16) + --lowerBytes(calc(var(--__1SP) - 4 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 163):`,
-              comment: `/* MOV [mem], AX hi */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--directSeg) + var(--q1) + var(--q2) * 256 + 1);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 1):`,
-              comment: `/* ADD r/m16, reg16 → mem hi */`,
-              folded: true,
-              children: [
+              { kind: 'block', code: `/* interrupt frame: IP at SS:SP-6 (TF trap / hardware IRQ) */` },
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--_tf: 1):`,
                 children: [
-                {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
-                  children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `calc(var(--ea) + 1)` },
-                  ],
-                },
+                { kind: 'value', code: `calc(calc(var(--__1SS) * 16) + --lowerBytes(calc(var(--__1SP) - 6 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--_irqActive: 1):`,
+                children: [
+                { kind: 'value', code: `calc(calc(var(--__1SS) * 16) + --lowerBytes(calc(var(--__1SP) - 6 + 65536), 16));` },
+                ],
+              },
+              { kind: 'block', code: `/* stack pushes */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 204):`,
+                comment: `/* INT 3 push IP */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 6 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 205):`,
+                comment: `/* INT push IP */`,
+                children: [
+                { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 6 + 65536), 16));` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 206):`,
+                comment: `/* INTO push IP */`,
+                children: [
+                { kind: 'value', code: `calc(--bit(var(--__1flags), 11) * (calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 6 + 65536), 16))) + (1 - --bit(var(--__1flags), 11)) * (-1));` },
+                ],
+              },
+              { kind: 'block', code: `/* any other opcode: slot idle this tick */` },
+              {
+                kind: 'branch',
+                code: `else:`,
+                children: [
+                { kind: 'value', code: `-1` },
                 ],
               },
               ],
             },
+            ],
+          },
+          {
+            kind: 'decl',
+            code: `--memVal2:`,
+            folded: true,
+            children: [
             {
-              kind: 'branch',
-              code: `style(--opcode: 17):`,
-              comment: `/* ADC r/m16, reg16 → mem hi */`,
-              folded: true,
+              kind: 'if',
+              code: `if(`,
+              trailer: `);`,
               children: [
+              { kind: 'block', code: `/* interrupt frame: IP at SS:SP-6 (TF trap / hardware IRQ) */` },
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--_tf: 1):`,
                 children: [
-                {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
-                  children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `calc(var(--ea) + 1)` },
-                  ],
-                },
+                { kind: 'value', code: `var(--__1IP);` },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 25):`,
-              comment: `/* SBB r/m16, reg16 → mem hi */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--_irqActive: 1):`,
                 children: [
-                {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
-                  children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `calc(var(--ea) + 1)` },
-                  ],
-                },
+                { kind: 'value', code: `var(--__1IP);` },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 41):`,
-              comment: `/* SUB r/m16, reg16 → mem hi */`,
-              folded: true,
-              children: [
+              { kind: 'block', code: `/* stack pushes */` },
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 204):`,
+                comment: `/* INT 3 push IP */`,
                 children: [
-                {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
-                  children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `calc(var(--ea) + 1)` },
-                  ],
-                },
+                { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 205):`,
-              comment: `/* INT push CS */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 4 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 154):`,
-              comment: `/* CALL far push IP */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 4 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 84):`,
-              comment: `/* PUSH SP hi */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 1 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 171):`,
-              comment: `/* STOSW hi */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 205):`,
+                comment: `/* INT push IP */`,
                 children: [
-                {
-                  kind: 'branch',
-                  code: `style(--hasREP: 1) and style(--_repActive: 0):`,
-                  children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `calc(var(--__1ES) * 16 + var(--__1DI) + 1)` },
-                  ],
-                },
+                { kind: 'value', code: `calc(var(--__1IP) + 2);` },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 165):`,
-              comment: `/* MOVSW hi */`,
-              folded: true,
-              children: [
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--opcode: 206):`,
+                comment: `/* INTO push IP */`,
                 children: [
-                {
-                  kind: 'branch',
-                  code: `style(--hasREP: 1) and style(--_repActive: 0):`,
-                  children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `calc(var(--__1ES) * 16 + var(--__1DI) + 1)` },
-                  ],
-                },
+                { kind: 'value', code: `calc(var(--__1IP) + 1);` },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 199):`,
-              comment: `/* MOV r/m16, imm16 → mem hi */`,
-              folded: true,
-              children: [
+              { kind: 'block', code: `/* slot idle: value unused (addr is -1) */` },
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `else:`,
                 children: [
-                {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
-                  children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `calc(var(--ea) + 1)` },
-                  ],
-                },
+                { kind: 'value', code: `0` },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 230):`,
-              comment: `/* OUT 0x3D9: CGA palette mode register */`,
-              folded: true,
-              children: [
-              {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
-                children: [
-                {
-                  kind: 'branch',
-                  code: `style(--q1: 985):`,
-                  children: [
-                  { kind: 'value', code: `1267;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `-1` },
-                  ],
-                },
-                ],
-              },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 238):`,
-              comment: `/* OUT DX=0x3D9: CGA palette mode register */`,
-              folded: true,
-              children: [
-              {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
-                children: [
-                {
-                  kind: 'branch',
-                  code: `style(--__1DX: 985):`,
-                  children: [
-                  { kind: 'value', code: `1267;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `-1` },
-                  ],
-                },
-                ],
-              },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 204):`,
-              comment: `/* INT 3 push CS */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 4 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 206):`,
-              comment: `/* INTO push CS */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(--bit(var(--__1flags), 11) * (calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 4 + 65536), 16))) + (1 - --bit(var(--__1flags), 11)) * (-1));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 129):`,
-              comment: `/* Group 81 r/m16,imm16 → mem hi */`,
-              folded: true,
-              children: [
-              {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
-                children: [
-                {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
-                  children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 7):`,
-                  children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `calc(var(--ea) + 1)` },
-                  ],
-                },
-                ],
-              },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 131):`,
-              comment: `/* Group 83 → mem hi */`,
-              folded: true,
-              children: [
-              {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
-                children: [
-                {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
-                  children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 7):`,
-                  children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `calc(var(--ea) + 1)` },
-                  ],
-                },
-                ],
-              },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 255):`,
-              comment: `/* Group FF CALL FAR push IP */`,
-              folded: true,
-              children: [
-              {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
-                children: [
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 3):`,
-                  children: [
-                  { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 4 + 65536), 16));` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `-1` },
-                  ],
-                },
-                ],
-              },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 211):`,
-              comment: `/* Shift D3 → mem hi */`,
-              folded: true,
-              children: [
-              {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
-                children: [
-                {
-                  kind: 'branch',
-                  code: `style(--mod: 3):`,
-                  children: [
-                  { kind: 'value', code: `-1;` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `calc(var(--ea) + 1)` },
-                  ],
-                },
-                ],
-              },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 104):`,
-              comment: `/* PUSH imm16 hi */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 1 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 106):`,
-              comment: `/* PUSH imm8 sx hi */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 1 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `else:`,
-              children: [
-              { kind: 'value', code: `-1` },
               ],
             },
             ],
@@ -29709,1466 +29860,1073 @@ export const CPU_TREE = [
           ],
         },
         {
-          kind: 'decl',
-          code: `--memVal1:`,
+          kind: 'section',
+          label: "write gates",
+          code: `/* --- write gates --- */`,
           folded: true,
           children: [
+          { kind: 'block', code: `/* Slot-live gates — skip per-byte memory write checks when no slot fires this tick. */` },
+          { kind: 'block', code: `/* Rows mirror the slot dispatches above: same opcodes, same order. */` },
           {
-            kind: 'if',
-            code: `if(`,
-            trailer: `);`,
+            kind: 'decl',
+            code: `--_slot0Live:`,
+            folded: true,
             children: [
             {
-              kind: 'branch',
-              code: `style(--_tf: 1):`,
+              kind: 'if',
+              code: `if(`,
+              trailer: `);`,
               children: [
-              { kind: 'value', code: `var(--__1CS);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--_irqActive: 1):`,
-              children: [
-              { kind: 'value', code: `var(--__1CS);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 163):`,
-              comment: `/* MOV [mem], AX hi */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--AH);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 1):`,
-              comment: `/* ADD r/m16, reg16 → mem hi */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--rmVal16) + var(--regVal16)), 16), 8);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 17):`,
-              comment: `/* ADC r/m16, reg16 → mem hi */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--rmVal16) + var(--regVal16) + var(--_cf)), 16), 8);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 25):`,
-              comment: `/* SBB r/m16, reg16 → mem hi */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--rmVal16) - var(--regVal16) - var(--_cf) + 65536), 16), 8);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 41):`,
-              comment: `/* SUB r/m16, reg16 → mem hi */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--rmVal16) - var(--regVal16) + 65536), 16), 8);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 205):`,
-              comment: `/* INT push CS */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--__1CS);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 154):`,
-              comment: `/* CALL far push IP */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(var(--__1IP) + 5);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 84):`,
-              comment: `/* PUSH SP hi */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--__1SP) - 2 + 65536), 16), 8);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 171):`,
-              comment: `/* STOSW hi */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--AH);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 165):`,
-              comment: `/* MOVSW hi */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--_strSrcHiByte);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 199):`,
-              comment: `/* MOV r/m16, imm16 → mem hi */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--rightShift(var(--immWord), 8);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 230):`,
-              comment: `/* OUT 0x3D9: CGA palette mode register */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--lowerBytes(var(--__1AX), 8);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 238):`,
-              comment: `/* OUT DX=0x3D9: CGA palette mode register */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `--lowerBytes(var(--__1AX), 8);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 204):`,
-              comment: `/* INT 3 push CS */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--__1CS);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 206):`,
-              comment: `/* INTO push CS */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--__1CS);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 129):`,
-              comment: `/* Group 81 r/m16,imm16 → mem hi */`,
-              folded: true,
-              children: [
+              { kind: 'block', code: `/* TF trap and IRQ delivery push FLAGS/CS/IP — all slots live */` },
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--_tf: 1):`,
                 children: [
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 0):`,
-                  children: [
-                  { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--rmVal16) + var(--immWord)), 16), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 1):`,
-                  children: [
-                  { kind: 'value', code: `--rightShift(--or(var(--rmVal16), var(--immWord)), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 2):`,
-                  children: [
-                  { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--rmVal16) + var(--immWord) + var(--_cf)), 16), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 3):`,
-                  children: [
-                  { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--rmVal16) - var(--immWord) - var(--_cf) + 65536), 16), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 4):`,
-                  children: [
-                  { kind: 'value', code: `--rightShift(--and(var(--rmVal16), var(--immWord)), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 5):`,
-                  children: [
-                  { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--rmVal16) - var(--immWord) + 65536), 16), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 6):`,
-                  children: [
-                  { kind: 'value', code: `--rightShift(--xor(var(--rmVal16), var(--immWord)), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `0` },
-                  ],
-                },
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--_irqActive: 1):`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              { kind: 'block', code: `/* ModR/M memory writes */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 0):`,
+                comment: `/* ADD r/m8, reg8 → mem */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 1):`,
+                comment: `/* ADD r/m16, reg16 → mem lo */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 8):`,
+                comment: `/* OR r/m8, reg8 → mem */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 9):`,
+                comment: `/* OR r/m16, reg16 → mem */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 16):`,
+                comment: `/* ADC r/m8, reg8 → mem */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 17):`,
+                comment: `/* ADC r/m16, reg16 → mem lo */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 24):`,
+                comment: `/* SBB r/m8, reg8 → mem */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 25):`,
+                comment: `/* SBB r/m16, reg16 → mem lo */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 32):`,
+                comment: `/* AND r/m8, reg8 → mem */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 33):`,
+                comment: `/* AND r/m16, reg16 → mem */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 40):`,
+                comment: `/* SUB r/m8, reg8 → mem */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 41):`,
+                comment: `/* SUB r/m16, reg16 → mem lo */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 48):`,
+                comment: `/* XOR r/m8, reg8 → mem */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 49):`,
+                comment: `/* XOR r/m16, reg16 → mem */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 128):`,
+                comment: `/* Group 80 r/m8,imm8 → mem */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 129):`,
+                comment: `/* Group 81 r/m16,imm16 → mem lo */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 130):`,
+                comment: `/* Group 82 r/m8,imm8 → mem */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 131):`,
+                comment: `/* Group 83 → mem lo */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 134):`,
+                comment: `/* XCHG r/m8 → mem */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 135):`,
+                comment: `/* XCHG r/m16 → mem */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 136):`,
+                comment: `/* MOV r/m8(mem), reg8 */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 137):`,
+                comment: `/* MOV r/m16(mem), reg16 low byte */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 140):`,
+                comment: `/* MOV r/m16, segreg → mem */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 143):`,
+                comment: `/* POP r/m16 → mem */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 198):`,
+                comment: `/* MOV r/m8, imm8 → mem */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 199):`,
+                comment: `/* MOV r/m16, imm16 → mem lo */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 208):`,
+                comment: `/* Shift D0 → mem */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 209):`,
+                comment: `/* Shift D1 → mem */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 210):`,
+                comment: `/* Shift D2 → mem */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 211):`,
+                comment: `/* Shift D3 → mem lo */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 246):`,
+                comment: `/* Group F6 NEG/NOT → mem */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 247):`,
+                comment: `/* Group F7 NEG/NOT → mem */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 254):`,
+                comment: `/* Group FE INC/DEC r/m8 → mem */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              { kind: 'block', code: `/* direct-address MOVs */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 162):`,
+                comment: `/* MOV [mem], AL */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 163):`,
+                comment: `/* MOV [mem], AX lo */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              { kind: 'block', code: `/* string stores */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 164):`,
+                comment: `/* MOVSB */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 165):`,
+                comment: `/* MOVSW lo */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 170):`,
+                comment: `/* STOSB */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 171):`,
+                comment: `/* STOSW lo */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              { kind: 'block', code: `/* stack pushes */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 6):`,
+                comment: `/* PUSH ES */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 14):`,
+                comment: `/* PUSH CS */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 22):`,
+                comment: `/* PUSH SS */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 30):`,
+                comment: `/* PUSH DS */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 80):`,
+                comment: `/* PUSH AX */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 81):`,
+                comment: `/* PUSH CX */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 82):`,
+                comment: `/* PUSH DX */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 83):`,
+                comment: `/* PUSH BX */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 84):`,
+                comment: `/* PUSH SP lo */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 85):`,
+                comment: `/* PUSH BP */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 86):`,
+                comment: `/* PUSH SI */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 87):`,
+                comment: `/* PUSH DI */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 104):`,
+                comment: `/* PUSH imm16 lo */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 106):`,
+                comment: `/* PUSH imm8 sx lo */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 154):`,
+                comment: `/* CALL far push CS */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 156):`,
+                comment: `/* PUSHF */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 204):`,
+                comment: `/* INT 3 push FLAGS */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 205):`,
+                comment: `/* INT push FLAGS */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 206):`,
+                comment: `/* INTO push FLAGS */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 232):`,
+                comment: `/* CALL near push ret */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              { kind: 'block', code: `/* group opcodes */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 255):`,
+                comment: `/* Group FF mem/push */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              { kind: 'block', code: `/* OUT side-effects */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 230):`,
+                comment: `/* OUT 0x3C9: DAC byte (6-bit) */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 238):`,
+                comment: `/* OUT DX=0x3C9: DAC byte (6-bit) */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `else:`,
+                children: [
+                { kind: 'value', code: `0` },
                 ],
               },
               ],
             },
+            ],
+          },
+          {
+            kind: 'decl',
+            code: `--_slot1Live:`,
+            folded: true,
+            children: [
             {
-              kind: 'branch',
-              code: `style(--opcode: 131):`,
-              comment: `/* Group 83 → mem hi */`,
-              folded: true,
+              kind: 'if',
+              code: `if(`,
+              trailer: `);`,
               children: [
+              { kind: 'block', code: `/* TF trap and IRQ delivery push FLAGS/CS/IP — all slots live */` },
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--_tf: 1):`,
                 children: [
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 0):`,
-                  children: [
-                  { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--rmVal16) + calc(var(--immByte) + --bit(var(--immByte), 7) * 65280)), 16), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 1):`,
-                  children: [
-                  { kind: 'value', code: `--rightShift(--or(var(--rmVal16), calc(var(--immByte) + --bit(var(--immByte), 7) * 65280)), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 2):`,
-                  children: [
-                  { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--rmVal16) + calc(var(--immByte) + --bit(var(--immByte), 7) * 65280) + var(--_cf)), 16), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 3):`,
-                  children: [
-                  { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--rmVal16) - calc(var(--immByte) + --bit(var(--immByte), 7) * 65280) - var(--_cf) + 65536), 16), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 4):`,
-                  children: [
-                  { kind: 'value', code: `--rightShift(--and(var(--rmVal16), calc(var(--immByte) + --bit(var(--immByte), 7) * 65280)), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 5):`,
-                  children: [
-                  { kind: 'value', code: `--rightShift(--lowerBytes(calc(var(--rmVal16) - calc(var(--immByte) + --bit(var(--immByte), 7) * 65280) + 65536), 16), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 6):`,
-                  children: [
-                  { kind: 'value', code: `--rightShift(--xor(var(--rmVal16), calc(var(--immByte) + --bit(var(--immByte), 7) * 65280)), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `0` },
-                  ],
-                },
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--_irqActive: 1):`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              { kind: 'block', code: `/* ModR/M memory writes */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 1):`,
+                comment: `/* ADD r/m16, reg16 → mem hi */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 17):`,
+                comment: `/* ADC r/m16, reg16 → mem hi */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 25):`,
+                comment: `/* SBB r/m16, reg16 → mem hi */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 41):`,
+                comment: `/* SUB r/m16, reg16 → mem hi */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 129):`,
+                comment: `/* Group 81 r/m16,imm16 → mem hi */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 131):`,
+                comment: `/* Group 83 → mem hi */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 199):`,
+                comment: `/* MOV r/m16, imm16 → mem hi */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 211):`,
+                comment: `/* Shift D3 → mem hi */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              { kind: 'block', code: `/* direct-address MOVs */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 163):`,
+                comment: `/* MOV [mem], AX hi */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              { kind: 'block', code: `/* string stores */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 165):`,
+                comment: `/* MOVSW hi */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 171):`,
+                comment: `/* STOSW hi */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              { kind: 'block', code: `/* stack pushes */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 84):`,
+                comment: `/* PUSH SP hi */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 104):`,
+                comment: `/* PUSH imm16 hi */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 106):`,
+                comment: `/* PUSH imm8 sx hi */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 154):`,
+                comment: `/* CALL far push IP */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 204):`,
+                comment: `/* INT 3 push CS */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 205):`,
+                comment: `/* INT push CS */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 206):`,
+                comment: `/* INTO push CS */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              { kind: 'block', code: `/* group opcodes */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 255):`,
+                comment: `/* Group FF CALL FAR push IP */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              { kind: 'block', code: `/* OUT side-effects */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 230):`,
+                comment: `/* OUT 0x3D9: CGA palette mode register */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 238):`,
+                comment: `/* OUT DX=0x3D9: CGA palette mode register */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `else:`,
+                children: [
+                { kind: 'value', code: `0` },
                 ],
               },
               ],
             },
+            ],
+          },
+          {
+            kind: 'decl',
+            code: `--_slot2Live:`,
+            folded: true,
+            children: [
             {
-              kind: 'branch',
-              code: `style(--opcode: 255):`,
-              comment: `/* Group FF CALL FAR push IP */`,
-              folded: true,
+              kind: 'if',
+              code: `if(`,
+              trailer: `);`,
               children: [
+              { kind: 'block', code: `/* TF trap and IRQ delivery push FLAGS/CS/IP — all slots live */` },
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--_tf: 1):`,
                 children: [
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 3):`,
-                  children: [
-                  { kind: 'value', code: `calc(var(--__1IP) + var(--prefixLen) + 2 + var(--modrmExtra));` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `0` },
-                  ],
-                },
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--_irqActive: 1):`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              { kind: 'block', code: `/* stack pushes */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 204):`,
+                comment: `/* INT 3 push IP */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 205):`,
+                comment: `/* INT push IP */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 206):`,
+                comment: `/* INTO push IP */`,
+                children: [
+                { kind: 'value', code: `1;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `else:`,
+                children: [
+                { kind: 'value', code: `0` },
                 ],
               },
               ],
             },
+            ],
+          },
+          { kind: 'block', code: `/* Global write-width gate — 1=byte, 2=word (addr+1 carries hi byte). Shared across slots. */` },
+          {
+            kind: 'decl',
+            code: `--_writeWidth:`,
+            folded: true,
+            children: [
             {
-              kind: 'branch',
-              code: `style(--opcode: 211):`,
-              comment: `/* Shift D3 → mem hi */`,
-              folded: true,
+              kind: 'if',
+              code: `if(`,
+              trailer: `);`,
               children: [
+              { kind: 'block', code: `/* interrupt frame pushes are words */` },
               {
-                kind: 'if',
-                code: `if(`,
-                trailer: `);`,
+                kind: 'branch',
+                code: `style(--_tf: 1):`,
                 children: [
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 4):`,
-                  children: [
-                  { kind: 'value', code: `--rightShift(--lowerBytes(round(nearest, calc(var(--rmVal16) * var(--_pow2CL))), 16), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 5):`,
-                  children: [
-                  { kind: 'value', code: `--rightShift(round(down, var(--rmVal16) / max(1, var(--_pow2CL))), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 7):`,
-                  children: [
-                  { kind: 'value', code: `--rightShift(calc(round(down, var(--rmVal16) / max(1, var(--_pow2CL))) + --bit(var(--rmVal16), 15) * max(0, calc(65535 - round(down, 65535 / max(1, var(--_pow2CL)))))), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 0):`,
-                  children: [
-                  { kind: 'value', code: `--rightShift(--lowerBytes(calc(round(nearest, var(--rmVal16) * var(--_pow2CL)) + round(down, var(--rmVal16) / max(1, var(--_pow2inv16)))), 16), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `style(--reg: 1):`,
-                  children: [
-                  { kind: 'value', code: `--rightShift(--lowerBytes(calc(round(down, var(--rmVal16) / max(1, var(--_pow2CL))) + round(nearest, var(--rmVal16) * var(--_pow2inv16))), 16), 8);` },
-                  ],
-                },
-                {
-                  kind: 'branch',
-                  code: `else:`,
-                  children: [
-                  { kind: 'value', code: `0` },
-                  ],
-                },
+                { kind: 'value', code: `2;` },
                 ],
               },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 104):`,
-              comment: `/* PUSH imm16 hi */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `var(--q2);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 106):`,
-              comment: `/* PUSH imm8 sx hi */`,
-              folded: true,
-              children: [
-              { kind: 'value', code: `calc(--bit(var(--q1), 7) * 255);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `else:`,
-              children: [
-              { kind: 'value', code: `0` },
-              ],
-            },
-            ],
-          },
-          ],
-        },
-        {
-          kind: 'decl',
-          code: `--memAddr2:`,
-          folded: true,
-          children: [
-          {
-            kind: 'if',
-            code: `if(`,
-            trailer: `);`,
-            children: [
-            {
-              kind: 'branch',
-              code: `style(--_tf: 1):`,
-              children: [
-              { kind: 'value', code: `calc(calc(var(--__1SS) * 16) + --lowerBytes(calc(var(--__1SP) - 6 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--_irqActive: 1):`,
-              children: [
-              { kind: 'value', code: `calc(calc(var(--__1SS) * 16) + --lowerBytes(calc(var(--__1SP) - 6 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 205):`,
-              comment: `/* INT push IP */`,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 6 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 204):`,
-              comment: `/* INT 3 push IP */`,
-              children: [
-              { kind: 'value', code: `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 6 + 65536), 16));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 206):`,
-              comment: `/* INTO push IP */`,
-              children: [
-              { kind: 'value', code: `calc(--bit(var(--__1flags), 11) * (calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - 6 + 65536), 16))) + (1 - --bit(var(--__1flags), 11)) * (-1));` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `else:`,
-              children: [
-              { kind: 'value', code: `-1` },
-              ],
-            },
-            ],
-          },
-          ],
-        },
-        {
-          kind: 'decl',
-          code: `--memVal2:`,
-          folded: true,
-          children: [
-          {
-            kind: 'if',
-            code: `if(`,
-            trailer: `);`,
-            children: [
-            {
-              kind: 'branch',
-              code: `style(--_tf: 1):`,
-              children: [
-              { kind: 'value', code: `var(--__1IP);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--_irqActive: 1):`,
-              children: [
-              { kind: 'value', code: `var(--__1IP);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 205):`,
-              comment: `/* INT push IP */`,
-              children: [
-              { kind: 'value', code: `calc(var(--__1IP) + 2);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 204):`,
-              comment: `/* INT 3 push IP */`,
-              children: [
-              { kind: 'value', code: `calc(var(--__1IP) + 1);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 206):`,
-              comment: `/* INTO push IP */`,
-              children: [
-              { kind: 'value', code: `calc(var(--__1IP) + 1);` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `else:`,
-              children: [
-              { kind: 'value', code: `0` },
-              ],
-            },
-            ],
-          },
-          ],
-        },
-        { kind: 'block', code: `/* Slot-live gates — skip per-byte memory write checks when no slot fires this tick */` },
-        {
-          kind: 'decl',
-          code: `--_slot0Live:`,
-          folded: true,
-          children: [
-          {
-            kind: 'if',
-            code: `if(`,
-            trailer: `);`,
-            children: [
-            {
-              kind: 'branch',
-              code: `style(--_tf: 1):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--_irqActive: 1):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 137):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 136):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 140):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 162):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 163):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 1):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 0):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 9):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 8):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 17):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 16):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 25):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 24):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 33):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 32):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 41):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 40):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 49):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 48):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 232):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 205):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 154):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 80):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 81):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 82):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 83):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 84):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 85):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 86):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 87):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 6):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 14):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 22):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 30):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 156):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 170):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 171):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 164):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 165):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 199):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 198):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 135):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 134):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 143):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 230):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 238):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 204):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 206):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 254):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 247):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 246):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 128):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 130):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 129):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 131):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 255):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 209):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 208):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 211):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 210):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 104):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 106):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `else:`,
-              children: [
-              { kind: 'value', code: `0` },
-              ],
-            },
-            ],
-          },
-          ],
-        },
-        {
-          kind: 'decl',
-          code: `--_slot1Live:`,
-          folded: true,
-          children: [
-          {
-            kind: 'if',
-            code: `if(`,
-            trailer: `);`,
-            children: [
-            {
-              kind: 'branch',
-              code: `style(--_tf: 1):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--_irqActive: 1):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 163):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 1):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 17):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 25):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 41):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 205):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 154):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 84):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 171):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 165):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 199):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 230):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 238):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 204):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 206):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 129):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 131):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 255):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 211):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 104):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 106):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `else:`,
-              children: [
-              { kind: 'value', code: `0` },
-              ],
-            },
-            ],
-          },
-          ],
-        },
-        {
-          kind: 'decl',
-          code: `--_slot2Live:`,
-          folded: true,
-          children: [
-          {
-            kind: 'if',
-            code: `if(`,
-            trailer: `);`,
-            children: [
-            {
-              kind: 'branch',
-              code: `style(--_tf: 1):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--_irqActive: 1):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 205):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 204):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 206):`,
-              children: [
-              { kind: 'value', code: `1;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `else:`,
-              children: [
-              { kind: 'value', code: `0` },
-              ],
-            },
-            ],
-          },
-          ],
-        },
-        { kind: 'block', code: `/* Global write-width gate — 1=byte, 2=word (addr+1 carries hi byte). Shared across slots. */` },
-        {
-          kind: 'decl',
-          code: `--_writeWidth:`,
-          folded: true,
-          children: [
-          {
-            kind: 'if',
-            code: `if(`,
-            trailer: `);`,
-            children: [
-            {
-              kind: 'branch',
-              code: `style(--_tf: 1):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--_irqActive: 1):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 6):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 9):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 14):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 22):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 30):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 33):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 49):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 80):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 81):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 82):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 83):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 85):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 86):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 87):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 135):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 137):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 140):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 143):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 154):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 156):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 204):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 205):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 206):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 209):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 232):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 247):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `style(--opcode: 255):`,
-              children: [
-              { kind: 'value', code: `2;` },
-              ],
-            },
-            {
-              kind: 'branch',
-              code: `else:`,
-              children: [
-              { kind: 'value', code: `1` },
+              {
+                kind: 'branch',
+                code: `style(--_irqActive: 1):`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              { kind: 'block', code: `/* word-writing opcodes */` },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 6):`,
+                comment: `/* PUSH ES */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 9):`,
+                comment: `/* OR r/m16, reg16 → mem */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 14):`,
+                comment: `/* PUSH CS */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 22):`,
+                comment: `/* PUSH SS */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 30):`,
+                comment: `/* PUSH DS */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 33):`,
+                comment: `/* AND r/m16, reg16 → mem */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 49):`,
+                comment: `/* XOR r/m16, reg16 → mem */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 80):`,
+                comment: `/* PUSH AX */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 81):`,
+                comment: `/* PUSH CX */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 82):`,
+                comment: `/* PUSH DX */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 83):`,
+                comment: `/* PUSH BX */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 85):`,
+                comment: `/* PUSH BP */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 86):`,
+                comment: `/* PUSH SI */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 87):`,
+                comment: `/* PUSH DI */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 135):`,
+                comment: `/* XCHG r/m16 → mem */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 137):`,
+                comment: `/* MOV r/m16(mem), reg16 low byte */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 140):`,
+                comment: `/* MOV r/m16, segreg → mem */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 143):`,
+                comment: `/* POP r/m16 → mem */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 154):`,
+                comment: `/* CALL far push CS */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 156):`,
+                comment: `/* PUSHF */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 204):`,
+                comment: `/* INT 3 push FLAGS */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 205):`,
+                comment: `/* INT push FLAGS */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 206):`,
+                comment: `/* INTO push FLAGS */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 209):`,
+                comment: `/* Shift D1 → mem */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 232):`,
+                comment: `/* CALL near push ret */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 247):`,
+                comment: `/* Group F7 NEG/NOT → mem */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              {
+                kind: 'branch',
+                code: `style(--opcode: 255):`,
+                comment: `/* Group FF mem/push */`,
+                children: [
+                { kind: 'value', code: `2;` },
+                ],
+              },
+              { kind: 'block', code: `/* everything else writes single bytes */` },
+              {
+                kind: 'branch',
+                code: `else:`,
+                children: [
+                { kind: 'value', code: `1` },
+                ],
+              },
               ],
             },
             ],
@@ -31205,4 +30963,4 @@ export const CPU_TREE = [
 
 // Real measured size of the .cpu rule in the cabinet — shown in the
 // tree header ("CPU · N KB").
-export const CPU_TREE_META = { bytes: 264715 };
+export const CPU_TREE_META = { bytes: 278105 };

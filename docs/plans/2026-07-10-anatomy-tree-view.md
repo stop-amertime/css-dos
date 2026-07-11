@@ -104,11 +104,10 @@ mirror, so almost all the real work is IN KILN.
      decode → registers → writes). If the file reads badly, fix the
      file — the tree inherits it.
    - **Even commenting density**: every region should be commented to a
-     comparable level. Register dispatches have a comment per opcode
-     row; MEMORY WRITE SLOTS currently launches into raw slot code with
-     nothing — that unevenness is a bug, not a style. Rows that differ
-     meaningfully get row comments; repetitive runs get a comment at
-     the run boundary instead.
+     comparable level. Rows that differ meaningfully get row comments;
+     repetitive runs get a comment at the run boundary instead. (The
+     canonical bug of this kind — MEMORY WRITE SLOTS launching into raw
+     slot code with nothing — was fixed 2026-07-11.)
    - **Run-delimiter comments in long lists**: where a list changes
      kind, or before an interesting tail (a lone `else` after N twins),
      plant a standalone comment — the renderer breaks pagination there
@@ -136,11 +135,15 @@ mirror, so almost all the real work is IN KILN.
 
 ## Running list
 
-- [ ] **Commenting-consistency pass over the .cpu tree** (owner,
-      2026-07-11): commenting level is uneven — register dispatches
-      comment every opcode row, but MEMORY WRITE SLOTS launches
-      straight into slot code with no comments at all. Bring every
-      region up to a comparable density (in Kiln).
+- [x] **Commenting-consistency pass over the .cpu tree** (owner,
+      2026-07-11): DONE same day on branch
+      `claude/kiln-refactor-comments-onxd1r` (LOGBOOK
+      2026-07-11-kiln-cpu-commenting-pass). MEMORY WRITE SLOTS got an
+      intro comment, `--- slot N ---` / `--- write gates ---`
+      sub-banners, rows regrouped by destination kind with
+      run-delimiter comments, and per-row comments on the gates.
+      Old-vs-new output proved equivalent (arm order only, distinct
+      --opcode keys, TF/IRQ pinned first); websmoke PASS.
 - [ ] Extraction recipes for the other 9 sections (util, chipset,
       keys, screen, decl, memr, memw, disk, clock). memr/memw/disk are
       the big ones — pure-streaming emitters, fakeable with tiny
@@ -150,8 +153,10 @@ mirror, so almost all the real work is IN KILN.
       the run-splitting shows the memory map's real shape.
 - [x] Calcite comment safety: verified 2026-07-11 — servo cssparser
       tokenizer drops comments before recognizers run (see principle 6).
-- [ ] Maybe: opcode-family comments inside register dispatches
-      (`/* string ops */`, ...) — tasteful, not mechanical.
+- [x] Opcode-family comments inside register dispatches: done with the
+      2026-07-11 commenting pass — 8086 opcode-map family boundaries
+      (`OPCODE_FAMILIES` in emit-css.mjs), only in dispatches ≥24 rows
+      so short lists stay unbroken.
 - [ ] Decided against for now: moving register `@property` emission
       adjacent to `.cpu` (would fragment the decl block + the site's
       file-map measurements). Revisit only if the owner asks.
