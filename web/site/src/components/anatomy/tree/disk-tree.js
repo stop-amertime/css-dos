@@ -20,7 +20,7 @@ export const DISK_TREE = [
         kind: 'decl',
         code: `result:`,
         children: [
-        { kind: 'if', code: `if(`, trailer: `);`, lazy: {"ref":"disk/000","count":422227} },
+        { kind: 'if', code: `if(`, trailer: `);`, lazy: {"ref":"disk/000","count":3} },
         ],
       },
       ],

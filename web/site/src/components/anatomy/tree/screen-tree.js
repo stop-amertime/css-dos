@@ -27,14 +27,37 @@ export const SCREEN_TREE = [
           kind: 'decl',
           code: `result:`,
           children: [
-          { kind: 'if', code: `if(`, trailer: `);`, lazy: {"ref":"screen/000","count":257} },
+          {
+            kind: 'if',
+            code: `if(`,
+            trailer: `);`,
+            children: [
+            { kind: 'run', count: 256, period: 2, templates: ["{\"kind\":\"branch\",\"code\":\"style(--idx: %%0%%):\",\"children\":[{\"kind\":\"value\",\"code\":\"rgb(round(mod(var(--__%%1%%mc%%2%%), %%3%%) * %%4%% / %%5%%) round(round(down, var(--__%%6%%mc%%7%%) / %%8%%) * %%9%% / %%10%%) round(mod(var(--__%%11%%mc%%12%%), %%13%%) * %%14%% / %%15%%));\"}]}","{\"kind\":\"branch\",\"code\":\"style(--idx: %%0%%):\",\"children\":[{\"kind\":\"value\",\"code\":\"rgb(round(round(down, var(--__%%1%%mc%%2%%) / %%3%%) * %%4%% / %%5%%) round(mod(var(--__%%6%%mc%%7%%), %%8%%) * %%9%% / %%10%%) round(round(down, var(--__%%11%%mc%%12%%) / %%13%%) * %%14%% / %%15%%));\"}]}"], cols: [[{"b":0,"s":2},{"c":1},{"b":524288,"s":3},{"c":256},{"c":255},{"c":63},{"c":1},{"b":524288,"s":3},{"c":256},{"c":255},{"c":63},{"c":1},{"b":524289,"s":3},{"c":256},{"c":255},{"c":63}],[{"b":1,"s":2},{"c":1},{"b":524289,"s":3},{"c":256},{"c":255},{"c":63},{"c":1},{"b":524290,"s":3},{"c":256},{"c":255},{"c":63},{"c":1},{"b":524290,"s":3},{"c":256},{"c":255},{"c":63}]] },
+            {
+              kind: 'branch',
+              code: `else:`,
+              children: [
+              { kind: 'value', code: `rgb(0 0 0)` },
+              ],
+            },
+            ],
+          },
           ],
         },
         ],
       },
       ],
     },
-    { kind: 'section', label: "pixel rules", code: `/* --- pixel rules --- */`, folded: true, boxed: true, lazy: {"ref":"screen/002","count":64000} },
+    {
+      kind: 'section',
+      label: "pixel rules",
+      code: `/* --- pixel rules --- */`,
+      folded: true,
+      boxed: true,
+      children: [
+      { kind: 'run', count: 64000, period: 2, templates: ["{\"kind\":\"decl\",\"code\":\".motherboard #p%%0%% {\",\"children\":[{\"kind\":\"decl\",\"code\":\"--ci:\",\"children\":[{\"kind\":\"value\",\"code\":\"mod(var(--__%%1%%mc%%2%%), %%3%%);\"}]},{\"kind\":\"block\",\"code\":\"background-color: --paletteRGB(var(--ci));\"}],\"trailer\":\"}\",\"folded\":true}","{\"kind\":\"decl\",\"code\":\".motherboard #p%%0%% {\",\"children\":[{\"kind\":\"decl\",\"code\":\"--ci:\",\"children\":[{\"kind\":\"value\",\"code\":\"round(down, var(--__%%1%%mc%%2%%) / %%3%%);\"}]},{\"kind\":\"block\",\"code\":\"background-color: --paletteRGB(var(--ci));\"}],\"trailer\":\"}\",\"folded\":true}"], cols: [[{"b":0,"s":2},{"c":1},{"b":327680,"s":1},{"c":256}],[{"b":1,"s":2},{"c":1},{"b":327680,"s":1},{"c":256}]] },
+      ],
+    },
     ],
   },
 ];

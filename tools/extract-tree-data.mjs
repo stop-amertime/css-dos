@@ -3,8 +3,8 @@
 // from a REAL cabinet, never hand-typed CSS. Builds carts/sokoban with the
 // real builder, slices the file into its ten sections (the same regions
 // the site's file carousel shows), and parses each into the tree node
-// model. Giant uniform runs ship a capped head per run plus a note row
-// with the remaining count (see capRuns).
+// model. Giant uniform runs compress losslessly into template + column
+// `run` nodes (see compressRuns) — ALL rows ship and page on the client.
 //
 // OUTPUT IS SPLIT FOR LAZY LOADING (progressive disclosure):
 //   web/site/src/components/anatomy/tree/<id>-tree.js   — the SKELETON: the
@@ -29,8 +29,9 @@
 //            ".motherboard {", "0%, 49.99% {". Children + `trailer` (its
 //            real closing text).
 //   if/branch/value  the dispatch AST (see parseIf).
-//   note     EDITORIAL truncation marker (not source text; excluded from
-//            round-trip): each capped run ends with the remaining count.
+//   run      lossless compression of a uniform stretch: template with
+//            %%N%% tokens + numeric columns; every row verified exact at
+//            generation time; expanded on demand client-side.
 // Nothing is re-nested or reordered at the DATA level — a node's `code` is
 // ONLY its own token. Display (one-lining, pagination) lives in
 // TreeAst.svelte.
@@ -614,44 +615,173 @@ function unfoldCeremony(node) {
 }
 
 // ---------------------------------------------------------------------------
-// The cap pass, PER RUN: within any child list, rows between two
-// run-delimiter comments cap at CAP_ROWS — the head ships, a `note` row
-// carries the remaining count, and the next run (the comment after it)
-// survives. This keeps the shape of a region visible (RAM head … bridge …
-// ROM head … window head) while a 655,000-arm dispatch ships kilobytes.
-const CAP_ROWS = 512;
+// Run compression — ALL rows ship, none truncated. A stretch of >= RUN_MIN
+// consecutive siblings whose serialized form is identical once digits are
+// masked becomes one `run` node: a template (digits replaced by %%N%%
+// tokens) plus one column per token. Columns that are constant store one
+// number; columns that are an exact linear sequence store {b, s}; anything
+// else stores the full value array. EVERY row is then re-expanded from the
+// spec and compared byte-for-byte against its source serialization — a
+// stretch that does not reproduce exactly stays as explicit rows. The
+// client expands rows on demand (web/site/.../tree/lazy.js expandRun), so
+// a 655,000-arm dispatch is fully pageable from a few-KB spec.
+const RUN_MIN = 16;
+// Masks may CYCLE (memr's arms alternate mod/round for even/odd bytes) —
+// a run carries `period` templates and rows use templates[i % period].
+const MAX_PERIOD = 4;
 
-function capRuns(node) {
-  for (const c of node.children ?? []) capRuns(c);
-  const kids = node.children ?? [];
-  if (kids.length <= CAP_ROWS) return;
-  const out = [];
-  let run = [];
-  let capped = 0;
-  const flushRun = () => {
-    if (run.length > CAP_ROWS) {
-      const dropped = run.length - CAP_ROWS;
-      capped += dropped;
-      for (const x of run.slice(0, CAP_ROWS)) out.push(x); // no spread — runs reach 600k+
-      out.push({ kind: 'note', text: `… ${dropped.toLocaleString('en-US')} more rows` });
-    } else {
-      for (const x of run) out.push(x);
+function colValue(col, i) {
+  if ('c' in col) return col.c;
+  if ('v' in col) return col.v[i];
+  return col.b + i * col.s;
+}
+
+function expandRunRowString(run, i) {
+  const cls = i % run.period;
+  const inClass = Math.floor(i / run.period);
+  return run.templates[cls].replace(/%%(\d+)%%/g, (_, c) => String(colValue(run.cols[cls][Number(c)], inClass)));
+}
+
+// Encode one class's column across its rows: constant, exact linear, or
+// explicit values (irregular columns ARE the content — memory images,
+// disk bytes — and ship in full).
+function encodeColumn(vals) {
+  if (vals.every((v) => v === vals[0])) return { c: vals[0] };
+  const step = vals[1] - vals[0];
+  if (vals.every((v, k) => v === vals[0] + k * step)) return { b: vals[0], s: step };
+  return { v: vals };
+}
+
+// Positions where a mostly-linear column breaks its dominant step. A
+// column that breaks everywhere is irregular (encode as values, no cuts).
+function linearCuts(vals) {
+  if (vals.length < 3) return [];
+  const diffs = [];
+  for (let i = 1; i < vals.length; i++) diffs.push(vals[i] - vals[i - 1]);
+  const freq = new Map();
+  for (const d of diffs) freq.set(d, (freq.get(d) ?? 0) + 1);
+  let dominant = diffs[0];
+  for (const [d, n] of freq) if (n > (freq.get(dominant) ?? 0)) dominant = d;
+  const cuts = [];
+  for (let i = 0; i < diffs.length; i++) if (diffs[i] !== dominant) cuts.push(i + 1);
+  if (cuts.length > vals.length / 8) return null; // irregular — no cuts
+  return cuts;
+}
+
+// Build run node(s) for `serialized` rows with detected period k. Cuts
+// (from zone gaps in mostly-linear columns) split the stretch into
+// segments; each segment >= RUN_MIN becomes a run, the rest stay explicit
+// (returned as null placeholders resolved by the caller).
+function buildRuns(serialized, k) {
+  const n = serialized.length;
+  const digitRows = [];
+  for (const sj of serialized) {
+    const digits = sj.match(/\d+/g) ?? [];
+    if (digits.some((d) => (d.length > 1 && d[0] === '0') || !Number.isSafeInteger(Number(d)))) return null;
+    digitRows.push(digits.map(Number));
+  }
+  const templates = [];
+  for (let cls = 0; cls < k; cls++) {
+    let t = 0;
+    templates.push(serialized[cls].replace(/\d+/g, () => `%%${t++}%%`));
+  }
+
+  const buildFor = (cuts) => {
+    const segments = [];
+    let prev = 0;
+    for (const cut of [...cuts, n]) {
+      if (cut > prev) segments.push([prev, cut]);
+      prev = cut;
     }
-    run = [];
+    const out = [];
+    for (const [from, to] of segments) {
+      const len = to - from;
+      if (len < RUN_MIN * Math.max(1, k / 2)) {
+        for (let i = from; i < to; i++) out.push({ explicit: serialized[i] });
+        continue;
+      }
+      const cols = [];
+      for (let cls = 0; cls < k; cls++) {
+        const classCols = [];
+        const nCols = digitRows[cls].length;
+        for (let c = 0; c < nCols; c++) {
+          const vals = [];
+          for (let i = from + cls; i < to; i += k) vals.push(digitRows[i][c]);
+          classCols.push(encodeColumn(vals));
+        }
+        cols.push(classCols);
+      }
+      const run = { kind: 'run', count: len, period: k, templates, cols };
+      let ok = true;
+      for (let i = 0; i < len && ok; i++) {
+        if (expandRunRowString(run, i) !== serialized[from + i]) ok = false;
+      }
+      if (ok) out.push({ run });
+      else for (let i = from; i < to; i++) out.push({ explicit: serialized[i] });
+    }
+    return out;
   };
-  for (const c of kids) {
-    if (c.kind === 'block' && (c.code ?? '').startsWith('/*')) {
-      flushRun();
-      out.push(c);
-    } else {
-      run.push(c);
+  const sizeOf = (pieces) => {
+    let total = 0;
+    for (const piece of pieces) {
+      total += piece.run ? JSON.stringify(piece.run).length : piece.explicit.length;
+    }
+    return total;
+  };
+
+  // Candidate A: cut at zone gaps (best when columns are linear between
+  // gaps). Candidate B: one whole-stretch run with value arrays (best when
+  // the data is irregular everywhere — floppy bytes, memory images —
+  // where cutting only fragments and duplicates templates). Keep smaller.
+  const cutSet = new Set();
+  for (let cls = 0; cls < k; cls++) {
+    const nCols = digitRows[cls].length;
+    for (let c = 0; c < nCols; c++) {
+      const vals = [];
+      for (let i = cls; i < n; i += k) vals.push(digitRows[i][c]);
+      const cuts = linearCuts(vals);
+      if (cuts == null) continue; // irregular column — full values, no cuts
+      for (const cut of cuts) cutSet.add(cut * k); // class-row index → row index
     }
   }
-  flushRun();
-  if (capped > 0) {
-    node.children = out;
-    node.capTotal = kids.length;
+  const withCuts = buildFor([...cutSet].sort((a, b) => a - b));
+  if (cutSet.size === 0) return withCuts;
+  const noCuts = buildFor([]);
+  return sizeOf(noCuts) <= sizeOf(withCuts) ? noCuts : withCuts;
+}
+
+function compressRuns(node) {
+  for (const c of node.children ?? []) compressRuns(c);
+  const kids = node.children ?? [];
+  if (kids.length < RUN_MIN) return;
+  // Serialize + mask every child once.
+  const ser = kids.map((c) => (c.kind === 'run' ? null : JSON.stringify(c)));
+  const masks = ser.map((sj) => (sj == null || sj.includes('%%') ? null : sj.replace(/\d+/g, '#')));
+  const out = [];
+  let i = 0;
+  while (i < kids.length) {
+    if (masks[i] == null) { out.push(kids[i]); i++; continue; }
+    // Longest periodic stretch from i, best k in 1..MAX_PERIOD.
+    let bestK = 1;
+    let bestLen = 1;
+    for (let k = 1; k <= MAX_PERIOD; k++) {
+      let j = i;
+      while (j < kids.length && masks[j] != null && masks[j] === masks[i + ((j - i) % k)]) j++;
+      const len = j - i;
+      if (len > bestLen + k - 1) { bestK = k; bestLen = len; } // prefer longer, cheapest k
+    }
+    if (bestLen < RUN_MIN) { out.push(kids[i]); i++; continue; }
+    // Trim to a whole number of periods so class templates stay aligned.
+    const len = bestLen - (bestLen % bestK);
+    const pieces = buildRuns(ser.slice(i, i + len), bestK);
+    if (pieces == null) {
+      for (let t = 0; t < len; t++) out.push(kids[i + t]);
+    } else {
+      for (const piece of pieces) out.push(piece.run ?? JSON.parse(piece.explicit));
+    }
+    i += len;
   }
+  node.children = out;
 }
 
 // ---------------------------------------------------------------------------
@@ -723,7 +853,7 @@ function externalize(node, writer) {
   const size = JSON.stringify(node.children).length;
   if (size <= limit) return;
   const { ref, count } = writer.writePages(node.children);
-  node.lazy = { ref, count: node.capTotal ?? count };
+  node.lazy = { ref, count };
   delete node.children;
 }
 
@@ -745,6 +875,12 @@ function serializeNode(node, indent) {
   if (node.folded != null) props.push(`folded: ${node.folded}`);
   if (node.boxed) props.push(`boxed: true`);
   if (node.lazy) props.push(`lazy: ${JSON.stringify(node.lazy)}`);
+  if (node.kind === 'run') {
+    props.push(`count: ${node.count}`);
+    props.push(`period: ${node.period}`);
+    props.push(`templates: ${JSON.stringify(node.templates)}`);
+    props.push(`cols: ${JSON.stringify(node.cols)}`);
+  }
   if (!node.children || node.children.length === 0) {
     return `${pad}{ ${props.join(', ')} }`;
   }
@@ -937,7 +1073,7 @@ function generate(ids) {
     // Top-level groups render boxed (one tinted pane per group).
     for (const n of root.children) if (n.kind === 'section') n.boxed = true;
     SANITY[id]?.([root]);
-    capRuns(root);
+    compressRuns(root);
     const writer = new ChunkWriter(id);
     externalize(root, writer);
     const chunkCount = writer.flush();

@@ -85,10 +85,14 @@ then how the pieces fit, then the wishlist.
   @property, @function, rules incl. nested one-liners and @keyframes
   percent blocks); comment-aware `splitTopLevel` / `matchParen` /
   `matchBrace`, `parseIf`, `assertRoundTrip` (still mandatory, per
-  region — yes, on the 171 MB one). Giant lists cap PER RUN
-  (CAP_ROWS=512 between run-delimiter comments; each capped run ends
-  with a plain "… N more rows" note) so committed chunks stay ~2 MB
-  and the memory-map shape survives. Parser is index-based where it
+  region — yes, on the 171 MB one). NOTHING is truncated (owner,
+  2026-07-11: "don't lie"): uniform stretches compress losslessly into
+  `run` nodes — `period` templates (%%N%% tokens) + per-token numeric
+  columns (constant / exact-linear / full array), every row re-expanded
+  and compared byte-exact at generation; the client materializes rows
+  on demand (lazy.js expandRun) and "(N more…)" pages to the true end.
+  Irregular columns (floppy bytes, memory-image inits) ship whole —
+  that is the content, ~15 MB total. Parser is index-based where it
   counts (no slice-per-row lookaheads, no spreads on 200k+ arrays).
   The cpu pane keeps its curated three-group layout. Regenerate:
   `node tools/extract-tree-data.mjs all` (~12 s build + ~70 s parse).

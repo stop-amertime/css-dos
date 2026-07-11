@@ -42,7 +42,7 @@ export const CLOCK_TREE = [
       folded: true,
       boxed: true,
       children: [
-      { kind: 'decl', code: `.motherboard {`, trailer: `}`, lazy: {"ref":"clock/000","count":368301} },
+      { kind: 'decl', code: `.motherboard {`, trailer: `}`, lazy: {"ref":"clock/000","count":29258} },
       ],
     },
     {
@@ -57,28 +57,12 @@ export const CLOCK_TREE = [
         code: `@keyframes store {`,
         trailer: `}`,
         children: [
-        { kind: 'decl', code: `0%, 100% {`, trailer: `}`, lazy: {"ref":"clock/002","count":368296} },
+        { kind: 'decl', code: `0%, 100% {`, trailer: `}`, lazy: {"ref":"clock/063","count":29253} },
         ],
       },
       ],
     },
-    {
-      kind: 'section',
-      label: "execute keyframe",
-      code: `/* --- execute keyframe --- */`,
-      folded: true,
-      boxed: true,
-      children: [
-      {
-        kind: 'decl',
-        code: `@keyframes execute {`,
-        trailer: `}`,
-        children: [
-        { kind: 'decl', code: `0%, 100% {`, trailer: `}`, lazy: {"ref":"clock/004","count":368296} },
-        ],
-      },
-      ],
-    },
+    { kind: 'section', label: "execute keyframe", code: `/* --- execute keyframe --- */`, folded: true, boxed: true, lazy: {"ref":"clock/126","count":1} },
     {
       kind: 'section',
       label: "clock keyframes",

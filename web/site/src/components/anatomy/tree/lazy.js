@@ -7,6 +7,27 @@
 // The cache stores the promise (not the payload) so concurrent expands of
 // the same node share one request; a failed fetch is evicted so a retry
 // actually retries.
+// `run` nodes are losslessly compressed uniform stretches (see the tool):
+// `period` templates with %%N%% tokens (row i uses templates[i % period] —
+// memory arms alternate two shapes for even/odd bytes) plus one numeric
+// column per token — constant {c}, linear {b, s}, or explicit {v: [...]}.
+// expandRun(run, i) rebuilds row i's exact node; the generator verified
+// every row against the source, so expansion is reconstruction, not
+// approximation.
+function colValue(col, i) {
+  if ('c' in col) return col.c;
+  if ('v' in col) return col.v[i];
+  return col.b + i * col.s;
+}
+
+export function expandRun(run, i) {
+  const cls = i % run.period;
+  const inClass = Math.floor(i / run.period);
+  return JSON.parse(
+    run.templates[cls].replace(/%%(\d+)%%/g, (_, c) => String(colValue(run.cols[cls][Number(c)], inClass)))
+  );
+}
+
 const cache = new Map();
 
 export function fetchChunk(ref) {

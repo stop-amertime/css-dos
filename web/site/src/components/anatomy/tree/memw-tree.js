@@ -11,7 +11,17 @@ export const MEMW_TREE = [
     kind: 'root',
     children: [
     { kind: 'block', code: `/* ===== MEMORY WRITE RULES ===== */` },
-    { kind: 'decl', code: `.motherboard {`, trailer: `}`, lazy: {"ref":"memw/000","count":368257} },
+    {
+      kind: 'decl',
+      code: `.motherboard {`,
+      trailer: `}`,
+      children: [
+      { kind: 'block', code: `/* one write rule per cell: a 3-slot --applySlot cascade (slot 0 outermost, so it wins same-cell collisions). Idle slots short-circuit at their --_slotNLive gate. */` },
+      { kind: 'run', count: 359680, period: 1, templates: ["{\"kind\":\"decl\",\"code\":\"--mc%%0%%:\",\"children\":[{\"kind\":\"value\",\"code\":\"--applySlot(--applySlot(--applySlot(var(--__%%1%%mc%%2%%), var(--_slot%%3%%Live), calc(var(--memAddr%%4%%) - %%5%% * %%6%%), calc(var(--memAddr%%7%%) + %%8%% - %%9%% * %%10%%), var(--memVal%%11%%), var(--_writeWidth)), var(--_slot%%12%%Live), calc(var(--memAddr%%13%%) - %%14%% * %%15%%), calc(var(--memAddr%%16%%) + %%17%% - %%18%% * %%19%%), var(--memVal%%20%%), var(--_writeWidth)), var(--_slot%%21%%Live), calc(var(--memAddr%%22%%) - %%23%% * %%24%%), calc(var(--memAddr%%25%%) + %%26%% - %%27%% * %%28%%), var(--memVal%%29%%), var(--_writeWidth));\"}],\"folded\":true}"], cols: [[{"b":0,"s":1},{"c":1},{"b":0,"s":1},{"c":2},{"c":2},{"b":0,"s":1},{"c":2},{"c":2},{"c":1},{"b":0,"s":1},{"c":2},{"c":2},{"c":1},{"c":1},{"b":0,"s":1},{"c":2},{"c":1},{"c":1},{"b":0,"s":1},{"c":2},{"c":1},{"c":0},{"c":0},{"b":0,"s":1},{"c":2},{"c":0},{"c":1},{"b":0,"s":1},{"c":2},{"c":0}]] },
+      { kind: 'run', count: 8192, period: 1, templates: ["{\"kind\":\"decl\",\"code\":\"--mc%%0%%:\",\"children\":[{\"kind\":\"value\",\"code\":\"--applySlot(--applySlot(--applySlot(var(--__%%1%%mc%%2%%), var(--_slot%%3%%Live), calc(var(--memAddr%%4%%) - %%5%% * %%6%%), calc(var(--memAddr%%7%%) + %%8%% - %%9%% * %%10%%), var(--memVal%%11%%), var(--_writeWidth)), var(--_slot%%12%%Live), calc(var(--memAddr%%13%%) - %%14%% * %%15%%), calc(var(--memAddr%%16%%) + %%17%% - %%18%% * %%19%%), var(--memVal%%20%%), var(--_writeWidth)), var(--_slot%%21%%Live), calc(var(--memAddr%%22%%) - %%23%% * %%24%%), calc(var(--memAddr%%25%%) + %%26%% - %%27%% * %%28%%), var(--memVal%%29%%), var(--_writeWidth));\"}],\"folded\":true}"], cols: [[{"b":376832,"s":1},{"c":1},{"b":376832,"s":1},{"c":2},{"c":2},{"b":376832,"s":1},{"c":2},{"c":2},{"c":1},{"b":376832,"s":1},{"c":2},{"c":2},{"c":1},{"c":1},{"b":376832,"s":1},{"c":2},{"c":1},{"c":1},{"b":376832,"s":1},{"c":2},{"c":1},{"c":0},{"c":0},{"b":376832,"s":1},{"c":2},{"c":0},{"c":1},{"b":376832,"s":1},{"c":2},{"c":0}]] },
+      { kind: 'run', count: 384, period: 1, templates: ["{\"kind\":\"decl\",\"code\":\"--mc%%0%%:\",\"children\":[{\"kind\":\"value\",\"code\":\"--applySlot(--applySlot(--applySlot(var(--__%%1%%mc%%2%%), var(--_slot%%3%%Live), calc(var(--memAddr%%4%%) - %%5%% * %%6%%), calc(var(--memAddr%%7%%) + %%8%% - %%9%% * %%10%%), var(--memVal%%11%%), var(--_writeWidth)), var(--_slot%%12%%Live), calc(var(--memAddr%%13%%) - %%14%% * %%15%%), calc(var(--memAddr%%16%%) + %%17%% - %%18%% * %%19%%), var(--memVal%%20%%), var(--_writeWidth)), var(--_slot%%21%%Live), calc(var(--memAddr%%22%%) - %%23%% * %%24%%), calc(var(--memAddr%%25%%) + %%26%% - %%27%% * %%28%%), var(--memVal%%29%%), var(--_writeWidth));\"}],\"folded\":true}"], cols: [[{"b":524288,"s":1},{"c":1},{"b":524288,"s":1},{"c":2},{"c":2},{"b":524288,"s":1},{"c":2},{"c":2},{"c":1},{"b":524288,"s":1},{"c":2},{"c":2},{"c":1},{"c":1},{"b":524288,"s":1},{"c":2},{"c":1},{"c":1},{"b":524288,"s":1},{"c":2},{"c":1},{"c":0},{"c":0},{"b":524288,"s":1},{"c":2},{"c":0},{"c":1},{"b":524288,"s":1},{"c":2},{"c":0}]] },
+      ],
+    },
     ],
   },
 ];

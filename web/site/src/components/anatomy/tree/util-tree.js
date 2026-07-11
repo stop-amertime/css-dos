@@ -11,9 +11,9 @@ export const UTIL_TREE = [
     kind: 'root',
     children: [
     { kind: 'block', code: `/* ===== UTILITY FUNCTIONS ===== */` },
-    { kind: 'section', label: "BIT & BYTE HELPERS", code: `/* ===== BIT & BYTE HELPERS ===== */`, folded: true, boxed: true, lazy: {"ref":"util/006","count":7} },
-    { kind: 'section', label: "INSTRUCTION DECODE", code: `/* ===== INSTRUCTION DECODE ===== */`, folded: true, boxed: true, lazy: {"ref":"util/007","count":16} },
-    { kind: 'section', label: "FLAG COMPUTATION", code: `/* ===== FLAG COMPUTATION ===== */`, folded: true, boxed: true, lazy: {"ref":"util/017","count":15} },
+    { kind: 'section', label: "BIT & BYTE HELPERS", code: `/* ===== BIT & BYTE HELPERS ===== */`, folded: true, boxed: true, lazy: {"ref":"util/004","count":7} },
+    { kind: 'section', label: "INSTRUCTION DECODE", code: `/* ===== INSTRUCTION DECODE ===== */`, folded: true, boxed: true, lazy: {"ref":"util/005","count":16} },
+    { kind: 'section', label: "FLAG COMPUTATION", code: `/* ===== FLAG COMPUTATION ===== */`, folded: true, boxed: true, lazy: {"ref":"util/014","count":15} },
     ],
   },
 ];

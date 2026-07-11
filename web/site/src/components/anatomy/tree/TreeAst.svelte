@@ -29,7 +29,7 @@
   //     designed to skip code inside a <pre>.
   import Prism from '../../../lib/prism.js';
   import TreeAst from './TreeAst.svelte'; // self-import: Svelte 5 deprecates <svelte:self>
-  import { fetchChunk } from './lazy.js';
+  import { fetchChunk, expandRun } from './lazy.js';
 
   // forceSplit: set by the PARENT when this node sits in a run of
   // same-shaped siblings where any member exceeds the line budget —
@@ -59,6 +59,23 @@
   // root: the invisible container each section skeleton exports — no line
   // of its own, children render directly (with runs/pagination/lazy).
   const isRoot = $derived(node.kind === 'root');
+  // run: a losslessly compressed uniform stretch (template + columns; see
+  // lazy.js expandRun). Rows materialize on demand; the count is the real
+  // row count, so pagination reaches every row without truncation.
+  const isRun = $derived(node.kind === 'run');
+  let runShownCount = $state(PAGE);
+  const runRows = $derived(
+    isRun
+      ? Array.from({ length: Math.min(runShownCount, node.count) }, (_, i) => expandRun(node, i))
+      : []
+  );
+  // Rows in a run are same-shaped by construction: measure row 0 once and
+  // wrap them all together (run uniformity).
+  const runRowsForced = $derived.by(() => {
+    if (!isRun || node.count === 0) return false;
+    const c = chainParts(expandRun(node, 0));
+    return c != null && c.text.length > budget;
+  });
   const children = $derived(fetched ?? node.children ?? []);
 
   async function loadFirst() {
@@ -129,7 +146,7 @@
   // Comment length doesn't count toward the budget — comments render as
   // their own right-aligned flex column, not inline after the code.
   const chain = $derived(
-    (isSection || isBlock || isNote || isRoot) ? null
+    (isSection || isBlock || isNote || isRoot || isRun) ? null
       : chainParts({ ...node, children })
   );
   const oneLine = $derived(
@@ -273,7 +290,7 @@
       <TreeAst node={child} forceSplit={runForcedKeys[i].has(maskKey(child))} budget={budget - 2} />
     {/each}
     {@const netMore = i === runs.length - 1 && nextPage ? nextPage.remaining : 0}
-    {@const hidden = run.items.length - shownFor(i) + netMore}
+    {@const hidden = run.items.slice(shownFor(i)).reduce((n, c) => n + (c.kind === 'run' ? c.count : 1), 0) + netMore}
     {#if hidden > 0 && loadState !== 'error'}
       <div class="tree-more">
         <button onclick={() => more(i, run)}>({hidden.toLocaleString('en-US')} more&hellip;)</button>
@@ -289,7 +306,16 @@
   {/if}
 {/snippet}
 
-{#if isRoot}
+{#if isRun}
+  {#each runRows as row}
+    <TreeAst node={row} {budget} forceSplit={runRowsForced} />
+  {/each}
+  {#if runShownCount < node.count}
+    <div class="tree-more">
+      <button onclick={() => (runShownCount += PAGE)}>({(node.count - runShownCount).toLocaleString('en-US')} more&hellip;)</button>
+    </div>
+  {/if}
+{:else if isRoot}
   {@render childList()}
 {:else if isNote}
   <pre class="ast-line"><span class="tree-glyph" aria-hidden="true"></span><code class="ast-note">{node.text}</code></pre>
