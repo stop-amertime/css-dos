@@ -10,7 +10,6 @@ export const KEYS_TREE = [
   {
     kind: 'root',
     children: [
-    { kind: 'block', code: `/* ===== KEYBOARD ===== */` },
     { kind: 'decl', code: `.motherboard {`, trailer: `}`, lazy: {"ref":"keys/000","count":64} },
     ],
   },

@@ -20,7 +20,7 @@ export const GROUPS = [
   { id: 'chipset', label: 'Chipset',                         size: '16 KB',  c: '#ff5555' },
   { id: 'keys',    label: 'Keyboard & debug display',        size: '3.5 KB', c: '#55ffff' },
   { id: 'screen',  label: 'Screen',                          size: '7 MB',   c: '#00aaaa' },
-  { id: 'decl',    label: 'Memory — variable declarations',  size: '32 MB',  c: '#5555ff' },
+  { id: 'decl',    label: 'Variable declarations',           size: '32 MB',  c: '#5555ff' },
   { id: 'memr',    label: 'Memory — read formulas',          size: '44 MB',  c: '#2222cc' },
   { id: 'memw',    label: 'Memory — write formulas',         size: '171 MB', c: '#0000aa' },
   { id: 'disk',    label: 'Disk',                            size: '13 MB',  c: '#aa00aa' },

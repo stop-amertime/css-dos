@@ -10,7 +10,6 @@ export const CHIPSET_TREE = [
   {
     kind: 'root',
     children: [
-    { kind: 'block', code: `/* ===== CHIPSET ===== */` },
     {
       kind: 'decl',
       code: `.motherboard {`,

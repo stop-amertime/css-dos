@@ -7,8 +7,8 @@
 // Regenerate: node tools/extract-tree-data.mjs decl
 
 export const DECL_TREE = [
-  { kind: 'root', lazy: {"ref":"decl/000","count":54} },
+  { kind: 'root', lazy: {"ref":"decl/000","count":57} },
 ];
 
 // Real measured size of this region in the sokoban cabinet.
-export const DECL_TREE_META = { bytes: 32035235 };
+export const DECL_TREE_META = { bytes: 32035353 };

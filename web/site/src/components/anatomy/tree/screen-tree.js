@@ -10,7 +10,6 @@ export const SCREEN_TREE = [
   {
     kind: 'root',
     children: [
-    { kind: 'block', code: `/* ===== MODE 13h PIXEL PAINTER (raw player only) ===== */` },
     {
       kind: 'section',
       label: "palette function",

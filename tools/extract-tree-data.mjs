@@ -824,9 +824,12 @@ class ChunkWriter {
     if (cur.length) pages.push(cur);
     // Allocate refs first so each page can point at the next.
     const refs = pages.map(() => this.nextRef());
-    let remaining = children.length;
+    // `remaining` is WEIGHTED: a run node counts every row it compresses,
+    // so "(N more…)" totals stay honest before later pages download.
+    const weightOf = (c) => (c.kind === 'run' ? c.count : 1);
+    let remaining = children.reduce((n, c) => n + weightOf(c), 0);
     pages.forEach((page, k) => {
-      remaining -= page.length;
+      remaining -= page.reduce((n, c) => n + weightOf(c), 0);
       const payload = {
         nodes: page,
         next: k + 1 < pages.length ? { ref: refs[k + 1], remaining } : null,
@@ -980,100 +983,26 @@ const SANITY = {
 // ---------------------------------------------------------------------------
 // Generation.
 
-// The CPU pane keeps its shipped, owner-approved curated layout: the flag
-// @function cluster (file-wise part of the util region), the COMPLETE .cpu
-// rule, and the register @property blocks (file-wise part of decl) — three
-// boxed groups. Everything else shows its plain file region.
-function extractFunctionBlock(css, name) {
-  const marker = `@function --${name}(`;
-  const start = css.indexOf(marker);
-  if (start === -1) throw new Error(`@function --${name} not found`);
-  return css.slice(start, css.indexOf('\n}', start) + 2);
-}
-
-function extractPropertyBlock(css, name) {
-  const marker = `@property --${name} {`;
-  const start = css.indexOf(marker);
-  if (start === -1) throw new Error(`@property --${name} not found`);
-  return css.slice(start, css.indexOf('\n}', start) + 2);
-}
-
-const CPU_REGS = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI',
-                  'CS', 'DS', 'ES', 'SS', 'IP', 'flags'];
-
-// Per-banner display curation for the .cpu rule: 'label' = flat header
-// whose contents stay visible (no toggle). Everything else folds.
-const CPU_BANNER_STYLE = {
-  'unknown opcode flag': 'label',
-};
-
-function buildCpuNodes(css) {
-  // The whole .cpu rule, parsed with the same generic body parser.
-  const ruleStart = css.indexOf('.cpu {');
-  if (ruleStart === -1) throw new Error('.cpu rule not found');
-  const open = css.indexOf('{', ruleStart);
-  const close = matchBrace(css, open);
-  const inner = css.slice(open + 1, close);
-  const groups = parseBody(inner);
-  assertRoundTrip(groups, inner, 'cpu-rule');
-  carveRegion(groups);
-  const allSections = [];
-  const walkSections = (n) => {
-    if (n.kind === 'section') allSections.push(n);
-    for (const c of n.children ?? []) walkSections(c);
-  };
-  for (const g of groups) walkSections(g);
-  for (const s of allSections) {
-    if (CPU_BANNER_STYLE[s.label] === 'label') delete s.folded;
-  }
-
-  // The flag-arithmetic @function cluster — discovered by scanning the real
-  // file (not a hand-kept list): every @function whose name ends in
-  // Flags16/8, FlagsN16/8, or OF16/8, in file order.
-  const flagFnNames = [...css.matchAll(/@function --([\w-]+)\(/g)]
-    .map((m) => m[1])
-    .filter((n) => /(FlagsN?(8|16)|OF(8|16))$/.test(n));
-  if (flagFnNames.length < 30) {
-    throw new Error(`flag-function scan looks wrong: only found ${flagFnNames.length}`);
-  }
-
-  const bytes = close + 1 - ruleStart;
-  const nodes = [
-    {
-      kind: 'section', label: 'flag arithmetic helper functions',
-      folded: true, boxed: true,
-      children: flagFnNames.map((n) => ({ kind: 'block', code: extractFunctionBlock(css, n), folded: true })),
-    },
-    {
-      kind: 'section', label: '.cpu — registers and decoder',
-      folded: true, boxed: true,
-      children: groups,
-    },
-    {
-      kind: 'section', label: 'register declarations',
-      folded: true, boxed: true,
-      children: CPU_REGS.map((r) => ({ kind: 'block', code: extractPropertyBlock(css, r), folded: true })),
-    },
-  ];
-  return { nodes, bytes };
-}
-
 function generate(ids) {
   const css = readCabinet();
   const regions = sliceRegions(css);
   for (const id of ids) {
     const region = regions.get(id);
-    let nodes;
-    let bytes;
-    if (id === 'cpu') {
-      ({ nodes, bytes } = buildCpuNodes(css));
-    } else {
-      nodes = parseRegion(region);
-      assertRoundTrip(nodes, region, id);
-      carveRegion(nodes);
-      bytes = region.length;
-    }
+    const nodes = parseRegion(region);
+    assertRoundTrip(nodes, region, id);
+    carveRegion(nodes);
+    const bytes = region.length;
+    // The region opens with its own /* ===== BANNER ===== */ delimiter —
+    // the pane header renders that (title + byte size), so the raw
+    // comment would only restate it. Drop it after the round-trip check.
+    const banner = `/* ===== ${SECTIONS.find((s) => s.id === id).banner} ===== */`;
+    if (nodes[0]?.kind === 'block' && nodes[0].code === banner) nodes.shift();
     const root = hoistAndRoot(nodes);
+    // hoistAndRoot re-adds a hoisted group's own banner comment — same
+    // dedup applies when that group was the region itself.
+    if (root.children[0]?.kind === 'block' && root.children[0].code === banner) {
+      root.children.shift();
+    }
     unfoldCeremony(root);
     // Top-level groups render boxed (one tinted pane per group).
     for (const n of root.children) if (n.kind === 'section') n.boxed = true;

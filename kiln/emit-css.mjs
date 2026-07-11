@@ -1140,6 +1140,23 @@ function emitDiskWriteRemap(writableDisk) {
   return lines.join('\n');
 }
 
+// Address-gap run-delimiter comments for the big per-cell / per-byte lists:
+// the address set only covers zones this build populates, so the numbering
+// jumps at zone boundaries (e.g. straight from the mode 13h framebuffer to
+// text VGA at 0xB8000). Mark any jump ≥ GAP_MIN_BYTES so a reader scanning
+// the list sees why. Comments only — every evaluator strips them at
+// tokenize time.
+const GAP_MIN_BYTES = 16;
+function hex(n) { return '0x' + n.toString(16).toUpperCase(); }
+function cellGapComment(prevIdx, idx, indent) {
+  if (prevIdx < 0 || (idx - prevIdx - 1) * PACK_SIZE < GAP_MIN_BYTES) return '';
+  return `${indent}/* gap: bytes ${hex((prevIdx + 1) * PACK_SIZE)}-${hex(idx * PACK_SIZE - 1)} unpopulated in this build */\n`;
+}
+function byteGapComment(prevAddr, addr, indent) {
+  if (prevAddr < 0 || addr - prevAddr - 1 < GAP_MIN_BYTES) return '';
+  return `${indent}/* gap: bytes ${hex(prevAddr + 1)}-${hex(addr - 1)} unpopulated in this build */\n`;
+}
+
 function emitMemoryPropertiesStreaming(opts, ws) {
   const { addresses } = opts;
   if (PACK_SIZE === 1) {
@@ -1163,11 +1180,15 @@ function emitMemoryPropertiesStreaming(opts, ws) {
   let buf = '';
   let count = 0;
   let inDiskCells = false;
+  let prev = -1;
   for (const idx of cells) {
     if (!inDiskCells && diskCellStart !== -1 && idx >= diskCellStart) {
       buf += `/* disk-shadow cells: the writable floppy's bytes, named outside the 1 MB guest space */\n`;
       inDiskCells = true;
+    } else {
+      buf += cellGapComment(prev, idx, '');
     }
+    prev = idx;
     const init = cellInit.get(idx) || 0;
     buf += `@property --mc${idx} {\n  syntax: '<integer>';\n  inherits: true;\n  initial-value: ${init};\n}\n\n`;
     if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
@@ -1195,6 +1216,7 @@ function emitReadMemStreaming(opts, ws) {
   // are for the reader — every evaluator strips comments at tokenize time.
   buf += `    /* conventional RAM: one arm per byte, reading its backing cell */\n`;
   let afterBridge = false;
+  let prevAddr = -1;
   for (const addr of addresses) {
     // Disk-shadow cells are not guest-addressable — the CPU can only reach
     // them through the 0xD0000 window (whose arms are emitted below). Skip
@@ -1205,7 +1227,10 @@ function emitReadMemStreaming(opts, ws) {
     if (afterBridge && addr > 0x04F5) {
       buf += `    /* conventional RAM (continued) */\n`;
       afterBridge = false;
+    } else {
+      buf += byteGapComment(prevAddr, addr, '    ');
     }
+    prevAddr = addr;
     if (addr === 0x04F4) {
       buf += `    /* keyboard MMIO bridge: BIOS INT 16h reads the player's --keyboard word here */\n`;
       buf += `    style(--at: 1268): --lowerBytes(var(--__1keyboard), 8);\n`;
@@ -1332,7 +1357,10 @@ function emitMemoryBufferReadsStreaming(opts, ws) {
   const cellInit = buildInitialMemoryPacked(opts);
   let buf = '';
   let count = 0;
+  let prev = -1;
   for (const idx of cells) {
+    buf += cellGapComment(prev, idx, '  ');
+    prev = idx;
     const init = cellInit.get(idx) || 0;
     buf += `  --__1mc${idx}: var(--__2mc${idx}, ${init});\n`;
     if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
@@ -1416,11 +1444,15 @@ function emitMemoryWriteRulesStreaming(opts, ws) {
   let count = 0;
   const diskBaseCell = writableDisk ? cellIdxOf(writableDisk.base) : -1;
   let inDiskCells = false;
+  let prev = -1;
   for (const idx of cells) {
     if (!inDiskCells && diskBaseCell !== -1 && idx >= diskBaseCell) {
       buf += `  /* disk-shadow cells: keyed on --_dskOffN (disk-local offsets) instead of --memAddrN */\n`;
       inDiskCells = true;
+    } else {
+      buf += cellGapComment(prev, idx, '  ');
     }
+    prev = idx;
     // Build the cascade inside-out: start with __1mcIDX, then slot N-1, ..., slot 0.
     // The `${idx} * ${PACK_SIZE}` arithmetic (rather than the pre-folded
     // `${cellBase(idx)}`) is deliberate: it keeps the per-cell digit run
@@ -1463,7 +1495,10 @@ function emitMemoryStoreKeyframeStreaming(opts, ws) {
   const cellInit = buildInitialMemoryPacked(opts);
   let buf = '';
   let count = 0;
+  let prev = -1;
   for (const idx of cells) {
+    buf += cellGapComment(prev, idx, '    ');
+    prev = idx;
     const init = cellInit.get(idx) || 0;
     buf += `    --__2mc${idx}: var(--__0mc${idx}, ${init});\n`;
     if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
@@ -1487,7 +1522,10 @@ function emitMemoryExecuteKeyframeStreaming(opts, ws) {
   const cells = buildCellSet(addresses);
   let buf = '';
   let count = 0;
+  let prev = -1;
   for (const idx of cells) {
+    buf += cellGapComment(prev, idx, '    ');
+    prev = idx;
     buf += `    --__0mc${idx}: var(--mc${idx});\n`;
     if (++count % CHUNK === 0) { ws.write(buf); buf = ''; }
   }

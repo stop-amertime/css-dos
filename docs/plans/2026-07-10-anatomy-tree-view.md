@@ -215,6 +215,14 @@ mirror, so almost all the real work is IN KILN.
       2026-07-11 commenting pass — 8086 opcode-map family boundaries
       (`OPCODE_FAMILIES` in emit-css.mjs), only in dispatches ≥24 rows
       so short lists stay unbroken.
+- [x] Dedup + landmarks (owner round 3, 2026-07-11): DONE same day,
+      landed to master (LOGBOOK 2026-07-11-tree-dedup-gap-comments).
+      CPU pane = its real file region (borrowed flag-fn/register
+      boxes deleted — no content in two categories); decl pane
+      retitled "Variable declarations"; kiln `/* gap: … unpopulated
+      in this build */` comments at address jumps in the six
+      memory-scale lists (equivalence PASS); region banner notes
+      dropped; pagination + chunk `remaining` weighted by run rows.
 - [ ] Decided against for now: moving register `@property` emission
       adjacent to `.cpu` (would fragment the decl block + the site's
       file-map measurements). Revisit only if the owner asks.

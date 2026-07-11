@@ -1,5 +1,7 @@
 <script>
-  // Memory — variable declarations. The @property block is verbatim
+  // Variable declarations — every @property in the file: the platform
+  // wires and registers first, then the 368,256 memory cells that
+  // dominate the section. The @property block is verbatim
   // from sokoban.css; the cell count is measured from the same file
   // (grep -c '@property --mc' → 368,256).
   import CodeCss from '../CodeCss.svelte';
@@ -17,7 +19,7 @@
 --staged-mc5000: var(--held-mc5000, 32861);`;
 </script>
 
-<TreeView nodes={DECL_TREE} title="Memory — variable declarations" bytes={DECL_TREE_META.bytes} />
+<TreeView nodes={DECL_TREE} title="Variable declarations" bytes={DECL_TREE_META.bytes} />
 
 <p>
   Before CSS lets you use a variable as a typed integer, you have to

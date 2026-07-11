@@ -10,7 +10,6 @@ export const MEMR_TREE = [
   {
     kind: 'root',
     children: [
-    { kind: 'block', code: `/* ===== MEMORY READ ===== */` },
     {
       kind: 'decl',
       code: `@function --readMem(--at <integer>) returns <integer> {`,
@@ -20,7 +19,7 @@ export const MEMR_TREE = [
         kind: 'decl',
         code: `result:`,
         children: [
-        { kind: 'if', code: `if(`, trailer: `);`, lazy: {"ref":"memr/000","count":14} },
+        { kind: 'if', code: `if(`, trailer: `);`, lazy: {"ref":"memr/000","count":16} },
         ],
       },
       ],
@@ -30,4 +29,4 @@ export const MEMR_TREE = [
 ];
 
 // Real measured size of this region in the sokoban cabinet.
-export const MEMR_TREE_META = { bytes: 43772276 };
+export const MEMR_TREE_META = { bytes: 43772402 };

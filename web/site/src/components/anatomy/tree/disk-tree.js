@@ -10,7 +10,6 @@ export const DISK_TREE = [
   {
     kind: 'root',
     children: [
-    { kind: 'block', code: `/* ===== DISK ===== */` },
     {
       kind: 'decl',
       code: `@function --readDiskByte(--idx <integer>) returns <integer> {`,

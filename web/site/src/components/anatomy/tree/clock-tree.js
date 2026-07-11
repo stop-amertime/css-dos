@@ -10,7 +10,6 @@ export const CLOCK_TREE = [
   {
     kind: 'root',
     children: [
-    { kind: 'block', code: `/* ===== CLOCK ===== */` },
     {
       kind: 'section',
       label: "clock animation",
@@ -42,7 +41,7 @@ export const CLOCK_TREE = [
       folded: true,
       boxed: true,
       children: [
-      { kind: 'decl', code: `.motherboard {`, trailer: `}`, lazy: {"ref":"clock/000","count":29510} },
+      { kind: 'decl', code: `.motherboard {`, trailer: `}`, lazy: {"ref":"clock/000","count":50} },
       ],
     },
     {
@@ -57,12 +56,12 @@ export const CLOCK_TREE = [
         code: `@keyframes store {`,
         trailer: `}`,
         children: [
-        { kind: 'decl', code: `0%, 100% {`, trailer: `}`, lazy: {"ref":"clock/064","count":29505} },
+        { kind: 'decl', code: `0%, 100% {`, trailer: `}`, lazy: {"ref":"clock/003","count":45} },
         ],
       },
       ],
     },
-    { kind: 'section', label: "execute keyframe", code: `/* --- execute keyframe --- */`, folded: true, boxed: true, lazy: {"ref":"clock/128","count":1} },
+    { kind: 'section', label: "execute keyframe", code: `/* --- execute keyframe --- */`, folded: true, boxed: true, lazy: {"ref":"clock/006","count":1} },
     {
       kind: 'section',
       label: "clock keyframes",
@@ -116,4 +115,4 @@ export const CLOCK_TREE = [
 ];
 
 // Real measured size of this region in the sokoban cabinet.
-export const CLOCK_TREE_META = { bytes: 42999662 };
+export const CLOCK_TREE_META = { bytes: 43000036 };

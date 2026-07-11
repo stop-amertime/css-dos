@@ -10,14 +10,12 @@ export const CPU_TREE = [
   {
     kind: 'root',
     children: [
-    { kind: 'section', label: "flag arithmetic helper functions", folded: true, boxed: true, lazy: {"ref":"cpu/000","count":36} },
     {
-      kind: 'section',
-      label: ".cpu — registers and decoder",
-      folded: true,
-      boxed: true,
+      kind: 'decl',
+      code: `.cpu {`,
+      trailer: `}`,
       children: [
-      { kind: 'section', label: "FETCH & DECODE", code: `/* ===== FETCH & DECODE ===== */`, folded: true, lazy: {"ref":"cpu/006","count":8} },
+      { kind: 'section', label: "FETCH & DECODE", code: `/* ===== FETCH & DECODE ===== */`, folded: true, lazy: {"ref":"cpu/005","count":8} },
       {
         kind: 'section',
         label: "REGISTERS",
@@ -89,88 +87,10 @@ export const CPU_TREE = [
           },
           ],
         },
-        { kind: 'section', label: "register update formulas", code: `/* --- register update formulas --- */`, folded: true, lazy: {"ref":"cpu/035","count":21} },
+        { kind: 'section', label: "register update formulas", code: `/* --- register update formulas --- */`, folded: true, lazy: {"ref":"cpu/034","count":21} },
         ],
       },
-      { kind: 'section', label: "MEMORY WRITE SLOTS", code: `/* ===== MEMORY WRITE SLOTS ===== */`, folded: true, lazy: {"ref":"cpu/044","count":5} },
-      ],
-    },
-    {
-      kind: 'section',
-      label: "register declarations",
-      folded: true,
-      boxed: true,
-      children: [
-      { kind: 'block', code: `@property --AX {
-  syntax: '<integer>';
-  inherits: true;
-  initial-value: 0;
-}`, folded: true },
-      { kind: 'block', code: `@property --CX {
-  syntax: '<integer>';
-  inherits: true;
-  initial-value: 0;
-}`, folded: true },
-      { kind: 'block', code: `@property --DX {
-  syntax: '<integer>';
-  inherits: true;
-  initial-value: 0;
-}`, folded: true },
-      { kind: 'block', code: `@property --BX {
-  syntax: '<integer>';
-  inherits: true;
-  initial-value: 0;
-}`, folded: true },
-      { kind: 'block', code: `@property --SP {
-  syntax: '<integer>';
-  inherits: true;
-  initial-value: 65528;
-}`, folded: true },
-      { kind: 'block', code: `@property --BP {
-  syntax: '<integer>';
-  inherits: true;
-  initial-value: 0;
-}`, folded: true },
-      { kind: 'block', code: `@property --SI {
-  syntax: '<integer>';
-  inherits: true;
-  initial-value: 0;
-}`, folded: true },
-      { kind: 'block', code: `@property --DI {
-  syntax: '<integer>';
-  inherits: true;
-  initial-value: 0;
-}`, folded: true },
-      { kind: 'block', code: `@property --CS {
-  syntax: '<integer>';
-  inherits: true;
-  initial-value: 61440;
-}`, folded: true },
-      { kind: 'block', code: `@property --DS {
-  syntax: '<integer>';
-  inherits: true;
-  initial-value: 0;
-}`, folded: true },
-      { kind: 'block', code: `@property --ES {
-  syntax: '<integer>';
-  inherits: true;
-  initial-value: 0;
-}`, folded: true },
-      { kind: 'block', code: `@property --SS {
-  syntax: '<integer>';
-  inherits: true;
-  initial-value: 0;
-}`, folded: true },
-      { kind: 'block', code: `@property --IP {
-  syntax: '<integer>';
-  inherits: true;
-  initial-value: 0;
-}`, folded: true },
-      { kind: 'block', code: `@property --flags {
-  syntax: '<integer>';
-  inherits: true;
-  initial-value: 2;
-}`, folded: true },
+      { kind: 'section', label: "MEMORY WRITE SLOTS", code: `/* ===== MEMORY WRITE SLOTS ===== */`, folded: true, lazy: {"ref":"cpu/043","count":5} },
       ],
     },
     ],
@@ -178,4 +98,4 @@ export const CPU_TREE = [
 ];
 
 // Real measured size of this region in the sokoban cabinet.
-export const CPU_TREE_META = { bytes: 278105 };
+export const CPU_TREE_META = { bytes: 278130 };

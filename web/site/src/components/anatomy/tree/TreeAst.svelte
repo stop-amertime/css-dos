@@ -36,7 +36,10 @@
   // uniform lists wrap together (see runForcedKeys below).
   // budget: chars that fit one row, MEASURED by TreeView from the
   // container's real width; each nesting level passes down a bit less.
-  let { node, forceSplit = false, budget = 80 } = $props();
+  // rowLimit: for `run` nodes only — how many rows the PARENT's weighted
+  // page cursor allots this run. The parent owns the "(N more…)" button;
+  // a run given a rowLimit never draws its own.
+  let { node, forceSplit = false, budget = 80, rowLimit = null } = $props();
 
   const PAGE = 20;
 
@@ -63,10 +66,11 @@
   // lazy.js expandRun). Rows materialize on demand; the count is the real
   // row count, so pagination reaches every row without truncation.
   const isRun = $derived(node.kind === 'run');
-  let runShownCount = $state(PAGE);
+  let runShownCount = $state(PAGE); // fallback pager when no rowLimit came down
+  const runLimit = $derived(rowLimit ?? runShownCount);
   const runRows = $derived(
     isRun
-      ? Array.from({ length: Math.min(runShownCount, node.count) }, (_, i) => expandRun(node, i))
+      ? Array.from({ length: Math.min(runLimit, node.count) }, (_, i) => expandRun(node, i))
       : []
   );
   // Rows in a run are same-shaped by construction: measure row 0 once and
@@ -232,6 +236,29 @@
   });
   const shownFor = (i) => runShown[i] ?? PAGE;
 
+  // WEIGHTED page cursor: a `run` node stands for `count` real rows, so it
+  // spends that many rows of the group's page. A partially-spent run is
+  // the last thing visible in its group — the siblings behind it wait
+  // behind the same single "(N more…)" button, and the button's total
+  // counts every real row, not wire nodes.
+  const weightOf = (c) => (c.kind === 'run' ? c.count : 1);
+  function visibleFor(run, limit) {
+    const out = [];
+    let used = 0;
+    for (const item of run.items) {
+      if (used >= limit) break;
+      if (item.kind === 'run') {
+        const take = Math.min(item.count, limit - used);
+        out.push({ item, take });
+        used += take;
+      } else {
+        out.push({ item, take: null });
+        used += 1;
+      }
+    }
+    return { out, used };
+  }
+
   // RUN UNIFORMITY (wrap): within a run, rows sharing a code shape (text
   // with numbers masked — "style(--opcode: #):" / "--mc#:") wrap
   // together: if any same-shaped sibling exceeds the line budget, they
@@ -271,7 +298,8 @@
   // honest before anything downloads.
   async function more(i, run) {
     const target = shownFor(i) + PAGE;
-    if (run.items.length < target && nextPage) await loadNext();
+    const loaded = run.items.reduce((n, c) => n + weightOf(c), 0);
+    if (loaded < target && nextPage) await loadNext();
     runShown[i] = target;
   }
   function retry() {
@@ -286,11 +314,12 @@
     {#if run.comment}
       <TreeAst node={run.comment} budget={budget - 2} />
     {/if}
-    {#each run.items.slice(0, shownFor(i)) as child}
-      <TreeAst node={child} forceSplit={runForcedKeys[i].has(maskKey(child))} budget={budget - 2} />
+    {@const vis = visibleFor(run, shownFor(i))}
+    {#each vis.out as v}
+      <TreeAst node={v.item} rowLimit={v.take} forceSplit={runForcedKeys[i].has(maskKey(v.item))} budget={budget - 2} />
     {/each}
     {@const netMore = i === runs.length - 1 && nextPage ? nextPage.remaining : 0}
-    {@const hidden = run.items.slice(shownFor(i)).reduce((n, c) => n + (c.kind === 'run' ? c.count : 1), 0) + netMore}
+    {@const hidden = run.items.reduce((n, c) => n + weightOf(c), 0) + netMore - vis.used}
     {#if hidden > 0 && loadState !== 'error'}
       <div class="tree-more">
         <button onclick={() => more(i, run)}>({hidden.toLocaleString('en-US')} more&hellip;)</button>
@@ -310,7 +339,7 @@
   {#each runRows as row}
     <TreeAst node={row} {budget} forceSplit={runRowsForced} />
   {/each}
-  {#if runShownCount < node.count}
+  {#if rowLimit == null && runShownCount < node.count}
     <div class="tree-more">
       <button onclick={() => (runShownCount += PAGE)}>({(node.count - runShownCount).toLocaleString('en-US')} more&hellip;)</button>
     </div>
