@@ -8,19 +8,87 @@
 
 export const CHIPSET_TREE = [
   {
-    kind: 'section',
-    label: "CHIPSET",
-    code: `/* ===== CHIPSET ===== */`,
-    folded: true,
-    boxed: true,
+    kind: 'root',
     children: [
+    { kind: 'block', code: `/* ===== CHIPSET ===== */` },
     {
       kind: 'decl',
       code: `.motherboard {`,
       trailer: `}`,
-      folded: true,
       children: [
-      { kind: 'section', label: "(preamble)", code: ``, folded: true, lazy: {"ref":"chipset/000","count":38} },
+      {
+        kind: 'section',
+        label: "PIT TIMER DERIVATION",
+        code: `/* ===== PIT TIMER DERIVATION ===== */`,
+        folded: true,
+        children: [
+        { kind: 'block', code: `/* Peripheral clocks derived from this tick's --cycleCount */` },
+        {
+          kind: 'decl',
+          code: `--_pitTicks:`,
+          children: [
+          { kind: 'value', code: `calc(round(down, var(--cycleCount) / 4) - round(down, var(--__1cycleCount) / 4));` },
+          ],
+        },
+        {
+          kind: 'decl',
+          code: `--_pitDecrement:`,
+          folded: true,
+          children: [
+          {
+            kind: 'if',
+            code: `if(`,
+            trailer: `);`,
+            children: [
+            {
+              kind: 'branch',
+              code: `style(--__1pitMode: 3):`,
+              children: [
+              { kind: 'value', code: `calc(var(--_pitTicks) * 2);` },
+              ],
+            },
+            {
+              kind: 'branch',
+              code: `else:`,
+              children: [
+              { kind: 'value', code: `var(--_pitTicks)` },
+              ],
+            },
+            ],
+          },
+          ],
+        },
+        {
+          kind: 'decl',
+          code: `--_pitFired:`,
+          folded: true,
+          children: [
+          {
+            kind: 'if',
+            code: `if(`,
+            trailer: `);`,
+            children: [
+            {
+              kind: 'branch',
+              code: `style(--__1pitReload: 0):`,
+              children: [
+              { kind: 'value', code: `0;` },
+              ],
+            },
+            {
+              kind: 'branch',
+              code: `else:`,
+              children: [
+              { kind: 'value', code: `min(1, max(0, sign(calc(var(--_pitDecrement) - var(--__1pitCounter) + 1))))` },
+              ],
+            },
+            ],
+          },
+          ],
+        },
+        ],
+      },
+      { kind: 'section', label: "KEYBOARD EDGES & IRQ ARBITRATION", code: `/* ===== KEYBOARD EDGES & IRQ ARBITRATION ===== */`, folded: true, lazy: {"ref":"chipset/000","count":34} },
       { kind: 'section', label: "CHIP DISPATCH TABLES", code: `/* ===== CHIP DISPATCH TABLES ===== */`, folded: true, lazy: {"ref":"chipset/005","count":21} },
       ],
     },
@@ -29,4 +97,4 @@ export const CHIPSET_TREE = [
 ];
 
 // Real measured size of this region in the synthetic cabinet.
-export const CHIPSET_TREE_META = { bytes: 16916 };
+export const CHIPSET_TREE_META = { bytes: 17010 };

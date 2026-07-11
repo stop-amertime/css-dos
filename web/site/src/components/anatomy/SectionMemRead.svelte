@@ -13,7 +13,7 @@
 style(--at: 1281): --rightShift(var(--snapshot-keyboard), 8);`;
 </script>
 
-<TreeView nodes={MEMR_TREE} title="Memory — read formulas" bytes={MEMR_TREE_META.bytes}
+<TreeView nodes={MEMR_TREE} bytes={MEMR_TREE_META.bytes}
   note="exhibit from a minimal build — Doom’s version of this function is ~44 MB" />
 
 <p>

@@ -82,7 +82,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  align-self: flex-start;
+  /* .ast-line wraps with wrap-reverse (comments stack ABOVE the row), so
+     the cross axis runs bottom-to-top: flex-END is the visual TOP. With
+     flex-start the box sat beside the LAST soft-wrapped line of a long
+     code box (the phone-width @function-header bug, 2026-07-11). */
+  align-self: flex-end;
   margin-top: 0;
 }
 /* WebVGA's glyph metrics sit slightly off true center in the box —

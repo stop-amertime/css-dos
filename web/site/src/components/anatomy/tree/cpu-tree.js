@@ -7,119 +7,172 @@
 // Regenerate: node tools/extract-tree-data.mjs cpu
 
 export const CPU_TREE = [
-  { kind: 'section', label: "flag arithmetic helper functions", folded: true, boxed: true, lazy: {"ref":"cpu/000","count":36} },
   {
-    kind: 'section',
-    label: ".cpu — registers and decoder",
-    folded: true,
-    boxed: true,
+    kind: 'root',
     children: [
-    { kind: 'section', label: "FETCH & DECODE", code: `/* ===== FETCH & DECODE ===== */`, folded: true, lazy: {"ref":"cpu/005","count":8} },
+    { kind: 'section', label: "flag arithmetic helper functions", folded: true, boxed: true, lazy: {"ref":"cpu/000","count":36} },
     {
       kind: 'section',
-      label: "REGISTERS",
-      code: `/* ===== REGISTERS ===== */`,
+      label: ".cpu — registers and decoder",
       folded: true,
+      boxed: true,
       children: [
+      { kind: 'section', label: "FETCH & DECODE", code: `/* ===== FETCH & DECODE ===== */`, folded: true, lazy: {"ref":"cpu/006","count":8} },
       {
         kind: 'section',
-        label: "register aliases (8-bit halves)",
-        code: `/* --- register aliases (8-bit halves) --- */`,
+        label: "REGISTERS",
+        code: `/* ===== REGISTERS ===== */`,
         folded: true,
         children: [
-        { kind: 'block', code: `/* Read-only views of the previous tick's (--__1) word registers. */` },
-        { kind: 'block', code: `--AL: --lowerBytes(var(--__1AX), 8);` },
-        { kind: 'block', code: `--CL: --lowerBytes(var(--__1CX), 8);` },
-        { kind: 'block', code: `--DL: --lowerBytes(var(--__1DX), 8);` },
-        { kind: 'block', code: `--BL: --lowerBytes(var(--__1BX), 8);` },
-        { kind: 'block', code: `--AH: --rightShift(var(--__1AX), 8);` },
-        { kind: 'block', code: `--CH: --rightShift(var(--__1CX), 8);` },
-        { kind: 'block', code: `--DH: --rightShift(var(--__1DX), 8);` },
-        { kind: 'block', code: `--BH: --rightShift(var(--__1BX), 8);` },
+        {
+          kind: 'section',
+          label: "register aliases (8-bit halves)",
+          code: `/* --- register aliases (8-bit halves) --- */`,
+          folded: true,
+          children: [
+          { kind: 'block', code: `/* Read-only views of the previous tick's (--__1) word registers. */` },
+          {
+            kind: 'decl',
+            code: `--AL:`,
+            children: [
+            { kind: 'value', code: `--lowerBytes(var(--__1AX), 8);` },
+            ],
+          },
+          {
+            kind: 'decl',
+            code: `--CL:`,
+            children: [
+            { kind: 'value', code: `--lowerBytes(var(--__1CX), 8);` },
+            ],
+          },
+          {
+            kind: 'decl',
+            code: `--DL:`,
+            children: [
+            { kind: 'value', code: `--lowerBytes(var(--__1DX), 8);` },
+            ],
+          },
+          {
+            kind: 'decl',
+            code: `--BL:`,
+            children: [
+            { kind: 'value', code: `--lowerBytes(var(--__1BX), 8);` },
+            ],
+          },
+          {
+            kind: 'decl',
+            code: `--AH:`,
+            children: [
+            { kind: 'value', code: `--rightShift(var(--__1AX), 8);` },
+            ],
+          },
+          {
+            kind: 'decl',
+            code: `--CH:`,
+            children: [
+            { kind: 'value', code: `--rightShift(var(--__1CX), 8);` },
+            ],
+          },
+          {
+            kind: 'decl',
+            code: `--DH:`,
+            children: [
+            { kind: 'value', code: `--rightShift(var(--__1DX), 8);` },
+            ],
+          },
+          {
+            kind: 'decl',
+            code: `--BH:`,
+            children: [
+            { kind: 'value', code: `--rightShift(var(--__1BX), 8);` },
+            ],
+          },
+          ],
+        },
+        { kind: 'section', label: "register update formulas", code: `/* --- register update formulas --- */`, folded: true, lazy: {"ref":"cpu/035","count":21} },
         ],
       },
-      { kind: 'section', label: "register update formulas", code: `/* --- register update formulas --- */`, folded: true, lazy: {"ref":"cpu/034","count":21} },
+      { kind: 'section', label: "MEMORY WRITE SLOTS", code: `/* ===== MEMORY WRITE SLOTS ===== */`, folded: true, lazy: {"ref":"cpu/044","count":5} },
       ],
     },
-    { kind: 'section', label: "MEMORY WRITE SLOTS", code: `/* ===== MEMORY WRITE SLOTS ===== */`, folded: true, lazy: {"ref":"cpu/043","count":5} },
-    ],
-  },
-  {
-    kind: 'section',
-    label: "register declarations",
-    folded: true,
-    boxed: true,
-    children: [
-    { kind: 'block', code: `@property --AX {
+    {
+      kind: 'section',
+      label: "register declarations",
+      folded: true,
+      boxed: true,
+      children: [
+      { kind: 'block', code: `@property --AX {
   syntax: '<integer>';
   inherits: true;
   initial-value: 0;
 }`, folded: true },
-    { kind: 'block', code: `@property --CX {
+      { kind: 'block', code: `@property --CX {
   syntax: '<integer>';
   inherits: true;
   initial-value: 0;
 }`, folded: true },
-    { kind: 'block', code: `@property --DX {
+      { kind: 'block', code: `@property --DX {
   syntax: '<integer>';
   inherits: true;
   initial-value: 0;
 }`, folded: true },
-    { kind: 'block', code: `@property --BX {
+      { kind: 'block', code: `@property --BX {
   syntax: '<integer>';
   inherits: true;
   initial-value: 0;
 }`, folded: true },
-    { kind: 'block', code: `@property --SP {
+      { kind: 'block', code: `@property --SP {
   syntax: '<integer>';
   inherits: true;
   initial-value: 1528;
 }`, folded: true },
-    { kind: 'block', code: `@property --BP {
+      { kind: 'block', code: `@property --BP {
   syntax: '<integer>';
   inherits: true;
   initial-value: 0;
 }`, folded: true },
-    { kind: 'block', code: `@property --SI {
+      { kind: 'block', code: `@property --SI {
   syntax: '<integer>';
   inherits: true;
   initial-value: 0;
 }`, folded: true },
-    { kind: 'block', code: `@property --DI {
+      { kind: 'block', code: `@property --DI {
   syntax: '<integer>';
   inherits: true;
   initial-value: 0;
 }`, folded: true },
-    { kind: 'block', code: `@property --CS {
+      { kind: 'block', code: `@property --CS {
   syntax: '<integer>';
   inherits: true;
   initial-value: 0;
 }`, folded: true },
-    { kind: 'block', code: `@property --DS {
+      { kind: 'block', code: `@property --DS {
   syntax: '<integer>';
   inherits: true;
   initial-value: 0;
 }`, folded: true },
-    { kind: 'block', code: `@property --ES {
+      { kind: 'block', code: `@property --ES {
   syntax: '<integer>';
   inherits: true;
   initial-value: 0;
 }`, folded: true },
-    { kind: 'block', code: `@property --SS {
+      { kind: 'block', code: `@property --SS {
   syntax: '<integer>';
   inherits: true;
   initial-value: 0;
 }`, folded: true },
-    { kind: 'block', code: `@property --IP {
+      { kind: 'block', code: `@property --IP {
   syntax: '<integer>';
   inherits: true;
   initial-value: 256;
 }`, folded: true },
-    { kind: 'block', code: `@property --flags {
+      { kind: 'block', code: `@property --flags {
   syntax: '<integer>';
   inherits: true;
   initial-value: 2;
 }`, folded: true },
+      ],
+    },
     ],
   },
 ];

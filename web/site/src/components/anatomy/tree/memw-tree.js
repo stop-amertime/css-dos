@@ -8,13 +8,10 @@
 
 export const MEMW_TREE = [
   {
-    kind: 'section',
-    label: "MEMORY WRITE RULES",
-    code: `/* ===== MEMORY WRITE RULES ===== */`,
-    folded: true,
-    boxed: true,
+    kind: 'root',
     children: [
-    { kind: 'decl', code: `.motherboard {`, trailer: `}`, folded: true, lazy: {"ref":"memw/000","count":769} },
+    { kind: 'block', code: `/* ===== MEMORY WRITE RULES ===== */` },
+    { kind: 'decl', code: `.motherboard {`, trailer: `}`, lazy: {"ref":"memw/000","count":769} },
     ],
   },
 ];

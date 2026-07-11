@@ -7,7 +7,7 @@
 // Regenerate: node tools/extract-tree-data.mjs decl
 
 export const DECL_TREE = [
-  { kind: 'section', label: "PROPERTY DECLARATIONS", code: `/* ===== PROPERTY DECLARATIONS ===== */`, folded: true, boxed: true, lazy: {"ref":"decl/000","count":820} },
+  { kind: 'root', lazy: {"ref":"decl/000","count":821} },
 ];
 
 // Real measured size of this region in the synthetic cabinet.

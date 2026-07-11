@@ -56,6 +56,18 @@ then how the pieces fit, then the wishlist.
    list of like rows must read as a table, no per-row lottery;
    different-shaped members (a trailing `else:`) keep their own
    treatment, which is what makes the genuinely-different row visible.
+9. **Panes open onto content (owner, 2026-07-11).** The pane header
+   already names the section: a region that parses to a single group
+   hoists (its banner renders as a plain comment line, everything under
+   an invisible `root` node whose top level paginates/lazy-loads like
+   any child list), and a LONE structural wrapper (`.motherboard {`, an
+   `@function`'s `result:` chain) renders open — no click-ceremony, no
+   box that just restates the pane title. Costs at most one own-section
+   chunk on pane load; folds and "(N more…)" gate everything deeper.
+   Corollary: internal Kiln banner names ARE the categories readers
+   see — write them for readers ("PIT TIMER DERIVATION"), never
+   implementation notes ("ADD FLAGS (6 locals)"), and never leave a
+   region's opening block bannerless (that's what "(preamble)" means).
 
 ## How the pieces fit
 
@@ -90,11 +102,17 @@ then how the pieces fit, then the wishlist.
   (carries `comment`) / `value` / `note` (editorial truncation marker,
   excluded from round-trip). `folded:` on any = togglable;
   `lazy: { ref, count }` = children fetched on demand (`lazy.js`).
-- `TreeAst.svelte` — the ONE renderer (sections, blocks, AST). Line
-  budget ~80 chars decides one-lining vs split-at-child. `<pre>` lines
-  dodge the wizard's inline-code white-chip rule by design.
-- `TreeView.svelte` — header: code-file icon + title + real measured
-  KB (`<SECTION>_TREE_META.bytes`).
+- `TreeAst.svelte` — the ONE renderer (root/sections/blocks/notes/AST).
+  One-lining works on single-path CHAINS (a short one-liner source rule
+  joins whole, trailer included) against a line budget MEASURED by
+  TreeView from the container's real width (~8 px/char, minus a little
+  per nesting level) — never a fixed constant (phone regression,
+  2026-07-11). `<pre>` lines dodge the wizard's inline-code white-chip
+  rule by design.
+- `TreeView.svelte` — constant header strip: code-file icon +
+  "the real CSS" + real measured size (`<SECTION>_TREE_META.bytes`) +
+  optional real-scale `note`. No per-pane title (the pane heading
+  already names the section).
 - Styling: cyan `#00aaaa` (EGA colour 3) = interactable ([+] boxes,
   more-buttons; the palette's `--edit-cyan` is bright cyan 11,
   illegible on the light pane). Depth reads via a subtle blue tint

@@ -34,12 +34,11 @@
   // forceSplit: set by the PARENT when this node sits in a run of
   // same-shaped siblings where any member exceeds the line budget —
   // uniform lists wrap together (see runForcedKeys below).
-  let { node, forceSplit = false } = $props();
+  // budget: chars that fit one row, MEASURED by TreeView from the
+  // container's real width; each nesting level passes down a bit less.
+  let { node, forceSplit = false, budget = 80 } = $props();
 
   const PAGE = 20;
-  // ~chars that fit one line of WebVGA 14px in the tree column before
-  // wrapping. An approximation (depth eats width) — tune by eye.
-  const LINE_BUDGET = 80;
 
   let open = $state(!node.folded);
   let runShown = $state({}); // run index -> items revealed (default PAGE)
@@ -57,6 +56,9 @@
   const isSection = $derived(node.kind === 'section');
   const isBlock = $derived(node.kind === 'block');
   const isNote = $derived(node.kind === 'note');
+  // root: the invisible container each section skeleton exports — no line
+  // of its own, children render directly (with runs/pagination/lazy).
+  const isRoot = $derived(node.kind === 'root');
   const children = $derived(fetched ?? node.children ?? []);
 
   async function loadFirst() {
@@ -99,20 +101,39 @@
   // lines' styling.
   const blockMultiline = $derived(isBlock && node.code.includes('\n'));
 
-  // One-line rule for AST nodes. A lazy child is NOT a leaf even though
-  // its children aren't loaded yet — it must mount as its own component
-  // so it can fetch them.
-  const onlyChild = $derived(children.length === 1 ? children[0] : null);
-  const onlyChildIsLeaf = $derived(
-    onlyChild != null && onlyChild.code != null
-    && (onlyChild.children ?? []).length === 0 && onlyChild.lazy == null
-  );
+  // One-line rule for AST nodes, generalised to SINGLE-PATH CHAINS: a node
+  // whose only-child path runs straight to a leaf joins onto one line,
+  // trailers included — so a whole one-liner source rule
+  // ("&:has(#kb-0:active) { --keyboard: 2864; }") reads as the one line it
+  // is in the file. A lazy node is never a leaf (it must mount to fetch);
+  // a mid-chain comment bails (it needs its own column).
+  function chainParts(n) {
+    if (n == null || n.code == null) return null;
+    const codes = [n.code];
+    const trailers = n.trailer ? [n.trailer] : [];
+    let cur = n;
+    while ((cur.children ?? []).length === 1 && cur.lazy == null) {
+      const k = cur.children[0];
+      if (k.code == null || k.kind === 'section' || k.kind === 'note' || k.comment) return null;
+      codes.push(k.code);
+      if (k.trailer) trailers.push(k.trailer);
+      cur = k;
+    }
+    if ((cur.children ?? []).length !== 0 || cur.lazy != null) return null;
+    const closers = [...trailers].reverse();
+    return {
+      text: [...codes, ...closers].join(' '),
+      rest: [...codes.slice(1), ...closers].join(' '),
+    };
+  }
   // Comment length doesn't count toward the budget — comments render as
-  // their own right-aligned flex column now, not inline after the code.
-  const joinedLen = $derived(!onlyChildIsLeaf ? Infinity
-    : (node.code ?? '').length + 1 + onlyChild.code.length);
+  // their own right-aligned flex column, not inline after the code.
+  const chain = $derived(
+    (isSection || isBlock || isNote || isRoot) ? null
+      : chainParts({ ...node, children })
+  );
   const oneLine = $derived(
-    !isSection && !isBlock && onlyChildIsLeaf && !forceSplit && joinedLen <= LINE_BUDGET
+    chain != null && !forceSplit && chain.text.length <= budget
   );
 
   // Only tool-carved nodes fold. A carved ONE-LINE row is foldable too
@@ -124,13 +145,17 @@
     node.folded != null && (isBlock ? blockMultiline : hasContent)
   );
 
-  // A branch whose only child is a leaf value that just didn't fit the
+  // A row whose only child is a leaf value that just didn't fit the
   // line budget is a WRAPPED CONTINUATION, not a deeper structural
   // level — it renders indented but without the tint step or the
   // dashed guide (those mean "you've descended into nesting"). The
   // continuation line soft-wraps within its own code box, so its own
-  // wrap aligns under its own first character.
-  const isContinuation = $derived(!isSection && !isBlock && onlyChildIsLeaf && !oneLine);
+  // wrap aligns under its own first character. (Deeper chains that miss
+  // the budget just render as normal nesting.)
+  const isContinuation = $derived(
+    chain != null && !oneLine
+    && children.length === 1 && (children[0].children ?? []).length === 0
+  );
 
   // The node's own visual line: its own token, dim ellipsis when
   // folded. A one-lined child value renders in its OWN flex box
@@ -161,7 +186,7 @@
   // carved one-line row is folded.
   const valueHtml = $derived(
     oneLine && (!foldable || open)
-      ? `<span class="ast-depth">${hl(onlyChild.code)}</span>`
+      ? `<span class="ast-depth">${hl(chain.rest)}</span>`
       : null
   );
   const commentHtml = $derived(
@@ -190,15 +215,13 @@
   });
   const shownFor = (i) => runShown[i] ?? PAGE;
 
-  // RUN UNIFORMITY (wrap): within a run, branches sharing a condition
-  // shape (condition text with numbers masked — "style(--opcode: #):")
-  // wrap together: if any same-shaped sibling exceeds the line budget,
-  // they all split. No per-row layout lottery in a list of like rows.
+  // RUN UNIFORMITY (wrap): within a run, rows sharing a code shape (text
+  // with numbers masked — "style(--opcode: #):" / "--mc#:") wrap
+  // together: if any same-shaped sibling exceeds the line budget, they
+  // all split. No per-row layout lottery in a list of like rows.
   const maskKey = (n) =>
-    n.kind === 'branch' ? (n.code ?? '').replace(/\d+/g, '#') : null;
-  const isLeafBranch = (n) =>
-    n.kind === 'branch' && (n.children ?? []).length === 1
-    && n.children[0].code != null && (n.children[0].children ?? []).length === 0;
+    (n.kind === 'branch' || n.kind === 'decl')
+      ? (n.code ?? '').replace(/\d+/g, '#') : null;
   const runForcedKeys = $derived(runs.map((run) => {
     const groups = new Map();
     for (const m of run.items) {
@@ -210,8 +233,10 @@
     const forced = new Set();
     for (const [k, members] of groups) {
       if (members.length < 2) continue;
-      const overBudget = members.some((m) =>
-        isLeafBranch(m) && m.code.length + 1 + m.children[0].code.length > LINE_BUDGET);
+      const overBudget = members.some((m) => {
+        const c = chainParts(m);
+        return c != null && c.text.length > budget;
+      });
       if (overBudget) forced.add(k);
     }
     return forced;
@@ -242,10 +267,10 @@
 {#snippet childList()}
   {#each runs as run, i}
     {#if run.comment}
-      <TreeAst node={run.comment} />
+      <TreeAst node={run.comment} budget={budget - 2} />
     {/if}
     {#each run.items.slice(0, shownFor(i)) as child}
-      <TreeAst node={child} forceSplit={runForcedKeys[i].has(maskKey(child))} />
+      <TreeAst node={child} forceSplit={runForcedKeys[i].has(maskKey(child))} budget={budget - 2} />
     {/each}
     {@const netMore = i === runs.length - 1 && nextPage ? nextPage.remaining : 0}
     {@const hidden = run.items.length - shownFor(i) + netMore}
@@ -264,7 +289,9 @@
   {/if}
 {/snippet}
 
-{#if isNote}
+{#if isRoot}
+  {@render childList()}
+{:else if isNote}
   <pre class="ast-line"><span class="tree-glyph" aria-hidden="true"></span><code class="ast-note">{node.text}</code></pre>
 {:else if isSection}
   <div class="ast-line is-section" class:is-foldable={foldable}
@@ -289,7 +316,7 @@
     </div>
   {/if}
 
-  {#if !isBlock && open && node.trailer}
+  {#if !isBlock && open && node.trailer && !oneLine}
     <pre class="ast-line"><span class="tree-glyph" aria-hidden="true"></span><code>{@html hl(node.trailer)}</code></pre>
   {/if}
 {/if}

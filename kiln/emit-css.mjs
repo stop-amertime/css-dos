@@ -979,7 +979,9 @@ export function emitCSS(opts, writeStream) {
   // around the CPU, so they get their own rule (same element).
   w('/* ===== CHIPSET ===== */');
   writeStream.write('.motherboard {\n');
+  writeStream.write('  /* ===== PIT TIMER DERIVATION ===== */\n');
   w(emitPeripheralCompute());
+  writeStream.write('  /* ===== KEYBOARD EDGES & IRQ ARBITRATION ===== */\n');
   w(emitIRQCompute());
   writeStream.write('  /* ===== CHIP DISPATCH TABLES ===== */\n');
   emitDispatchFor(chipsetRegs);
@@ -1028,7 +1030,9 @@ export function emitCSS(opts, writeStream) {
   // rule (paused store/execute animations + all double-buffer reads),
   // and the keyframes that do the handover.
   w('/* ===== CLOCK ===== */');
+  w('/* --- the heartbeat: a 4-step animation is the machine\'s only clock --- */');
   w(emitClockRule());
+  w('/* --- double-buffer plumbing: paused store/execute animations + this tick\'s stable reads --- */');
   writeStream.write(emitClockPlumbingOpen() + '\n');
   writeStream.write('  /* Double-buffer reads */\n');
   w(emitBufferReads(templateOpts));
@@ -1036,6 +1040,7 @@ export function emitCSS(opts, writeStream) {
   w('}');
 
   // Keyframes — store
+  w('/* --- store sweep: latch every computed value into the __2 buffer --- */');
   const storeKf = emitStoreKeyframe(templateOpts);
   const storeKfOpen = storeKf.replace('  }\n}', '');
   writeStream.write(storeKfOpen);
@@ -1043,12 +1048,14 @@ export function emitCSS(opts, writeStream) {
   writeStream.write('  }\n}\n\n');
 
   // Execute keyframe
+  w('/* --- execute sweep: expose the freshly computed values as __0 --- */');
   const execKf = emitExecuteKeyframe(templateOpts);
   const execKfOpen = execKf.replace('  }\n}', '');
   writeStream.write(execKfOpen);
   emitMemoryExecuteKeyframeStreaming(memOpts, writeStream);
   writeStream.write('  }\n}\n\n');
 
+  w('/* --- the clock wave the heartbeat plays --- */');
   w(emitClockKeyframes());
 }
 

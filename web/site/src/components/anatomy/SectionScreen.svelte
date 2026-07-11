@@ -24,7 +24,7 @@ max(0, sign(3409 - mod(var(--snapshot-cycleCount), 68182)))`;
 }`;
 </script>
 
-<TreeView nodes={SCREEN_TREE} title="Screen — pixel painter" bytes={SCREEN_TREE_META.bytes}
+<TreeView nodes={SCREEN_TREE} bytes={SCREEN_TREE_META.bytes}
   note="the painter is identical in every cabinet — 64,000 pixel rules (~7 MB); the tree ships the palette and the head of the list" />
 
 <p>

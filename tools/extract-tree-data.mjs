@@ -279,9 +279,15 @@ class Grouper {
     this.groups.push(this.major);
   }
   openSub(comment, title) {
-    if (!this.major) this.openMajor('', '(preamble)');
+    if (!this.major) this.fallbackMajor();
     this.sub = { kind: 'section', label: title, code: comment, folded: true, children: [] };
     this.major.children.push(this.sub);
+  }
+  // Content before the first banner has no honest label — that is a KILN
+  // bug (plant a banner over it), not something to paper over here.
+  fallbackMajor() {
+    console.error('  WARNING: content before the first banner — add a banner in kiln (showing as "(preamble)")');
+    this.openMajor('', '(preamble)');
   }
   comment(text) {
     const majorBanner = text.match(/^\/\* =+ (.+?) =+ \*\/$/s);
@@ -291,7 +297,7 @@ class Grouper {
     else this.push({ kind: 'block', code: text });
   }
   push(node) {
-    if (!this.major) this.openMajor('', '(preamble)');
+    if (!this.major) this.fallbackMajor();
     (this.sub ?? this.major).children.push(node);
   }
 }
@@ -313,10 +319,11 @@ function takeSameLineComment(text, i) {
 // Parses the inside of a `{ ... }` body into child nodes (with banner
 // grouping via a fresh Grouper when banners appear; otherwise flat).
 function parseBody(body) {
-  const grouper = new Grouper();
-  let sawBanner = false;
-  const flat = [];
-  const push = (node) => { grouper.push(node); flat.push(node); };
+  // Collect flat items first; banners become markers. Grouping replays at
+  // the end ONLY if banners exist, so banner-less bodies (keyframe blocks,
+  // one-liner rules) never trip the missing-banner warning.
+  const items = [];
+  const push = (node) => items.push(node);
 
   let i = 0;
   while (i < body.length) {
@@ -326,9 +333,7 @@ function parseBody(body) {
       const end = body.indexOf('*/', i + 2) + 2;
       const text = body.slice(i, end);
       if (/^\/\* [=-]+ .+? [=-]+ \*\/$/s.test(text) && /^\/\* (=+|-+) /.test(text)) {
-        sawBanner = true;
-        grouper.comment(text);
-        flat.push(null); // placeholder — grouped output used when banners exist
+        items.push({ __banner: text });
       } else {
         push({ kind: 'block', code: text });
       }
@@ -353,17 +358,23 @@ function parseBody(body) {
       break;
     }
     if (body[j] === ';') {
-      // Declaration. Keep its ';' and its own trailing comment.
+      // Declaration. Every decl parses to name + value (fully decomposed —
+      // display decides one-lining); its own trailing comment moves to the
+      // node so the renderer's comment column gets it.
       let end = j + 1;
       const [comment, afterC] = takeSameLineComment(body, end);
       let chunk = body.slice(i, end).trim();
       const m = chunk.match(/^(--[\w-]+:|result:)/);
-      const value = m ? chunk.slice(m[0].length).trim() : null;
-      if (m && (value.startsWith('if(') || value.startsWith('calc(if('))) {
-        const decl = { kind: 'decl', code: m[0], children: [parseIf(value)] };
+      if (m) {
+        const value = chunk.slice(m[0].length).trim();
+        const child = (value.startsWith('if(') || value.startsWith('calc(if('))
+          ? parseIf(value)
+          : { kind: 'value', code: value };
+        const decl = { kind: 'decl', code: m[0], children: [child] };
         if (comment) decl.comment = comment;
         push(decl);
       } else {
+        // Non-custom-property line (animation shorthand etc.) — verbatim.
         if (comment) chunk = `${chunk} ${comment}`;
         push({ kind: 'block', code: chunk });
       }
@@ -374,26 +385,35 @@ function parseBody(body) {
     const close = matchBrace(body, j);
     const [comment, afterC] = takeSameLineComment(body, close + 1);
     const whole = body.slice(i, close + 1);
-    if (!whole.includes('\n')) {
-      // One-liner nested rule (keyboard rows): a single verbatim block,
-      // trailing comment included.
-      push({ kind: 'block', code: comment ? `${whole} ${comment}` : whole });
-      i = comment ? afterC : close + 1;
-      continue;
-    }
     const header = body.slice(i, j + 1); // selector + '{'
     const inner = body.slice(j + 1, close);
-    const rule = {
-      kind: 'decl',
-      code: header.trim(),
-      children: parseBody(inner),
-      trailer: '}',
-    };
-    if (comment) rule.comment = comment;
-    push(rule);
+    push(makeRuleNode(header, inner, whole, comment));
     i = comment ? afterC : close + 1;
   }
-  return sawBanner ? grouper.groups : flat.filter(Boolean);
+  if (!items.some((it) => it.__banner)) return items;
+  const grouper = new Grouper();
+  for (const it of items) {
+    if (it.__banner) grouper.comment(it.__banner);
+    else grouper.push(it);
+  }
+  return grouper.groups;
+}
+
+// A rule node: selector line, parsed declarations as children, '}' trailer.
+// One-liner rules from long uniform families (the 64,000 pixel rules) carve
+// folded so the list reads as a table of selectors; short one-liners (the
+// keyboard rows) stay open and the renderer one-lines the whole chain.
+const ONE_LINER_FOLD_LEN = 90;
+function makeRuleNode(header, inner, whole, comment) {
+  const rule = {
+    kind: 'decl',
+    code: header.trim(),
+    children: parseBody(inner),
+    trailer: '}',
+  };
+  if (comment) rule.comment = comment;
+  if (whole.includes('\n') || whole.length > ONE_LINER_FOLD_LEN) rule.folded = true;
+  return rule;
 }
 
 // Parses one whole region (banner included) into top-level nodes.
@@ -424,25 +444,21 @@ function parseRegion(region) {
       break;
     }
     const close = matchBrace(region, open);
+    const [comment, afterC] = takeSameLineComment(region, close + 1);
     const whole = region.slice(i, close + 1);
-    const header = region.slice(i, open + 1).trim();
+    const header = region.slice(i, open + 1);
     const inner = region.slice(open + 1, close);
-    // Small bodies with no dispatch stay verbatim blocks (fold to first
-    // line); anything with an if( dispatch or nested rules is structured
-    // so its long lists paginate.
-    const structured = /\bif\(/.test(inner) || /\{/.test(inner) || inner.length > 2000;
-    if (!structured) {
+    // Small helper @functions with no dispatch stay verbatim blocks (fold
+    // to their signature line); rules and dispatch-bearing functions parse
+    // structurally so their contents indent, one-line, and paginate.
+    const verbatimHelper = header.trimStart().startsWith('@function')
+      && !/\bif\(/.test(inner) && !/\{/.test(inner) && inner.length <= 2000;
+    if (verbatimHelper) {
       grouper.push({ kind: 'block', code: whole, folded: whole.includes('\n') ? true : undefined });
     } else {
-      grouper.push({
-        kind: 'decl',
-        code: header,
-        children: parseBody(inner),
-        trailer: '}',
-        folded: true,
-      });
+      grouper.push(makeRuleNode(header, inner, whole, comment));
     }
-    i = close + 1;
+    i = comment ? afterC : close + 1;
   }
   return grouper.groups;
 }
@@ -522,15 +538,79 @@ function carveIfChildren(children) {
   }
 }
 
+// Plain decl rows (name + value, no if): fold the ones whose value is a
+// wall of text (memw's --applySlot cascades), with run-uniformity contagion
+// across same-shaped siblings (--mc# rows fold together or not at all).
+const DECL_FOLD_VALUE_LEN = 100;
+function carveDeclRuns(children) {
+  const groups = new Map();
+  for (const c of children ?? []) {
+    if (c.kind !== 'decl' || c.children?.length !== 1) continue;
+    const v = c.children[0];
+    if (v.kind !== 'value') continue;
+    const key = c.code.replace(/\d+/g, '#');
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(c);
+  }
+  for (const members of groups.values()) {
+    if (members.some((m) => m.children[0].code.length > DECL_FOLD_VALUE_LEN)) {
+      for (const m of members) m.folded = true;
+    }
+  }
+}
+
 function carveRegion(nodes) {
   const walk = (node) => {
     if (node.kind === 'decl' && node.children?.[0]?.kind === 'if') {
       carveFolds(node);
       return; // carveFolds already walked the subtree
     }
+    carveDeclRuns(node.children);
     for (const c of node.children ?? []) walk(c);
   };
+  carveDeclRuns(nodes);
   for (const n of nodes) walk(n);
+}
+
+// ---------------------------------------------------------------------------
+// De-ceremony passes (owner feedback 2026-07-11): the pane header already
+// names the section, so a region that parses to a single group hoists its
+// children to the top (the banner stays as a plain comment line), and any
+// LONE structural wrapper (the one .motherboard rule, an @function's
+// `result:` chain) renders open instead of demanding a click per level.
+// Everything hoisted/unfolded still lazy-loads exactly as before — an
+// unfolded lazy node fetches on mount, which happens when its parent
+// becomes visible.
+
+const isCommentNode = (n) =>
+  n.kind === 'note' || (n.kind === 'block' && (n.code ?? '').startsWith('/*'));
+
+function hoistAndRoot(nodes) {
+  let items = nodes;
+  if (items.length === 1 && items[0].kind === 'section') {
+    const root = items[0];
+    items = root.code ? [{ kind: 'block', code: root.code }] : [];
+    items.push(...root.children);
+  } else {
+    // A leading empty group (the region banner immediately followed by the
+    // first real banner) renders as a plain comment line, not an empty box.
+    items = items.flatMap((n) =>
+      n.kind === 'section' && (n.children?.length ?? 0) === 0 && n.code
+        ? [{ kind: 'block', code: n.code }]
+        : [n]);
+  }
+  return { kind: 'root', children: items };
+}
+
+function unfoldCeremony(node) {
+  if (node.kind === 'if' || node.kind === 'branch') return;
+  const kids = node.children ?? [];
+  const structural = kids.filter((c) => !isCommentNode(c));
+  if (structural.length === 1 && structural[0].kind !== 'section'
+      && structural[0].folded != null) {
+    delete structural[0].folded;
+  }
+  for (const c of kids) unfoldCeremony(c);
 }
 
 // ---------------------------------------------------------------------------
@@ -545,8 +625,10 @@ function capLongLists(node) {
   for (const c of node.children ?? []) capLongLists(c);
   const kids = node.children ?? [];
   if (kids.length <= CAP_ROWS) return;
-  const blocks = kids.filter((c) => c.kind === 'block').length;
-  if (blocks / kids.length < 0.9) return; // structured lists ship fully
+  // Only rows-of-rules/blocks cap (the pixel painter); dispatch arm lists
+  // (branch nodes — memr's 2,000+ arms) always ship fully, just paged.
+  const uniform = kids.filter((c) => c.kind === 'block' || c.kind === 'decl').length;
+  if (uniform / kids.length < 0.9) return;
   const total = kids.length;
   const dropped = total - CAP_ROWS;
   node.children = kids.slice(0, CAP_ROWS);
@@ -836,17 +918,19 @@ function generate(ids) {
       nodes = parseRegion(region);
       assertRoundTrip(nodes, region, id);
       carveRegion(nodes);
-      // Top-level groups render boxed (one tinted pane per file region).
-      for (const n of nodes) if (n.kind === 'section') n.boxed = true;
       bytes = region.length;
     }
-    for (const n of nodes) capLongLists(n);
-    SANITY[id]?.(nodes);
+    const root = hoistAndRoot(nodes);
+    unfoldCeremony(root);
+    // Top-level groups render boxed (one tinted pane per group).
+    for (const n of root.children) if (n.kind === 'section') n.boxed = true;
+    capLongLists(root);
+    SANITY[id]?.([root]);
     const writer = new ChunkWriter(id);
-    for (const n of nodes) externalize(n, writer);
+    externalize(root, writer);
     const chunkCount = writer.flush();
-    writeSkeleton(id, nodes, bytes);
-    const skJson = JSON.stringify(nodes).length;
+    writeSkeleton(id, [root], bytes);
+    const skJson = JSON.stringify([root]).length;
     console.error(`  ${id}: ${bytes.toLocaleString('en-US')} B region → skeleton ${skJson.toLocaleString('en-US')} B + ${chunkCount} chunks`);
   }
 }

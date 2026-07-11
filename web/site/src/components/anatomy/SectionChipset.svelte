@@ -23,7 +23,7 @@
         * var(--snapshot-pitReload))));  /* count down; past zero, reload — and IRQ 0 fires */`;
 </script>
 
-<TreeView nodes={CHIPSET_TREE} title="Chipset" bytes={CHIPSET_TREE_META.bytes} />
+<TreeView nodes={CHIPSET_TREE} bytes={CHIPSET_TREE_META.bytes} />
 
 <p>
   A PC was never one chip. Around the CPU sits a small crowd of

@@ -66,7 +66,7 @@ mod(calc(var(--snapshot-DX) * 65536 + var(--snapshot-AX)), max(1, var(--rmVal16)
 @property --IP { … initial-value: 0; }`;
 </script>
 
-<TreeView nodes={CPU_TREE} title="CPU" bytes={CPU_TREE_META.bytes} />
+<TreeView nodes={CPU_TREE} bytes={CPU_TREE_META.bytes} />
 
 <p>
   This section is the fourteen <Term t="register">registers</Term> &mdash; <code>--AX</code>,

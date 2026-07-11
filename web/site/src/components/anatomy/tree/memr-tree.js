@@ -8,22 +8,17 @@
 
 export const MEMR_TREE = [
   {
-    kind: 'section',
-    label: "MEMORY READ",
-    code: `/* ===== MEMORY READ ===== */`,
-    folded: true,
-    boxed: true,
+    kind: 'root',
     children: [
+    { kind: 'block', code: `/* ===== MEMORY READ ===== */` },
     {
       kind: 'decl',
       code: `@function --readMem(--at <integer>) returns <integer> {`,
       trailer: `}`,
-      folded: true,
       children: [
       {
         kind: 'decl',
         code: `result:`,
-        folded: true,
         children: [
         { kind: 'if', code: `if(`, trailer: `);`, lazy: {"ref":"memr/000","count":2053} },
         ],

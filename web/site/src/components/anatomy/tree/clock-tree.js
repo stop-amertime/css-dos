@@ -8,45 +8,123 @@
 
 export const CLOCK_TREE = [
   {
-    kind: 'section',
-    label: "CLOCK",
-    code: `/* ===== CLOCK ===== */`,
-    folded: true,
-    boxed: true,
+    kind: 'root',
     children: [
-    { kind: 'block', code: `.clock {
-  animation: anim-play 400ms steps(4, jump-end) infinite;
-  --clock: 0;
-}`, folded: true },
-    { kind: 'decl', code: `.motherboard {`, trailer: `}`, folded: true, lazy: {"ref":"clock/000","count":813} },
+    { kind: 'block', code: `/* ===== CLOCK ===== */` },
     {
-      kind: 'decl',
-      code: `@keyframes store {`,
-      trailer: `}`,
+      kind: 'section',
+      label: "the heartbeat: a 4-step animation is the machine's only clock",
+      code: `/* --- the heartbeat: a 4-step animation is the machine's only clock --- */`,
       folded: true,
+      boxed: true,
       children: [
-      { kind: 'decl', code: `0%, 100% {`, trailer: `}`, lazy: {"ref":"clock/001","count":808} },
+      {
+        kind: 'decl',
+        code: `.clock {`,
+        trailer: `}`,
+        children: [
+        { kind: 'block', code: `animation: anim-play 400ms steps(4, jump-end) infinite;` },
+        {
+          kind: 'decl',
+          code: `--clock:`,
+          children: [
+          { kind: 'value', code: `0;` },
+          ],
+        },
+        ],
+      },
       ],
     },
     {
-      kind: 'decl',
-      code: `@keyframes execute {`,
-      trailer: `}`,
+      kind: 'section',
+      label: "double-buffer plumbing: paused store/execute animations + this tick's stable reads",
+      code: `/* --- double-buffer plumbing: paused store/execute animations + this tick's stable reads --- */`,
       folded: true,
+      boxed: true,
       children: [
-      { kind: 'decl', code: `0%, 100% {`, trailer: `}`, lazy: {"ref":"clock/002","count":808} },
+      { kind: 'decl', code: `.motherboard {`, trailer: `}`, lazy: {"ref":"clock/000","count":813} },
       ],
     },
     {
-      kind: 'decl',
-      code: `@keyframes anim-play {`,
-      trailer: `}`,
+      kind: 'section',
+      label: "store sweep: latch every computed value into the __2 buffer",
+      code: `/* --- store sweep: latch every computed value into the __2 buffer --- */`,
       folded: true,
+      boxed: true,
       children: [
-      { kind: 'block', code: `0% { --clock: 0 }` },
-      { kind: 'block', code: `25% { --clock: 1 }` },
-      { kind: 'block', code: `50% { --clock: 2 }` },
-      { kind: 'block', code: `75% { --clock: 3 }` },
+      {
+        kind: 'decl',
+        code: `@keyframes store {`,
+        trailer: `}`,
+        children: [
+        { kind: 'decl', code: `0%, 100% {`, trailer: `}`, lazy: {"ref":"clock/002","count":808} },
+        ],
+      },
+      ],
+    },
+    {
+      kind: 'section',
+      label: "execute sweep: expose the freshly computed values as __0",
+      code: `/* --- execute sweep: expose the freshly computed values as __0 --- */`,
+      folded: true,
+      boxed: true,
+      children: [
+      {
+        kind: 'decl',
+        code: `@keyframes execute {`,
+        trailer: `}`,
+        children: [
+        { kind: 'decl', code: `0%, 100% {`, trailer: `}`, lazy: {"ref":"clock/004","count":808} },
+        ],
+      },
+      ],
+    },
+    {
+      kind: 'section',
+      label: "the clock wave the heartbeat plays",
+      code: `/* --- the clock wave the heartbeat plays --- */`,
+      folded: true,
+      boxed: true,
+      children: [
+      {
+        kind: 'decl',
+        code: `@keyframes anim-play {`,
+        trailer: `}`,
+        children: [
+        {
+          kind: 'decl',
+          code: `0% {`,
+          trailer: `}`,
+          children: [
+          { kind: 'block', code: `--clock: 0` },
+          ],
+        },
+        {
+          kind: 'decl',
+          code: `25% {`,
+          trailer: `}`,
+          children: [
+          { kind: 'block', code: `--clock: 1` },
+          ],
+        },
+        {
+          kind: 'decl',
+          code: `50% {`,
+          trailer: `}`,
+          children: [
+          { kind: 'block', code: `--clock: 2` },
+          ],
+        },
+        {
+          kind: 'decl',
+          code: `75% {`,
+          trailer: `}`,
+          children: [
+          { kind: 'block', code: `--clock: 3` },
+          ],
+        },
+        ],
+      },
       ],
     },
     ],
@@ -54,4 +132,4 @@ export const CLOCK_TREE = [
 ];
 
 // Real measured size of this region in the synthetic cabinet.
-export const CLOCK_TREE_META = { bytes: 81372 };
+export const CLOCK_TREE_META = { bytes: 81744 };

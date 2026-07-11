@@ -46,7 +46,7 @@
     /* … all 256 byte values … */`;
 </script>
 
-<TreeView nodes={UTIL_TREE} title="Utility functions" bytes={UTIL_TREE_META.bytes} />
+<TreeView nodes={UTIL_TREE} bytes={UTIL_TREE_META.bytes} />
 
 <p>
   After a short header comment (the build recipe, for humans opening

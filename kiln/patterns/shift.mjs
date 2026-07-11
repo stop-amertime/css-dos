@@ -146,7 +146,7 @@ export function emitShift_D0(dispatch) {
  */
 export function emitShiftFlagFunctions() {
   return `
-/* ===== SHIFT FLAGS (by 1) ===== */
+/* --- shift & rotate flags (by 1) --- */
 
 @function --shlFlags16(--val <integer>) returns <integer> {
   --res: --lowerBytes(calc(var(--val) * 2), 16);
@@ -356,7 +356,7 @@ export function emitShift_D2(dispatch) {
  */
 export function emitShiftByNFlagFunctions() {
   return `
-/* ===== SHIFT FLAGS (variable count by CL) ===== */
+/* --- shift & rotate flags (by CL) --- */
 
 @function --shlFlagsN16(--val <integer>, --n <integer>) returns <integer> {
   --res: --lowerBytes(round(nearest, calc(var(--val) * pow(2, var(--n)))), 16);

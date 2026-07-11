@@ -2,7 +2,9 @@
 
 export function emitCSSLib() {
   return `
-/* ===== UTILITY @FUNCTIONS ===== */
+/* ===== BIT & BYTE HELPERS ===== */
+
+/* --- shifts, slices, sign helpers --- */
 
 @function --lowerBytes(--a <integer>, --b <integer>) returns <integer> {
   result: mod(var(--a), pow(2, var(--b)));
@@ -50,7 +52,7 @@ export function emitCSSLib() {
   result: mod(--rightShift(var(--val), var(--idx)), 2);
 }
 
-/* ===== BITWISE @FUNCTIONS ===== */
+/* --- bitwise AND/OR/XOR/NOT, built from per-bit arithmetic --- */
 
 ${emitBitwiseXor()}
 
@@ -60,7 +62,7 @@ ${emitBitwiseOr()}
 
 ${emitBitwiseNot()}
 
-/* ===== 8-BIT BITWISE WRAPPERS ===== */
+/* --- 8-bit wrappers --- */
 /* Chrome can't nest function calls as arguments, so these provide
    pre-composed 8-bit variants of the bitwise ops. */
 
@@ -79,7 +81,7 @@ ${emitBitwiseNot()}
   result: --lowerBytes(var(--full), 8);
 }
 
-/* ===== BYTE MERGE @FUNCTIONS ===== */
+/* --- byte merges: write one half of a 16-bit register --- */
 
 @function --mergelow(--old <integer>, --new <integer>) returns <integer> {
   result: calc(round(down, var(--old) / 256) * 256 + --lowerBytes(var(--new), 8));
@@ -89,13 +91,14 @@ ${emitBitwiseNot()}
   result: calc(var(--new) * 256 + --lowerBytes(var(--old), 8));
 }
 
-/* ===== READ HELPERS ===== */
+/* --- 16-bit memory read --- */
 
 @function --read2(--at <integer>) returns <integer> {
   result: calc(--readMem(var(--at)) + --readMem(calc(var(--at) + 1)) * 256);
 }
 
-/* ===== PACKED-CELL HELPERS =====
+/* --- packed-cell read & write splice --- */
+/*
    Memory is packed 2 bytes to a cell (cell holds b0 | b1<<8 — a 16-bit word).
    Value range 0..65535 stays well inside i32, so calcite's sign semantics
    don't corrupt byte extraction.
@@ -151,7 +154,7 @@ ${emitBitwiseNot()}
   else: var(--cell));
 }
 
-/* ===== POWER OF 2 LOOKUP ===== */
+/* --- power-of-2 lookup --- */
 /* Used for variable-count shifts (SHL/SHR by CL).
    Maps 0..31 → 2^0..2^31. Values beyond 31 return 0. */
 

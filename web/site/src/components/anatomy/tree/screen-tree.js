@@ -7,7 +7,7 @@
 // Regenerate: node tools/extract-tree-data.mjs screen
 
 export const SCREEN_TREE = [
-  { kind: 'section', label: "MODE 13h PIXEL PAINTER (raw player only)", code: `/* ===== MODE 13h PIXEL PAINTER (raw player only) ===== */`, folded: true, boxed: true, lazy: {"ref":"screen/002","count":64001} },
+  { kind: 'root', lazy: {"ref":"screen/002","count":64002} },
 ];
 
 // Real measured size of this region in the synthetic cabinet.

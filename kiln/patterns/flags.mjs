@@ -86,7 +86,7 @@ ${PARITY.map((p, i) => `    style(--low8: ${i}): ${p * 4};`).join('\n')}
   result: calc(abs(var(--sd) - var(--ss)) * abs(var(--sd) - var(--sr)) * 2048);
 }
 
-/* ===== ADD FLAGS (6 locals) ===== */
+/* --- ADD flags --- */
 
 @function --addFlags16(--dst <integer>, --src <integer>) returns <integer> {
   --raw: calc(var(--dst) + var(--src));
@@ -108,7 +108,7 @@ ${PARITY.map((p, i) => `    style(--low8: ${i}): ${p * 4};`).join('\n')}
   result: calc(var(--cf) + var(--pf) + ${ADD_AF('var(--dst)', 'var(--src)')} + var(--zfsf) + var(--of) + 2);
 }
 
-/* ===== SUB FLAGS (6 locals) ===== */
+/* --- SUB & CMP flags --- */
 
 @function --subFlags16(--dst <integer>, --src <integer>) returns <integer> {
   --res: --lowerBytes(calc(var(--dst) - var(--src) + 65536), 16);
@@ -128,7 +128,7 @@ ${PARITY.map((p, i) => `    style(--low8: ${i}): ${p * 4};`).join('\n')}
   result: calc(var(--cf) + var(--pf) + ${SUB_AF('var(--dst)', 'var(--src)')} + var(--zfsf) + var(--of) + 2);
 }
 
-/* ===== LOGIC FLAGS (3 locals) ===== */
+/* --- logic flags (AND/OR/XOR/TEST) --- */
 
 @function --logicFlags16(--res <integer>) returns <integer> {
   --pf: --parity(var(--res));
@@ -144,7 +144,7 @@ ${PARITY.map((p, i) => `    style(--low8: ${i}): ${p * 4};`).join('\n')}
   result: calc(var(--pf) + var(--zf) + var(--sf) + 2);
 }
 
-/* ===== COMPOSITE LOGIC FLAGS (4-5 locals) ===== */
+/* --- composite logic flags --- */
 
 @function --orFlags16(--a <integer>, --b <integer>) returns <integer> {
   --res: --or(var(--a), var(--b));
@@ -197,7 +197,7 @@ ${PARITY.map((p, i) => `    style(--low8: ${i}): ${p * 4};`).join('\n')}
   result: calc(var(--pf) + var(--zf) + var(--sf) + 2);
 }
 
-/* ===== INC/DEC FLAGS (6 locals) ===== */
+/* --- INC/DEC flags --- */
 
 @function --incFlags16(--dst <integer>, --res <integer>, --oldFlags <integer>) returns <integer> {
   --cf: --bit(var(--oldFlags), 0);
@@ -243,7 +243,7 @@ ${PARITY.map((p, i) => `    style(--low8: ${i}): ${p * 4};`).join('\n')}
   result: calc(var(--cf) + var(--pf) + ${DEC_AF('var(--dst)')} + var(--zf) + var(--sf) + var(--of) + var(--keep) + 2);
 }
 
-/* ===== ADC FLAGS (6 locals) ===== */
+/* --- ADC flags --- */
 
 @function --adcFlags16(--dst <integer>, --src <integer>, --carry <integer>) returns <integer> {
   --raw: calc(var(--dst) + var(--src) + var(--carry));
@@ -265,7 +265,7 @@ ${PARITY.map((p, i) => `    style(--low8: ${i}): ${p * 4};`).join('\n')}
   result: calc(var(--cf) + var(--pf) + ${ADD_AF('var(--dst)', 'var(--src)')} + var(--zfsf) + var(--of) + 2);
 }
 
-/* ===== SBB FLAGS (7 locals) ===== */
+/* --- SBB flags --- */
 
 @function --sbbFlags16(--dst <integer>, --src <integer>, --carry <integer>) returns <integer> {
   --total: calc(var(--src) + var(--carry));
