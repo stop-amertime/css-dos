@@ -14,21 +14,23 @@
   line-height: 19px;
 }
 
-/* The header is icon-only (a tree glyph) — the "Tree view: ..." text
-   moves to an aria-label on the section plus a visually-hidden span,
-   so screen readers still get the words but sighted readers get a
-   compact icon instead of the same phrase repeated on every section. */
-.tree-view-head { display: flex; align-items: center; }
-.tree-view-icon { width: 22px; height: 22px; color: var(--edit-blue); }
-.sr-only {
-  position: absolute;
-  width: 1px; height: 1px;
-  padding: 0; margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
+/* Compact header: code-file icon, section title, and the real measured
+   size of the code block shown — "[icon] CPU · 265 KB". Deliberately
+   NOT .anatomy-head (whose 40px top margin + underline read as a big
+   empty band here). */
+.tree-view-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
 }
+.tree-view-icon { width: 18px; height: 18px; color: var(--edit-blue); flex: none; }
+.tree-view-title {
+  font-weight: bold;
+  font-size: 17px;
+  color: var(--edit-black);
+}
+.tree-view-kb { color: #666; font-size: 14px; }
 
 /* One visual line of the tree: a fixed [+]/[-] gutter (kept on every
    line so code columns stay aligned whether or not a row folds) and the
@@ -48,13 +50,39 @@
   font-size: inherit;
   line-height: inherit;
 }
+/* The fold toggle: a drawn [+]/[-] box, EGA cyan (#00aaaa — EGA colour 3,
+   the interactable accent; the palette's --edit-cyan is BRIGHT cyan 11,
+   unreadable on this light pane). Every line keeps the slot so code
+   columns align; only foldable rows draw the box. */
 .ast-line .tree-glyph {
   flex: none;
-  width: 26px;
+  width: 22px;
+  height: 22px;
+  margin-right: 7px;
   font-family: 'WebVGA', monospace;
   letter-spacing: normal;
-  color: var(--edit-blue);
   user-select: none;
+}
+.ast-line.is-foldable .tree-glyph {
+  border: 1px solid #00aaaa;
+  color: #00aaaa;
+  font-weight: bold;
+  font-size: 22px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  margin-top: 0;
+}
+/* WebVGA's glyph metrics sit slightly off true center in the box —
+   per-state padding nudges (padding moves the character, not the box):
+   '+' (closed) rides high, '-' (open) leans left. */
+.ast-line.is-foldable .tree-glyph:not(.is-open) { padding-top: 3px; }
+.ast-line.is-foldable .tree-glyph.is-open { padding-left: 2px; }
+.ast-line.is-foldable:hover .tree-glyph {
+  background: #00aaaa;
+  color: var(--edit-white);
 }
 .ast-line code {
   white-space: pre-wrap;
@@ -73,12 +101,21 @@
   font-weight: bold;
 }
 
-/* Children indent one level, with the dashed guide. */
+/* Children indent one level, with the dashed guide. Inside a code pane
+   each nesting level steps one shade deeper through a subtle blue ramp
+   (the pane itself is #f0f0f8), so depth reads at a glance instead of
+   level 3+ all flattening to the same tint. */
 .ast-children {
   margin-left: 14px;
-  padding-left: 8px;
+  padding: 2px 4px 2px 8px;
   border-left: 1px dashed #ccd;
 }
+.tree-ast .ast-children { background: #e9eaf5; }
+.tree-ast .ast-children .ast-children { background: #e1e3f1; }
+.tree-ast .ast-children .ast-children .ast-children { background: #d9dcec; }
+.tree-ast .ast-children .ast-children .ast-children .ast-children { background: #d1d5e8; }
+.tree-ast .ast-children .ast-children .ast-children .ast-children .ast-children { background: #c9cee3; }
+.tree-ast .ast-children .ast-children .ast-children .ast-children .ast-children .ast-children { background: #c1c7df; }
 
 /* A boxed section's children pane: ONE tinted box per real file region
    (the @function cluster, the .cpu rule, the @property blocks) —
@@ -94,21 +131,25 @@
   overflow-x: visible;
 }
 
-/* Pagination: "(N more…)" row, styled like a link, not a full node. */
+/* Pagination: "(N more…)" as a real button — same cyan interactable
+   language as the fold boxes. */
 .tree-more {
-  margin: 2px 0;
-  padding-left: 26px;
+  margin: 3px 0;
+  padding-left: 29px;
 }
 .tree-more button {
   font: inherit;
-  color: var(--edit-blue);
+  font-size: 13px;
+  color: #00aaaa;
   background: none;
-  border: none;
-  padding: 0;
+  border: 1px solid #00aaaa;
+  padding: 1px 8px;
   cursor: pointer;
-  text-decoration: underline;
 }
-.tree-more button:hover { color: var(--edit-red); }
+.tree-more button:hover {
+  background: #00aaaa;
+  color: var(--edit-white);
+}
 
 @media (max-width: 640px) {
   .tree-view { padding: 8px; font-size: 14px; }

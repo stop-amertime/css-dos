@@ -10,7 +10,7 @@
   import CodeCss from '../CodeCss.svelte';
   import Callout from '../Callout.svelte';
   import TreeView from './tree/TreeView.svelte';
-  import { CPU_TREE } from './tree/cpu-tree.js';
+  import { CPU_TREE, CPU_TREE_META } from './tree/cpu-tree.js';
 
   const AX_TABLE = `--AX: if(
   style(--_irqActive: 1): var(--snapshot-AX);  /* interrupt pending — hardware outranks the program this tick */
@@ -66,7 +66,7 @@ mod(calc(var(--snapshot-DX) * 65536 + var(--snapshot-AX)), max(1, var(--rmVal16)
 @property --IP { … initial-value: 0; }`;
 </script>
 
-<TreeView nodes={CPU_TREE} label="Tree view: real cabinet CSS" />
+<TreeView nodes={CPU_TREE} title="CPU" bytes={CPU_TREE_META.bytes} />
 
 <p>
   This section is the fourteen <Term t="register">registers</Term> &mdash; <code>--AX</code>,

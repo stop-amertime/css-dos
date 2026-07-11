@@ -160,8 +160,22 @@ function parseIf(text) {
   const body = text.slice(ifStart + 3, closeIdx);
   const trailer = text.slice(closeIdx); // ')' inclusive, through end
 
-  const children = splitTopLevel(body).map((branchText) => {
+  const children = splitTopLevel(body).flatMap((branchText) => {
+    const nodes = [];
     let t = branchText.trim();
+    // Standalone comments BETWEEN branches (own-line — a same-line
+    // trailing comment was already attached to the previous chunk by
+    // splitTopLevel's lookahead) become their own block nodes: real file
+    // content in place, and run delimiters for the renderer's
+    // per-run pagination (see TreeAst) — so a comment Kiln plants at a
+    // type boundary in a long branch list stays visible instead of
+    // drowning behind "(N more…)".
+    while (t.startsWith('/*')) {
+      const end = t.indexOf('*/') + 2;
+      nodes.push({ kind: 'block', code: t.slice(0, end) });
+      t = t.slice(end).trim();
+    }
+    if (!t) return nodes;
     // Peel the row's own trailing comment (already guaranteed by
     // splitTopLevel to be THIS row's) into the branch node.
     let comment = null;
@@ -181,44 +195,88 @@ function parseIf(text) {
 
     const branch = { kind: 'branch', code: condText, children: [child] };
     if (comment) branch.comment = comment;
-    return branch;
+    nodes.push(branch);
+    return nodes;
   });
 
   return { kind: 'if', code: calcWrap ? 'calc(if(' : 'if(', children, trailer };
 }
 
 // Parses the ENTIRE `.cpu { ... }` rule body — every declaration and
-// banner comment, in file order, nothing hand-picked (the alias list and
-// the flag-function exhibit both went stale because they were hand-kept;
+// comment, in file order, nothing hand-picked (the alias list and the
+// flag-function exhibit both went stale because they were hand-kept;
 // this doesn't). Each ';'-terminated chunk yields: leading "/* ... */"
-// banner comments as their own block nodes, then the declaration —
-// a folded `decl` AST when its value branches (if(...) / calc(if(...)),
-// a plain one-line block otherwise.
+// comments, then the declaration — a folded `decl` AST when its value
+// branches (if(...) / calc(if(...)), a plain one-line block otherwise.
+//
+// GROUPING comes from the file itself, not editorial invention: Kiln
+// delimits the rule's regions with TWO levels of banner comment —
+// `/* ===== NAME ===== */` majors (FETCH & DECODE, REGISTERS, MEMORY
+// WRITE SLOTS) and `/* --- name --- */` subs (instruction fetch, prefix
+// detection, register aliases, ...). Each banner opens a `section` node
+// — the banner's text is the node's `code` (so the round-trip check
+// still covers it) and its cleaned title is the label; everything until
+// the next banner at its level nests inside. Smaller `/* note */`
+// comments stay inline where they are. Better banners in Kiln
+// automatically become better groups here.
 function parseCpuRule(css) {
   const ruleStart = css.indexOf('.cpu {');
   if (ruleStart === -1) throw new Error('.cpu rule not found');
   const bodyStart = ruleStart + '.cpu {'.length;
-  const body = css.slice(bodyStart, css.indexOf('\n}', bodyStart));
+  const bodyEnd = css.indexOf('\n}', bodyStart);
+  const body = css.slice(bodyStart, bodyEnd);
+  // The rule's real size in the cabinet ('.cpu {' through its '}') — the
+  // header shows this so a reader knows how much file this block is.
+  const bytes = bodyEnd + 2 - ruleStart;
 
-  const nodes = [];
+  const groups = [];
+  let major = null;
+  let sub = null;
+  const openMajor = (comment, title) => {
+    major = { kind: 'section', label: title, code: comment, folded: true, children: [] };
+    sub = null;
+    groups.push(major);
+  };
+  const openSub = (comment, title) => {
+    if (!major) openMajor('', '(preamble)');
+    sub = { kind: 'section', label: title, code: comment, folded: true, children: [] };
+    major.children.push(sub);
+  };
+  const push = (node) => {
+    if (!major) openMajor('', '(preamble)'); // safety net; real body always leads with a banner
+    (sub ?? major).children.push(node);
+  };
+
   for (const rawChunk of splitTopLevel(body)) {
     let chunk = rawChunk.trim();
     while (chunk.startsWith('/*')) {
       const end = chunk.indexOf('*/') + 2;
-      nodes.push({ kind: 'block', code: chunk.slice(0, end) });
+      const comment = chunk.slice(0, end);
       chunk = chunk.slice(end).trim();
+      const majorBanner = comment.match(/^\/\* =+ (.+?) =+ \*\/$/);
+      const subBanner = comment.match(/^\/\* -+ (.+?) -+ \*\/$/);
+      if (majorBanner) {
+        openMajor(comment, majorBanner[1].trim());
+      } else if (subBanner) {
+        openSub(comment, subBanner[1].trim());
+      } else if (major == null) {
+        // A pre-banner preamble: its leading plain comment is the label.
+        openMajor(comment, comment.replace(/^\/\*\s*|\s*\*\/$/g, ''));
+      } else {
+        push({ kind: 'block', code: comment });
+      }
     }
     if (!chunk) continue;
     const m = chunk.match(/^(--[\w-]+):/);
     if (!m) throw new Error(`unparsed .cpu chunk: ${chunk.slice(0, 60)}...`);
     const value = chunk.slice(m[0].length).trim();
     if (value.startsWith('if(') || value.startsWith('calc(if(')) {
-      nodes.push({ kind: 'decl', code: m[0], children: [parseIf(value)] });
+      push({ kind: 'decl', code: m[0], children: [parseIf(value)] });
     } else {
-      nodes.push({ kind: 'block', code: chunk });
+      push({ kind: 'block', code: chunk });
     }
   }
-  return { nodes, body };
+  return { groups, body, bytes };
 }
 
 // ---------------------------------------------------------------------------
@@ -286,10 +344,12 @@ const CPU_REGS = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI',
 function serializeNode(node, indent) {
   const pad = '  '.repeat(indent);
   const props = [`kind: '${node.kind}'`];
+  if (node.label != null) props.push(`label: ${JSON.stringify(node.label)}`);
   if (node.code != null) props.push(`code: ${jsTemplateLiteral(node.code)}`);
   if (node.comment) props.push(`comment: ${jsTemplateLiteral(node.comment)}`);
   if (node.trailer) props.push(`trailer: ${jsTemplateLiteral(node.trailer)}`);
   if (node.folded != null) props.push(`folded: ${node.folded}`);
+  if (node.boxed) props.push(`boxed: true`);
   if (!node.children || node.children.length === 0) {
     return `${pad}{ ${props.join(', ')} }`;
   }
@@ -316,23 +376,40 @@ function carveFolds(decl) {
   }
 }
 
+// Per-banner display curation: 'fold' = collapsible region (starts
+// closed), 'label' = flat header whose contents stay visible (no
+// toggle). Banners not listed default to 'fold'. Hand-curated — tiny
+// regions read better flat. Applies to both banner levels.
+const CPU_BANNER_STYLE = {
+  'unknown opcode flag': 'label',
+};
+
 function generateCpuTree() {
   const css = captureRealCSS();
 
-  // The whole .cpu rule, every declaration + banner comment, file order.
-  const { nodes: cpuNodes, body: cpuBody } = parseCpuRule(css);
-  const declNodes = cpuNodes.filter((n) => n.kind === 'decl');
+  // The whole .cpu rule — every declaration + comment, file order,
+  // grouped by Kiln's own two-level banner comments.
+  const { groups, body: cpuBody, bytes: cpuBytes } = parseCpuRule(css);
+  const allSections = groups.flatMap((g) => [g, ...g.children.filter((n) => n.kind === 'section')]);
+  const declNodes = allSections.flatMap((s) => s.children.filter((n) => n.kind === 'decl'));
   for (const decl of declNodes) carveFolds(decl);
+  for (const s of allSections) {
+    if (CPU_BANNER_STYLE[s.label] === 'label') delete s.folded;
+  }
   // Round-trip the ENTIRE rule body: concatenating every parsed node must
   // reproduce it (whitespace-stripped) — nothing dropped, nothing moved.
-  assertRoundTrip({ code: '', children: cpuNodes }, cpuBody, 'cpu-rule');
+  assertRoundTrip({ code: '', children: groups }, cpuBody, 'cpu-rule');
   // Sanity: every register dispatch must be among the parsed decls.
   for (const reg of CPU_REGS) {
     if (!declNodes.some((n) => n.code === `--${reg}:`)) {
       throw new Error(`--${reg}: dispatch missing from parsed .cpu rule`);
     }
   }
-  console.error(`  .cpu rule: ${cpuNodes.length} nodes (${declNodes.length} branching decls), round-trip OK`);
+  console.error(`  .cpu rule: ${groups.length} major regions, ${declNodes.length} branching decls, round-trip OK`);
+  for (const g of groups) {
+    const subs = g.children.filter((n) => n.kind === 'section');
+    console.error(`    ${g.label}: ${subs.length ? subs.map((s) => `${s.label} (${s.children.length})`).join(', ') : `${g.children.length} entries`}`);
+  }
 
   // The flag-arithmetic @function cluster — discovered by scanning the
   // real file (not a hand-kept list, so new helpers can't silently go
@@ -386,7 +463,7 @@ function generateCpuTree() {
   lines.push(`export const CPU_TREE = [`);
   lines.push(`  {`);
   lines.push(`    kind: 'section',`);
-  lines.push(`    label: 'flag-arithmetic @functions (${flagFnNames.length} helpers the ALU rows call)',`);
+  lines.push(`    label: 'flag arithmetic helper functions',`);
   lines.push(`    folded: true,`);
   lines.push(`    boxed: true,`);
   lines.push(`    children: [`);
@@ -397,18 +474,18 @@ function generateCpuTree() {
   lines.push(`  },`);
   lines.push(`  {`);
   lines.push(`    kind: 'section',`);
-  lines.push(`    label: '.cpu rule — the complete decode + register block (${cpuNodes.length} entries)',`);
+  lines.push(`    label: '.cpu — registers and decoder',`);
   lines.push(`    folded: true,`);
   lines.push(`    boxed: true,`);
   lines.push(`    children: [`);
-  for (const node of cpuNodes) {
-    lines.push(`${serializeNode(node, 3)},`);
+  for (const group of groups) {
+    lines.push(`${serializeNode(group, 3)},`);
   }
   lines.push(`    ],`);
   lines.push(`  },`);
   lines.push(`  {`);
   lines.push(`    kind: 'section',`);
-  lines.push(`    label: '@property registrations — typed register declarations',`);
+  lines.push(`    label: 'register declarations',`);
   lines.push(`    folded: true,`);
   lines.push(`    boxed: true,`);
   lines.push(`    children: [`);
@@ -418,6 +495,10 @@ function generateCpuTree() {
   lines.push(`    ],`);
   lines.push(`  },`);
   lines.push(`];`);
+  lines.push('');
+  lines.push(`// Real measured size of the .cpu rule in the cabinet — shown in the`);
+  lines.push(`// tree header ("CPU · N KB").`);
+  lines.push(`export const CPU_TREE_META = { bytes: ${cpuBytes} };`);
   lines.push('');
 
   return lines.join('\n');

@@ -38,18 +38,21 @@
   const LINE_BUDGET = 80;
 
   let open = $state(!node.folded);
-  let shown = $state(PAGE);
+  let runShown = $state({}); // run index -> items revealed (default PAGE)
 
   const isSection = $derived(node.kind === 'section');
   const isBlock = $derived(node.kind === 'block');
   const children = $derived(node.children ?? []);
 
   const hl = (s) => Prism.highlight(s, Prism.languages.css, 'css');
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-  // Blocks: highlight whole, split on '\n' (Prism never breaks a token
-  // across a source newline — verified for the CSS grammar).
-  const blockLines = $derived(isBlock ? hl(node.code).split('\n') : []);
-  const blockFoldable = $derived(isBlock && blockLines.length > 1);
+  // Blocks render whole, as ONE <code> (white-space: pre-wrap shows the
+  // real newlines) — splitting Prism's output per line breaks multiline
+  // tokens: a "/* ... \n ... */" comment is a single span, and cutting
+  // it mid-token leaves unclosed markup that strips the continuation
+  // lines' styling.
+  const blockMultiline = $derived(isBlock && node.code.includes('\n'));
 
   // One-line rule for AST nodes.
   const onlyChild = $derived(children.length === 1 ? children[0] : null);
@@ -65,7 +68,7 @@
   const foldable = $derived(
     node.folded != null && (
       isSection ? children.length > 0
-      : isBlock ? blockFoldable
+      : isBlock ? blockMultiline
       : !oneLine && children.length > 0
     )
   );
@@ -75,9 +78,14 @@
   const lineHtml = $derived.by(() => {
     if (isSection) return null;
     if (isBlock) {
-      return open || !blockFoldable
-        ? blockLines[0]
-        : hl(node.code.split('\n')[0]) + '<span class="ast-ellipsis"> …</span>';
+      if (open) return hl(node.code);
+      // Folded preview: first line only. A comment fragment won't
+      // re-tokenize in isolation (unterminated /*), so wrap it manually.
+      const first = node.code.split('\n')[0];
+      const preview = node.code.startsWith('/*')
+        ? `<span class="token comment">${esc(first)}</span>`
+        : hl(first);
+      return `${preview}<span class="ast-ellipsis"> …</span>`;
     }
     let h = hl((node.code ?? '') + (oneLine ? ` ${onlyChild.code}` : ''));
     if (foldable && !open) h += '<span class="ast-ellipsis"> …</span>';
@@ -85,52 +93,67 @@
     return h;
   });
 
-  const visible = $derived(oneLine ? [] : children.slice(0, shown));
-  const remaining = $derived(oneLine ? 0 : Math.max(0, children.length - shown));
+  // Children render in RUNS delimited by standalone comment nodes: the
+  // comment is always visible and each run paginates independently — so
+  // a comment Kiln plants at a type boundary in a long list (or before a
+  // lone interesting node at the end of 500 twins) can never drown
+  // behind a single flat "(N more…)".
+  const runs = $derived.by(() => {
+    if (oneLine) return [];
+    const out = [];
+    let cur = { comment: null, items: [] };
+    for (const c of children) {
+      if (c.kind === 'block' && (c.code ?? '').startsWith('/*')) {
+        if (cur.comment || cur.items.length) out.push(cur);
+        cur = { comment: c, items: [] };
+      } else {
+        cur.items.push(c);
+      }
+    }
+    if (cur.comment || cur.items.length) out.push(cur);
+    return out;
+  });
+  const shownFor = (i) => runShown[i] ?? PAGE;
 
   function toggle() { if (foldable) open = !open; }
 </script>
+
+{#snippet childList()}
+  {#each runs as run, i}
+    {#if run.comment}
+      <TreeAst node={run.comment} />
+    {/if}
+    {#each run.items.slice(0, shownFor(i)) as child}
+      <TreeAst node={child} />
+    {/each}
+    {#if run.items.length > shownFor(i)}
+      <div class="tree-more">
+        <button onclick={() => (runShown[i] = shownFor(i) + PAGE)}>({run.items.length - shownFor(i)} more&hellip;)</button>
+      </div>
+    {/if}
+  {/each}
+{/snippet}
 
 {#if isSection}
   <div class="ast-line is-section" class:is-foldable={foldable}
        role={foldable ? 'button' : undefined} tabindex={foldable ? 0 : undefined}
        onclick={toggle} onkeydown={(e) => e.key === 'Enter' && toggle()}>
-    <span class="tree-glyph" aria-hidden="true">{foldable ? (open ? '[-]' : '[+]') : ''}</span>
+    <span class="tree-glyph" class:is-open={open} aria-hidden="true">{foldable ? (open ? '-' : '+') : ''}</span>
     <span class="tree-label-group">{node.label}</span>
   </div>
-  {#if open && visible.length > 0}
+  {#if open && runs.length > 0}
     <div class="ast-children" class:byte-example={node.boxed} class:tree-ast={node.boxed}>
-      {#each visible as child}
-        <TreeAst node={child} />
-      {/each}
-      {#if remaining > 0}
-        <div class="tree-more">
-          <button onclick={() => (shown += PAGE)}>({remaining} more&hellip;)</button>
-        </div>
-      {/if}
+      {@render childList()}
     </div>
   {/if}
 {:else}
   <pre class="ast-line" class:is-foldable={foldable}
        role={foldable ? 'button' : undefined} tabindex={foldable ? 0 : undefined}
-       onclick={toggle} onkeydown={(e) => e.key === 'Enter' && toggle()}><span class="tree-glyph" aria-hidden="true">{foldable ? (open ? '[-]' : '[+]') : ''}</span><code>{@html lineHtml}</code></pre>
+       onclick={toggle} onkeydown={(e) => e.key === 'Enter' && toggle()}><span class="tree-glyph" class:is-open={open} aria-hidden="true">{foldable ? (open ? '-' : '+') : ''}</span><code>{@html lineHtml}</code></pre>
 
-  {#if isBlock && open && blockFoldable}
-    {#each blockLines.slice(1) as line}
-      <pre class="ast-line"><span class="tree-glyph" aria-hidden="true"></span><code>{@html line}</code></pre>
-    {/each}
-  {/if}
-
-  {#if !isBlock && open && visible.length > 0}
+  {#if !isBlock && open && runs.length > 0}
     <div class="ast-children">
-      {#each visible as child}
-        <TreeAst node={child} />
-      {/each}
-      {#if remaining > 0}
-        <div class="tree-more">
-          <button onclick={() => (shown += PAGE)}>({remaining} more&hellip;)</button>
-        </div>
-      {/if}
+      {@render childList()}
     </div>
   {/if}
 

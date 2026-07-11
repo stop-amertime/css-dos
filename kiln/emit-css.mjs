@@ -71,6 +71,7 @@ class DispatchTable {
     for (const op of opcodes) {
       lines.push(`    style(--opcode: ${op}): 0;`);
     }
+    lines.push('    /* any opcode not implemented above is unknown — halt */');
     lines.push('  else: 1);');
     return lines.join('\n');
   }
@@ -709,20 +710,31 @@ export function emitCSS(opts, writeStream) {
   w(emitShiftFlagFunctions());
   w(emitShiftByNFlagFunctions());
 
-  // 2. CPU — instruction decode + the register dispatch tables
+  // 2. CPU — instruction decode + the register dispatch tables.
+  // Rule layout (the ===== / --- banner comments delimit the regions the
+  // site's anatomy Tree View mirrors — see tools/extract-tree-data.mjs):
+  //   FETCH & DECODE  (decode.mjs's sub-regions + the unknown-opcode flag)
+  //   REGISTERS       (8-bit aliases + the per-register dispatch tables)
+  //   MEMORY WRITE SLOTS
+  // Custom-property order within one rule is functionally inert (var()
+  // resolution is name-based), so this grouping is free.
   w('/* ===== CPU ===== */');
   writeStream.write('.cpu {\n');
-  writeStream.write('  /* Register aliases (8-bit halves) */\n');
-  w(emitRegisterAliases());
+  writeStream.write('  /* ===== FETCH & DECODE ===== */\n');
   w(emitDecodeProperties());
 
   // Unknown opcode detection — sets --unknownOp=1 and --haltCode=opcode
-  writeStream.write('  /* ===== UNKNOWN OPCODE FLAG ===== */\n');
+  writeStream.write('  /* --- unknown opcode flag --- */\n');
   writeStream.write(dispatch.emitUnknownOpFlag() + '\n');
   writeStream.write('  --haltCode: calc(var(--unknownOp) * var(--opcode));\n\n');
 
+  writeStream.write('  /* ===== REGISTERS ===== */\n');
+  writeStream.write('  /* --- register aliases (8-bit halves) --- */\n');
+  w(emitRegisterAliases());
+  writeStream.write('\n');
+
   // Per-register dispatch tables — the heart of instruction execution
-  writeStream.write('  /* ===== REGISTER DISPATCH TABLES ===== */\n');
+  writeStream.write('  /* --- register update formulas --- */\n');
   writeStream.write('  /* Each register\'s next value is selected by opcode via a\n');
   writeStream.write('     giant if(style(--instId: N)) dispatch. This is the CPU. */\n');
   const cpuRegs = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI',

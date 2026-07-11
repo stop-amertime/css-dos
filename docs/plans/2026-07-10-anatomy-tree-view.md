@@ -1,141 +1,84 @@
-# Anatomy tree view — design
+# Anatomy Tree View — living conventions + running list
 
-Status: approved, pilot scope = CPU section only.
+Status: CPU section SHIPPED (see LOGBOOK 2026-07-10/11). This is the
+working doc for extending the tree to the other 9 file sections —
+principles first (they were hard-won, owner-set; don't relitigate),
+then how the pieces fit, then the wishlist.
 
-## Problem
+## Principles (owner-set, binding)
 
-Each anatomy section pane (`web/site/src/components/anatomy/Section*.svelte`,
-reached by clicking a `CabinetBar` segment) is a hand-written guided-tour
-prose page with a handful of hand-picked code snippets (e.g. `AX_TABLE`,
-`ADD_AX` in `SectionCpu.svelte`). There is no way to browse a section's
-real structure — e.g. "all fourteen register tables, each table's real
-rows" — only the handful of excerpts the prose walk chose to show.
+1. **The tree mirrors the file.** Never reorder, re-group, or re-nest
+   editorially in the tool/site. If the file's order or structure reads
+   badly, improve it **in Kiln** (banners, declaration order, comments)
+   — functionality-preserving only — and the tree follows automatically.
+   The only editorial invention allowed: top-level pane titles.
+2. **Data vs display.** The extracted AST is fully decomposed — a
+   node's `code` is ONLY its own token, never text belonging to a
+   child. One-lining short chains, indentation, folding, pagination are
+   all display logic in `TreeAst.svelte`, never baked into the data.
+3. **Round-trip or it didn't happen.** Every extraction recipe must
+   reconstruct the raw sliced text from its AST and compare
+   (whitespace-stripped), failing generation on mismatch. This caught
+   comment-bleed and dropped-text bugs twice; it is not optional.
+4. **Grouping comes from Kiln's banners.** `/* ===== NAME ===== */`
+   opens a major group, `/* --- name --- */` a sub-group. Better
+   banners in Kiln = better tree, for free.
+5. **Collapse only at carved points.** `folded:` flags in the data
+   (set by the tool's recipe) are the ONLY togglable nodes. Everything
+   else renders as plain always-visible code. Never make everything
+   collapsible.
+6. **Long lists break at comments.** Children render in RUNS delimited
+   by standalone comments; each run paginates independently ("(N
+   more…)") and the comments are always visible. So: insert comments
+   in Kiln **judiciously** where a list *changes kind* — a reader
+   wants 200 (or 200,000) same-shaped rows compressed away, but must
+   still see that an `else`, a different formula, or a new region
+   (RAM cells → BIOS ROM → disk window) appears later. Proven inside
+   `if()` values too (`--unknownOp`'s pre-else comment): comments are
+   spec-valid wherever whitespace is, and calcite strips them at
+   tokenize time — it parses via Servo's `cssparser` crate whose
+   tokenizer consumes comments before anything downstream (recognizers
+   included) sees the stream; calcite's own parser has no comment code
+   at all. Verified 2026-07-11 (+ smoke). Safe for the huge memory
+   dispatches too; only cost is the one-pass byte scan.
 
-Add a **Tree View**: an expandable `[+]`/`[-]` tree of a section's real
-CSS, sitting above the existing prose in each section pane, letting a
-reader drill from a section down to real leaf code without reading a
-guided tour first.
+## How the pieces fit
 
-## Non-goals
+- `tools/extract-tree-data.mjs` — the generator. Runs the real
+  `emitCSS()` on a tiny synthetic cart, slices/parses per section,
+  writes `web/site/src/components/anatomy/tree/<section>-tree.js`.
+  Reusable primitives: `captureRealCSS`, comment-aware `splitTopLevel`
+  / `matchParen`, `parseIf` (recursive if/branch/value AST),
+  `assertRoundTrip`. Each section needs its own small recipe (the .cpu
+  one parses the whole rule + banner grouping). Regenerate:
+  `node tools/extract-tree-data.mjs cpu > web/site/src/components/anatomy/tree/cpu-tree.js`.
+- Node model: `section` (label; `boxed:` = one tinted pane per file
+  region) / `block` (verbatim chunk, folds to first line) / `decl` /
+  `if` (carries `trailer`, its real closing text) / `branch` (carries
+  `comment`) / `value`. `folded:` on any = togglable.
+- `TreeAst.svelte` — the ONE renderer (sections, blocks, AST). Line
+  budget ~80 chars decides one-lining vs split-at-child. `<pre>` lines
+  dodge the wizard's inline-code white-chip rule by design.
+- `TreeView.svelte` — header: code-file icon + title + real measured
+  KB (`<SECTION>_TREE_META.bytes`).
+- Styling: cyan `#00aaaa` (EGA colour 3) = interactable ([+] boxes,
+  more-buttons; the palette's `--edit-cyan` is bright cyan 11,
+  illegible on the light pane). Depth reads via a subtle blue tint
+  ramp per `.ast-children` level.
 
-- Not a live parser of an arbitrary cabinet build. Tree data (structure +
-  leaf code) is hand-authored per section, same workflow as today's
-  prose-page snippets — not generated from a build artifact at runtime
-  or at site-build time.
-- Not a replacement for the existing prose walkthroughs. Both coexist in
-  the same pane; tree view is additive, on top.
-- Pilot scope is the CPU section only. Other sections (memory, disk,
-  clock, ...) are a follow-up once the interaction/visual design is
-  validated, not part of this spec's implementation plan.
+## Running list
 
-## Two node flavors
-
-Every tree node is one of:
-
-1. **Editorial group node** — an artificial grouping that doesn't
-   correspond to any real CSS structure (e.g. "Registers", "AX",
-   or a lopsided-volume slice like "memory-address rows" / "edge
-   cases" under a big table — see Pagination below). Folder-style
-   `[+]`/`[-]` glyph, neutral grey, prose-style label. Never shows code
-   directly at its own level — expanding it reveals child nodes.
-2. **Real construct node** — wraps one real, verbatim chunk of cabinet
-   CSS. Glyph, colour, and label come from the classifier (below). If it
-   has children (e.g. a register's table has many `style()` rows),
-   expanding shows the classifier-labelled child list; the node's own
-   code is shown via `CodeCss` (Prism-highlighted, same component the
-   prose pages already use).
-
-Leaf real-construct nodes with no children render their code directly,
-no expand arrow — same as today's static `CodeCss` blocks.
-
-## The classifier
-
-A pure function, `classify(cssChunk) -> { kind, label }`, that reads the
-actual syntax of a chunk of real CSS text and derives its kind — no
-hand-picked kind-per-section list, so it holds up for sections not yet
-built:
-
-| Pattern | kind | label |
-|---|---|---|
-| `@property --NAME { ... }` | `property` | `--NAME` |
-| `@function --name(...) { ... }` | `function` | `--name()` |
-| `style(...): ...` guard | `rule` | the guard condition, e.g. `--opcode: 5` |
-| `@keyframes name { ... }` | `keyframes` | `name` |
-| bare selector block (`:is(...)`, `.class {`, etc.) | `selector` | the selector text |
-| `/* ... */` standalone | `comment` | first ~40 chars |
-| anything else (bare declaration/expression) | `value` | first token |
-
-Each kind gets one fixed glyph + colour, reused across every section so
-the vocabulary only has to be learned once. Colour choices should draw
-from the existing semantic families in `groups.js` where sensible (e.g.
-lean `property` toward the memory blues, `function` toward the utility
-green) but this is a visual-pass decision, not a hard rule — expect to
-iterate once nodes are on screen.
-
-**The classifier only labels one node's own kind.** It never decides
-tree shape, grouping, or pagination — that's all editorial (see below).
-
-## Pagination: the per-level cap
-
-Any node with more than ~20 children renders the first 20 plus a
-`(N more…)` row; clicking it appends the next 20 in place (no new page,
-scroll position holds).
-
-**Lopsided-volume case** (e.g. a memory read-formula's function has
-~700,000 same-kind rows of one shape, ~1,000 of another, ~500 of a
-third): this is handled with the *same* editorial-grouping mechanism as
-"Registers → AX", not a separate skew-detection feature in the
-classifier. The person authoring that section's tree data slices the
-lopsided node's children into editorial sub-groups with judgment-call
-labels (e.g. "memory-address rows", "segment overrides", "edge cases"),
-each independently subject to the same 20-cap. There is exactly one
-grouping mechanism in the whole system; it's applied wherever a section
-author judges a node's children need it, whether that's "these are
-conceptually different things" (Registers/AX) or "this list is
-otherwise unreadably long" (the 700K case).
-
-## Data & placement
-
-- New component `web/site/src/components/anatomy/TreeView.svelte`,
-  rendered at the top of `SectionCpu.svelte`, above the existing prose.
-- New data file `web/site/src/components/anatomy/cpu-tree.js`: hand-
-  authored tree structure (editorial groups + real-construct nodes),
-  reusing `cpu-coverage.js`'s 850-row opcode-per-register mapping as the
-  source of truth for *which* `style(--opcode: N)` rows exist per
-  register table. Not all 850 rows need real code transcribed for the
-  pilot — populate a representative subset per register (capped/paginated
-  display already tolerates partial data; a group can note "N more" even
-  where some of those N aren't yet transcribed, same as the rest of the
-  site's honesty-about-scope conventions).
-- A small one-off Node helper script (location: `tools/` or similar,
-  final call at implementation time) that, given a real built cabinet
-  `.css`, can print "the full `@property`/`@function` block for
-  `--NAME`" or "all `style(--opcode: N)` rows in table X" — a copy aid
-  for transcribing real code accurately into `cpu-tree.js`, not a
-  generator that produces the tree data file itself.
-
-## Visual design
-
-Expect iteration once real nodes are on screen (explicitly flagged by
-the project owner as a "try stuff and see" area, not fully nailed down
-here). Starting point:
-
-- Reuse `Foldable`'s `[+]`/`[-]` glyph convention for expand/collapse,
-  extended with the classifier's per-kind glyph/colour for real-construct
-  nodes vs. the neutral folder glyph for editorial groups.
-- Indentation per tree depth, monospace for real-construct labels/code,
-  regular text for editorial group labels.
-- `CodeCss` (existing component, Prism CSS highlighting) renders a real
-  node's own code when expanded.
-
-## Testing / verification
-
-- Visual/manual: build the site, open the CPU section, verify the tree
-  expands/collapses, the classifier labels look right against real
-  cabinet code, the 20-cap "more" pagination works at both a normal
-  level (opcode rows under AX) and, if authored, a lopsided-grouping
-  level.
-- No new automated test framework needed — this is a presentational
-  Svelte component; existing site build (`npm run build`) and any
-  Playwright smoke coverage of the About/anatomy pages (if present)
-  should stay green.
+- [ ] Extraction recipes for the other 9 sections (util, chipset,
+      keys, screen, decl, memr, memw, disk, clock). memr/memw/disk are
+      the big ones — pure-streaming emitters, fakeable with tiny
+      synthetic opts (surveyed 2026-07-10).
+- [ ] Memory section: plant region-boundary comments in Kiln
+      (`/* RAM cells */`, `/* BIOS ROM */`, `/* disk window */`) so
+      the run-splitting shows the memory map's real shape.
+- [x] Calcite comment safety: verified 2026-07-11 — servo cssparser
+      tokenizer drops comments before recognizers run (see principle 6).
+- [ ] Maybe: opcode-family comments inside register dispatches
+      (`/* string ops */`, ...) — tasteful, not mechanical.
+- [ ] Decided against for now: moving register `@property` emission
+      adjacent to `.cpu` (would fragment the decl block + the site's
+      file-map measurements). Revisit only if the owner asks.

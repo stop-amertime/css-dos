@@ -148,7 +148,7 @@ export function emitDecodeFunction() {
  */
 export function emitDecodeProperties() {
   return `
-  /* ===== INSTRUCTION FETCH & DECODE ===== */
+  /* --- instruction fetch --- */
 
   /* Raw fetch: up to 8 bytes from CS:IP (enough for 2 prefix + 6-byte instruction) */
   --csBase: calc(var(--__1CS) * 16);
@@ -162,7 +162,7 @@ export function emitDecodeProperties() {
   --raw6: --readMem(calc(var(--ipAddr) + 6));
   --raw7: --readMem(calc(var(--ipAddr) + 7));
 
-  /* ===== PREFIX DETECTION ===== */
+  /* --- prefix detection --- */
   /* A byte is a prefix if it's one of: 0x26(ES) 0x2E(CS) 0x36(SS) 0x3E(DS) 0xF2(REPNE) 0xF3(REP)
      We detect whether raw0 and raw1 are prefixes to compute prefixLen (0, 1, or 2). */
   --isPrefix0: if(
@@ -219,7 +219,7 @@ export function emitDecodeProperties() {
   else: 0);
   --hasREP: min(1, var(--repType));
 
-  /* ===== PREFIX-ADJUSTED INSTRUCTION QUEUE ===== */
+  /* --- instruction queue --- */
   /* q0 = opcode (at IP + prefixLen), q1 = ModR/M byte, q2-q5 = subsequent bytes.
      This shifting means all existing dispatch emitters work without modification. */
   --q0: if(style(--prefixLen: 0): var(--raw0); style(--prefixLen: 1): var(--raw1); else: var(--raw2));
@@ -235,6 +235,8 @@ export function emitDecodeProperties() {
   /* d and w bits from opcode */
   --dBit: --rightShift(--and(var(--opcode), 2), 1);
   --wBit: --and(var(--opcode), 1);
+
+  /* --- ModR/M & effective address --- */
 
   /* ModR/M decode */
   --mod: --rightShift(var(--q1), 6);
@@ -262,6 +264,8 @@ export function emitDecodeProperties() {
     var(--disp8), var(--disp16));
   --ea: calc(var(--eaSeg) + var(--eaOff));
 
+  /* --- immediates & operand reads --- */
+
   /* Immediate values after ModR/M (position depends on modrmExtra).
      immOff = prefixLen + 2 + modrmExtra (offset from raw ipAddr). */
   --immOff: calc(var(--prefixLen) + 2 + var(--modrmExtra));
@@ -285,6 +289,8 @@ export function emitDecodeProperties() {
   /* Immediate value at opcode+1 (for MOV reg,imm and other non-ModR/M immediates) */
   --imm8: var(--q1);
   --imm16: calc(var(--q1) + var(--q2) * 256);
+
+  /* --- precomputed helpers --- */
 
   /* Carry flag extracted for ADC/SBB (avoids nested --bit() in dispatch expressions) */
   --_cf: --bit(var(--__1flags), 0);
@@ -373,6 +379,8 @@ export function emitDecodeProperties() {
   /* CF bit index for SHL: bit (width - CL) of original value */
   --_shlCFidx16: max(0, calc(16 - var(--_clMasked)));
   --_shlCFidx8: max(0, calc(8 - var(--_clMasked)));
+
+  /* --- trap flag (single-step) state --- */
 
   /* TF (Trap Flag) single-step: 8086 fires INT 1 AFTER the instruction completes.
      --_tfPending: set to 1 when current FLAGS has TF=1 (latches the request).
