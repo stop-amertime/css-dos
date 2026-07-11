@@ -20,10 +20,13 @@ const BUILD_SUBS = ['pick', 'configure', 'result'];
 // The How-it-works carousel: the map/overview page, then the file's
 // sections in file order (mirrors anatomy/groups.js).
 export const FILE_SECTIONS = ['map', 'util', 'cpu', 'chipset', 'keys', 'screen', 'decl', 'memr', 'memw', 'disk', 'clock'];
-// Which About sub-page hosts the carousel (App.svelte keys arrows off it).
+// Which About sub-page hosts the carousel (next/prev walk its sections;
+// App.svelte keys the Skip button off it).
 export const ABOUT_FILE_SUB = ABOUT_SUBS.indexOf('file') + 1;
 // Where "How it Works" entries land: the first info page after Why?.
 export const ABOUT_HOW_SUB = ABOUT_SUBS.indexOf('how') + 1;
+
+const HINT_KEY = 'cssdos-filemap-hint';
 
 const stepNames = {
   home: ABOUT, intro: ABOUT,
@@ -39,19 +42,25 @@ class Nav {
   buildSub = $state(1);  // Build sub-page 1..3
   section = $state('map');   // current section on the About/file carousel
   sectionDir = $state(1);    // slide direction of the last section change
-  // The carousel's first-visit hint (the "this bar is a map" bubble)
-  // shows until the reader has moved the carousel once (arrows, bar
-  // click, a section deep link) or dismissed the bubble itself.
-  carouselSeen = $state(false);
+  // The carousel's "this bar is a map" hint: shows on every page of
+  // the File Map sub-page until dismissed, and the dismissal sticks
+  // per browser (localStorage) so returning readers never see it again.
+  hintDismissed = $state(
+    typeof localStorage !== 'undefined' && localStorage.getItem(HINT_KEY) === '1'
+  );
+
+  dismissHint() {
+    this.hintDismissed = true;
+    try { localStorage.setItem(HINT_KEY, '1'); } catch { /* private mode */ }
+  }
 
   sectionIdx() { return FILE_SECTIONS.indexOf(this.section); }
 
-  // Step the carousel (wraps at the ends).
+  // Step the carousel (callers keep d within range; clamp regardless).
   sectionStep(d) {
     const n = FILE_SECTIONS.length;
     this.sectionDir = d;
-    this.section = FILE_SECTIONS[(this.sectionIdx() + d + n) % n];
-    this.carouselSeen = true;
+    this.section = FILE_SECTIONS[Math.max(0, Math.min(n - 1, this.sectionIdx() + d))];
     scrollTop();
   }
 
@@ -60,7 +69,13 @@ class Nav {
     if (id === this.section || !FILE_SECTIONS.includes(id)) return;
     this.sectionDir = FILE_SECTIONS.indexOf(id) > this.sectionIdx() ? 1 : -1;
     this.section = id;
-    this.carouselSeen = true;
+    scrollTop();
+  }
+
+  // The File Map sub-page's Skip button: hop past the rest of the
+  // carousel to the next info page.
+  skipFileMap() {
+    this.sub = ABOUT_FILE_SUB + 1;
     scrollTop();
   }
 
@@ -119,11 +134,22 @@ class Nav {
     if (step < this.step || step !== PLAY || this.canPlay) this.go(step);
   }
 
-  // Forward one logical page. Within About/Build, walk sub-pages first;
+  // Forward one logical page. Within About/Build, walk sub-pages first
+  // (the File Map sub-page walks its 11 carousel sections one by one);
   // only cross to the next step from the last (unlocked) sub-page.
   next() {
     if (this.step === ABOUT) {
-      if (this.sub < ABOUT_SUBPAGES) { this.sub += 1; scrollTop(); return; }
+      if (this.sub === ABOUT_FILE_SUB && this.sectionIdx() < FILE_SECTIONS.length - 1) {
+        this.sectionStep(1);
+        return;
+      }
+      if (this.sub < ABOUT_SUBPAGES) {
+        this.sub += 1;
+        // Entering the carousel forwards starts it from its first page.
+        if (this.sub === ABOUT_FILE_SUB) { this.section = FILE_SECTIONS[0]; this.sectionDir = 1; }
+        scrollTop();
+        return;
+      }
       this.go(BUILD);
       return;
     }
@@ -145,7 +171,20 @@ class Nav {
       return;
     }
     // About step
-    if (this.sub > 1) { this.sub -= 1; scrollTop(); }
+    if (this.sub === ABOUT_FILE_SUB && this.sectionIdx() > 0) {
+      this.sectionStep(-1);
+      return;
+    }
+    if (this.sub > 1) {
+      this.sub -= 1;
+      // Entering the carousel backwards lands on its last page, so the
+      // sub-pages + sections read as one continuous strip.
+      if (this.sub === ABOUT_FILE_SUB) {
+        this.section = FILE_SECTIONS[FILE_SECTIONS.length - 1];
+        this.sectionDir = -1;
+      }
+      scrollTop();
+    }
   }
 
   // The canonical hash for the current state.
@@ -187,7 +226,6 @@ class Nav {
       this.sub = i >= 0 ? i + 1 : 1;
       if (this.sub === ABOUT_FILE_SUB && FILE_SECTIONS.includes(s2)) {
         this.section = s2;
-        if (s2 !== 'map') this.carouselSeen = true;
       }
     } else if (target === BUILD) {
       const i = BUILD_SUBS.indexOf(s1);

@@ -1,5 +1,5 @@
 <script>
-  import { nav, ABOUT, PLAY, FILE_SECTIONS, ABOUT_FILE_SUB } from './lib/router.svelte.js';
+  import { nav, ABOUT, PLAY, ABOUT_FILE_SUB } from './lib/router.svelte.js';
   import { build } from './lib/builder.svelte.js';
   import StepDots from './components/StepDots.svelte';
   import About from './routes/About.svelte';
@@ -19,18 +19,15 @@
 
   function onkeydown(e) {
     if (e.target?.matches?.('input, textarea, select, [contenteditable]')) return;
-    // On the How-it-works carousel, left/right step sections; at either
-    // end they fall through to normal page turns (no wrap-around trap).
-    const inFileMap = nav.step === ABOUT && nav.sub === ABOUT_FILE_SUB;
+    // next()/prev() walk the How-it-works carousel's sections themselves,
+    // so the arrows are plain page turns everywhere.
     if (e.key === 'ArrowRight') {
       e.preventDefault();
-      if (inFileMap && nav.sectionIdx() < FILE_SECTIONS.length - 1) nav.sectionStep(1);
-      else if (!nav.nextDisabled && !nav.isLast) nav.next();
+      if (!nav.nextDisabled && !nav.isLast) nav.next();
     }
     if (e.key === 'ArrowLeft') {
       e.preventDefault();
-      if (inFileMap && nav.sectionIdx() > 0) nav.sectionStep(-1);
-      else if (!nav.atStart) nav.prev();
+      if (!nav.atStart) nav.prev();
     }
     if (e.key === 'Escape' && !nav.atStart) { e.preventDefault(); nav.prev(); }
   }
@@ -63,6 +60,12 @@
       « <span class="hot">B</span>ack
     </button>
     <span class="wiz-nav-spacer"></span>
+    {#if nav.step === ABOUT && nav.sub === ABOUT_FILE_SUB && nav.sectionIdx() > 0}
+      <!-- Deep in the File Map carousel: an exit that skips the rest of it. -->
+      <button class="btn" onclick={() => nav.skipFileMap()}>
+        <span class="hot">S</span>kip &raquo;&raquo;&raquo;
+      </button>
+    {/if}
     {#if nav.step === PLAY}
       <!-- Play is the flow's end: forward goes to the info pages, landing
            where the Why? page's skip button would have left you. -->

@@ -43,9 +43,9 @@
   const MAP_GROUP = { id: 'map', label: 'The whole file', size: '309 MB', c: '#555555' };
   const curGroup = $derived(GROUPS.find((x) => x.id === nav.section) ?? MAP_GROUP);
   const CurSection = $derived(SECTIONS[nav.section]);
-  // First-visit hint: shown on the carousel's map page until the
-  // reader uses the carousel or dismisses the bubble.
-  const hintLive = $derived(nav.section === 'map' && !nav.carouselSeen);
+  // First-visit hint: shown on every page of the carousel until the
+  // reader dismisses it (dismissal persists — router.svelte.js).
+  const hintLive = $derived(!nav.hintDismissed);
 
   const SUBPAGES = [
     { label: 'Home' },
@@ -225,20 +225,10 @@
   {:else if nav.sub === 4}
     <!-- How it works — the bar as map, the sections as a carousel -->
     <div class="subpage" data-subpage="4">
-      {#if hintLive}
-        <!-- First-visit spotlight: dims everything except the topper
-             (and its bubble); clicking the dim dismisses. A sibling of
-             the bar, NOT a child — Chrome clips fixed descendants of a
-             sticky element to its layer. -->
-        <div class="hint-overlay" role="presentation"
-             onclick={() => (nav.carouselSeen = true)}></div>
-      {/if}
       <CabinetBar selected={nav.section === 'map' ? null : nav.section}
                   hint={hintLive}
                   onselect={(g) => nav.sectionJump(g)}
-                  onprev={() => nav.sectionStep(-1)}
-                  onnext={() => nav.sectionStep(1)}
-                  ondismiss={() => (nav.carouselSeen = true)} />
+                  ondismiss={() => nav.dismissHint()} />
 
       <div class="anatomy-pane" style="--pane-c:{curGroup.c}">
         <div class="pane-head">

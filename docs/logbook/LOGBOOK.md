@@ -4,7 +4,7 @@ Chronological work entries. Newest first. The durable handbook
 (current state, sentinels, gotchas, how to test) is in
 [`STATUS.md`](STATUS.md).
 
-Last updated: 2026-07-10
+Last updated: 2026-07-11
 
 Entries are individual files in [`entries/`](entries/). This page is
 the **index only** — read the tag + one-line summary, open the 1–3
@@ -22,6 +22,7 @@ See [`PROTOCOL.md`](PROTOCOL.md).
 
 | Date | Tag | Entry |
 |------|-----|-------|
+| 2026-07-11 | LANDED | [File Map carousel nav redesign: flanking arrows removed — wizard Back/Next walk the 11 sections (arrow keys inherit), Skip »»» from page 2+, hint re-dressed as yellow HINT note (dither spotlight deleted), shows on every carousel page, dismissal persists via localStorage](entries/2026-07-11-filemap-nav-redesign.md) |
 | 2026-07-11 | LANDED | [Tree View round 3: run-uniformity policy (same-shaped siblings wrap together + fold together, folds 441→1361) and visual polish (depth shown exactly once — block tint/continuation tint/inline chip; right-edge comment column with wrap-reverse stacking; rigid conditions; hanging value wraps; cyan interactables; header icon+KB)](entries/2026-07-11-tree-uniform-runs-visual.md) |
 | 2026-07-11 | LANDED | [Tree View round 2: .cpu rule regrouped IN KILN (two banner levels, aliases under REGISTERS — functionality-inert, smoke/writable/msdos PASS); tree mirrors it; long lists render in comment-delimited runs (each paginates independently — proven on --unknownOp's pre-else comment); comments-in-values verified safe (servo cssparser strips at tokenize); conventions doc: docs/plans/2026-07-10-anatomy-tree-view.md](entries/2026-07-11-tree-kiln-banners-runs.md) |
 | 2026-07-10 | LANDED | [Site owner fix round: Home-hero h1 nowrap caused mobile sideways scroll (wraps ≤640px); inactive step-strip tabs get a darker #666 dither (all tabs dithered now); menu/status bars un-dithered to flat grey; Home + Why copy synced from `CSS-DOS-site-copy.md`; Why CTA buttons centred](entries/2026-07-10-site-owner-fix-round.md) |

@@ -1,23 +1,8 @@
-/* cabinet-bar.css — the two pieces of the About "How it works" carousel
-   that CANNOT live in CabinetBar.svelte's own scoped style: both are
-   rendered by routes/About.svelte, not by CabinetBar's own template.
-   (Everything else CabinetBar draws — the bar, arrows, tooltip, hint
-   popover — is now scoped inside CabinetBar.svelte.) */
-
-/* The overlay is rendered by About.svelte as a SIBLING of <CabinetBar>,
-   not a child: Chrome clips position:fixed descendants of a sticky
-   element to the sticky layer, which butchered the full-screen dim.
-   Sibling at z-index 44, topper raised to 45 (CabinetBar.svelte's own
-   .hint-live rule) → the bar and its bubble are the spotlight;
-   everything else (page chrome included) dims. */
-.hint-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 44;
-  /* A ▒ dither instead of an alpha dim — how a text-mode UI 'greys
-     out' what's behind a modal. */
-  background: var(--dither-dark) 0 0 / 4px 4px;
-}
+/* cabinet-bar.css — the piece of the About "How it works" carousel
+   that CANNOT live in CabinetBar.svelte's own scoped style: the
+   section pane is rendered by routes/About.svelte, not by CabinetBar's
+   own template. (Everything CabinetBar draws — the bar, tooltip, hint
+   note — is scoped inside CabinetBar.svelte.) */
 
 /* The section content below the topper: a box faintly tinted with the
    section's colour, tied to its bar segment by the connector line that

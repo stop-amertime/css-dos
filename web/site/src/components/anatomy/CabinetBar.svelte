@@ -2,23 +2,24 @@
   // CabinetBar — the whole 309 MB cabinet drawn to scale as a
   // clickable bar, in file order, coloured by section group; a white
   // full-width topper pinned to the top of the wizard's scroll band so
-  // the map stays visible while a section is read. Tall narrow
-  // prev/next arrows flank the bar and step the carousel. The three
-  // sections too small to see at true scale (utilities / CPU /
-  // keyboard — 319 KB together) are a single 2px sliver on the bar;
-  // the zoom box below expands them into clickable segments. The
-  // selected segment drops a coloured connector line out of the bar
-  // onto the section pane below (title + size live in the pane's
-  // header — About.svelte); hovering any segment shows a cursor
-  // tooltip (title + size), clicking jumps there.
-  // .hint-overlay / .anatomy-pane stay in cabinet-bar.css: they're
-  // rendered by About.svelte as siblings of <CabinetBar>, not inside its
-  // own template, so they can't become scoped styles of this component.
+  // the map stays visible while a section is read. (The carousel is
+  // stepped by the wizard's own Back/Next buttons — nav.next()/prev()
+  // walk the sections.) The three sections too small to see at true
+  // scale (utilities / CPU / keyboard — 319 KB together) are a single
+  // 2px sliver on the bar; the zoom box below expands them into
+  // clickable segments. The selected segment drops a coloured
+  // connector line out of the bar onto the section pane below (title +
+  // size live in the pane's header — About.svelte); hovering any
+  // segment shows a cursor tooltip (title + size), clicking jumps
+  // there.
+  // .anatomy-pane stays in cabinet-bar.css: it's rendered by
+  // About.svelte as a sibling of <CabinetBar>, not inside its own
+  // template, so it can't become a scoped style of this component.
   import '../../styles/_fragments/cabinet-bar.css';
   import { GROUPS, SEGS, TINY, ZOOM } from './groups.js';
   import IconCursor from '~icons/pixelarticons/cursor-minimal';
 
-  let { selected = null, hint = false, onselect, onprev, onnext, ondismiss } = $props();
+  let { selected = null, hint = false, onselect, ondismiss } = $props();
   let hovered = $state(null);
   let tip = $state(null); // cursor position for the tooltip
 
@@ -45,11 +46,8 @@
   function track(e) { tip = { x: e.clientX, y: e.clientY }; }
 </script>
 
-<div class="cab-bar" class:hint-live={hint}>
-  <div class="cab-grid">
-    <button class="sec-arrow sec-prev" onclick={() => onprev?.()}
-            aria-label="Previous section" title="Previous section">&#9668;</button>
-    <div class="cab-mid">
+<div class="cab-bar">
+  <div class="cab-mid">
       <svg viewBox="0 0 700 100" role="img" onmousemove={track}
            onmouseleave={() => (hovered = null)}
            aria-label="The 309 megabyte cabinet file drawn to scale as a bar. Memory write rules take over half; the utilities, CPU and keyboard are together a 2 pixel sliver at the left edge, expanded below in a 350 times zoom box.">
@@ -97,9 +95,6 @@
       {#if cur}
         <span class="drop-tick" style="left:{tickPct}%; background:{cur.c}"></span>
       {/if}
-    </div>
-    <button class="sec-arrow sec-next" onclick={() => onnext?.()}
-            aria-label="Next section" title="Next section">&#9658;</button>
   </div>
 
   {#if hoverG && tip}
@@ -111,17 +106,24 @@
   {/if}
 
   {#if hint}
-    <div class="hint-pop" role="dialog" aria-label="How to use the map">
-      <button class="hint-x" aria-label="Dismiss" onclick={() => ondismiss?.()}>&times;</button>
-      <div class="bar-hint">
-        <IconCursor class="bar-hint-icon" aria-hidden="true" />
-        <div>
+    <!-- The "this bar is a map" hint: a yellow HINT note (same dress as
+         the Play page's HINTS toast), hanging off the bar it explains. -->
+    <div class="window hint-pop" role="dialog" aria-label="How to use the map">
+      <div class="title-bar hint-pop-title">
+        <span>HINT</span>
+        <button class="hint-x" aria-label="Dismiss" onclick={() => ondismiss?.()}>&times;</button>
+      </div>
+      <div class="window-body">
+        <div class="bar-hint">
+          <IconCursor class="bar-hint-icon" aria-hidden="true" />
           <div>
-            This bar is the map &mdash; <b>click any stripe</b> to find
-            out how that part of the file works.
-          </div>
-          <div class="bar-hint-promise">
-            If you enjoy silly code hacks, this is top shelf stuff, I promise.
+            <div>
+              This bar is the map &mdash; <b>click any stripe</b> to find
+              out how that part of the file works.
+            </div>
+            <div class="bar-hint-promise">
+              If you enjoy silly code hacks, this is top shelf stuff, I promise.
+            </div>
           </div>
         </div>
       </div>
@@ -146,13 +148,6 @@
     border-bottom: 1px solid var(--edit-black);
   }
 
-  /* ── Topper layout: [prev arrow] [title + bar] [next arrow] ── */
-  .cab-grid {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 0 12px;
-    align-items: stretch;
-  }
   .cab-mid { min-width: 0; position: relative; }
   .cab-mid > svg { width: 100%; height: auto; display: block; }
 
@@ -171,56 +166,41 @@
     pointer-events: none;
   }
 
-  /* Carousel arrows: tall (full topper height) but narrow, flanking the
-     bar. Flat — they belong to the topper, not floating chrome. */
-  .sec-arrow {
-    width: 30px;
-    font: inherit;
-    font-size: 18px;
-    color: var(--edit-black);
-    background: var(--edit-gray);
-    border: 1px solid var(--edit-black);
-    cursor: pointer;
-    align-self: stretch;
-  }
-  .sec-arrow:hover { background: var(--edit-yellow); }
-  .sec-arrow:active { background: var(--edit-black); color: var(--edit-white); }
-
   .cab-bar .seg { cursor: pointer; outline: none; }
   .cab-bar .dim { opacity: 0.3; }
   /* svg text: font-size here is in viewBox units (700-wide), so it
      shrinks with the bar — the phone override keeps it legible. */
   .cab-bar .zoom-label { fill: #555; font-family: inherit; font-size: 13px; }
 
-  /* ── The first-visit hint: a spotlight. The overlay dims the whole
-     screen; the bar and the bubble punch through by being children of
-     .cab-bar, whose z-index is raised above the page chrome while the
-     hint is live. Dismiss = the X, clicking the dim, or using the
-     carousel. The overlay itself is rendered by About.svelte as a
-     SIBLING of the bar (styled in cabinet-bar.css, not here): Chrome
-     clips position:fixed descendants of a sticky element to the sticky
-     layer, which butchered the full-screen dim. Sibling at z-index 44,
-     topper raised to 45 → the bar and its bubble are the spotlight;
-     everything else (page chrome included) dims. ── */
-  .cab-bar.hint-live { z-index: 45; }
-
+  /* ── The first-visit hint: a small yellow HINT note (same dress as
+     the Play page's HINTS toast — play.css) hanging below the bar,
+     with an upward arrow still pointing at the map. Shows on every
+     carousel page until the X is clicked; dismissal persists
+     (router.svelte.js). ── */
   .hint-pop {
     position: absolute;
     top: calc(100% + 14px);
     left: 50%;
     transform: translateX(-50%);
-    width: 360px;
+    z-index: 9;
+    width: 380px;
     max-width: 90vw;
-    background: var(--edit-white);
+    margin: 0;
+    background: #ffffcc;   /* a note, not another gray dialog */
     color: var(--edit-black);
-    border: 1px solid var(--edit-black);
     box-shadow: 4px 4px 0 var(--edit-black);
-    padding: 12px 30px 12px 12px;
     font-size: 15px;
     line-height: 18px;
   }
-  /* The upward arrow — white like the bubble (a rotated square sharing
-     its background and border). */
+  .hint-pop-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #ffffcc;
+    text-align: left;
+  }
+  /* The upward arrow — yellow like the note (a rotated square sharing
+     its background). */
   .hint-pop::before {
     content: '';
     position: absolute;
@@ -229,26 +209,20 @@
     width: 12px;
     height: 12px;
     transform: translateX(-50%) rotate(45deg);
-    background: var(--edit-white);
-    border-top: 1px solid var(--edit-black);
-    border-left: 1px solid var(--edit-black);
+    background: #ffffcc;
   }
+  .hint-pop .window-body { padding: 10px 12px; }
   .hint-x {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    width: 20px;
-    height: 20px;
-    padding: 0;
-    border: 1px solid var(--edit-black);
-    background: var(--edit-white);
-    color: var(--edit-black);
+    background: none;
+    border: none;
+    padding: 0 2px;
     font: inherit;
-    font-size: 14px;
-    line-height: 18px;
+    font-size: 16px;
+    line-height: 16px;
+    color: var(--edit-black);
     cursor: pointer;
   }
-  .hint-x:hover { background: var(--edit-black); color: var(--edit-white); }
+  .hint-x:hover { background: var(--edit-black); color: #ffffcc; }
   .bar-hint {
     display: flex;
     gap: 10px;
@@ -296,7 +270,6 @@
   @media (max-width: 900px) {
     /* window-body padding is 16px 14px at this width. */
     .cab-bar { margin: -16px -14px 0; padding: 8px 8px 6px; }
-    .sec-arrow { width: 24px; font-size: 16px; }
     .drop-tick { height: 20px; }
   }
 
@@ -304,8 +277,6 @@
     /* Phone: tighter chrome so the pinned map eats less of the screen
        (window-body padding is 12px 10px here). */
     .cab-bar { margin: -12px -10px 0; padding: 6px 6px 5px; }
-    .cab-grid { gap: 0 6px; }
-    .sec-arrow { width: 20px; font-size: 14px; }
     .drop-tick { height: 19px; }
     .cab-bar .zoom-label { font-size: 22px; }
   }
