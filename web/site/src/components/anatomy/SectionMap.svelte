@@ -12,18 +12,14 @@
 <p>
   The bar above is the whole <Term t="cabinet">cabinet</Term> &mdash;
   a real build (Sokoban, 309&nbsp;MB), drawn to scale, in file order.
-  Click any stripe, or use the arrows to walk the sections in order.
+  Click the sections or arrows above to delve<span class="map-fn-star">*</span>
+  in.
+</p>
+<p class="map-fn small">
+  <span class="map-fn-star">*</span> written by a human, I promise.
 </p>
 
-<p>
-  Two things are worth knowing before you go in. First, the thinking
-  is nearly free: the CPU &mdash; every
-  <Term t="register">register</Term>, every instruction &mdash; is the
-  hairline at the bar&rsquo;s left edge, 265&nbsp;KB, under a tenth of
-  a percent of the file. Second, one fact of CSS explains most of the
-  rest: a variable can be defined exactly once. There is no
-  <code>x&nbsp;=&nbsp;y</code> &mdash; every variable is a single
-  formula that has to anticipate, in advance, everything that could
-  ever happen to it. The biggest stripe, 171&nbsp;MB of dark blue, is
-  the price of that &mdash; the tour&rsquo;s biggest single stop.
-</p>
+<style>
+  .map-fn { margin: 0; color: #555; line-height: 14px; }
+  .map-fn-star { color: var(--edit-red); text-decoration: none; }
+</style>

@@ -29,6 +29,7 @@
     /* Blocky shadow instead of a 1px outline (hairlines read hi-res). */
     box-shadow: 3px 3px 0 var(--edit-black);
     background: var(--edit-white);
+    margin: 16px 0;
   }
   .foldable > summary {
     list-style: none;

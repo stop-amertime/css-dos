@@ -232,8 +232,27 @@
   padding: 0;
 }
 .cross-list li, .sim-list li { margin-bottom: 6px; line-height: 16px; }
+.bracket-list li { margin-bottom: 14px; }
+.bracket-list li:last-child { margin-bottom: 6px; }
 .cross-list .no { color: var(--edit-red); margin-right: 8px; }
 .sim-list .ok { color: #006600; margin-right: 8px; }
+
+/* bracket-list: [ ] as the bullet, DOS-menu style */
+.bracket-list { padding-left: 30px; }
+.bracket-list li { position: relative; padding-left: 6px; }
+.bracket-list li::before {
+  content: '[]';
+  position: absolute;
+  left: -30px;
+  width: 24px;
+  color: var(--edit-blue);
+  font-weight: bold;
+}
+
+/* bracket-list-num: [1] [2] … — same DOS-menu style, numbered */
+.bracket-list-num { counter-reset: bracket-num; }
+.bracket-list-num li { counter-increment: bracket-num; }
+.bracket-list-num li::before { content: '[' counter(bracket-num) ']'; }
 
 /* ── The dithered TUI shadow: text-mode dialogs shadowed the cells
    under them with a ▒ halftone, not a solid slab. Painted by an
@@ -246,22 +265,6 @@
   z-index: -1;
   background: var(--dither-dark) 0 0 / 4px 4px;
 }
-
-.ext-link-box {
-  border: 6px double var(--edit-black);
-  background: var(--edit-white);
-  padding: 10px 14px;
-  margin: 20px 8px 20px 0;
-  position: relative;
-}
-.ext-link-box::after {
-  content: '';
-  position: absolute;
-  inset: 8px -8px -8px 8px;
-  z-index: -1;
-  background: var(--dither-dark) 0 0 / 4px 4px;
-}
-.ext-link-box p { margin: 0; }
 
 /* ── Problem headings as DOS error dialogs (the upcoming 'How is this
    possible?' rewrite). Usage:
@@ -314,8 +317,8 @@
 .stat-box .stat-label {
   display: block;
   margin-top: 4px;
-  font-size: 13px;
-  line-height: 16px;
+  font-size: 16px;
+  line-height: 18px;
   color: var(--edit-black);
 }
 

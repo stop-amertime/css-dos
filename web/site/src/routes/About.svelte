@@ -3,7 +3,7 @@
   // its skip-ahead/read-on buttons), how it's possible (the one-tool
   // idea + the mechanisms), the How-it-works carousel (the file
   // dissected, with a map/overview landing page), Calcite, the FAQs,
-  // and the credits. Copy register per ABOUT-SCRIPT.md.
+  // and the credits. 
   import { fly } from 'svelte/transition';
   import '../styles/_fragments/about.css';
   import '../styles/_fragments/anatomy.css';
@@ -14,8 +14,10 @@
   import Foldable from '../components/Foldable.svelte';
   import Callout from '../components/Callout.svelte';
   import CodeCss from '../components/CodeCss.svelte';
-  import CssDemo from '../components/CssDemo.svelte';
+  import CssTimeline from '../components/CssTimeline.svelte';
   import MoonViz from '../components/MoonViz.svelte';
+  import ReassignViz from '../components/ReassignViz.svelte';
+  import CycleDiagrams from '../components/anatomy/CycleDiagrams.svelte';
   import CabinetBar from '../components/anatomy/CabinetBar.svelte';
   import { GROUPS } from '../components/anatomy/groups.js';
   import SectionMap from '../components/anatomy/SectionMap.svelte';
@@ -50,20 +52,22 @@
   const hintLive = $derived(!nav.hintDismissed);
 
   // "How is this possible?" page exhibits — Problem 1's full AND
-  // machinery (verbatim from kiln/css-lib.mjs, kiln/patterns/flags.mjs),
-  // Problem 2's simplified AX table (pre-interrupt; SectionCpu.svelte
-  // has the fuller version with the IRQ branch).
-  const X_ASSIGN = `x = 2
-…
-x = 4`;
+  // machinery (verbatim from kiln/css-lib.mjs, kiln/patterns/flags.mjs).
+  // Problem 3's cell plumbing is shared verbatim with SectionClock.svelte's
+  // "Why do we need four keyframes?" fold (same explanation, both places).
+  const CELL_PLUMBING = `/* rule, always in force: the copy every formula reads —
+   defined as the _2 copy, power-on value as the fallback */
+--mc5000-prev: var(--mc5000_2, 32861);
 
-  const AX_TABLE_SIMPLE = `--AX: if(
-    style(--opcode: 0): …;    /* ADD, one flavour */
-    style(--opcode: 1): …;    /* ADD, another */
-    …                         /* every opcode that can touch AX */
-    else: var(--AX-prev));   /* untouched: keep the old value */`;
+/* rule, always in force: the cell's next value, computed from
+   -prev copies only (the write formula from the write-formulas section) */
+--mc5000: …;
 
-  const X_SELF_REF = `x = x + 1`;
+/* the "execute" keyframe, at 75% of the lap: a copy of the computed value */
+--mc5000_1: var(--mc5000);
+
+/* the "store" keyframe, at 25% of the lap: a copy of _1 */
+--mc5000_2: var(--mc5000_1, 32861);`;
 
   const AND_FULL_EXHIBIT = `/* CSS-DOS: the AND operation, plus auxiliary @functions.
    Extracted verbatim from the Kiln emitters (kiln/css-lib.mjs, kiln/patterns/flags.mjs).
@@ -456,28 +460,27 @@ x = 4`;
         <div class="intro-text">
           <h1>An entire &rsquo;80s PC in a stylesheet.</h1>
           <p class="lede">
-            An IBM PC compatible &mdash;
-            <Term t="i8086">8086</Term> processor, 640&nbsp;KB
-            RAM, floppy drive, keyboard, VGA screen, and various
-            less-memorable support chips &mdash; in one <code>.css</code> file.
+            An <Term t="i8086">8086</Term> CPU, chipset, 640&nbsp;KB
+            RAM, floppy, keyboard and VGA screen in one
+            <code>.css</code> file.
           </p>
           <p class="lede">
-            That file is a morbidly obese <b>300+&nbsp;MB</b> of
-            spec-compliant <Term t="css">CSS</Term>, albeit abused beyond
-            recognition &mdash; perhaps some of the most circuitous and
-            painfully inefficient code ever written in earnest.
+            It&rsquo;s a morbidly obese <b>300+&nbsp;MB</b> of
+            spec-compliant <Term t="css">CSS</Term>, abused beyond
+            recognition &mdash; some of the most delightfully painful
+            and wasteful code ever cursed to exist.
           </p>
           <p class="lede">
-            It boots <b>MS-DOS</b> (Microsoft&rsquo;s operating system
-            before Windows) and runs unmodified &rsquo;80s software.
+            It boots <b>MS-DOS</b> (the precursor to Microsoft
+            Windows) and runs real &rsquo;80s software.
           </p>
-          <p class="lede">Yes, it runs <b>Doom</b><span class="flair-star">*</span></p>
+          <p class="lede">Yes, it runs <b>DOOM</b><span class="flair-star">*</span></p>
           <div class="flair-burst">
             <div class="flair-text">
               <span><span class="fl-1">The</span><span
                 class="fl-2">first time</span><span
-                class="fl-3">real programs</span><span
-                class="fl-4">have run</span><span
+                class="fl-3">real software</span><span
+                class="fl-4">has run</span><span
                 class="fl-5">in CSS!</span></span>
             </div>
           </div>
@@ -542,38 +545,19 @@ x = 4`;
     <div class="subpage" data-subpage="3">
       <h1>How is this possible?</h1>
       <p>
-        <Term t="css">CSS</Term> is designed to style elements on
-        websites (e.g. making a box a specific size and colour) and was
-        never designed to compute anything.
+        <Term t="css">CSS</Term> is designed to style websites (e.g.
+        &lsquo;make a box blue&rsquo;), not to compute anything. But,
+        some basic tools have been added across thirty years:
       </p>
-      <p>
-        Basic tools have trickled into CSS as websites have become more
-        complex, arriving one at a time over thirty years:
-      </p>
-      <CssDemo />
+      <CssTimeline />
       <p style="margin-top:16px">
-        Those last two, <code>@function</code> and <code>if()</code>,
-        arrived within months of each other in 2025 and made this
-        entire project possible. And yet, it is still a pitifully small
-        set of tools for such a large job.
-      </p>
-      <p>
-        We smack every problem with those tools until it&rsquo;s fixed.
-        Some problems would be solved in one hit with a very slightly
-        better tool for the job. Instead, they are brute forced with
-        millions of hits from a tool we do have. Each whack is a line
-        of code &mdash; 5.9&nbsp;million lines later, the file ends up
-        an appalling 300+&nbsp;MB of text:
+        A pitifully small set of tools for such a large job. But our
+        best tool is <i>perseverance</i>. A better tool would solve a
+        problem in one hit &mdash; instead, we just brute force the
+        problem with millions of hits until it&rsquo;s fixed.
+        That&rsquo;s why the file is an appalling 300+&nbsp;MB of text:
       </p>
       <MoonViz />
-      <Callout kind="info">
-        <p>
-          How the entire .css file works is covered in detail via a
-          full <a href="#about/file">file map</a> a couple of pages
-          from here &mdash; this page attempts to just provide an
-          accessible intuition on the basics.
-        </p>
-      </Callout>
       <p>
         So, let&rsquo;s say we want to run DOOM in CSS. What is
         stopping us? After all, CSS is a programming language, and DOOM
@@ -605,81 +589,56 @@ x = 4`;
       </p>
       <p>
         This sounds a bizarre detour, but: a CPU is a fixed circuit
-        whose outputs are always a function of its inputs. Always in
-        force, like a spreadsheet, or like CSS. Programs are a terrible
-        fit for CSS, but circuits are a surprisingly natural one. The
-        dream is: if we can just emulate all the components of a PC
-        1:1, code should just&hellip; run on it.
+        whose outputs are always a function of its inputs. Programs are
+        a terrible fit for CSS, but circuits are a surprisingly natural
+        one. The dream is: if we can just emulate all the components of
+        a PC 1:1, code should just&hellip; run on it.
       </p>
-      <Callout kind="info">
+      <Callout kind="tip" label="Fun fact">
         <p>
-          Recreating an entire computer is <i>technically possible</i>
-          since CSS is Turing complete. This is like saying
+          Recreating a computer is technically possible, as CSS is
+          &lsquo;Turing complete&rsquo;. It&rsquo;s like saying
           &lsquo;anywhere is walking distance, if you have the
           time&rsquo;.
         </p>
       </Callout>
       <p>
-        And so, we embark on a rollercoaster journey: mimicking the
-        processor hardware and all its foibles 1:1, reinventing logical
-        operations like AND, OR and NOT in CSS, re-creating the RAM,
-        the clock, the PIT (timer) and PIC (interrupt controller),
-        hacking in a screen, and so on and so forth. We might genuinely
-        hit <i>another</i> problem we can&rsquo;t solve along the way
-        &mdash; the only way to really tell in advance is to try to do
-        it.
+        And so, we embark on a journey: mimicking the entire hardware
+        of a computer and all its foibles 1:1, cobbling together a
+        processor, re-creating the RAM, the clock, the PIT, PIC,
+        screen, keyboard, and so on.
       </p>
-      <Callout kind="tip" label="Fun fact">
+      <Callout kind="info">
         <p>
-          The earliest experiments in CSS computation had no way to
-          make time pass &mdash; the user had to repeatedly press keys
-          or hold the mouse down to advance the machine one cycle at a
-          time, until a trick was found: using CSS animations and
-          <code>@keyframes</code> to drive a
-          <a href="#about/file/clock">clock</a> instead.
+          Lyra Rebane first built a
+          <a href="https://lyra.horse/x86css/" class="ext-link"
+             target="_blank" rel="noopener">CSS x86 CPU</a> with a
+          partial instruction set &mdash; CSS-DOS completes the
+          instruction set, and adds everything required (chipset,
+          640K RAM, CGA graphics, etc.) to boot real &rsquo;80s
+          software.
         </p>
       </Callout>
-
-      <h4 class="anatomy-head">Just a taste: the AND function</h4>
       <p>
-        Let&rsquo;s sink our teeth into one of the simplest helper
-        functions &mdash; AND &mdash; in CSS. AND combines two numbers
-        bit by bit: the result has a 1 only where <i>both</i> numbers
-        have a 1. Every other language on earth does it with one
-        built-in operator: <code>a &amp; b</code>. CSS has no bitwise
-        operators at all &mdash; so we rebuild Boolean logic out of
-        arithmetic. On single bits, AND is just multiplication
-        (1&times;1 is 1, everything else is 0), OR is
-        <code>min(1, a+b)</code>, and NOT is <code>1&minus;a</code>.
-        The same job transistors do with voltage, done with
-        <code>calc()</code> &mdash; the &lsquo;reinventing logic
-        gates&rsquo; promised above, made literal.
+        CSS doesn&rsquo;t even have an AND operator. Let&rsquo;s see how
+        we might implement that.
       </p>
-      <p>
-        That trick only works one bit at a time, though. So to AND two
-        16-bit numbers, the function must first shred both into their
-        sixteen separate bits &mdash; sixteen divide-and-round-down
-        extractions each &mdash; multiply the pairs, then reassemble
-        the answers into a number. Thirty-odd lines of long division to
-        do what <code>&amp;</code> does anywhere else. This is all real
-        spec-compliant CSS from the cabinet.
-      </p>
-      <p>
-        Bear in mind: <b>this isn&rsquo;t a CPU instruction &mdash;
-        it&rsquo;s just one helper @function.</b> The actual AND X,Y
-        <i>instruction</i> is implemented across many CPU registers,
-        which each individually compute what happens to them if and
-        when the current CPU instruction is &lsquo;AND X,Y&rsquo;. But
-        let&rsquo;s not worry about that yet &mdash; it&rsquo;s tackled
-        in the next &lsquo;problem&rsquo; section.
-      </p>
-
       <Foldable>
-        {#snippet summary()}The full AND machinery &mdash; get ready to scroll&hellip;{/snippet}
+        {#snippet summary()}Just a taste: the AND function{/snippet}
+        <p>
+          Let&rsquo;s take a look at one of the simplest functions
+          possible &mdash; AND. In most programming languages, this is
+          just <code>a &amp; b</code>. The code required for AND to
+          work in CSS is attached below.
+        </p>
+        <p>
+          Bear in mind: <b>this isn&rsquo;t a CPU instruction &mdash;
+          it&rsquo;s just one helper @function.</b> The actual AND X,Y
+          <i>instruction</i> is implemented across many CPU registers,
+          which each individually compute what happens to them if and
+          when the current CPU instruction is &lsquo;AND X,Y&rsquo;.
+        </p>
         <CodeCss code={AND_FULL_EXHIBIT} />
-      </Foldable>
-      <Foldable>
-        {#snippet summary()}Explanation of how AND works{/snippet}
         <p>
           The little helpers at the top (<code>--lowerBytes</code>,
           <code>--rightShift</code>, <code>--bit</code>) are helpers
@@ -697,7 +656,13 @@ x = 4`;
         </p>
       </Foldable>
 
-      <ul class="sim-list">
+      <p>
+        Here&rsquo;s a quick overview on how the basic components work
+        around the limitation of &lsquo;no lists of
+        instructions&rsquo;:
+      </p>
+
+      <ul class="sim-list bracket-list">
         <li><b>Clock:</b> an animation ticks a counter, and every
           formula in the file re-evaluates each tick
           (<a href="#about/file/clock">the clock</a>)</li>
@@ -719,16 +684,6 @@ x = 4`;
           declarations</a>, <a href="#about/file/memr">reads</a>)</li>
       </ul>
 
-      <div class="ext-link-box">
-        <p>
-          Lyra Rebane first built an
-          <a href="https://lyra.horse/x86css/" class="ext-link"
-             target="_blank" rel="noopener">x86 CPU in CSS</a> with a
-          limited instruction set &mdash; this extends that work to a
-          full machine running an unmodified OS and real programs.
-        </p>
-      </div>
-
       <div class="problem-box dos-shadow">
         <span class="problem-tag">Problem 2</span>
         <h3>CSS cannot change a property while running</h3>
@@ -737,54 +692,39 @@ x = 4`;
         In any other programming language, we can set a variable and
         then change it later:
       </p>
-      <CodeCss code={X_ASSIGN} />
+      <ReassignViz />
       <p>
         In CSS, <b>you only get one chance to set a property.</b> A
-        huge pain in the arse for programs, which rely heavily
-        on&hellip; changing the values of things.
+        huge pain in the arse for programs, which require you to do
+        that often.
       </p>
       <p>
-        Instead, each CSS property &mdash; from the RAM to the CPU
-        registers &mdash; has to be written in such a way that its
-        value is true <i>all the time.</i>
+        At first this may seem insurmountable. But we can surmount it
+        as follows:
       </p>
+      <ol class="sim-list bracket-list bracket-list-num">
+        <li>Work out every possible state/value for the property at
+          any given time, in advance.</li>
+        <li>Write one all-encompassing formula, which covers <i>in advance</i> all possible situations and the values that the variable could take consequently &mdash; which, when calculated, will give you the correct value for the property at any moment in time.</li>
+        <li>Recalculate the result of that formula for every single variable, every single cycle, even if the variable didn&rsquo;t change (in this model you don&rsquo;t know if it changed or not without checking).</li>
+      </ol>
       <p>
-        We end up with gigantic <code>if()</code> statements which
-        cover every possible state that a variable could be in:
+        If that sounds comically absurd, it&rsquo;s because it is:
       </p>
-      <ul class="sim-list">
+      <ol class="sim-list bracket-list bracket-list-num">
         <li>CPU registers cover every possible CPU instruction that
-          could change them, and the resultant value of doing so</li>
-        <li>Bytes of RAM each ask, every cycle, whether this
-          tick&rsquo;s instruction wrote to their address &mdash; and
-          when it didn&rsquo;t, their formula simply answers with last
-          tick&rsquo;s value, unchanged.</li>
-      </ul>
+          could affect them, and hold a formula to calculate their own
+          new value for every situation that could arise.</li>
+        <li>EVERY byte of RAM must re-run its own formula to check,
+          EVERY cycle, whether this tick&rsquo;s instruction wrote to
+          their address, when 99.999% of the time, it didn&rsquo;t. If
+          not written to, the byte of RAM copies its previous value,
+          making that recomputation pointless (but necessary).</li>
+      </ol>
       <p>
-        Here is the register AX &mdash; structurally exact from the
-        cabinet, arithmetic elided:
-      </p>
-      <CodeCss code={AX_TABLE_SIMPLE} />
-      <p>
-        One table, keyed on the current instruction, with a row for
-        everything that could ever happen to AX &mdash; and that final
-        <code>else</code> is this whole problem in one line of CSS: a
-        variable&rsquo;s single, permanent definition has to end with
-        <i>&ldquo;otherwise, I am what I was.&rdquo;</i> Fourteen of
-        these tables, one per <Term t="register">register</Term>, are
-        the machine&rsquo;s entire brain
-        (<a href="#about/file/cpu">the CPU section</a>).
-      </p>
-      <p>
-        Memory gets the same treatment at scale. Each tick, the current
-        instruction broadcasts &ldquo;I am writing value V to address
-        N&rdquo; into three small shared variables (the <b>write
-        slots</b>), and all 368,256 memory-cell formulas compare the
-        slots against their own address. When an instruction writes
-        nothing &mdash; most don&rsquo;t &mdash; a 0-or-1
-        &lsquo;live&rsquo; flag on each slot lets every formula
-        short-circuit at once
-        (<a href="#about/file/memw">the write-formulas section</a>).
+        This is a heart-breaking and mind-boggling way to write code.
+        Much more detail is included on exactly <i>how</i> this works
+        on the next page.
       </p>
 
       <div class="problem-box dos-shadow">
@@ -792,44 +732,46 @@ x = 4`;
         <h3>CSS variables can&rsquo;t reference themselves</h3>
       </div>
       <p>
-        In any programming language, you increment a variable using:
+        Each tick, every value &mdash; register or memory cell &mdash;
+        must be recomputed from its previous one. But a variable
+        can&rsquo;t reference itself in CSS (in most other languages,
+        it can!):
       </p>
-      <CodeCss code={X_SELF_REF} />
+      <CycleDiagrams panel="self" />
       <p>
-        In CSS, that&rsquo;s off the table: a variable whose definition
-        mentions itself is a <i>circular reference</i>, and CSS rejects
-        it outright.
+        Well, that&rsquo;s easy to solve &mdash; just use a buffer,
+        right? Hold the previous value of <code>--X</code> somewhere
+        and copy from that? CSS doesn&rsquo;t like that either: it
+        detects <i>cycles</i> too, of any length, and ignores them.
+      </p>
+      <CycleDiagrams panel="pair" />
+      <p>
+        What we need is a system that lets state through without ever,
+        at any instant, having a complete route from start to end
+        &mdash; a bit like an airlock:
+      </p>
+      <CycleDiagrams panel="ring" />
+      <p>
+        Here is one cell&rsquo;s full plumbing:
+      </p>
+      <CodeCss code={CELL_PLUMBING} />
+      <p>
+        Follow one lap. At the 25% keyframe, last lap&rsquo;s
+        <code>_1</code> copies move into <code>_2</code> &mdash; and
+        since every <code>-prev</code> is defined as its
+        <code>_2</code>, every formula now reads the new state and
+        re-evaluates. At the 75% keyframe, the freshly computed values
+        are copied into <code>_1</code>. Repeat forever.
       </p>
       <p>
-        This one is simple to solve &mdash; just keep a <i>complete
-        second set</i> of all variables that <i>could</i> change,
-        holding their <i>previous</i> values &mdash; each
-        <code>--X</code> gets an <code>--X-prev</code> &mdash; and copy
-        from those. So, each variable actually needs two copies &mdash;
-        what it is <i>now</i> and what it was <i>before.</i> Since at
-        most 3 of the machine&rsquo;s 368,256 memory cells change in
-        any given cycle, over 99.999% of this copying is redundant.
-      </p>
-      <p>
-        Except that&rsquo;s actually still not quite enough. Every
-        formula must read the frozen <i>before</i>-picture while the
-        <i>after</i>-picture is being computed &mdash; if new values
-        landed the moment they were ready, half the machine would
-        calculate from the old state and half from the new, and the
-        state would be scrambled beyond repair.
-      </p>
-      <p>
-        That one is simple to solve too: create <i>another complete
-        copy</i> of all variables as a buffer between the two. New
-        values are parked there, then handed over all at once, at a
-        fixed point of each clock lap, when nothing is reading. (In the
-        real file every memory cell ends up as <b>four</b> variables.
-        If you know electronics or graphics, yes: we have just
-        reinvented the flip-flop &mdash; the CSS-as-circuits analogy
-        holding up worryingly well &mdash; or, if you prefer,
-        double-buffering.) The full mechanism, animated, is on the
-        <a href="#about/file/clock">clock page</a> of the file-map
-        tour.
+        The reason for the two-step handover: each copy is written at
+        one keyframe and read at another, so nothing is ever read and
+        overwritten at the same moment. The machine never sees a
+        half-updated version of itself &mdash; every tick gets a clean
+        before-picture, even though 368,256 cells and fourteen
+        registers all change &ldquo;at once.&rdquo; The full mechanism,
+        animated, is on the <a href="#about/file/clock">clock
+        page</a> of the file-map tour.
       </p>
 
       <div class="problem-box dos-shadow">
@@ -842,7 +784,7 @@ x = 4`;
         can&rsquo;t take input from your keyboard, and can&rsquo;t draw
         to the screen &mdash; so we cobble every one of these together:
       </p>
-      <ul class="sim-list">
+      <ul class="sim-list bracket-list">
         <li><b>The floppy disk:</b> CSS can&rsquo;t open anything at
           runtime &mdash; no files, no requests, no loading &mdash; so
           the entire floppy is baked into the stylesheet in advance,

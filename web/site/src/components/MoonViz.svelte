@@ -14,10 +14,10 @@
     <line x1="46" y1="58" x2="413" y2="58" stroke="#aa0000" stroke-width="4" stroke-dasharray="4 6"/>
     <!-- Earth -->
     <circle cx="46" cy="58" r="36" fill="#0000aa" stroke="#000" stroke-width="1"/>
-    <text x="46" y="63" text-anchor="middle" font-size="13" fill="#fff" font-family="inherit">EARTH</text>
+    <text x="46" y="64" text-anchor="middle" font-size="17" font-weight="bold" fill="#fff" font-family="inherit">EARTH</text>
     <!-- Moon -->
     <circle cx="654" cy="58" r="18" fill="#aaa" stroke="#000" stroke-width="1"/>
-    <text x="654" y="30" text-anchor="middle" font-size="12" fill="#000" font-family="inherit">MOON</text>
+    <text x="654" y="30" text-anchor="middle" font-size="16" font-weight="bold" fill="#000" font-family="inherit">MOON</text>
     <!-- ~60% marker -->
     <text x="413" y="34" text-anchor="middle" font-size="20" font-weight="bold" fill="#aa0000" font-family="inherit">~60%</text>
   </svg>
@@ -35,7 +35,7 @@
     background: var(--edit-white);
     box-shadow: 4px 4px 0 var(--edit-black);
     padding: 12px 16px;
-    margin: 16px 0;
+    margin: 16px 0 28px;
   }
   .moon-viz svg { width: 100%; height: auto; display: block; }
   .moon-viz .caption {

@@ -5,6 +5,7 @@
   // in a fold). Facts from CABINET-ANATOMY.md §4, §12, §14–16;
   // keyframe extracts verbatim from sokoban.css (names tidied to
   // flow order: --__0/--__2/--__1mc5000 → --mc5000_1/_2/-prev).
+  import Callout from '../Callout.svelte';
   import CodeCss from '../CodeCss.svelte';
   import CycleDiagrams from './CycleDiagrams.svelte';
   import Foldable from '../Foldable.svelte';
@@ -47,6 +48,15 @@
 
 <TreeView nodes={CLOCK_TREE} title="Clock" bytes={CLOCK_TREE_META.bytes} />
 
+<Callout kind="tip" label="Fun fact">
+  <p>
+    Early experiments in CSS computation had no way to make time pass
+    &mdash; the user had to repeatedly press buttons to advance the
+    machine one cycle at a time, until this method of using animations
+    and <code>@keyframes</code> was discovered.
+  </p>
+</Callout>
+
 <p>
   Exactly one thing in CSS changes on its own: an <b>animation</b>. At
   the very bottom of the file, after 300&nbsp;MB of formulas, sits the
@@ -60,46 +70,53 @@
   <Term t="cabinet">cabinet</Term> and its only moving part.
 </p>
 
-<h3 class="anatomy-head">Why does every value need four variables?</h3>
-<p>
-  Each tick, every value &mdash; register or memory cell &mdash; must
-  be recomputed from its previous one. But a variable can&rsquo;t
-  reference itself in CSS (in most other languages, it can!):
-</p>
-<CycleDiagrams panel="self" />
-<p>
-  Well, that&rsquo;s easy to solve &mdash; just use a buffer, right?
-  Hold the previous value of <code>--X</code> somewhere and copy from
-  that? CSS doesn&rsquo;t like that either: it detects <i>cycles</i>
-  too, of any length, and ignores them.
-</p>
-<CycleDiagrams panel="pair" />
-<p>
-  What we need is a system that lets state through without ever, at
-  any instant, having a complete route from start to end &mdash; a bit
-  like an airlock:
-</p>
-<CycleDiagrams panel="ring" />
-<p>
-  Here is one cell&rsquo;s full plumbing:
-</p>
-<CodeCss code={CELL_PLUMBING} />
-<p>
-  Follow one lap. At the 25% keyframe, last lap&rsquo;s
-  <code>_1</code> copies move into <code>_2</code> &mdash; and since
-  every <code>-prev</code> is defined as its <code>_2</code>, every
-  formula now reads the new state and re-evaluates. At the 75%
-  keyframe, the freshly computed values are copied into
-  <code>_1</code>. Repeat forever.
-</p>
-<p>
-  The reason for the two-step handover: each copy is written at one
-  keyframe and read at another, so nothing is ever read and
-  overwritten at the same moment. The machine never sees a half-updated version of
-  itself &mdash; every tick gets a clean before-picture, even though
-  368,256 cells and fourteen registers all change &ldquo;at
-  once.&rdquo;
-</p>
+<Foldable>
+  {#snippet summary()}Why do we need four keyframes?{/snippet}
+  <p class="dim small">
+    This was previously covered in the &lsquo;How is this
+    possible?&rsquo; page, but it belongs here too, so it&rsquo;s
+    duplicated.
+  </p>
+  <p>
+    Each tick, every value &mdash; register or memory cell &mdash; must
+    be recomputed from its previous one. But a variable can&rsquo;t
+    reference itself in CSS (in most other languages, it can!):
+  </p>
+  <CycleDiagrams panel="self" />
+  <p>
+    Well, that&rsquo;s easy to solve &mdash; just use a buffer, right?
+    Hold the previous value of <code>--X</code> somewhere and copy from
+    that? CSS doesn&rsquo;t like that either: it detects <i>cycles</i>
+    too, of any length, and ignores them.
+  </p>
+  <CycleDiagrams panel="pair" />
+  <p>
+    What we need is a system that lets state through without ever, at
+    any instant, having a complete route from start to end &mdash; a bit
+    like an airlock:
+  </p>
+  <CycleDiagrams panel="ring" />
+  <p>
+    Here is one cell&rsquo;s full plumbing:
+  </p>
+  <CodeCss code={CELL_PLUMBING} />
+  <p>
+    Follow one lap. At the 25% keyframe, last lap&rsquo;s
+    <code>_1</code> copies move into <code>_2</code> &mdash; and since
+    every <code>-prev</code> is defined as its <code>_2</code>, every
+    formula now reads the new state and re-evaluates. At the 75%
+    keyframe, the freshly computed values are copied into
+    <code>_1</code>. Repeat forever.
+  </p>
+  <p>
+    The reason for the two-step handover: each copy is written at one
+    keyframe and read at another, so nothing is ever read and
+    overwritten at the same moment. The machine never sees a half-updated version of
+    itself &mdash; every tick gets a clean before-picture, even though
+    368,256 cells and fourteen registers all change &ldquo;at
+    once.&rdquo;
+  </p>
+</Foldable>
 
 <Foldable>
   {#snippet summary()}The nitty-gritty: what actually freezes the copies{/snippet}
