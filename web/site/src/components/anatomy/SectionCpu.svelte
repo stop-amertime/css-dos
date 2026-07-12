@@ -6,6 +6,7 @@
   // verbatim from sokoban.css (names tidied per the NOTE callout).
   import Foldable from '../Foldable.svelte';
   import CpuCoverage from './CpuCoverage.svelte';
+  import SectionHead from '../SectionHead.svelte';
   import Term from '../Term.svelte';
   import CodeCss from '../CodeCss.svelte';
   import Callout from '../Callout.svelte';
@@ -69,207 +70,109 @@ mod(calc(var(--DX-prev) * 65536 + var(--AX-prev)), max(1, var(--rmVal16)))`;
 <TreeView nodes={CPU_TREE} title="CPU" bytes={CPU_TREE_META.bytes} />
 
 <p>
-  This section is the fourteen <Term t="register">registers</Term> &mdash; <code>--AX</code>,
-  <code>--BX</code>, <code>--IP</code> and the rest &mdash; and the
-  tables that define them. It is about 307&nbsp;KB: less than a tenth
-  of a percent of the file does all of the machine&rsquo;s thinking.
+  This section is the fourteen <Term t="register">registers</Term> &mdash; <code>--AX</code>, <code>--BX</code>, <code>--IP</code> and the rest &mdash; and the tables that define them. It is about 307&nbsp;KB: less than a tenth of a percent of the file does all of the machine&rsquo;s thinking.
 </p>
 
 <Foldable class="fold-bg">
   {#snippet summary()}Background: what a CPU does{/snippet}
   <p>
-    Memory is a long row of numbered boxes, each holding a number from
-    0 to 255. A program is numbers sitting in those boxes, and some of
-    the numbers are instructions: the sequence 184,&nbsp;5,&nbsp;0
-    means &ldquo;put the number 5 into AX&rdquo;. AX is a
-    <b>register</b> &mdash; one of fourteen values the processor keeps
-    directly to hand instead of in memory. Another register, IP, holds
-    the address of the current instruction.
+    Memory is a long row of numbered boxes, each holding a number from 0 to 255. A program is numbers sitting in those boxes, and some of the numbers are instructions: the sequence 184,&nbsp;5,&nbsp;0 means &ldquo;put the number 5 into AX&rdquo;. AX is a <b>register</b> &mdash; one of fourteen values the processor keeps directly to hand instead of in memory. Another register, IP, holds the address of the current instruction.
   </p>
   <p>
-    The processor&rsquo;s whole job is a loop: read the number IP
-    points at, do what it says, move IP past it, repeat. On a real chip
-    that loop is wiring. There&rsquo;s no code underneath making that
-    happen &mdash; the CPU fetches the next number the way a lightbulb
-    lights up when you press the switch: it&rsquo;s engineered to do
-    it. Here there is no silicon, so the loop has to be made of
-    variables.
+    The processor&rsquo;s whole job is a loop: read the number IP points at, do what it says, move IP past it, repeat. On a real chip that loop is wiring. There&rsquo;s no code underneath making that happen &mdash; the CPU fetches the next number the way a lightbulb lights up when you press the switch: it&rsquo;s engineered to do it. Here there is no silicon, so the loop has to be made of variables.
   </p>
 </Foldable>
 
 <p>
-  A register changes constantly: ADD puts a sum in AX, MOV loads a
-  value into it, POP pulls one off the stack into it. But
-  <code>--AX</code> is a CSS variable, and a variable gets exactly one
-  definition. So the definition has to cover, in advance, everything
-  that could ever happen to the register &mdash; one table, keyed on
-  the current <Term t="opcode">opcode</Term>, with a row for every instruction that can touch
-  it:
+  A register changes constantly: ADD puts a sum in AX, MOV loads a value into it, POP pulls one off the stack into it. But <code>--AX</code> is a CSS variable, and a variable gets exactly one definition. So the definition has to cover, in advance, everything that could ever happen to the register &mdash; one table, keyed on the current <Term t="opcode">opcode</Term>, with a row for every instruction that can touch it:
 </p>
 <CodeCss code={AX_TABLE} />
 <Callout kind="info">
   <p>
-    Code here is real cabinet code, structurally exact &mdash; only the
-    variable names are tidied for reading: <code>--__1IP</code> becomes
-    <code>--IP-prev</code>.
+    Code here is real cabinet code, structurally exact &mdash; only the variable names are tidied for reading: <code>--__1IP</code> becomes <code>--IP-prev</code>.
   </p>
 </Callout>
 <CodeCss code={REG_VARS} />
 <p>
-  Fourteen of these tables, one per register. Evaluating all fourteen
-  against the current opcode, once, is how an instruction gets
-  executed. The opcode itself is just another variable &mdash; the
-  cabinet contains the line
-  <code>--opcode:&nbsp;var(--q0)</code>, where <code>--q0</code> is
-  the byte of memory IP points at, fetched through the giant function
-  in the <a href="#about/file/memr">read-formulas section</a>.
+  Fourteen of these tables, one per register. Evaluating all fourteen against the current opcode, once, is how an instruction gets executed. The opcode itself is just another variable &mdash; the cabinet contains the line <code>--opcode:&nbsp;var(--q0)</code>, where <code>--q0</code> is the byte of memory IP points at, fetched through the giant function in the <a href="#about/file/memr">read-formulas section</a>.
 </p>
 <p>
-  All fourteen tables, drawn as one grid &mdash; a mark where a table
-  has a row for an opcode:
+  All fourteen tables, drawn as one grid &mdash; a mark where a table has a row for an opcode:
 </p>
 
 <CpuCoverage />
 
 <p>
-  These tables are the same CSS in every cabinet: Doom&rsquo;s CPU and
-  Zork&rsquo;s are byte-identical, and everything that differs between
-  two cabinets is memory and disk.
+  These tables are the same CSS in every cabinet: Doom&rsquo;s CPU and Zork&rsquo;s are byte-identical, and everything that differs between two cabinets is memory and disk.
 </p>
 
-<h3 class="anatomy-head">One instruction, all the way through</h3>
+<SectionHead>One instruction, all the way through</SectionHead>
 <p>
-  Opcode 5 is &ldquo;add a number to AX&rdquo;. When
-  <code>--opcode</code> is 5, this row fires in the AX table:
+  Opcode 5 is &ldquo;add a number to AX&rdquo;. When <code>--opcode</code> is 5, this row fires in the AX table:
 </p>
 <CodeCss code={ADD_AX} />
 <p>
-  New AX = old AX plus the number that followed the opcode in memory,
-  trimmed back to 16 bits because registers wrap. The same opcode
-  selects a row in the IP table:
+  New AX = old AX plus the number that followed the opcode in memory, trimmed back to 16 bits because registers wrap. The same opcode selects a row in the IP table:
 </p>
 <CodeCss code={ADD_IP} />
 <p>
-  &mdash; stepping the machine past the three-byte instruction. A
-  jump&rsquo;s IP row computes a destination instead, and a backwards
-  jump is how loops happen. Next tick, the fetch reads from the new
-  IP.
+  &mdash; stepping the machine past the three-byte instruction. A jump&rsquo;s IP row computes a destination instead, and a backwards jump is how loops happen. Next tick, the fetch reads from the new IP.
 </p>
 <p>
-  One more table is involved. A real ADD circuit also reports, as side
-  effects of the silicon, whether the sum overflowed, hit zero, or
-  went negative. These reports are the <b>flags</b>, and programs
-  check them constantly &mdash; every &ldquo;if&rdquo; in every
-  program ends up as a flag check &mdash; so the flags table has its
-  own row for opcode 5 and calls the machine&rsquo;s real 16-bit ADD
-  flag function &mdash; in full:
+  One more table is involved. A real ADD circuit also reports, as side effects of the silicon, whether the sum overflowed, hit zero, or went negative. These reports are the <b>flags</b>, and programs check them constantly &mdash; every &ldquo;if&rdquo; in every program ends up as a flag check &mdash; so the flags table has its own row for opcode 5 and calls the machine&rsquo;s real 16-bit ADD flag function &mdash; in full:
 </p>
 <CodeCss code={ADD_FLAGS} />
 <p>
-  In there: <code>--cf</code> asks &ldquo;did the true sum pass
-  65,535?&rdquo; &mdash; divide by 65,536, round down, and that is
-  the <b>carry flag</b> as a 1 or a 0. <code>--zfsf</code> asks
-  &ldquo;is the result zero?&rdquo; and &ldquo;is its top bit
-  set?&rdquo; (a 16-bit number&rsquo;s way of being negative) &mdash;
-  the <b>zero</b> and <b>sign</b> flags, each parked at its own bit
-  position. <code>--pf</code>, the <b>parity flag</b>, comes from a
-  256-entry lookup table in this section&rsquo;s flag helpers. The long
-  line in the middle is the <b>half-carry</b> flag &mdash; &ldquo;did
-  the bottom four bits overflow?&rdquo; &mdash; built out of
-  <code>sign()</code> because CSS has no <code>&lt;</code>. And the
-  <code>+ 2</code> at the end is a bit the 8086 keeps permanently
-  switched on.
+  In there: <code>--cf</code> asks &ldquo;did the true sum pass 65,535?&rdquo; &mdash; divide by 65,536, round down, and that is the <b>carry flag</b> as a 1 or a 0. <code>--zfsf</code> asks &ldquo;is the result zero?&rdquo; and &ldquo;is its top bit set?&rdquo; (a 16-bit number&rsquo;s way of being negative) &mdash; the <b>zero</b> and <b>sign</b> flags, each parked at its own bit position. <code>--pf</code>, the <b>parity flag</b>, comes from a 256-entry lookup table in this section&rsquo;s flag helpers. The long line in the middle is the <b>half-carry</b> flag &mdash; &ldquo;did the bottom four bits overflow?&rdquo; &mdash; built out of <code>sign()</code> because CSS has no <code>&lt;</code>. And the <code>+ 2</code> at the end is a bit the 8086 keeps permanently switched on.
 </p>
 <p>
-  In total, one ADD is a sum, a new IP, six flags and a table lookup
-  &mdash; and ADD is one of the easiest instructions in the set.
+  In total, one ADD is a sum, a new IP, six flags and a table lookup &mdash; and ADD is one of the easiest instructions in the set.
 </p>
 
-<h3 class="anatomy-head">How a program decides anything</h3>
+<SectionHead>How a program decides anything</SectionHead>
 <p>
-  Programs branch &mdash; &ldquo;if health is zero, die&rdquo;
-  &mdash; and a formula can&rsquo;t branch; it computes one value.
-  So a conditional jump is arithmetic too: <code>--bit()</code>
-  pulls one flag out of the flags register as a 0 or a 1, and the
-  jump multiplies its travel distance by it. This is the real IP
-  row for JZ, &ldquo;jump if zero&rdquo;:
+  Programs branch &mdash; &ldquo;if health is zero, die&rdquo; &mdash; and a formula can&rsquo;t branch; it computes one value. So a conditional jump is arithmetic too: <code>--bit()</code> pulls one flag out of the flags register as a 0 or a 1, and the jump multiplies its travel distance by it. This is the real IP row for JZ, &ldquo;jump if zero&rdquo;:
 </p>
 <CodeCss code={JZ_ROW} />
 <p>
-  Taken, IP moves by the distance byte; not taken, it moves by zero
-  times the distance byte. (<code>--u2s1()</code> reads the byte as
-  signed, so the distance can be negative.)
+  Taken, IP moves by the distance byte; not taken, it moves by zero times the distance byte. (<code>--u2s1()</code> reads the byte as signed, so the distance can be negative.)
 </p>
 <p>
-  Some conditions cost more. &ldquo;Jump if less&rdquo; is taken
-  when the sign flag and the overflow flag disagree &mdash; an XOR,
-  which CSS doesn&rsquo;t have. The
-  <a href="#about/file/util">bit &amp; byte helpers</a> build XOR out of
-  multiplication, and here it is at work on two flag bits:
+  Some conditions cost more. &ldquo;Jump if less&rdquo; is taken when the sign flag and the overflow flag disagree &mdash; an XOR, which CSS doesn&rsquo;t have. The <a href="#about/file/util">bit &amp; byte helpers</a> build XOR out of multiplication, and here it is at work on two flag bits:
 </p>
 <CodeCss code={JL_COND} />
 
 <Foldable>
   {#snippet summary()}DIV, DAA, and the less reasonable instructions{/snippet}
   <p>
-    DIV divides a 32-bit number &mdash; held across two registers, DX
-    and AX &mdash; producing a quotient and a remainder at once. Two
-    tables catch its output:
+    DIV divides a 32-bit number &mdash; held across two registers, DX and AX &mdash; producing a quotient and a remainder at once. Two tables catch its output:
   </p>
   <CodeCss code={DIV_ROWS} />
   <p>
-    The <code>max(1, &hellip;)</code> is there because a program can
-    ask to divide by zero, and the formula has to stay legal CSS when
-    it does.
+    The <code>max(1, &hellip;)</code> is there because a program can ask to divide by zero, and the formula has to stay legal CSS when it does.
   </p>
   <p>
-    This is DAA, &ldquo;decimal adjust AL&rdquo; &mdash; a
-    calculator-era relic that patches up sums done on numbers stored as
-    decimal digits. DOS-era programs really use it, so:
+    This is DAA, &ldquo;decimal adjust AL&rdquo; &mdash; a calculator-era relic that patches up sums done on numbers stored as decimal digits. DOS-era programs really use it, so:
   </p>
   <CodeCss code={DAA} />
   <p>
-    DAA needs to ask &ldquo;is this 4-bit chunk bigger than 9?&rdquo;,
-    and with no <code>&lt;</code> available it asks by dividing:
-    <code>round(down, nibble / 10)</code> is 1 exactly for
-    10&ndash;15 and 0 otherwise. The whole family of decimal
-    instructions runs on that idiom.
+    DAA needs to ask &ldquo;is this 4-bit chunk bigger than 9?&rdquo;, and with no <code>&lt;</code> available it asks by dividing: <code>round(down, nibble / 10)</code> is 1 exactly for 10&ndash;15 and 0 otherwise. The whole family of decimal instructions runs on that idiom.
   </p>
   <p>
-    It goes on like this for <b>232 distinct opcodes &mdash; 850
-    rows</b> across the register tables.
+    It goes on like this for <b>232 distinct opcodes &mdash; 850 rows</b> across the register tables.
   </p>
 </Foldable>
 
 <Foldable>
   {#snippet summary()}How an interrupt arrives{/snippet}
   <p>
-    A keypress or a timer tick has to be able to interrupt the running
-    program between instructions. On real hardware that&rsquo;s
-    wiring; here it&rsquo;s the override standing in front of every
-    register table. When an interrupt is pending, the machine
-    <b>refuses to run the instruction it just fetched</b> &mdash; no
-    register takes its decoded value that tick. Instead: IP and CS
-    load the interrupt handler&rsquo;s address out of a table in
-    memory, SP drops by six for the three pushed words, and the flags
-    register switches interrupts off so the handler can&rsquo;t itself
-    be interrupted. The cycle counter even charges 61 cycles &mdash;
-    what the real 8086 billed for a hardware interrupt.
+    A keypress or a timer tick has to be able to interrupt the running program between instructions. On real hardware that&rsquo;s wiring; here it&rsquo;s the override standing in front of every register table. When an interrupt is pending, the machine <b>refuses to run the instruction it just fetched</b> &mdash; no register takes its decoded value that tick. Instead: IP and CS load the interrupt handler&rsquo;s address out of a table in memory, SP drops by six for the three pushed words, and the flags register switches interrupts off so the handler can&rsquo;t itself be interrupted. The cycle counter even charges 61 cycles &mdash; what the real 8086 billed for a hardware interrupt.
   </p>
   <p>
-    Behind that sits a simulated interrupt controller &mdash; three
-    variables tracking which interrupts are masked, pending, and
-    currently being serviced, with the timer outranking the keyboard.
-    When a handler finishes, it announces &ldquo;end of
-    interrupt&rdquo;, and the controller clears the in-service bit
-    with a classic bit hack: <code>x AND (x &minus; 1)</code> deletes
-    the lowest set bit of a number, no loop required.
+    Behind that sits a simulated interrupt controller &mdash; three variables tracking which interrupts are masked, pending, and currently being serviced, with the timer outranking the keyboard. When a handler finishes, it announces &ldquo;end of interrupt&rdquo;, and the controller clears the in-service bit with a classic bit hack: <code>x AND (x &minus; 1)</code> deletes the lowest set bit of a number, no loop required.
   </p>
   <p>
-    One timing subtlety is kept faithfully: the 8086&rsquo;s
-    single-step trap fires <i>after</i> the traced instruction, not
-    before. The machine reproduces that with a one-tick delay line
-    &mdash; verbatim:
+    One timing subtlety is kept faithfully: the 8086&rsquo;s single-step trap fires <i>after</i> the traced instruction, not before. The machine reproduces that with a one-tick delay line &mdash; verbatim:
   </p>
   <CodeCss code={TF_DELAY} />
 </Foldable>
@@ -284,7 +187,7 @@ mod(calc(var(--DX-prev) * 65536 + var(--AX-prev)), max(1, var(--rmVal16)))`;
   </p>
 </Foldable>
 
-<h3 class="anatomy-head">Power-on</h3>
+<SectionHead>Power-on</SectionHead>
 <p>
   Nothing starts the machine. The clock animation begins ticking the moment the stylesheet loads, and on tick one the fetch simply reads from wherever CS:IP already point. The declarations put them there:
 </p>

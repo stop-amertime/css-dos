@@ -6,6 +6,7 @@
   // now just the genuinely-shared primitives. Extracts verbatim from
   // sokoban.css; the count (21) and size (~15 KB) measured from the same file.
   import Foldable from '../Foldable.svelte';
+  import SectionHead from '../SectionHead.svelte';
   import Term from '../Term.svelte';
   import CodeCss from '../CodeCss.svelte';
   import TreeView from './tree/TreeView.svelte';
@@ -49,10 +50,7 @@
 <TreeView nodes={UTIL_TREE} title="Bit &amp; byte helpers" bytes={UTIL_TREE_META.bytes} />
 
 <p>
-  After a short header comment (the build recipe, for humans opening
-  the file), the first thing in the <Term t="cabinet">cabinet</Term> is a toolbox:
-  <b>21 small functions</b> that everything else is built from. They
-  exist because of a supply problem:
+  After a short header comment (the build recipe, for humans opening the file), the first thing in the <Term t="cabinet">cabinet</Term> is a toolbox: <b>21 small functions</b> that everything else is built from. They exist because of a supply problem:
 </p>
 
 <div class="ops-supply">
@@ -76,28 +74,19 @@
 </div>
 
 <p>
-  Everything in the right-hand column has to be built out of the
-  left-hand column.
+  Everything in the right-hand column has to be built out of the left-hand column.
 </p>
 
 <Foldable class="fold-bg">
   {#snippet summary()}Background: AND, OR, and why a CPU needs them{/snippet}
   <p>
-    Computers store numbers as <b>bits</b> &mdash; a 16-bit number is
-    sixteen 0-or-1 digits. AND, OR and XOR combine two numbers one bit
-    position at a time: AND keeps a 1 only where both numbers have a 1,
-    OR where either does, XOR where exactly one does. Programs lean on
-    them for all their small work &mdash; testing whether one bit is
-    set, blanking out part of a number while keeping the rest, flipping
-    pixels &mdash; and a bit-shift (sliding all the digits left or
-    right) is how they multiply and divide by powers of two cheaply.
+    Computers store numbers as <b>bits</b> &mdash; a 16-bit number is sixteen 0-or-1 digits. AND, OR and XOR combine two numbers one bit position at a time: AND keeps a 1 only where both numbers have a 1, OR where either does, XOR where exactly one does. Programs lean on them for all their small work &mdash; testing whether one bit is set, blanking out part of a number while keeping the rest, flipping pixels &mdash; and a bit-shift (sliding all the digits left or right) is how they multiply and divide by powers of two cheaply.
   </p>
 </Foldable>
 
-<h3 class="anatomy-head">Bit operations from arithmetic</h3>
+<SectionHead>Bit operations from arithmetic</SectionHead>
 <p>
-  On single bits, AND is multiplication: 1&times;1 is 1, everything
-  else is 0. Line two numbers up in binary and multiply each column:
+  On single bits, AND is multiplication: 1&times;1 is 1, everything else is 0. Line two numbers up in binary and multiply each column:
 </p>
 
 <div class="and-work">
@@ -120,80 +109,42 @@
 </div>
 
 <p>
-  So <code>--and</code> splits both numbers into their
-  sixteen bits with divide-and-remainder, multiplies each pair, and
-  reassembles the result:
+  So <code>--and</code> splits both numbers into their sixteen bits with divide-and-remainder, multiplies each pair, and reassembles the result:
 </p>
 <CodeCss code={AND_FN} />
 <p>
-  OR and XOR come out of the same move: per bit, OR is
-  <code>min(1, a + b)</code> and XOR is
-  <code>a + b &minus; 2ab</code>; NOT is <code>1 &minus; a</code>.
+  OR and XOR come out of the same move: per bit, OR is <code>min(1, a + b)</code> and XOR is <code>a + b &minus; 2ab</code>; NOT is <code>1 &minus; a</code>.
 </p>
 
-<h3 class="anatomy-head">Comparisons from sign()</h3>
+<SectionHead>Comparisons from sign()</SectionHead>
 <p>
-  &ldquo;Is A less than B?&rdquo; is built from <code>sign()</code>,
-  which returns &minus;1, 0 or +1:
+  &ldquo;Is A less than B?&rdquo; is built from <code>sign()</code>, which returns &minus;1, 0 or +1:
 </p>
 <CodeCss code={LESS_THAN} />
 <p>
-  <code>sign(B&nbsp;&minus;&nbsp;A)</code> is +1 when A is below B,
-  0 at a tie, &minus;1 above; <code>max()</code> flattens everything
-  that isn&rsquo;t +1 to 0. A and B are whole numbers, so subtracting
-  0.5 pushes a tie safely below zero instead of landing on
-  <code>sign()</code>&rsquo;s awkward middle answer. The result is a
-  clean 0 or 1 that can be fed straight into more arithmetic. This
-  exact line is how subtraction decides whether it had to borrow
-  (<a href="#about/file/cpu">the CPU</a>&rsquo;s carry flag), and how
-  <a href="#about/file/screen">the screen</a> fakes its
-  70-per-second retrace signal.
+  <code>sign(B&nbsp;&minus;&nbsp;A)</code> is +1 when A is below B, 0 at a tie, &minus;1 above; <code>max()</code> flattens everything that isn&rsquo;t +1 to 0. A and B are whole numbers, so subtracting 0.5 pushes a tie safely below zero instead of landing on <code>sign()</code>&rsquo;s awkward middle answer. The result is a clean 0 or 1 that can be fed straight into more arithmetic. This exact line is how subtraction decides whether it had to borrow (<a href="#about/file/cpu">the CPU</a>&rsquo;s carry flag), and how <a href="#about/file/screen">the screen</a> fakes its 70-per-second retrace signal.
 </p>
 
 <p>
-  A 0-or-1 answer also stands in for &ldquo;if&rdquo; inside a
-  formula:
-  <code>flag&nbsp;&times;&nbsp;A + (1&nbsp;&minus;&nbsp;flag)&nbsp;&times;&nbsp;B</code>
-  picks A or B. The machine even uses it to cancel memory writes: when
-  a write shouldn&rsquo;t happen, the same trick turns its target
-  address into &minus;1, which no memory cell answers to, and the
-  write lands nowhere.
+  A 0-or-1 answer also stands in for &ldquo;if&rdquo; inside a formula: <code>flag&nbsp;&times;&nbsp;A + (1&nbsp;&minus;&nbsp;flag)&nbsp;&times;&nbsp;B</code> picks A or B. The machine even uses it to cancel memory writes: when a write shouldn&rsquo;t happen, the same trick turns its target address into &minus;1, which no memory cell answers to, and the write lands nowhere.
 </p>
 
-<h3 class="anatomy-head">The prebaked tables</h3>
+<SectionHead>The prebaked tables</SectionHead>
 <p>
-  Some of the functions don&rsquo;t compute anything &mdash; the
-  answers were worked out at build time and written into the file.
-  <code>calc()</code> can&rsquo;t raise 2 to a variable power, which is
-  needed whenever a program shifts by an amount held in a <Term t="register">register</Term>, so
-  <code>--pow2</code> is just the answers:
+  Some of the functions don&rsquo;t compute anything &mdash; the answers were worked out at build time and written into the file. <code>calc()</code> can&rsquo;t raise 2 to a variable power, which is needed whenever a program shifts by an amount held in a <Term t="register">register</Term>, so <code>--pow2</code> is just the answers:
 </p>
 <CodeCss code={POW2} />
 <p>
-  And the 8086&rsquo;s parity flag reports the number of 1-bits in a
-  result. Nothing in CSS counts bits, so <code>--parity</code> carries
-  the verdict for all 256 possible bytes:
+  And the 8086&rsquo;s parity flag reports the number of 1-bits in a result. Nothing in CSS counts bits, so <code>--parity</code> carries the verdict for all 256 possible bytes:
 </p>
 <CodeCss code={PARITY} />
 <p>
-  The answers are 0 and 4 rather than 0 and 1. The parity flag sits at
-  bit 2 of the flags register &mdash; worth 4 &mdash; so the table
-  stores every answer already moved to its position, saving a shift on
-  every arithmetic instruction.
+  The answers are 0 and 4 rather than 0 and 1. The parity flag sits at bit 2 of the flags register &mdash; worth 4 &mdash; so the table stores every answer already moved to its position, saving a shift on every arithmetic instruction.
 </p>
 
-<h3 class="anatomy-head">What else is in the box</h3>
+<SectionHead>What else is in the box</SectionHead>
 <p>
-  The rest of the 66 sort into three rough families: byte plumbing,
-  which splits and splices the two-bytes-per-cell memory
-  (<code>--extractByte</code>, <code>--spliceByte</code>,
-  <code>--applySlot</code> &mdash; the
-  <a href="#about/file/memw">write-formulas section</a> shows the
-  last one at work); instruction decoding, which picks apart x86
-  operand bytes (<code>--getReg16</code>, <code>--modrmLen</code>);
-  and thirty-six flag calculators
-  (<code>--addFlags16</code>, <code>--shrFlags8</code>, &hellip;),
-  which <a href="#about/file/cpu">the CPU section</a> comes back to.
+  The rest of the 66 sort into three rough families: byte plumbing, which splits and splices the two-bytes-per-cell memory (<code>--extractByte</code>, <code>--spliceByte</code>, <code>--applySlot</code> &mdash; the <a href="#about/file/memw">write-formulas section</a> shows the last one at work); instruction decoding, which picks apart x86 operand bytes (<code>--getReg16</code>, <code>--modrmLen</code>); and thirty-six flag calculators (<code>--addFlags16</code>, <code>--shrFlags8</code>, &hellip;), which <a href="#about/file/cpu">the CPU section</a> comes back to.
 </p>
 
 <style>
