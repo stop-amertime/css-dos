@@ -93,11 +93,13 @@ inside the ±1% gate).
 3. **Raw player paintable — LANDED 2026-06-30.** `raw.html` now
    mirrors `calcite.html` chrome (derived by `raw-regen.mjs`) with a
    64,000-element CSS pixel grid in place of the `<img>`; new
-   `kiln/pixels.mjs` paints each Mode 13h pixel from the framebuffer
-   via a 256-arm `@function --paletteRGB()` (proven in real
-   Chromium 149). Inert in the calcite path (smoke 6/6). **Open
-   assessment:** the painter is ALWAYS emitted (+7.0 MB fixed per
-   cabinet since the 2026-07-10 `.motherboard` selector rename) —
+   `kiln/pixels.mjs` paints each pixel from VRAM (proven in real
+   Chromium 149); since 2026-07-12 it dispatches on the BDA mode
+   byte and also paints text modes (8×8 ROM font) and CGA 4/5/6,
+   not just Mode 13h (LOGBOOK 2026-07-12). Inert in the calcite
+   path. **Open assessment:** the painter is ALWAYS emitted
+   (+14.3 MB fixed per cabinet since the text/CGA painters; was
+   7.0) —
    calcite compile-only bench not yet run (deferred; was
    a concurrent session). Escape hatch if compile time regresses: a
    build flag gating `emitPixelPaintRules()` (~5 lines). See LOGBOOK

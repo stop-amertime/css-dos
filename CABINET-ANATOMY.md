@@ -406,24 +406,31 @@ work has the CPU done so far" rather than any real-world wall clock.
 
 ---
 
-## 8. Mode 13h pixel painter — ~6.5 MB
+## 8. Pixel painter — ~14 MB
 
-VGA "Mode 13h" is a 320×200 screen with 256 colours — **64,000
-pixels**. It was the standard mode for DOS games. This section emits
-**one CSS rule per pixel**:
+The screen is a 320×200 grid — **64,000 pixels** (VGA Mode 13h's
+geometry, the standard mode for DOS games; the other modes sample onto
+the same grid). This section emits **one CSS rule per pixel**:
 
 ```css
-.cpu #p12345 {
-  --ci: round(down, var(--__1mc333852) / 256);      /* this pixel's colour index */
-  background-color: --paletteRGB(var(--ci));         /* look up its RGB */
+.motherboard #p12345 {
+  --ci: round(down, var(--__1mc333852) / 256);      /* Mode 13h colour index */
+  background-color: --screenPx(var(--vidMode), var(--ci), ...);  /* mode dispatch */
 }
 ```
 
-Each rule reads that pixel's byte straight out of the video memory cell,
-then looks the colour up in the palette. The palette itself is a shared
-256-arm function, `--paletteRGB`, that reads the live VGA DAC (the 256×3
-table of red/green/blue values the program has programmed) and produces
-an actual `rgb(...)` colour:
+Each rule reads that pixel's byte(s) straight out of the video memory
+cells and hands them to a shared dispatch function, `--screenPx()`,
+which switches on the live BIOS video-mode byte (the cabinet reads it
+from memory 0x449 into `--vidMode` once per tick). Text modes look the
+character up in an 8×8 ROM font baked into a 2048-arm `--fontRow()`
+function and paint foreground/background from the classic 16-colour
+palette; CGA graphics modes decode the 2-bits-per-pixel interleaved
+scanlines the same way; Mode 13h pixels look their colour index up in
+the live 256-colour palette. That palette is a shared 256-arm function,
+`--paletteRGB`, that reads the live VGA DAC (the 256×3 table of
+red/green/blue values the program has programmed) and produces an
+actual `rgb(...)` colour:
 
 ```css
 @function --paletteRGB(--idx <integer>) returns <color> {
@@ -439,10 +446,10 @@ So the screen is literally 64,000 `<div>`s whose `background-color` is
 computed from RAM every frame. This is the *pure-CSS* renderer — proven to
 paint in real Chromium. (The fast Calcite player skips these rules and
 blits the framebuffer to a single `<img>` instead; the rules are inert
-there but always present, which is the ~6.5 MB fixed cost.)
+there but always present, which is the ~14 MB fixed cost.)
 
-Only cabinets with graphics memory paint anything; a text-only cart's
-pixels resolve to black.
+Memory a mode needs that the cart doesn't map (say, the CGA aperture)
+just paints black in that mode.
 
 **How colours get into the palette.** The 256×3 palette isn't fixed — the
 running program loads it, and the machine reproduces the exact way real
