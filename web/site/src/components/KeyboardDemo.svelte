@@ -45,10 +45,10 @@
   </SplitPane>
 
   <p class="caption">
-    Each number packs the key&rsquo;s hardware scancode with its text
-    character (A: 30&nbsp;&times;&nbsp;256&nbsp;+&nbsp;97 = 7777).
-    Release, and it snaps back to <b>0</b> &mdash; that&rsquo;s how games
-    see you let go.
+    Wait, 7777? 8051? Those aren&rsquo;t scancodes. In fact, each number
+    packs the key&rsquo;s hardware scancode together with its text
+    character (A: 30&nbsp;&times;&nbsp;256&nbsp;+&nbsp;97 = 7777). Let
+    go, and it goes back to <b>0</b>.
   </p>
 </div>
 

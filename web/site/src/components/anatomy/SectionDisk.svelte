@@ -19,16 +19,16 @@
 </script>
 
 <p>
-  CSS can&rsquo;t open anything at runtime &mdash; no files, no requests, no loading. Whatever the machine will ever need has to be in the stylesheet before it starts: the <Term t="bios">BIOS</Term>, <Term t="dos">DOS</Term> itself, and the entire <Term t="floppy">floppy disk</Term>, baked in byte by byte &mdash; one <code>if()</code> arm each:
+  CSS can&rsquo;t open anything at runtime &mdash; no files, no requests, no loading &mdash; so whatever the machine will ever need has to be in the stylesheet before it starts: the <Term t="bios">BIOS</Term>, <Term t="dos">DOS</Term> itself, and the entire <Term t="floppy">floppy disk</Term>, baked in byte by byte. The concept here is relatively simple &mdash; we just give each byte in the floppy disk one variable each, and a function reads them back:
 </p>
 <CodeCss code={DISK_FN} />
 <p>
-  (Verbatim, and already meaningful: 235,&nbsp;60,&nbsp;144 is the x86 jump instruction that every FAT boot sector opens with. Byte zero of the disk is the first thing the machine boots.)
+  (Already meaningful: 235,&nbsp;60,&nbsp;144 is the x86 jump instruction that every FAT boot sector opens with. Byte zero of the disk is the first thing the machine boots.)
 </p>
 
 <SectionHead>The window</SectionHead>
 <p>
-  DOS never reads the disk all at once &mdash; it asks the floppy controller for one <Term t="sector">sector</Term> at a time: &ldquo;give me sector 57.&rdquo; So the machine keeps a 512-byte <b>window</b> in memory whose contents are not stored anywhere: those 512 addresses read <i>through</i> to the disk table, at &ldquo;requested sector &times; 512 + offset&rdquo;. Ask for a different sector and the same window now shows different bytes. DOS copies them out and never learns the disk is a fiction.
+  How does DOS read it? Luckily, never all at once &mdash; it asks the floppy controller for one <Term t="sector">sector</Term> at a time: &ldquo;give me sector 57.&rdquo; So the machine keeps a 512-byte <b>window</b> in memory whose contents are not stored anywhere: those 512 addresses read <i>through</i> to the disk table, at &ldquo;requested sector &times; 512 + offset&rdquo;. Ask for a different sector and the same window now shows different bytes. DOS copies them out and never learns the disk is a fiction.
 </p>
 <p>
   Window byte 48&rsquo;s actual arm, in full:
@@ -39,15 +39,15 @@
 </p>
 
 <p>
-  This is the one section that grows with the game &mdash; Sokoban&rsquo;s disk is 13&nbsp;MB of the file; Doom&rsquo;s 1.3&nbsp;MB floppy takes its cabinet to ~330&nbsp;MB. It doesn&rsquo;t shrink much either: the machine itself costs ~296&nbsp;MB before any game arrives, so Zork &mdash; 85&nbsp;KB of words on a screen &mdash; still comes out around 300&nbsp;MB.
+  This is the one section that grows with the game &mdash; Sokoban&rsquo;s disk is 13&nbsp;MB of the file; Doom&rsquo;s 1.3&nbsp;MB floppy takes its cabinet to ~330&nbsp;MB. The machine itself costs ~296&nbsp;MB before any game arrives, so Zork &mdash; 85&nbsp;KB of words on a screen &mdash; still comes out around 300&nbsp;MB.
 </p>
 
 <SectionHead>Writable disks</SectionHead>
 <p>
-  Everything above is read-only &mdash; each disk byte is a literal baked into an <code>if()</code> arm, and there is nothing to write <i>to</i>. Fine for games; useless for saving your work. So a cart can opt in to a second mode (the &ldquo;Writable&rdquo; checkbox on the Build page): every byte of the floppy also becomes an ordinary memory cell &mdash; the same kind that holds RAM &mdash; whose starting value is the factory disk. Reads stop consulting the baked table and ask the cells instead, and the write machinery that already serves RAM now serves the floppy too. Save a file in the MS-DOS&nbsp;4.00 cart&rsquo;s EDIT and <code>DIR</code> shows it; the disk lives exactly as long as the tab, and a reload is a fresh factory floppy.
+  Everything above is read-only &mdash; each disk byte is a number baked into an <code>if()</code> statement. Can a stylesheet hold a disk you can actually save files onto? At a price. A cart can opt in to a second mode (the &ldquo;Writable&rdquo; checkbox on the Build page): every byte of the floppy also becomes an ordinary memory cell &mdash; the same kind that holds RAM. Reads stop consulting the baked table and ask the cells instead, and the write machinery that serves RAM now serves the floppy too. Save a file in the MS-DOS&nbsp;4.00 cart&rsquo;s EDIT and <code>DIR</code> shows it. It can&rsquo;t save a new .css file or otherwise persist itself, so it&rsquo;s lost on reload.
 </p>
 <p>
-  It isn&rsquo;t free. A byte that can change needs a cell declaration, a read formula and a write formula &mdash; roughly ten times the text of a byte that just <i>is</i>, about 0.4&nbsp;MB of cabinet per KB of floppy. Flip the switch on Sokoban&rsquo;s 720&nbsp;K floppy and the cabinet gains ~270&nbsp;MB, landing near <b>570&nbsp;MB</b> &mdash; past the ~536&nbsp;MB where Chrome refuses to hold the file in one string at all, so a writable Sokoban literally cannot ship. Ticks slow about 2&times; too (more cells to consider). That&rsquo;s why it&rsquo;s opt-in per cart, and why the writable MS-DOS&nbsp;4.00 floppy is a deliberately small 480&nbsp;K.
+  The price is steep. A byte that can change needs a declaration, a read formula and a write formula &mdash; ten times the text of a read-only byte, about 0.4&nbsp;MB of cabinet per KB of floppy. Building Sokoban&rsquo;s 720&nbsp;KB floppy as writable inflates the cabinet from 300&nbsp;MB to 570&nbsp;MB &mdash; past the ~536&nbsp;MB V8 string limit in Chrome, so a writable Sokoban cannot be loaded. Speed roughly halves too (more cells checking themselves every tick). That&rsquo;s why it&rsquo;s opt-in per cart, and why the writable MS-DOS&nbsp;4.00 floppy is a deliberately smaller 480&nbsp;KB.
 </p>
 
 <Foldable>

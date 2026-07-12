@@ -20,17 +20,17 @@
 </script>
 
 <p>
-  Before CSS lets you use a variable as a typed integer, you have to declare it. The file declares every memory cell &mdash; all <b>368,256</b> of them. This one is verbatim:
+  Before CSS lets you use a variable as a typed integer, you have to declare it.
 </p>
 <CodeCss code={DECL} />
 <p>
-  The <code>initial-value</code> is that cell&rsquo;s power-on contents. Which means the machine&rsquo;s entire starting state &mdash; the BIOS, the boot sector, the blank RAM &mdash; is written into the declarations: Sokoban&rsquo;s memory at the moment of switch-on, spelled out one cell at a time. 32&nbsp;MB before anything has happened.
+  The file declares variables for all <b>368,256</b> memory cells, one by one. So, the above code is repeated 368,256 times.
 </p>
 <p>
-  Do we really have to write <code>inherits: true</code> 368,256 times? Yes. The spec makes <code>inherits</code> a required descriptor of <code>@property</code> &mdash; leave it out and the whole rule is invalid and silently ignored. It can&rsquo;t be <code>false</code> either: the memory variables live on the CPU element but get read by its descendants &mdash; every pixel of the screen, for instance, reaches its byte of video memory through inheritance. Set it to <code>false</code> and the pixels would see each cell&rsquo;s power-on value instead of the live one, and the screen would freeze on the boot picture forever.
+  Do we really have to write <code>inherits: true</code> 368,256 times? Regrettably, we do. The spec makes <code>inherits</code> a required descriptor of <code>@property</code> &mdash; if left out, the rule is invalid and silently ignored. Ouch. It can&rsquo;t be <code>false</code> either: the memory variables live on the motherboard element but get read by its descendants. But &lsquo;false&rsquo; is one character longer anyway, so it wouldn&rsquo;t even help.
 </p>
 <p>
-  So that one line, seventeen-ish bytes at a time, adds up to about 6&nbsp;MB of the file &mdash; roughly the size of the entire pixel painter, spent saying &ldquo;yes, inherit&rdquo; a third of a million times.
+  Just the repeated should-be-implicit <code>inherits:true</code> instructions total about 6&nbsp;MB of text &mdash; longer than the <i>complete works of Shakespeare</i>, just spent saying &ldquo;yes, inherit&rdquo; a third of a million times.
 </p>
 
 <SectionHead>One cell, four variables</SectionHead>

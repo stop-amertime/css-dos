@@ -24,7 +24,10 @@
 </script>
 
 <p>
-  CSS has no input events. The one thing it can ask is <b><code>:active</code></b> &mdash; &ldquo;is this element being pressed, right now?&rdquo; The player&rsquo;s on-screen keys are real buttons, and these are the cabinet&rsquo;s actual rules:
+  The smallest section in the file, and the machine&rsquo;s only window to the outside world.
+</p>
+<p>
+  CSS has no input events. The one relevant selector it has is <b><code>:active</code></b>, which asks &ldquo;is this element being pressed currently?&rdquo; The player has a series of buttons labelled with keyboard keys, and the cabinet simply checks if they are currently being pressed, and sets the <code>--keyboard</code> variable to a specific and suspiciously large number.
 </p>
 
 <KeyboardDemo />
@@ -61,6 +64,9 @@
 
 <Callout kind="warn" label="Honest limits">
   <p>
-    CSS cannot see your physical keyboard &mdash; no selector reacts to a real keypress, so every program is piloted from the on-screen keys. And CSS cannot make sound &mdash; the PC speaker stays silent.
+    CSS cannot see your physical keyboard &mdash; no selector reacts to a real keypress, so every program is piloted from the on-screen keys.
+  </p>
+  <p>
+    And CSS cannot make sound either, so there&rsquo;s no audio. I considered, but never got around to, displaying the audio waveform graphically.
   </p>
 </Callout>

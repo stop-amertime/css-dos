@@ -34,14 +34,14 @@
 </script>
 
 <p>
-  The single biggest section of the file, and the reason for most of its size. It exists because of the difference between CSS and every other language.
+  The single biggest section of the file, and the reason for most of its size. You already know why it has to exist &mdash; this is Problem 2 from the last page. This section is what it costs.
 </p>
 <p>
-  Normal programming languages are a list of instructions, run in order &mdash; a recipe. They assign: <code>x&nbsp;=&nbsp;y</code>, and x changes. A stylesheet has no order: every rule in it is in force the whole time, more like a blueprint than a recipe. There is no moment at which x <i>becomes</i> y &mdash; you can only declare, once, what x <i>is</i>:
+  One more time, because this is where it costs 171&nbsp;MB: a normal language assigns &mdash; <code>x&nbsp;=&nbsp;y</code>, and x changes. A stylesheet has no order; every rule is in force the whole time, and you only get to declare, once, what x <i>is</i>:
 </p>
 <CodeCss code={'--x: 5;'} />
 <p>
-  So the definition itself has to do the work: each byte of memory is written as a formula that works out, every <Term t="tick">tick</Term>, what its value now is &mdash; closer to how a spreadsheet cell works than to a line of code. The formula asks one question &mdash; did this tick&rsquo;s instruction write to <i>my</i> address? Three <b>write slots</b> carry the answer: small variables holding the addresses and values of whatever the current instruction writes.
+  So the definition itself has to do the work: each byte of memory is written as a formula that works out, every <Term t="tick">tick</Term>, what its value now is &mdash; closer to a spreadsheet cell than to a line of code. The formula asks one question &mdash; did this tick&rsquo;s instruction write to <i>my</i> address? Three <b>write slots</b> carry the answer: small shared variables holding the addresses and values of whatever the current instruction writes.
 </p>
 
 <RamWrite />
@@ -55,7 +55,7 @@
 
 <SectionHead>How a write actually lands</SectionHead>
 <p>
-  Cells hold two bytes each, so &ldquo;write this byte here&rdquo; means <i>splicing</i> a value into half of a cell without disturbing the other half. One function does it, and every cell&rsquo;s formula calls it once per write slot &mdash; verbatim:
+  One complication we&rsquo;ve been skating over: cells hold two bytes each, so &ldquo;write this byte here&rdquo; actually means <i>splicing</i> a value into half of a cell without disturbing the other half. One function does the splicing, and every cell&rsquo;s formula calls it once per write slot &mdash; verbatim:
 </p>
 <CodeCss code={APPLY_SLOT} />
 <p>

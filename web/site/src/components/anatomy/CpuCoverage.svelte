@@ -32,7 +32,7 @@
     cabinet. The IP row is full: every instruction has to say where the
     machine goes next. The blank columns are opcodes the 8086 never
     defined; the near-empty rows are the segment registers, which
-    almost nothing is allowed to touch.
+    almost no instruction can modify.
   </p>
 </div>
 

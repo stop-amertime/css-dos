@@ -46,34 +46,29 @@
   A counter ticking 0,&nbsp;1,&nbsp;2,&nbsp;3, forever. Each lap, every formula in the file re-evaluates once and the machine advances by one CPU instruction. These few lines are the smallest section of the <Term t="cabinet">cabinet</Term> and its only moving part.
 </p>
 
-<Foldable>
-  {#snippet summary()}Why do we need four keyframes?{/snippet}
-  <p class="dim small">
-    This was previously covered in the &lsquo;How is this possible?&rsquo; page, but it belongs here too, so it&rsquo;s duplicated.
-  </p>
-  <p>
-    Each tick, every value &mdash; register or memory cell &mdash; must be recomputed from its previous one. But a variable can&rsquo;t reference itself in CSS (in most other languages, it can!):
-  </p>
-  <CycleDiagrams panel="self" />
-  <p>
-    Well, that&rsquo;s easy to solve &mdash; just use a buffer, right? Hold the previous value of <code>--X</code> somewhere and copy from that? CSS doesn&rsquo;t like that either: it detects <i>cycles</i> too, of any length, and ignores them.
-  </p>
-  <CycleDiagrams panel="pair" />
-  <p>
-    What we need is a system that lets state through without ever, at any instant, having a complete route from start to end &mdash; a bit like an airlock:
-  </p>
-  <CycleDiagrams panel="ring" />
-  <p>
-    Here is one cell&rsquo;s full plumbing:
-  </p>
-  <CodeCss code={CELL_PLUMBING} />
-  <p>
-    Follow one lap. At the 25% keyframe, last lap&rsquo;s <code>_1</code> copies move into <code>_2</code> &mdash; and since every <code>-prev</code> is defined as its <code>_2</code>, every formula now reads the new state and re-evaluates. At the 75% keyframe, the freshly computed values are copied into <code>_1</code>. Repeat forever.
-  </p>
-  <p>
-    The reason for the two-step handover: each copy is written at one keyframe and read at another, so nothing is ever read and overwritten at the same moment. The machine never sees a half-updated version of itself &mdash; every tick gets a clean before-picture, even though 368,256 cells and fourteen registers all change &ldquo;at once.&rdquo;
-  </p>
-</Foldable>
+<SectionHead>Why does every value need four variables?</SectionHead>
+<p>
+  Each tick, every value &mdash; register or memory cell &mdash; must be recomputed from its previous one. But a variable can&rsquo;t reference itself in CSS (in most other languages, it can!):
+</p>
+<CycleDiagrams panel="self" />
+<p>
+  Well, that&rsquo;s easy to solve &mdash; just use a buffer, right? Hold the previous value of <code>--X</code> somewhere and copy from that? CSS doesn&rsquo;t like that either: it detects <i>cycles</i> too, of any length, and ignores them.
+</p>
+<CycleDiagrams panel="pair" />
+<p>
+  What we need is a system that lets state through without ever, at any instant, having a complete route from start to end &mdash; a bit like an airlock:
+</p>
+<CycleDiagrams panel="ring" />
+<p>
+  Here is one cell&rsquo;s full plumbing:
+</p>
+<CodeCss code={CELL_PLUMBING} />
+<p>
+  Follow one lap. At the 25% keyframe, last lap&rsquo;s <code>_1</code> copies move into <code>_2</code> &mdash; and since every <code>-prev</code> is defined as its <code>_2</code>, every formula now reads the new state and re-evaluates. At the 75% keyframe, the freshly computed values are copied into <code>_1</code>. Repeat forever.
+</p>
+<p>
+  The reason for the two-step handover: each copy is written at one keyframe and read at another, so nothing is ever read and overwritten at the same moment. The machine never sees a half-updated version of itself &mdash; every tick gets a clean before-picture, even though 368,256 cells and fourteen registers all change &ldquo;at once.&rdquo;
+</p>
 
 <Foldable>
   {#snippet summary()}The nitty-gritty: what actually freezes the copies{/snippet}
@@ -92,7 +87,7 @@
 </Foldable>
 
 <p>
-  And that is where the 43&nbsp;MB goes: the animation is 0.1&nbsp;KB, but the three plumbing lines have to be written out per cell &mdash; three sweeps over all of memory (15 + 15 + 13&nbsp;MB). The registers get the same treatment in a much smaller block inside the CPU.
+  And that is where this section&rsquo;s 43&nbsp;MB goes: the animation itself is 0.1&nbsp;KB, but the three plumbing lines have to be written out per cell &mdash; three complete sweeps over all of memory (15 + 15 + 13&nbsp;MB), just to move values from one copy to the next. The registers get the same treatment in a much smaller block inside the CPU.
 </p>
 
 <p>
@@ -104,3 +99,11 @@
   The store and execute steps are themselves <code>@keyframes</code> &mdash; and an animation can&rsquo;t call another animation. So the cabinet attaches both to the CPU permanently, <b>paused</b>, and the clock unpauses each one for a quarter of every lap &mdash; verbatim:
 </p>
 <CodeCss code={CONDUCTOR} />
+
+<SectionHead>Why the animation?</SectionHead>
+<p>
+  The keyframes above change one integer, four times a lap, and nothing else in 300&nbsp;MB ever changes of its own accord. Everything else happens because the browser <i>notices</i>: change a custom property, and every property that depends on it must be recalculated, and every property that depends on those, outward through the whole dependency graph. The machine is built so that, by the time the ripples stop, that graph is the entire file.
+</p>
+<p>
+  So the honest description isn&rsquo;t &ldquo;a clock signal driving a circuit&rdquo;. It&rsquo;s more like someone constantly changing one cell in a gigantic spreadsheet, and watching the rest of the cells update themselves in response. This style-invalidation recalculation machinery has somehow been harassed into running an entire operating system.
+</p>

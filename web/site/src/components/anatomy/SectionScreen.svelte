@@ -31,13 +31,13 @@ max(0, sign(3409 - mod(var(--cycleCount-prev), 68182)))`;
 </script>
 
 <p>
-  CSS can&rsquo;t draw pixels. It can colour elements. So the screen is <b>one &lt;div&gt; per pixel</b> &mdash; 64,000 of them, 320 wide by 200 tall &mdash; each with a rule that reads its own byte of video memory:
+  Mercifully, the one thing CSS was actually built for is to colour boxes. If you think about it, pixels are just coloured boxes. So the screen is a 320&times;200 grid of <code>&lt;div&gt;</code> elements, each one a pixel: 64,000 of them. Each simply reads the relevant byte of video-specific memory (aka Video RAM, aka VRAM):
 </p>
 
 <PixelScreen />
 
 <p>
-  When a program writes to video memory, the divs whose bytes changed recalculate their <code>background-color</code>, and the picture changes. These 64,000 rules are 6.5&nbsp;MB of the file, and they&rsquo;re always in it &mdash; this is the pure-CSS renderer, proven to paint in real Chromium.
+  Each rule reads its pixel&rsquo;s bytes of video memory and turns them into a colour for whichever screen mode the machine is currently in &mdash; the 256-colour game mode shown here, the DOS text screen (glyphs drawn from an 8&times;8 ROM font baked into the file), or the old four-colour CGA modes. No image, no canvas &mdash; when a game draws, it writes bytes, and divs change colour. These 64,000 rules are 14&nbsp;MB of the file, and they&rsquo;re always in it &mdash; this is the pure-CSS renderer, proven to paint in real Chromium.
 </p>
 <p>
   Each rule is one line. Pixel 31,840 &mdash; row 99, column 160, the middle of the screen &mdash; is:
@@ -49,7 +49,7 @@ max(0, sign(3409 - mod(var(--cycleCount-prev), 68182)))`;
 
 <SectionHead>The palette &mdash; how 256 colours get chosen</SectionHead>
 <p>
-  A pixel&rsquo;s byte isn&rsquo;t a colour; it&rsquo;s an index into a palette of 256. The palette isn&rsquo;t fixed either &mdash; the running program loads its own, and the machine accepts it exactly the way real VGA hardware did: to set one colour, the program writes three bytes &mdash; red, green, blue &mdash; to a single port, while a small counter steps 0, 1, 2 and rolls over to the next colour slot. When a game fades to black, it is re-streaming the whole table a little darker, over and over.
+  Older programs were limited to 256 colours at once, which isn&rsquo;t very many. They could at least choose WHICH 256 colours they wanted to use. That list of colours is the &lsquo;palette&rsquo;, and the pixel&rsquo;s byte references a colour from that list (0&ndash;255). To set one colour, the program writes three bytes &mdash; red, green, blue &mdash; to a single port, while a small counter steps 0, 1, 2 and rolls over to the next colour slot. When a game fades to black, it is re-streaming the whole table a little darker, over and over.
 </p>
 <p>
   The lookup itself is a shared 256-way <code>if()</code> function, <code>--paletteRGB</code>, that turns the live palette into an actual <code>rgb(&hellip;)</code> value for each div:
@@ -64,7 +64,7 @@ max(0, sign(3409 - mod(var(--cycleCount-prev), 68182)))`;
 <Foldable>
   {#snippet summary()}The palette read-back cursor{/snippet}
   <p>
-    There&rsquo;s a second, separate cursor for <i>reading</i> the palette back &mdash; a fade effect wants to know the current colours before dimming them, and real VGA hardware let it ask without disturbing the write cursor. So does this one.
+    There&rsquo;s a second, separate cursor for <i>reading</i> the palette back &mdash; a fade effect needs to read the current colours before dimming them, and real VGA hardware let it ask without disturbing the write cursor. If real hardware did it, we have to support it too.
   </p>
 </Foldable>
 
@@ -76,20 +76,23 @@ max(0, sign(3409 - mod(var(--cycleCount-prev), 68182)))`;
 
 <SectionHead>Text mode &amp; CGA &mdash; the shared bytes</SectionHead>
 <p>
-  <Term t="mode13h">Mode 13h</Term> isn&rsquo;t the only screen the machine carries. Text mode &mdash; the 80&times;25 grid the DOS prompt lives on &mdash; is its own region of video memory at a different address: two bytes per character, the letter and its colours. And the older CGA graphics modes have their own aperture&hellip; which <b>overlaps the text region</b>. The same memory cells serve both, on purpose, because that&rsquo;s genuinely how 1981 CGA hardware behaved &mdash; the aliasing is part of the machine being faithful.
+  <Term t="mode13h">Mode 13h</Term> isn&rsquo;t the only screen the machine carries. Text mode &mdash; the 80&times;25 grid the DOS prompt lives on &mdash; is its own region of video memory at a different address: two bytes per character, the letter and its colours. And the older CGA graphics modes have their own aperture which <b>overlaps the text region</b>. Yikes. That&rsquo;s how 1981 CGA hardware behaved, since RAM was scarce and you can&rsquo;t use both modes at once. We must mimic it faithfully.
 </p>
 <p>
-  The pure-CSS painter above only draws Mode 13h. For the other modes the cabinet stores everything a renderer needs &mdash; including copying the current video mode and the CGA palette register into two spare bytes of the BIOS data area, so the outside of the machine can tell which screen the program meant. That register carries one famous bit: the choice between CGA&rsquo;s two four-colour palettes, green/red/yellow or cyan/magenta/white &mdash; the reason so many old PC games are those exact colours.
+  The overlap is authentic; what comes next isn&rsquo;t. On a real PC, a program&rsquo;s <code>OUT 0x3D9, AL</code> lands in a register <i>inside</i> the CGA chip, and the same chip uses it as it paints &mdash; the hardware that receives the setting is the hardware that draws. CSS-DOS has no such chip, and its screen is drawn by something else entirely: a separate renderer that reads the finished video memory. So the machine leaves that renderer a note. On the <code>OUT</code>, it copies the value into a spare byte of the BIOS data area, and does the same for the current video mode &mdash; two shadow bytes recording what the program <i>asked for</i>, so whatever draws the screen can tell which of these overlapping modes it meant. Both readers use it: the fast external renderer, and the 64,000 pixel rules above, whose <code>--vidMode</code> and <code>--vidPal</code> are exactly these two bytes. A real PC needs no such note, because there the sender and the painter are one piece of silicon.
+</p>
+<p>
+  That palette byte carries one famous bit: the choice between CGA&rsquo;s two four-colour palettes &mdash; green/red/yellow or cyan/magenta/white &mdash; the reason so many old PC games are those exact colours.
 </p>
 
 <SectionHead>The electron beam</SectionHead>
 <p>
-  One more thing games ask the screen: &ldquo;is the monitor mid-redraw?&rdquo; A 1981 monitor painted the picture with an electron beam, top to bottom, 70 times a second &mdash; and games wait for the beam&rsquo;s flyback (the <i>vertical retrace</i>) to redraw without tearing. They poll a status port for it, constantly.
+  An 80s monitor painted the picture with an electron beam, top to bottom, 70 times a second &mdash; and games wait for the beam&rsquo;s flyback (the <i>vertical retrace</i>) to redraw without tearing. They poll a status port for this information.
 </p>
 <p>
-  There is no beam. The machine fakes its position from a number the CPU already tracks &mdash; the running count of cycles each instruction would have cost, the same tally that drives the <a href="#about/file/chipset">timer chip</a>. One seventieth of a second is 68,182 cycles, and the beam spends about 5% of each frame flying back, so:
+  We fake its position from a number the CPU already tracks &mdash; the running count of cycles each instruction would have cost on the real 4.77&nbsp;MHz chip. One seventieth of a second is 68,182 cycles, and the beam spends about 5% of each frame flying back &mdash; 5% of 68,182 is 3,409 cycles &mdash; so:
 </p>
 <CodeCss code={RETRACE} />
 <p>
-  The electron beam of a CRT monitor, reduced to a <code>mod()</code> and a <code>sign()</code>. Games genuinely synchronise to it.
+  The electron beam of a CRT monitor, mimicked with a <code>mod()</code> and a <code>sign()</code> so that games can synchronise to it.
 </p>

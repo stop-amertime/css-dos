@@ -28,7 +28,7 @@ style(--opcode: 212): calc(var(--cycleCount-prev) + 83);  /* AAM: 83 — divisio
 </script>
 
 <p>
-  A PC was never one chip. Around the CPU sits a small crowd of support silicon, and &rsquo;80s programs talk to it directly: they program a <b>timer chip</b> to interrupt them 18.2 times a second, tell the <b>interrupt controller</b> which events to let through, stream colours into the <b>VGA palette</b>. Each of those chips is simulated the same way the registers are &mdash; a few more variables, with tables describing what the silicon would have done:
+  A PC was never one chip. Around the CPU sits a small crowd of support silicon, and &rsquo;80s programs talk to it <i>directly</i> (it&rsquo;s the &rsquo;80s, anything goes!): they program a <b>timer chip</b> to interrupt them 18.2 times a second, tell the <b>interrupt controller</b> which events to let through, stream colours into the <b>VGA palette</b>. Each of those chips is simulated the same way the registers are &mdash; a few more variables, with tables describing what the silicon would have done:
 </p>
 <CodeCss code={CHIP_VARS} />
 <p>
@@ -40,6 +40,9 @@ style(--opcode: 212): calc(var(--cycleCount-prev) + 83);  /* AAM: 83 — divisio
   A CPU register&rsquo;s table ends with &ldquo;otherwise, keep the old value&rdquo; &mdash; if the current instruction doesn&rsquo;t touch it, nothing happens. The chips are different: real hardware runs whether or not the program is paying attention. Their tables end with a fall-through that <i>does work</i>. The timer&rsquo;s table has rows for the OUT instructions that program it, and when none of them fire &mdash; almost every tick &mdash; it counts down instead:
 </p>
 <CodeCss code={PIT_COUNTER} />
+<p class="dim small">
+  (Note the shape: the <i>idle</i> case takes the <code>if</code> and the real work is the <code>else</code>, which looks backwards. But a <code>style()</code> test can only ask <i>is this variable exactly this value?</i> &mdash; there is no &ne; or &gt;. The only case that can be named as one exact value is <code>--pitReload</code> being 0, a timer that was never programmed &mdash; so it gets the <code>if</code>, and counting falls through to the <code>else</code>.)
+</p>
 <p>
   Every time the counter crosses zero it reloads itself and raises IRQ&nbsp;0 &mdash; the tick DOS keeps its clock by. The interrupt controller&rsquo;s fall-through latches any newly arrived interrupt requests; the keyboard controller&rsquo;s copies the current key so the next tick can spot the change. The chips&rsquo; <code>else</code> branches are where the machine&rsquo;s concurrency lives.
 </p>

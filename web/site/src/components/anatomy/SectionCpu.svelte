@@ -89,24 +89,33 @@ else: 0);
   const MODRM = `--mod: --rightShift(var(--q1), 6);
 --reg: --lowerBytes(--rightShift(var(--q1), 3), 3);
 --rm:  --lowerBytes(var(--q1), 3);`;
+
+  const IRQ_BRANCH = `--AX: if(
+  style(--_irqActive: 1): /* deliver the interrupt */;
+  else:                   /* the normal 850-row table */);`;
+
+  const REP_ROW = `/* the IP row for MOVSB (opcode 164) */
+style(--opcode: 164): if(
+  style(--_repContinue: 1): calc(var(--IP-prev) - var(--prefixLen));
+  else: calc(var(--IP-prev) + 1));`;
 </script>
 
 <p>
-  This section is the fourteen <Term t="register">registers</Term> &mdash; <code>--AX</code>, <code>--BX</code>, <code>--IP</code> and the rest &mdash; and the tables that define them. Less than a tenth of a percent of the file does all of the machine&rsquo;s thinking.
+  This section is the fourteen <Term t="register">registers</Term> &mdash; <code>--AX</code>, <code>--BX</code>, <code>--IP</code> and so on &mdash; and the tables that define them. Less than 0.1% of the file.
 </p>
 
 <Foldable class="fold-bg">
   {#snippet summary()}Background: what a CPU does{/snippet}
   <p>
-    Memory is a long row of numbered boxes, each holding a number from 0 to 255. A program is numbers sitting in those boxes, and some of the numbers are instructions: the sequence 184,&nbsp;5,&nbsp;0 means &ldquo;put the number 5 into AX&rdquo;. AX is a <b>register</b> &mdash; one of fourteen values the processor keeps directly to hand instead of in memory. Another register, IP, holds the address of the current instruction.
+    Memory (RAM) is a long row of numbered boxes, each holding a byte (a number from 0 to 255). A program is numbers sitting in those boxes, and some of the numbers are instructions: the sequence 184,&nbsp;5,&nbsp;0 means &ldquo;put the number 5 into AX&rdquo;. AX is a <b>register</b> &mdash; one of fourteen values the processor keeps directly to hand instead of in memory. Another register, IP, holds the address of the current instruction.
   </p>
   <p>
-    The processor&rsquo;s whole job is a loop: read the number IP points at, do what it says, move IP past it, repeat. On a real chip that loop is wiring. There&rsquo;s no code underneath making that happen &mdash; the CPU fetches the next number the way a lightbulb lights up when you press the switch: it&rsquo;s engineered to do it. Here there is no silicon, so the loop has to be made of variables.
+    The processor runs in a loop: read the number IP points at, execute that instruction, move IP past it, repeat. On a real processor, that loop is made from many tiny electrical circuits that do the computations. There&rsquo;s no code underneath making that happen &mdash; the CPU fetches the next number the way a lightbulb lights up when you press the switch: it&rsquo;s engineered to do it.
   </p>
 </Foldable>
 
 <p>
-  A register changes constantly: ADD puts a sum in AX, MOV loads a value into it, POP pulls one off the stack into it. But <code>--AX</code> is a CSS variable, and a variable gets exactly one definition. So the definition has to cover, in advance, everything that could ever happen to the register &mdash; one table, keyed on the current <Term t="opcode">opcode</Term>, with a row for every instruction that can touch it:
+  A register might change depending on the current instruction: ADD puts a sum in AX, MOV loads a value into it, POP pulls one off the stack into it. But <code>--AX</code> is a CSS variable, and we only get one chance to define it, as covered on the previous page. So the definition has to cover, in advance, everything that could ever happen to the register &mdash; one table, keyed on the current <Term t="opcode">opcode</Term>, with a row for every instruction that can touch it. You saw this table&rsquo;s skeleton on the last page; here is the real thing:
 </p>
 <CodeCss code={AX_TABLE} />
 <Callout kind="info">
@@ -114,9 +123,12 @@ else: 0);
     Code here is real cabinet code, structurally exact &mdash; only the variable names are tidied for reading: <code>--__1IP</code> becomes <code>--IP-prev</code>.
   </p>
 </Callout>
+<p>
+  Fourteen of these tables, one per register &mdash; that <i>is</i> the CPU:
+</p>
 <CodeCss code={REG_VARS} />
 <p>
-  Fourteen of these tables, one per register. Evaluating all fourteen against the current opcode, once, is how an instruction gets executed. The opcode itself is just another variable &mdash; the cabinet contains the line <code>--opcode:&nbsp;var(--q0)</code>, where <code>--q0</code> is the byte of memory IP points at, fetched through the giant function in the <a href="#about/file/memr">read-formulas section</a>.
+  Evaluating all fourteen against the current opcode, once, is how an instruction gets executed. And the opcode itself is just another variable: the cabinet contains the line <code>--opcode:&nbsp;var(--q0)</code>, where <code>--q0</code> is the byte of memory IP points at, fetched through the monstrous function in the <a href="#about/file/memr">read-formulas section</a>.
 </p>
 <p>
   All fourteen tables, drawn as one grid &mdash; a mark where a table has a row for an opcode:
@@ -177,37 +189,58 @@ else: 0);
 
 <SectionHead>One instruction, all the way through</SectionHead>
 <p>
-  Opcode 5 is &ldquo;add a number to AX&rdquo;. When <code>--opcode</code> is 5, this row fires in the AX table:
+  The instruction in question is ADD &mdash; opcode 5. We&rsquo;ll take a look at everything that needs to update to process this instruction.
+</p>
+<p>
+  Opcode 5 is &ldquo;add a number to AX&rdquo;. When <code>--opcode</code> is 5, this row fires for the AX register:
 </p>
 <CodeCss code={ADD_AX} />
 <p>
-  New AX = old AX plus the number that followed the opcode in memory, trimmed back to 16 bits because registers wrap. The same opcode selects a row in the IP table:
+  In plain English: New AX = old AX plus the number that followed the opcode in memory, trimmed back to 16 bits because registers wrap.
+</p>
+<p>
+  Meanwhile, the IP property is also recalculating itself based on the opcode. The ADD instruction is 3 bytes long (ADD,X,Y), so we need to add 3 to the IP counter to find the next instruction.
 </p>
 <CodeCss code={ADD_IP} />
 <p>
-  &mdash; stepping the machine past the three-byte instruction. A jump&rsquo;s IP row computes a destination instead, and a backwards jump is how loops happen. Next tick, the fetch reads from the new IP.
+  If we hit a jump instruction, the IP register uses that to find its destination instead. A backwards jump is how loops happen. Next tick, the fetch reads from the new IP, and the process repeats. It&rsquo;s oddly simple in principle.
 </p>
 <p>
-  One more table is involved. A real ADD circuit also reports, as side effects of the silicon, whether the sum overflowed, hit zero, or went negative. These reports are the <b>flags</b>, and programs check them constantly &mdash; every &ldquo;if&rdquo; in every program ends up as a flag check &mdash; so the flags table has its own row for opcode 5 and calls the machine&rsquo;s real 16-bit ADD flag function &mdash; in full:
+  We need one more function, though &mdash; a real ADD circuit also reports, as side effects of the silicon, whether the sum overflowed, hit zero, or went negative. These reports are the <b>flags</b>, and programs check them constantly &mdash; every &ldquo;if&rdquo; in every program ends up as a flag check. The flags function has a row for opcode 5, which calls the machine&rsquo;s real 16-bit ADD flag function:
 </p>
 <CodeCss code={ADD_FLAGS} />
-<p>
-  In there: <code>--cf</code> asks &ldquo;did the true sum pass 65,535?&rdquo; &mdash; divide by 65,536, round down, and that is the <b>carry flag</b> as a 1 or a 0. <code>--zfsf</code> asks &ldquo;is the result zero?&rdquo; and &ldquo;is its top bit set?&rdquo; (a 16-bit number&rsquo;s way of being negative) &mdash; the <b>zero</b> and <b>sign</b> flags, each parked at its own bit position. <code>--pf</code>, the <b>parity flag</b>, comes from a 256-entry lookup table in this section&rsquo;s flag helpers. The long line in the middle is the <b>half-carry</b> flag &mdash; &ldquo;did the bottom four bits overflow?&rdquo; &mdash; built out of <code>sign()</code> because CSS has no <code>&lt;</code>. And the <code>+ 2</code> at the end is a bit the 8086 keeps permanently switched on.
-</p>
+<Foldable>
+  {#snippet summary()}What&rsquo;s inside --addFlags16, flag by flag{/snippet}
+  <ul class="sim-list">
+    <li><code>--cf</code> &mdash; the <b>carry flag</b>: did the true sum exceed 65,535? Dividing by 65,536 and rounding down answers exactly that, as a 1 or a 0.</li>
+    <li><code>--zfsf</code> &mdash; the <b>zero flag</b> and <b>sign flag</b>: is the result zero, and is its top bit set (a 16-bit number&rsquo;s way of being negative)? Each answer is parked at its own bit position in the flags word.</li>
+    <li><code>--pf</code> &mdash; the <b>parity flag</b>, read from the 256-entry lookup table in the <a href="#about/file/util">utility-functions section</a>.</li>
+    <li>The long line in the middle &mdash; the <b>half-carry flag</b>: did the bottom four bits overflow? Built from <code>sign()</code>, because CSS has no <code>&lt;</code>.</li>
+    <li>The <code>+ 2</code> at the end &mdash; a bit the 8086 keeps permanently switched on.</li>
+  </ul>
+</Foldable>
 <p>
   In total, one ADD is a sum, a new IP, six flags and a table lookup &mdash; and ADD is one of the easiest instructions in the set.
 </p>
 
-<SectionHead>How a program decides anything</SectionHead>
+<SectionHead>How branching works</SectionHead>
 <p>
-  Programs branch &mdash; &ldquo;if health is zero, die&rdquo; &mdash; and a formula can&rsquo;t branch; it computes one value. So a conditional jump is arithmetic too: <code>--bit()</code> pulls one flag out of the flags register as a 0 or a 1, and the jump multiplies its travel distance by it. This is the real IP row for JZ, &ldquo;jump if zero&rdquo;:
+  If you&rsquo;ve read this far, I&rsquo;m going to assume you know what branching is. So how does an &ldquo;if&rdquo; happen?
+</p>
+<p>
+  With arithmetic, again: <code>--bit()</code> pulls one flag out of the flags register as a 0 or a 1, and the jump multiplies its travel distance by it. This is the real IP row for JZ, &ldquo;jump if zero&rdquo;:
 </p>
 <CodeCss code={JZ_ROW} />
 <p>
-  Taken, IP moves by the distance byte; not taken, it moves by zero times the distance byte. (<code>--u2s1()</code> reads the byte as signed, so the distance can be negative.)
+  Read the row&rsquo;s arithmetic:
 </p>
+<ul class="sim-list">
+  <li>IP advances by 2 either way, to move past the JZ instruction itself.</li>
+  <li>We want to &ldquo;jump if zero&rdquo; &mdash; that is, jump only when the zero flag is 1.</li>
+  <li>The trick: multiply the jump distance by the zero flag (<code>--bit()</code> extracts it from the flags register as a 1 or a 0). If the flag is 1, IP moves the full distance. If it is 0, the distance is multiplied by zero, and we jump 0 bytes instead.</li>
+</ul>
 <p>
-  Some conditions cost more. &ldquo;Jump if less&rdquo; is taken when the sign flag and the overflow flag disagree &mdash; an XOR, which CSS doesn&rsquo;t have. The <a href="#about/file/util">bit &amp; byte helpers</a> build XOR out of multiplication, and here it is at work on two flag bits:
+  Some conditions cost more. &ldquo;Jump if less&rdquo; is taken when the sign flag and the overflow flag disagree &mdash; an XOR, which CSS doesn&rsquo;t have. The <a href="#about/file/util">utility section</a> builds XOR out of multiplication, and here it is at work on two flag bits:
 </p>
 <CodeCss code={JL_COND} />
 
@@ -215,6 +248,9 @@ else: 0);
   {#snippet summary()}DIV, DAA, and the less reasonable instructions{/snippet}
   <p>
     DIV divides a 32-bit number &mdash; held across two registers, DX and AX &mdash; producing a quotient and a remainder at once. Two tables catch its output:
+  </p>
+  <p>
+    Now we&rsquo;re cooking. DIV divides a 32-bit number &mdash; held across two registers, DX and AX &mdash; producing a quotient and a remainder at once. Two tables catch its output:
   </p>
   <CodeCss code={DIV_ROWS} />
   <p>
@@ -235,10 +271,20 @@ else: 0);
 <Foldable>
   {#snippet summary()}How an interrupt arrives{/snippet}
   <p>
-    A keypress or a timer tick has to be able to interrupt the running program between instructions. On real hardware that&rsquo;s wiring; here it&rsquo;s the override standing in front of every register table. When an interrupt is pending, the machine <b>refuses to run the instruction it just fetched</b> &mdash; no register takes its decoded value that tick. Instead: IP and CS load the interrupt handler&rsquo;s address out of a table in memory, SP drops by six for the three pushed words, and the flags register switches interrupts off so the handler can&rsquo;t itself be interrupted. The cycle counter even charges 61 cycles &mdash; what the real 8086 billed for a hardware interrupt.
+    An <b>interrupt</b> is how hardware gets the CPU&rsquo;s attention: when a key is pressed or the timer fires, the CPU pauses the running program, runs a small handler routine, then resumes where it left off. On a real chip that&rsquo;s wiring. Here, it&rsquo;s one extra branch at the front of every register table:
   </p>
+  <CodeCss code={IRQ_BRANCH} />
   <p>
-    Behind that sits a simulated interrupt controller &mdash; three variables tracking which interrupts are masked, pending, and currently being serviced, with the timer outranking the keyboard. When a handler finishes, it announces &ldquo;end of interrupt&rdquo;, and the controller clears the in-service bit with a classic bit hack: <code>x AND (x &minus; 1)</code> deletes the lowest set bit of a number, no loop required.
+    When <code>--_irqActive</code> is 1, every register takes the first branch &mdash; the instruction fetched this tick is decoded but never selected. The interrupt is delivered in its place.
+  </p>
+  <ul class="sim-list">
+    <li><b>IP and CS</b> load the handler&rsquo;s address from a table in memory</li>
+    <li><b>SP</b> drops by six, for the three pushed words: the paused instruction&rsquo;s address (where the handler will return to) and the flags</li>
+    <li><b>flags</b> clears its interrupt bit, so the handler can&rsquo;t itself be interrupted</li>
+    <li><b>cycleCount</b> charges 61 cycles &mdash; what the real 8086 billed for a hardware interrupt. (The counter is a register table like the others: each opcode&rsquo;s row adds the cost Intel&rsquo;s manual lists for it. What it&rsquo;s actually <i>for</i> &mdash; see the <a href="#about/file/chipset">chipset section</a>.)</li>
+  </ul>
+  <p>
+    Behind that sits a simulated interrupt controller &mdash; three variables tracking which interrupts are masked, pending, and currently being serviced, with the timer outranking the keyboard. Clearing the serviced bit &mdash; the lowest bit set &mdash; uses a classic bit hack: <code>x AND (x &minus; 1)</code> deletes the lowest set bit of a number, no loop required.
   </p>
   <p>
     One timing subtlety is kept faithfully: the 8086&rsquo;s single-step trap fires <i>after</i> the traced instruction, not before. The machine reproduces that with a one-tick delay line &mdash; verbatim:
@@ -246,21 +292,32 @@ else: 0);
   <CodeCss code={TF_DELAY} />
 </Foldable>
 
-<Foldable>
-  {#snippet summary()}REP &mdash; the instruction that re-runs itself{/snippet}
-  <p>
-    One instruction, one tick &mdash; but some 8086 instructions are supposed to repeat. <code>REP MOVSB</code> copies CX bytes in one go, and memory copies use it constantly. A loop can&rsquo;t run inside a single tick, because a tick is defined as exactly one instruction.
-  </p>
-  <p>
-    The fix: the instruction copies <b>one</b> byte, decrements CX, and &mdash; if CX is still above zero &mdash; computes its <i>next</i> instruction pointer to point back at itself. Next tick, the CPU fetches the very same <code>REP MOVSB</code> again, copies the next byte, and so on until CX reaches zero and IP finally moves past it. From the outside it looks like one instruction copying a whole block; underneath it&rsquo;s the same instruction re-run N times by the clock.
-  </p>
-</Foldable>
+<SectionHead>REP &mdash; faking hardware micro-loops</SectionHead>
+<p>
+  x86 has a prefix, REP, that means &ldquo;do this instruction CX times&rdquo; where CX is the value in the CX register. <code>REP MOVSW</code> is the 1981 idiom for copying a block of memory: only one instruction but up to 65,535 iterations. The physical 8086 chip micro-loops in hardware until it&rsquo;s finished.
+</p>
+<p>
+  For us, a tick <i>is</i> one evaluation of every formula in the file. To achieve the same behaviour, the IP row for a repeating string instruction simply doesn&rsquo;t advance:
+</p>
+<CodeCss code={REP_ROW} />
+<p>
+  Next tick, the fetch lands on the same instruction, and the entire machine &mdash; fourteen register tables, all 368,256 memory formulas &mdash; re-evaluates from scratch to copy two more bytes. The CX register counts down by one per tick; on the last iteration <code>--_repContinue</code> hits 0 and IP finally moves on. Copying a 64&nbsp;KB block this way is 32,768 complete evaluations of the 300&nbsp;MB stylesheet, each evaluation moving just <i>two bytes</i>. Sisyphean.
+</p>
+<p>
+  (The subtraction <code>- var(--prefixLen)</code> is slightly amusing. The IP table is wrapped with a <code>+ prefixLen</code> so that every instruction steps over its own prefixes. To stand still, the repeating instruction takes a couple of steps backwards, then a couple of steps forward again.)
+</p>
 
 <SectionHead>Power-on</SectionHead>
 <p>
-  Nothing starts the machine. The clock animation begins ticking the moment the stylesheet loads, and on tick one the fetch simply reads from wherever CS:IP already point. The declarations put them there:
+  What starts the machine? The clock animation begins ticking when the stylesheet loads, and on the first tick, the fetch simply reads from the byte that CS:IP point to. They are pre-set in the CSS file to point to the BIOS start.
 </p>
+<Foldable>
+  {#snippet summary()}What are CS and IP?{/snippet}
+  <p>
+    The code is split up into 16-byte &lsquo;segments&rsquo;, and CS (Code Segment) tells you which one to look in. IP (Instruction Pointer) then tells you the position of one specific byte within that. This is like identifying a specific word on a page of text by saying &lsquo;Line 12, Word 5&rsquo;.
+  </p>
+</Foldable>
 <CodeCss code={POWER_ON} />
 <p>
-  That is linear address 983,040 &mdash; the first ROM entry in the <a href="#about/file/memr">read-formulas section</a> &mdash; and the byte there is 235, a jump instruction. The machine&rsquo;s first act is to jump into the BIOS proper, which sets up a stack, fills in the interrupt table, paints its splash screen, and jumps again, into DOS. Power arrives, the processor wakes up pointing at firmware, and everything else follows &mdash; a cold boot, the same way a real PC did it.
+  That is linear address 983,040 &mdash; the first ROM entry in the <a href="#about/file/memr">read-formulas section</a> &mdash; and the byte sitting there is 235: a jump instruction. So the machine&rsquo;s first act is to jump into the BIOS proper, which sets up a stack, fills in the interrupt table, paints its splash screen, and jumps again, into DOS. A cold boot, the same as a real PC does it.
 </p>

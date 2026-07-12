@@ -6,17 +6,14 @@
   // The old GLOSSARY callout (cart/cabinet/tick) was replaced by
   // inline Term definitions 2026-07-04 — words define themselves at
   // the point of use.
-  import Term from '../Term.svelte';
 </script>
 
 <p>
-  The bar above is the whole <Term t="cabinet">cabinet</Term> &mdash;
-  a real build (Sokoban, 309&nbsp;MB), drawn to scale, in file order.
-  Click the sections or arrows above to delve<span class="map-fn-star">*</span>
-  in.
+  The bar above is a real file (Sokoban), to scale and in order. Click
+  a section to delve<span class="map-fn-star">*</span> in.
 </p>
 <p class="map-fn small">
-  <span class="map-fn-star">*</span> written by a human, I promise.
+  <span class="map-fn-star">*</span>written by a human, I promise
 </p>
 
 <style>

@@ -13,10 +13,19 @@ style(--at: 1281): --rightShift(var(--keyboard-prev), 8);`;
 </script>
 
 <p>
-  Reading sounds like the easy half &mdash; nothing changes, you just look at a value. It isn&rsquo;t. Every memory cell is its own variable; an address is just a number; and CSS gives no way to get from the number to the variable. The very first thing a CPU does every <Term t="tick">tick</Term> &mdash; fetch the byte its instruction pointer points at &mdash; is already impossible to write directly.
+  Wait, <i>read</i> formulas? How complex can <i>reading</i> a variable be? Don&rsquo;t you just&hellip; look at it?
 </p>
 <p>
-  The machine&rsquo;s answer is <code>--readMem</code>: <b>one single function</b> with one arm for every address it could ever be asked about &mdash; 743,948 of them. Not a table, not a list of functions: one <code>if()</code>, forty-four million characters long, that simply asks &ldquo;is it address 0? is it address 1? is it address&nbsp;2?&rdquo; until it hits yours.
+  If only. Let&rsquo;s say we want to read memory cell number 12345. Each memory cell has one variable, say <code>var(--memory-12345)</code>. In a normal programming language, we&rsquo;d place the memory cells in a list and find the 12345th entry, e.g. <code>memory[12345]</code>.
+</p>
+<p>
+  But CSS doesn&rsquo;t have lists. Hmm. Can we somehow search the number/ the variable name&hellip;? Nope.
+</p>
+<p>
+  So with a huge sigh, we roll up our sleeves and just brute force it. As in, <i>check every possible option</i> one-by-one.
+</p>
+<p>
+  The function <code>--readMem</code> is a single gigantic <code>if()</code> statement which checks every address &mdash; 743,948 of them. Not a table, not a list of functions: one <code>if()</code>, forty-four million characters long, that simply asks &ldquo;is it address 0? is it address 1? is it address&nbsp;2?&rdquo; until it hits the right one.
 </p>
 
 <FetchLadder />
@@ -33,21 +42,21 @@ style(--at: 1281): --rightShift(var(--keyboard-prev), 8);`;
   Because we can&rsquo;t know which one we&rsquo;ll need. The address being read isn&rsquo;t written down anywhere in the program &mdash; it&rsquo;s computed on the spot, usually from registers: <i>fetch me whatever DS &times; 16 + BX points at</i>. The exact same MOV instruction reads RAM this tick, a ROM table the next, the disk window the one after &mdash; wherever its registers happen to be pointing. Any read can land anywhere. So one function has to answer for everywhere.
 </p>
 
-<SectionHead>The RAM arms &mdash; 736,510 of them</SectionHead>
+<SectionHead>The RAM &mdash; 736,510</SectionHead>
 <p>
   The overwhelming bulk. Memory cells hold two bytes each, so every cell gets a pair of arms: the even address extracts the low byte (<code>mod(&hellip;, 256)</code>), the odd address the high byte (divide by 256, round down). These arms read the live machine &mdash; whatever a program has written is what comes back.
 </p>
 <p>
-  Two arms hiding in the middle of the RAM range aren&rsquo;t memory at all: addresses 1280 and 1281 are wired straight to the live keyboard value. When the BIOS keyboard service reads those addresses, it gets real keypresses through the same function as everything else:
+  Two arms hiding in the middle of the RAM range aren&rsquo;t memory at all: addresses 1280 and 1281 are wired straight to the live keyboard value &mdash; the aperture from the <a href="#about/file/keys">keyboard section</a>, plumbed in. When the BIOS keyboard service reads those addresses, it gets real keypresses through the same function as everything else:
 </p>
 <CodeCss code={KBD_ARMS} />
 
-<SectionHead>The BIOS ROM arms &mdash; 6,924</SectionHead>
+<SectionHead>The BIOS ROM &mdash; 6,924</SectionHead>
 <p>
   The <Term t="bios">BIOS</Term> is read-only, so its bytes don&rsquo;t need cells &mdash; each one is baked in as a literal constant: <code>style(--at: 983040): 235;</code>. Bytes that are zero are omitted entirely (the <code>else: 0</code> at the bottom of the function answers for them), which is why a 64&nbsp;KB ROM region needs only 6,924 arms.
 </p>
 
-<SectionHead>The disk window &mdash; 512, at the very end</SectionHead>
+<SectionHead>The disk window &mdash; 512</SectionHead>
 <p>
   The last 512 arms are the strangest. They don&rsquo;t hold anything at all.
 </p>
