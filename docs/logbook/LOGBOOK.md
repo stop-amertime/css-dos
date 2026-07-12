@@ -4,7 +4,7 @@ Chronological work entries. Newest first. The durable handbook
 (current state, sentinels, gotchas, how to test) is in
 [`STATUS.md`](STATUS.md).
 
-Last updated: 2026-07-11
+Last updated: 2026-07-12
 
 Entries are individual files in [`entries/`](entries/). This page is
 the **index only** — read the tag + one-line summary, open the 1–3
@@ -22,6 +22,7 @@ See [`PROTOCOL.md`](PROTOCOL.md).
 
 | Date | Tag | Entry |
 |------|-----|-------|
+| 2026-07-12 | LANDED | [File map honest whole-tree reorg: Kiln emit reordered into ten coherent subsystem sections (declaration-inert — same 2.71M `--name:value` decls before/after, sha-fingerprinted), each subsystem's @property decls homed with its logic (registers→CPU, chip latches→their chip, kbd wires→keyboard selectors, write-slots→memory writes; "Memory declarations" now cells-only), CPU split into six sibling stages numbered where sequential, flag arithmetic moved out of shared helpers into CPU, stale `--incFlags8` dup deleted; bug fixes: disk "(N more…)" showed zero arms (page could strand a lone comment — fixed in writePages) and stacked show-more buttons (one shared reveal cursor now → ≤1 button)](entries/2026-07-12-filemap-whole-tree-reorg.md) |
 | 2026-07-11 | LANDED | [Tree dedup + landmarks (owner round 3): CPU pane shows its real file region (borrowed flag-fn/register boxes deleted), decl pane retitled "Variable declarations", kiln gap comments mark address jumps in all six memory-scale lists (A/B equivalence PASS), region banner notes dropped, weighted pagination/`remaining` (runs count rows — "(7 more…)" lie fixed, no rows render past a pending more-button); anatomy data 15→7.5 MB](entries/2026-07-11-tree-dedup-gap-comments.md) |
 | 2026-07-11 | LANDED | [Trees ship ALL the cabinet's code: caps/notes deleted; uniform stretches compress losslessly into periodic template+column `run` nodes (every row verified byte-exact at generation, expanded on demand client-side); memw 171 MB → 3.5 KB of linear runs, anatomy data 15 MB total, memr pages to its true 736k-row end](entries/2026-07-11-tree-full-content-runs.md) |
 | 2026-07-11 | LANDED | [Trees extract from the REAL sokoban cabinet (headers show true region sizes; per-run caps ship heads + plain "… N more rows" notes; parser hardened for 171 MB regions); exhibit notes deleted; headings flattened to bare descriptions CPU-style ("palette function", "tick derivation", "store keyframe")](entries/2026-07-11-tree-real-cart-plain-headings.md) |
