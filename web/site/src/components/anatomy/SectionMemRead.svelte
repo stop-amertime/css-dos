@@ -7,14 +7,10 @@
   import SectionHead from '../SectionHead.svelte';
   import Term from '../Term.svelte';
   import CodeCss from '../CodeCss.svelte';
-  import TreeView from './tree/TreeView.svelte';
-  import { MEMR_TREE, MEMR_TREE_META } from './tree/memr-tree.js';
 
   const KBD_ARMS = `style(--at: 1280): --lowerBytes(var(--keyboard-prev), 8);
 style(--at: 1281): --rightShift(var(--keyboard-prev), 8);`;
 </script>
-
-<TreeView nodes={MEMR_TREE} title="Memory reads" bytes={MEMR_TREE_META.bytes} />
 
 <p>
   Reading sounds like the easy half &mdash; nothing changes, you just look at a value. It isn&rsquo;t. Every memory cell is its own variable; an address is just a number; and CSS gives no way to get from the number to the variable. The very first thing a CPU does every <Term t="tick">tick</Term> &mdash; fetch the byte its instruction pointer points at &mdash; is already impossible to write directly.

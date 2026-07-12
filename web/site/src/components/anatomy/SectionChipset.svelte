@@ -7,8 +7,6 @@
   // sokoban.css (names tidied per the CPU section's NOTE callout).
   import CodeCss from '../CodeCss.svelte';
   import SectionHead from '../SectionHead.svelte';
-  import TreeView from './tree/TreeView.svelte';
-  import { CHIPSET_TREE, CHIPSET_TREE_META } from './tree/chipset-tree.js';
 
   const CHIP_VARS = `--picMask --picPending --picInService     /* interrupt controller */
 --pitMode --pitReload --pitCounter …      /* timer chip */
@@ -28,8 +26,6 @@ style(--opcode: 136): calc(var(--cycleCount-prev)
   + if(style(--mod: 3): 2; else: 9));   /* MOV: 2 — or 9 if memory is involved */
 style(--opcode: 212): calc(var(--cycleCount-prev) + 83);  /* AAM: 83 — division was expensive */`;
 </script>
-
-<TreeView nodes={CHIPSET_TREE} title="Chipset" bytes={CHIPSET_TREE_META.bytes} />
 
 <p>
   A PC was never one chip. Around the CPU sits a small crowd of support silicon, and &rsquo;80s programs talk to it directly: they program a <b>timer chip</b> to interrupt them 18.2 times a second, tell the <b>interrupt controller</b> which events to let through, stream colours into the <b>VGA palette</b>. Each of those chips is simulated the same way the registers are &mdash; a few more variables, with tables describing what the silicon would have done:

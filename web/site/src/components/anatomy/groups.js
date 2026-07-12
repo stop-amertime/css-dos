@@ -8,23 +8,24 @@
 // keys 3,691 / screen 6,979,937 / decl 32,030,848 / memr 43,772,403 /
 // memw 170,719,352 / disk 12,945,591 / clock 43,000,160.
 // Colours are semantic families (EGA-leaning): silicon = reds
-// (CPU dark, chipset light), I/O = cyans (screen dark, keys light),
-// memory = blues (decl light → memr mid → memw dark, biggest =
-// darkest), disk = purple, utilities = green (deliberately
-// unrelated to everything), clock = bright yellow — the one thing
-// that moves gets the loudest colour (and stays clear of the warm
-// reds, which read as silicon).
+// (CPU dark, chipset light), memory = blues (decl light → memr mid
+// → memw dark, biggest = darkest), disk = purple, utilities =
+// bright green, screen = dark cyan. Keys and clock were light cyan
+// and bright yellow until 2026-07-12 (owner call): both were near
+// invisible as pane chrome on white, so keys is now forest green
+// and the clock gold — still the warmest, loudest thing on the bar
+// without disappearing in the pane.
 export const GROUPS = [
   { id: 'util',    label: 'Bit & byte helpers',              size: '15 KB',  c: '#00aa00' },
   { id: 'cpu',     label: 'CPU',                             size: '307 KB', c: '#aa0000' },
   { id: 'chipset', label: 'Chipset',                         size: '19 KB',  c: '#ff5555' },
-  { id: 'keys',    label: 'Keyboard selectors',              size: '3.7 KB', c: '#55ffff' },
+  { id: 'keys',    label: 'Keyboard selectors',              size: '3.7 KB', c: '#228b22' },
   { id: 'screen',  label: 'Display',                         size: '7 MB',   c: '#00aaaa' },
   { id: 'decl',    label: 'Memory declarations',             size: '32 MB',  c: '#5555ff' },
   { id: 'memr',    label: 'Memory reads',                    size: '44 MB',  c: '#2222cc' },
   { id: 'memw',    label: 'Memory writes',                   size: '171 MB', c: '#0000aa' },
   { id: 'disk',    label: 'Disk',                            size: '13 MB',  c: '#aa00aa' },
-  { id: 'clock',   label: 'Clock',                           size: '43 MB',  c: '#ffff55' },
+  { id: 'clock',   label: 'Clock',                           size: '43 MB',  c: '#b8860b' },
 ];
 
 // The four sections too small to draw at bar scale — together

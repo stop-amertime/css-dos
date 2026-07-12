@@ -8,8 +8,6 @@
   import CodeCss from '../CodeCss.svelte';
   import Callout from '../Callout.svelte';
   import SectionHead from '../SectionHead.svelte';
-  import TreeView from './tree/TreeView.svelte';
-  import { DECL_TREE, DECL_TREE_META } from './tree/decl-tree.js';
 
   const DECL = `@property --mc5000 {
   syntax: '<integer>';
@@ -20,8 +18,6 @@
   const FALLBACKS = `--mc5000-prev: var(--mc5000_2, 32861);
 --mc5000_2: var(--mc5000_1, 32861);`;
 </script>
-
-<TreeView nodes={DECL_TREE} title="Memory declarations" bytes={DECL_TREE_META.bytes} />
 
 <p>
   Before CSS lets you use a variable as a typed integer, you have to declare it. The file declares every memory cell &mdash; all <b>368,256</b> of them. This one is verbatim:

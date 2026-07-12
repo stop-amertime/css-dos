@@ -9,8 +9,6 @@
   import SectionHead from '../SectionHead.svelte';
   import Term from '../Term.svelte';
   import CodeCss from '../CodeCss.svelte';
-  import TreeView from './tree/TreeView.svelte';
-  import { UTIL_TREE, UTIL_TREE_META } from './tree/util-tree.js';
 
   // The AND worked example: 172 AND 102 = 36.
   const A_BITS = [1, 0, 1, 0, 1, 1, 0, 0]; // 172
@@ -46,8 +44,6 @@
     style(--low8: 3): 4;
     /* … all 256 byte values … */`;
 </script>
-
-<TreeView nodes={UTIL_TREE} title="Bit &amp; byte helpers" bytes={UTIL_TREE_META.bytes} />
 
 <p>
   After a short header comment (the build recipe, for humans opening the file), the first thing in the <Term t="cabinet">cabinet</Term> is a toolbox: <b>21 small functions</b> that everything else is built from. They exist because of a supply problem:

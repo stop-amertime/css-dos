@@ -133,12 +133,13 @@
        this subpage (cabinet-bar.css), so the bar never scrolls at all
        and the connector stays joined; sticky remains as a harmless
        belt-and-braces. The negative margins cancel .window-body's
-       padding so the topper runs edge to edge (values mirror
-       global.css's responsive paddings). */
+       padding so the topper runs edge to edge (values mirror the
+       filemap-only paddings in AboutFileMap.svelte, NOT global.css's
+       defaults — this subpage runs tighter chrome). */
     position: sticky;
     top: 0;
     z-index: 8;
-    margin: -24px -28px 0;
+    margin: -12px -14px 0;
     padding: 8px 12px 8px;
     background: var(--edit-white);
     border-bottom: 1px solid var(--edit-black);
@@ -264,15 +265,15 @@
   .cab-tip .sz { color: var(--edit-red); }
 
   @media (max-width: 900px) {
-    /* window-body padding is 16px 14px at this width. */
-    .cab-bar { margin: -16px -14px 0; padding: 8px 8px 6px; }
+    /* filemap window-body padding stays 12px 14px at this width. */
+    .cab-bar { margin: -12px -14px 0; padding: 8px 8px 6px; }
     .drop-tick { height: 20px; }
   }
 
   @media (max-width: 640px) {
     /* Phone: tighter chrome so the pinned map eats less of the screen
-       (window-body padding is 12px 10px here). */
-    .cab-bar { margin: -12px -10px 0; padding: 6px 6px 5px; }
+       (filemap window-body padding is 8px here). */
+    .cab-bar { margin: -8px -8px 0; padding: 6px 6px 5px; }
     .drop-tick { height: 19px; }
     .cab-bar .zoom-label { font-size: 22px; }
   }

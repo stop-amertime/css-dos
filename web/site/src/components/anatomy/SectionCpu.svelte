@@ -10,8 +10,6 @@
   import Term from '../Term.svelte';
   import CodeCss from '../CodeCss.svelte';
   import Callout from '../Callout.svelte';
-  import TreeView from './tree/TreeView.svelte';
-  import { CPU_TREE, CPU_TREE_META } from './tree/cpu-tree.js';
 
   const AX_TABLE = `--AX: if(
   style(--_irqActive: 1): var(--AX-prev);  /* interrupt pending — hardware outranks the program this tick */
@@ -67,10 +65,8 @@ mod(calc(var(--DX-prev) * 65536 + var(--AX-prev)), max(1, var(--rmVal16)))`;
 @property --IP { … initial-value: 0; }`;
 </script>
 
-<TreeView nodes={CPU_TREE} title="CPU" bytes={CPU_TREE_META.bytes} />
-
 <p>
-  This section is the fourteen <Term t="register">registers</Term> &mdash; <code>--AX</code>, <code>--BX</code>, <code>--IP</code> and the rest &mdash; and the tables that define them. It is about 307&nbsp;KB: less than a tenth of a percent of the file does all of the machine&rsquo;s thinking.
+  This section is the fourteen <Term t="register">registers</Term> &mdash; <code>--AX</code>, <code>--BX</code>, <code>--IP</code> and the rest &mdash; and the tables that define them. Less than a tenth of a percent of the file does all of the machine&rsquo;s thinking.
 </p>
 
 <Foldable class="fold-bg">

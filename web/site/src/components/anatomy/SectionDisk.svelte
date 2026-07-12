@@ -6,8 +6,6 @@
   import SectionHead from '../SectionHead.svelte';
   import Term from '../Term.svelte';
   import CodeCss from '../CodeCss.svelte';
-  import TreeView from './tree/TreeView.svelte';
-  import { DISK_TREE, DISK_TREE_META } from './tree/disk-tree.js';
 
   const DISK_FN = `@function --readDiskByte(--idx <integer>) returns <integer> {
   result: if(
@@ -19,8 +17,6 @@
   const WINDOW_ARM = `style(--at: 852016): --readDiskByte(calc(
   (mod(var(--mc632-prev), 256) + round(down, var(--mc632-prev) / 256) * 256) * 512 + 48));`;
 </script>
-
-<TreeView nodes={DISK_TREE} title="Disk" bytes={DISK_TREE_META.bytes} />
 
 <p>
   CSS can&rsquo;t open anything at runtime &mdash; no files, no requests, no loading. Whatever the machine will ever need has to be in the stylesheet before it starts: the <Term t="bios">BIOS</Term>, <Term t="dos">DOS</Term> itself, and the entire <Term t="floppy">floppy disk</Term>, baked in byte by byte &mdash; one <code>if()</code> arm each:

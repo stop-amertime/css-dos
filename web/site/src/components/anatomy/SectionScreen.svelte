@@ -7,8 +7,6 @@
   import CodeCss from '../CodeCss.svelte';
   import SectionHead from '../SectionHead.svelte';
   import Term from '../Term.svelte';
-  import TreeView from './tree/TreeView.svelte';
-  import { SCREEN_TREE, SCREEN_TREE_META } from './tree/screen-tree.js';
 
   const RETRACE = `/* in retrace? — 1 while the beam would be flying back */
 max(0, sign(3409 - mod(var(--cycleCount-prev), 68182)))`;
@@ -31,8 +29,6 @@ max(0, sign(3409 - mod(var(--cycleCount-prev), 68182)))`;
   style(--q1: 969): calc(var(--dacSubIndex-prev) + 1);  /* …otherwise advance R→G→B */
   else: var(--dacSubIndex-prev));`;
 </script>
-
-<TreeView nodes={SCREEN_TREE} title="Display" bytes={SCREEN_TREE_META.bytes} />
 
 <p>
   CSS can&rsquo;t draw pixels. It can colour elements. So the screen is <b>one &lt;div&gt; per pixel</b> &mdash; 64,000 of them, 320 wide by 200 tall &mdash; each with a rule that reads its own byte of video memory:

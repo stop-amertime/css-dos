@@ -11,8 +11,6 @@
   import Foldable from '../Foldable.svelte';
   import SectionHead from '../SectionHead.svelte';
   import Term from '../Term.svelte';
-  import TreeView from './tree/TreeView.svelte';
-  import { CLOCK_TREE, CLOCK_TREE_META } from './tree/clock-tree.js';
   import { CELL_PLUMBING } from '../../lib/exhibits.js';
 
   const CLOCK_ANIM = `.clock {
@@ -33,8 +31,6 @@
   @container style(--clock: 1) { animation-play-state: running, paused }
   @container style(--clock: 3) { animation-play-state: paused, running }`;
 </script>
-
-<TreeView nodes={CLOCK_TREE} title="Clock" bytes={CLOCK_TREE_META.bytes} />
 
 <Callout kind="tip" label="Fun fact">
   <p>

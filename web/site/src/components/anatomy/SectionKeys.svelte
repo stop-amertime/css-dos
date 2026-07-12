@@ -5,11 +5,7 @@
   import KeyboardDemo from '../KeyboardDemo.svelte';
   import Callout from '../Callout.svelte';
   import SectionHead from '../SectionHead.svelte';
-  import TreeView from './tree/TreeView.svelte';
-  import { KEYS_TREE, KEYS_TREE_META } from './tree/keys-tree.js';
 </script>
-
-<TreeView nodes={KEYS_TREE} title="Keyboard selectors" bytes={KEYS_TREE_META.bytes} />
 
 <p>
   CSS has no input events. The one thing it can ask is <b><code>:active</code></b> &mdash; &ldquo;is this element being pressed, right now?&rdquo; The player&rsquo;s on-screen keys are real buttons, and these are the cabinet&rsquo;s actual rules:
