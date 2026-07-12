@@ -11,7 +11,7 @@
 // NOT a benchmark (use tests/bench/driver/run.mjs compile-only for
 // comparable compileMs numbers) — this is for finding out WHERE a slow
 // compile spends its time. Needs the dev server:
-//   node web/scripts/dev.mjs            (default port 5173)
+//   npm run dev                         (Vite, default port 5173)
 //   node web/tests/compile-phase-capture.playwright.mjs [port]
 // `playwright` normally resolves from node_modules. Set PLAYWRIGHT_DIR to a
 // directory containing the playwright package if it doesn't (e.g. npx cache).

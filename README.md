@@ -18,7 +18,7 @@ Calcite.
 
 ```
 $ node builder/build.mjs carts/rogue -o rogue.css
-$ node web/scripts/dev.mjs                 # serves on :5173
+$ npm run dev                              # Vite dev server on :5173
 $ open http://localhost:5173/build.html    # build/load the cabinet, then play
 ```
 

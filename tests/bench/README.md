@@ -195,12 +195,13 @@ done
 **Prerequisites:**
 
 - **Dev server.** Start with
-  `CALCITE_REPO=/abs/path/to/calcite node web/scripts/dev.mjs` (port
-  5173 by default; pass `PORT=N` env to override). From a worktree
-  set `CALCITE_REPO` to the calcite repo (or worktree) you want to
-  bench against — `../calcite/` resolves to the wrong path inside
-  worktrees. The driver attaches via Playwright; pass `--port=N` to
-  match the server.
+  `CALCITE_REPO=/abs/path/to/calcite npm run dev` (the Vite dev
+  server; port 5173 by default, `PORT=N` env to override — it serves
+  the `/bench/` page, `/bench-assets/`, and the calcite pkg). From a
+  worktree set `CALCITE_REPO` to the calcite repo (or worktree) you
+  want to bench against — `../calcite/` resolves to the wrong path
+  inside worktrees. The driver attaches via Playwright; pass
+  `--port=N` to match the server.
 - **System Chrome on Windows.** The driver's `--headed` path uses
   system Chrome at `C:/Program Files/Google/Chrome/Application/chrome.exe`
   via `launchPersistentContext` so the window actually opens

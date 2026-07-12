@@ -295,8 +295,8 @@ shift with anything that moves data.
   NOT exercise the player's real input path (on-screen key → SW →
   bridge → `set_pseudo_class_active`). A dead player keyboard keeps
   every bench green (it did, 5-28→6-12). Real-path coverage:
-  `node web/tests/kbd-e2e.playwright.mjs` (needs the legacy dev
-  server — `npm run dev:legacy` — as it drives the old `build.html`
-  DOM, not the Svelte site; if Vite already holds :5173, run
-  `PORT=5273 node web/scripts/dev.mjs` and `BASE=http://localhost:5273`
-  the test).
+  `node web/tests/kbd-e2e.playwright.mjs` against the ONE dev server
+  (`npm run dev`; Vite serves the legacy `build.html` the test
+  drives — the separate legacy server was retired 2026-07-12). If
+  :5173 is busy: `PORT=5273 npm run dev` and
+  `BASE=http://localhost:5273` the test.

@@ -14,8 +14,8 @@
   "scripts": {
     "build": "node builder/build.mjs",
     "dev": "npm --prefix web/site run dev",
-    "dev:legacy": "node web/scripts/dev.mjs",
     "site:build": "npm --prefix web/site run build",
+    "regen": "node web/scripts/split-regen.mjs && node web/scripts/raw-regen.mjs",
     "prebake": "node web/scripts/prebake.mjs",
     "revendor": "node web/scripts/revendor-calcite.mjs",
     "smoke": "node tests/harness/run.mjs smoke",

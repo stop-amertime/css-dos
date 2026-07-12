@@ -19,7 +19,7 @@ $ node builder/build.mjs mycart -o mycart.css
 [kiln]   emitting CSS to mycart.css...
 [done]   mycart.css (227.3 MB)
 
-$ node web/scripts/dev.mjs                 # serves on :5173
+$ npm run dev                              # Vite dev server on :5173
 $ open http://localhost:5173/build.html    # load mycart.css, then play
 ```
 
@@ -110,7 +110,7 @@ for the exact shape.
 Three options:
 
 - **Chrome via the player:** start the dev server
-  (`node web/scripts/dev.mjs`), open `http://localhost:5173/build.html`,
+  (`npm run dev`), open `http://localhost:5173/build.html`,
   load your cabinet (it goes into the SW cache as `/cabinet.css`),
   then click through to `calcite.html`. Pure CSS. Slow. The
   source-of-truth run.

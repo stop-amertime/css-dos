@@ -16,7 +16,7 @@ Static HTML shells for running a cabinet in Chrome. No build step.
 
 ## Running
 
-The dev server (`node web/scripts/dev.mjs`) serves `/cabinet.css` from
+The dev server (`npm run dev`) serves `/cabinet.css` from
 the service worker's Cache Storage. Use `web/site/build.html` to build
 or load a cabinet into the cache, then open whichever player variant
 suits the task:

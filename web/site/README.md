@@ -68,9 +68,13 @@ A cart appears on the landing grid by declaring `display.cover` in its
 
 ## Legacy (being retired)
 
-`build.html`, `split.html`, `index.old.html`, `assets/*.js|*.css`, and
-`web/scripts/dev.mjs` are the pre-Svelte site + its dev server. They're
-kept only because `web/tests/kbd-e2e.playwright.mjs` and
-`compile-phase-capture.playwright.mjs` still drive the old DOM
-(`npm run dev:legacy` serves them). Migrating those two harnesses to the
-Svelte `/build` route is the prerequisite for deleting the old site.
+`build.html`, `split.html`, `index.old.html`, and `assets/*.js|*.css`
+are the pre-Svelte site pages. They're kept only because
+`web/tests/kbd-e2e.playwright.mjs` and
+`compile-phase-capture.playwright.mjs` still drive the old DOM — the
+ONE dev server (`npm run dev`, Vite) serves them alongside the Svelte
+site (the separate legacy server `web/scripts/dev.mjs` was retired
+2026-07-12; its aliases and `/_status`//_reset`//_clear` endpoints
+moved into `vite.config.js` + `scripts/dev-extras.mjs`). Migrating
+those two harnesses to the Svelte `/build` route is the prerequisite
+for deleting the old pages.

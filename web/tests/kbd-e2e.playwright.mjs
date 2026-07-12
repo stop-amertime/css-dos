@@ -10,8 +10,9 @@
 // see logbook 2026-06-12). This test exists so that can't recur.
 //
 // NOT part of `node --test` (no .test. in the name): it needs the dev
-// server (node web/scripts/dev.mjs) on :5173 and system Chrome, builds
-// the doom8088 cabinet in-browser, and takes ~2 minutes.
+// server (npm run dev — Vite serves the legacy build.html this test
+// drives) on :5173 and system Chrome, builds the doom8088 cabinet
+// in-browser, and takes ~2 minutes.
 //
 //   node web/tests/kbd-e2e.playwright.mjs
 //
@@ -41,8 +42,8 @@ const CHROME_CANDIDATES = [
   '/opt/pw-browsers/chromium',
 ].filter(Boolean);
 const SYS_CHROME = CHROME_CANDIDATES.find((p) => existsSync(p));
-// BASE env override: the legacy dev server this test needs may have to
-// dodge a Vite dev server already on :5173 (PORT=5273 node web/scripts/dev.mjs).
+// BASE env override: if another server already holds :5173, start yours
+// elsewhere (PORT=5273 npm run dev) and point BASE at it.
 const BASE = process.env.BASE || 'http://localhost:5173';
 // Doom8088 sentinels (linear addresses, docs/logbook/STATUS.md — re-derive
 // from the .map if the doom8088 cart or memory layout changes).

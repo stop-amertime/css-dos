@@ -347,7 +347,7 @@ and `../calcite/docs/conformance-testing.md`.
 # Build a cabinet from a cart
 node builder/build.mjs carts/rogue -o rogue.css
 
-# Play it in Chrome (start the dev server first: node web/scripts/dev.mjs)
+# Play it in Chrome (start the dev server first: npm run dev)
 # then open: http://localhost:5173/player/calcite.html?cabinet=/rogue.css
 # Or drive it with Playwright.
 
@@ -378,8 +378,10 @@ export CALCITE_REPO=/abs/path/to/calcite/.claude/worktrees/foo
 
 `CALCITE_REPO` is honoured by:
 
-- `web/scripts/dev.mjs` — vite aliases (`/calcite/`, `/bench-assets/`)
-  and the `_reset` step that rebuilds the calcite WASM.
+- the Vite dev server (`npm run dev`; `web/site/vite.config.js` +
+  `scripts/runtime-assets.mjs` + `scripts/dev-extras.mjs`) — the
+  `/calcite/`, `/calcite/pkg/`, `/bench-assets/` aliases and the
+  `/_reset` endpoint that rebuilds the calcite WASM.
 - `tests/bench/lib/artifacts.mjs` — locating `calcite-cli` and the
   WASM bundle for ensureFresh rebuilds.
 - `tests/harness/lib/fast-shoot.mjs`, `lib/debugger-client.mjs` —

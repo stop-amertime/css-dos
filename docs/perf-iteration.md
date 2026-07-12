@@ -67,7 +67,7 @@ When you check CSS-DOS out into a worktree
 longer holds. Set `CALCITE_REPO=/abs/path/to/calcite/.../foo` to
 point at the matching calcite worktree. `CALCITE_CLI_BIN` and
 `CALCITE_DEBUGGER_BIN` override individual binaries. Honoured by
-`web/scripts/dev.mjs`, `tests/bench/lib/artifacts.mjs`,
+the Vite dev server (`npm run dev`), `tests/bench/lib/artifacts.mjs`,
 `tests/harness/lib/fast-shoot.mjs`,
 `tests/harness/lib/debugger-client.mjs`.
 

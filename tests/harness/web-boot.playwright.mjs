@@ -78,13 +78,15 @@ const link = resolve(tmpDir, `web-boot-${basename(cabinet)}`);
 rmSync(link, { force: true });
 symlinkSync(cabinet, link);
 
-// Dev server. engine=vendored points CALCITE_REPO into the void so
-// resolveCalcitePkgDir falls back to web/vendor/calcite-pkg — the bundle
-// the site ships is the one under test.
+// Dev server (Vite — the one dev server; web/site/vite.config.js serves the
+// player, /tmp/ cabinets, and the calcite pkg). engine=vendored points
+// CALCITE_REPO into the void so the pkg resolution falls back to
+// web/vendor/calcite-pkg — the bundle the site ships is the one under test.
 const env = { ...process.env, PORT: String(port) };
 if (engine === 'vendored') env.CALCITE_REPO = resolve(tmpDir, 'nonexistent-force-vendored-pkg');
-const server = spawn(process.execPath, [resolve(REPO_ROOT, 'web', 'scripts', 'dev.mjs')],
-  { env, stdio: ['ignore', 'ignore', 'pipe'] });
+const viteBin = resolve(REPO_ROOT, 'web', 'site', 'node_modules', 'vite', 'bin', 'vite.js');
+const server = spawn(process.execPath, [viteBin, '--port', String(port), '--strictPort'],
+  { cwd: resolve(REPO_ROOT, 'web', 'site'), env, stdio: ['ignore', 'ignore', 'pipe'] });
 let serverErr = '';
 server.stderr.on('data', (d) => { serverErr += d.toString(); });
 

@@ -14,7 +14,8 @@ works — this is the artifact that makes that possible.
   to grow table by 4` at boot). A wasm-pack re-cut with a current
   binaryen is a safe follow-up if the size/perf delta matters.
 - **Served at:** `/calcite/pkg/` by the dev server, *unless* a built sibling
-  calcite repo is present (see `web/scripts/dev.mjs` → `resolveCalcitePkgDir`).
+  calcite repo is present (see `web/site/scripts/runtime-assets.mjs` →
+  `calcitePkgDir`).
 
 ## When to re-vendor
 

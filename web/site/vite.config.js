@@ -10,6 +10,9 @@ import {
   RUNTIME_COPIES, transformRuntimeFile, resolveRuntimeUrl,
   cartsIndex, COI_HEADERS, mimeFor,
 } from './scripts/runtime-assets.mjs';
+import {
+  resolveDevAlias, statusSnapshot, resetEverything, CLEAR_PAGE,
+} from './scripts/dev-extras.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const webRoot = resolve(here, '..');
@@ -19,18 +22,39 @@ const calciteRoot = process.env.CALCITE_REPO
   : resolve(repoRoot, '..', 'calcite');
 
 // DEV: serve the runtime files off disk at their URL paths (same paths prod
-// copies into dist/). Anything not in the copy table falls through to Vite.
+// copies into dist/), plus the dev-only surfaces and endpoints that used to
+// live in the retired web/scripts/dev.mjs — Vite is the ONE dev server:
+//   - RUNTIME_COPIES paths (shared with prod)
+//   - DEV_ALIASES paths (bench, calcite dev pages, web tests, tmp — dev only)
+//   - /_status, /_reset, /_clear (cache-layer killers, see docs/rebuild-when.md)
+//   - /carts/index.json (+ legacy /_carts.json alias for build.html)
+// Anything not matched falls through to Vite (the Svelte site, HMR, publicDir).
 const devRuntime = {
   name: 'css-dos-dev-runtime',
   apply: 'serve',
   configureServer(server) {
+    // The calcite pkg dir actually being served (vendored or sibling) —
+    // taken from the same table that serves it, so /_status can't lie.
+    const servedPkgDir = RUNTIME_COPIES.find(([p]) => p === '/calcite/pkg')[1];
     server.middlewares.use((req, res, next) => {
       const urlPath = decodeURIComponent(new URL(req.url, 'http://x').pathname);
-      if (urlPath === '/carts/index.json') {
-        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...COI_HEADERS });
-        return res.end(JSON.stringify(cartsIndex()));
+      const json = (code, obj) => {
+        res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...COI_HEADERS });
+        return res.end(JSON.stringify(obj, null, 2));
+      };
+      if (urlPath === '/_status') return json(200, statusSnapshot(servedPkgDir));
+      if (urlPath === '/_reset') {
+        const result = resetEverything(servedPkgDir);
+        return json(result.steps.every(s => s.ok !== false) ? 200 : 500, result);
       }
-      const file = resolveRuntimeUrl(urlPath);
+      if (urlPath === '/_clear') {
+        res.writeHead(200, { 'Content-Type': 'text/html', 'Cache-Control': 'no-store', ...COI_HEADERS });
+        return res.end(CLEAR_PAGE);
+      }
+      if (urlPath === '/carts/index.json' || urlPath === '/_carts.json') {
+        return json(200, cartsIndex());
+      }
+      const file = resolveRuntimeUrl(urlPath) ?? resolveDevAlias(urlPath);
       if (!file) return next();
       res.writeHead(200, { 'Content-Type': mimeFor(file), 'Cache-Control': 'no-store', ...COI_HEADERS });
       return res.end(transformRuntimeFile(file, readFileSync(file)));
