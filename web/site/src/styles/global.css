@@ -260,6 +260,36 @@ body {
 /* The accelerator letter — colored red, EDIT-style. */
 .btn .hot { color: var(--edit-red); }
 
+/* ── Disabled-control tooltip ──
+   Wrap a disabled button in <span class="tip-anchor" data-tip="why">:
+   hover/tap shows a small yellow DOS bubble explaining why the control
+   is off. Browsers swallow pointer events on disabled form controls,
+   so the child gets pointer-events:none and the WRAPPER takes the
+   hover/tap. Render data-tip as null when the control is enabled —
+   no attribute, no tooltip, wrapper inert. */
+.tip-anchor { position: relative; display: inline-block; }
+.tip-anchor[data-tip] { cursor: not-allowed; }
+.tip-anchor[data-tip] > :disabled { pointer-events: none; }
+.tip-anchor[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0; /* the wrapped buttons sit at the dialog's right edge */
+  background: var(--edit-yellow);
+  color: var(--edit-black);
+  border: 1px solid var(--edit-black);
+  box-shadow: 4px 4px 0 var(--edit-black);
+  padding: 4px 8px;
+  font-size: 14px;
+  line-height: 16px;
+  white-space: nowrap;
+  z-index: 30;
+  display: none;
+  pointer-events: none;
+}
+.tip-anchor[data-tip]:hover::after,
+.tip-anchor[data-tip]:active::after { display: block; }
+
 /* File-input label styled as a button — the actual input is hidden. */
 .file-label { cursor: pointer; }
 input[type="file"] { display: none; }

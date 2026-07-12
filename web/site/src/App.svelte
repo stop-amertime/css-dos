@@ -51,6 +51,7 @@
     current={nav.step}
     onjump={(n) => nav.jump(n)}
     disabled={(n) => n === PLAY && !nav.canPlay}
+    disabledTip="Please 'Build' a file first"
   />
 {/snippet}
 
@@ -73,9 +74,13 @@
         How it <span class="hot">W</span>orks »
       </button>
     {:else}
-      <button class="btn primary" disabled={nav.nextDisabled} onclick={() => nav.next()}>
-        <span class="hot">N</span>ext »
-      </button>
+      <!-- data-tip only exists while Next is blocked; the tip-anchor
+           wrapper takes the hover/tap a disabled button can't. -->
+      <span class="tip-anchor" data-tip={nav.nextTip}>
+        <button class="btn primary" disabled={nav.nextDisabled} onclick={() => nav.next()}>
+          <span class="hot">N</span>ext »
+        </button>
+      </span>
     {/if}
   </div>
 {/snippet}

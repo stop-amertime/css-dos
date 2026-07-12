@@ -1,8 +1,10 @@
 <script>
   // One component for both the numbered top strip and the sub-page dots.
   // items: [{ label }]; current is 1-based; onjump(i) fires on a clickable
-  // dot; disabled(i) optionally greys/blocks a dot.
-  let { items, current, onjump, variant = 'sub', disabled = () => false } = $props();
+  // dot; disabled(i) optionally greys/blocks a dot; disabledTip is a short
+  // "why it's locked" shown as a tooltip on a disabled dot (hover/tap).
+  let { items, current, onjump, variant = 'sub', disabled = () => false,
+        disabledTip = null } = $props();
 </script>
 
 <ol class={variant === 'strip' ? 'step-strip' : 'subdots'}>
@@ -13,13 +15,14 @@
       class:done={n < current}
       class:disabled={disabled(n)}
       class:clickable={n !== current && !disabled(n)}
+      data-tip={disabled(n) ? disabledTip : null}
       role="button"
       tabindex="0"
       onclick={() => !disabled(n) && onjump?.(n)}
       onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && !disabled(n) && onjump?.(n)}
     >
       {#if variant === 'strip'}
-        <span class="num">{n}</span> {item.label}
+        <span class="num">{n}</span> <span class="lbl">{item.label}</span>
       {:else}
         <span class="dot"></span> {item.label}
       {/if}
@@ -74,7 +77,38 @@
   }
   .step-strip li.current::before { content: '\2039 '; }
   .step-strip li.current::after { content: ' \203a'; }
-  .step-strip li.disabled { cursor: not-allowed; opacity: 0.6; }
+  /* Fade the tab's CONTENT, not the li — an opacity on the li would
+     drag the tooltip ::after below down with it (child opacity can't
+     exceed the parent's). */
+  .step-strip li.disabled { cursor: not-allowed; }
+  .step-strip li.disabled > span { opacity: 0.6; }
+  /* Locked-tab tooltip (same yellow bubble as global .tip-anchor):
+     hover/tap/focus on a disabled tab says why it's off. Below the tab
+     (above would leave the dialog), right-aligned so the rightmost
+     tab's bubble stays inside the window. The li is the positioning
+     box; its ≤900px ellipsis clip lives on .lbl, not the li, so the
+     bubble never gets cut. */
+  .step-strip li { position: relative; }
+  .step-strip li.disabled[data-tip]::after {
+    content: attr(data-tip);
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 4px;
+    background: var(--edit-yellow);
+    color: var(--edit-black);
+    border: 1px solid var(--edit-black);
+    box-shadow: 4px 4px 0 var(--edit-black);
+    padding: 4px 8px;
+    font-size: 14px;
+    line-height: 16px;
+    white-space: nowrap;
+    z-index: 30;
+    display: none;
+    pointer-events: none;
+  }
+  .step-strip li.disabled[data-tip]:hover::after,
+  .step-strip li.disabled[data-tip]:active::after,
+  .step-strip li.disabled[data-tip]:focus::after { display: block; }
 
   /* ===== Sub-page dot indicator ===== */
   .subdots {
@@ -134,8 +168,15 @@
       min-width: 0;
       padding: 4px 4px;
       font-size: 17px;
+    }
+    /* Ellipsize the label span, NOT the li — overflow:hidden on the li
+       would clip the locked-tab tooltip ::after. */
+    .step-strip li .lbl {
+      display: inline-block;
+      max-width: 100%;
       overflow: hidden;
       text-overflow: ellipsis;
+      vertical-align: bottom;
     }
     .subdots {
       gap: 6px;

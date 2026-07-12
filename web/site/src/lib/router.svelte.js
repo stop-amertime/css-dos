@@ -100,6 +100,14 @@ class Nav {
     return false; // result sub-page: Next crosses to Play
   }
 
+  // Why Next is blocked, for the wiz-nav tooltip (null when it isn't).
+  get nextTip() {
+    if (!this.nextDisabled) return null;
+    return this.buildSub === BUILD_PICK
+      ? 'Please select a program first'
+      : "Please 'Build' a file first";
+  }
+
   go(step) {
     this.#wantedPlay = false; // any navigation cancels a pending replay
     if (step === PLAY && !this.canPlay) step = BUILD; // locked Play → Build
