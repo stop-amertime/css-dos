@@ -26,8 +26,8 @@
     <pre class="cd-code"><code><span class="tok-prop">--X</span>: <span class="tok-fn">calc</span>(<span class="tok-fn">var</span>(<span class="tok-prop">--X</span>) + <span class="tok-num">1</span>);</code></pre>
     <svg class="cd-self" viewBox="0 0 200 130" role="img"
          aria-label="One box labelled dash dash X with an arrow looping back to itself, struck through by a red prohibition sign.">
-      <path class="cd-loop" d="M 128 68 C 168 22, 32 22, 70 62" />
-      <polygon class="cd-loophead" points="72,66 65,56 77,55" />
+      <path class="cd-loop" d="M 128 68 C 168 22, 32 22, 68 60" />
+      <polygon class="cd-loophead" points="72,67 60,61 67,55" />
       <circle class="cd-ban" cx="100" cy="34" r="15" />
       <line class="cd-ban" x1="89.4" y1="44.6" x2="110.6" y2="23.4" />
       <rect class="cd-box" x="60" y="68" width="80" height="34" />
@@ -111,8 +111,8 @@
     border: 1px solid var(--edit-black);
     background: var(--edit-white);
     box-shadow: 4px 4px 0 var(--edit-black);
-    margin: 16px 0;
-    padding: 10px 12px;
+    margin: 20px 0 32px;
+    padding: 16px 16px 18px;
   }
 
   /* Panels 1–2: the offending code on the left, its diagram on the
@@ -148,11 +148,11 @@
     max-width: 440px;
     height: auto;
     display: block;
-    margin: 10px auto 0;
+    margin: 16px auto 8px;
   }
 
   figcaption {
-    margin-top: 6px;
+    margin-top: 10px;
     font-size: 14px;
     line-height: 18px;
     color: #555;
