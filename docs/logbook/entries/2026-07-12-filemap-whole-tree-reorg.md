@@ -38,5 +38,7 @@ Verified in the built site (vite preview + Playwright): CPU shows the
 six stages; disk shows its arms + one button; memory-declarations is
 cells-only, one button, no leaked reg/chip props; keyboard selectors
 carry `--keyboard`/`--kbdHold`. Section prose sizes/counts + groups.js
-updated. (Dev server has a pre-existing "svelte" bare-import breakage;
-prod build is the source of truth and builds clean.)
+updated. (Correction: an earlier draft blamed a "svelte bare-import
+dev breakage" — false. That was the legacy `web/scripts/dev.mjs`
+static server, which can't serve the Svelte site by design; `npm run
+dev` (vite) serves it fine, verified.)
