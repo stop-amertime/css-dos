@@ -21,6 +21,11 @@
     else: calc(var(--pitCounter-prev) - var(--_pitDecrement)
       + max(0, sign(calc(var(--_pitDecrement) - var(--pitCounter-prev) + 1)))
         * var(--pitReload-prev))));  /* count down; past zero, reload — and IRQ 0 fires */`;
+
+  const CYCLE_ROWS = `style(--opcode: 144): calc(var(--cycleCount-prev) + 3);   /* NOP: 3 cycles */
+style(--opcode: 136): calc(var(--cycleCount-prev)
+  + if(style(--mod: 3): 2; else: 9));   /* MOV: 2 — or 9 if memory is involved */
+style(--opcode: 212): calc(var(--cycleCount-prev) + 83);  /* AAM: 83 — division was expensive */`;
 </script>
 
 <TreeView nodes={CHIPSET_TREE} title="Chipset" bytes={CHIPSET_TREE_META.bytes} />
@@ -63,4 +68,32 @@
   so the next tick can spot the change. The chips&rsquo;
   <code>else</code> branches are where the machine&rsquo;s
   concurrency lives.
+</p>
+
+<h3 class="anatomy-head">Where the timer&rsquo;s ticks come from</h3>
+<p>
+  The countdown above needs something to count, and CSS can&rsquo;t
+  read a wall clock. So the timer is derived from a number the CPU
+  already tracks: a running tally of the cycles each instruction
+  <i>would have cost</i> on the real 4.77&nbsp;MHz chip. The tally is
+  one more register table &mdash; every instruction&rsquo;s row adds
+  what Intel&rsquo;s 1978 manual billed for it:
+</p>
+<CodeCss code={CYCLE_ROWS} />
+<p>
+  The gearing is real 1981 engineering: the PC&rsquo;s timer chip ran
+  at exactly one quarter of the CPU&rsquo;s clock, so the timer&rsquo;s
+  ticks are simply <code>cycleCount&nbsp;/&nbsp;4</code>. The chip is
+  simulated down to its quirks &mdash; in its default square-wave mode
+  the counter genuinely counts down by <i>two</i> per tick, and its
+  16-bit reload value has to arrive as two separate byte writes before
+  the count starts, just like the real part.
+</p>
+<p>
+  So the machine keeps two times: the
+  <a href="#about/file/clock">clock animation</a> decides how fast the
+  world computes, and the cycle tally decides what the software
+  <i>believes</i> the time is. Evaluate the file faster and everything
+  speeds up together, still in step &mdash; DOS&rsquo;s sense of time
+  is tied to work done, not to your wall clock.
 </p>

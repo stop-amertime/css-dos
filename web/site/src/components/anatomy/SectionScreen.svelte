@@ -121,7 +121,8 @@ max(0, sign(3409 - mod(var(--cycleCount-prev), 68182)))`;
 <p>
   There is no beam. The machine fakes its position from a number the
   CPU already tracks &mdash; the running count of cycles each
-  instruction would have cost on the real 4.77&nbsp;MHz chip. One
+  instruction would have cost, the same tally that drives the
+  <a href="#about/file/chipset">timer chip</a>. One
   seventieth of a second is 68,182 cycles, and the beam spends about
   5% of each frame flying back, so:
 </p>

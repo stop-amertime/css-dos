@@ -38,11 +38,6 @@
 /* the "store" keyframe, at 25% of the lap: a copy of _1 */
 --mc5000_2: var(--mc5000_1, 32861);`;
 
-  const CYCLE_ROWS = `style(--opcode: 144): calc(var(--cycleCount-prev) + 3);   /* NOP: 3 cycles */
-style(--opcode: 136): calc(var(--cycleCount-prev)
-  + if(style(--mod: 3): 2; else: 9));   /* MOV: 2 — or 9 if memory is involved */
-style(--opcode: 212): calc(var(--cycleCount-prev) + 83);  /* AAM: 83 — division was expensive */`;
-
   const CONDUCTOR = `.motherboard {
   animation: store 1ms infinite, execute 1ms infinite;
   animation-play-state: paused, paused;
@@ -156,39 +151,11 @@ style(--opcode: 212): calc(var(--cycleCount-prev) + 83);  /* AAM: 83 — divisio
   get the same treatment in a much smaller block inside the CPU.
 </p>
 
-<h3 class="anatomy-head">The other clock &mdash; the one DOS sees</h3>
 <p>
-  The animation is the machine&rsquo;s heartbeat, but DOS has never
-  heard of it. What DOS expects is the PC&rsquo;s <b>timer chip</b>,
-  interrupting it 18.2 times a second &mdash; that&rsquo;s how it
-  keeps the time of day, and how games pace themselves. CSS can&rsquo;t
-  read a wall clock, so the timer is derived from a number the CPU
-  already tracks: a running tally of the cycles each instruction
-  <i>would have cost</i> on the real 4.77&nbsp;MHz chip.
-</p>
-<p>
-  The tally is one more register table &mdash; every
-  instruction&rsquo;s row adds what Intel&rsquo;s 1978 manual billed
-  for it:
-</p>
-<CodeCss code={CYCLE_ROWS} />
-<p>
-  The gearing is real 1981 engineering: the PC&rsquo;s timer chip ran
-  at exactly one quarter of the CPU&rsquo;s clock, so the
-  machine&rsquo;s timer ticks are simply
-  <code>cycleCount&nbsp;/&nbsp;4</code>. The chip is simulated down to
-  its quirks &mdash; in its default square-wave mode the counter
-  genuinely counts down by <i>two</i> per tick, and its 16-bit reload
-  value has to arrive as two separate byte writes before the count
-  starts, just like the real part. Every time the counter crosses
-  zero, the timer interrupt fires and DOS&rsquo;s clock advances.
-</p>
-<p>
-  So the machine keeps two times: the CSS animation decides how fast
-  the world computes, and the cycle counter decides what the software
-  <i>believes</i> the time is. Evaluate the file faster and everything
-  speeds up together, still in step &mdash; DOS&rsquo;s sense of time
-  is tied to work done, not to your wall clock.
+  One thing this animation is <i>not</i>: the time DOS sees. DOS gets
+  its time from the simulated timer chip, which counts something else
+  entirely &mdash; the <a href="#about/file/chipset">chipset
+  section</a> covers it.
 </p>
 
 <h3 class="anatomy-head">How one animation conducts two more</h3>
