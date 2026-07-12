@@ -16,7 +16,7 @@
     border: 6px double var(--edit-black);
     background: var(--edit-gray);
     padding: 16px 16px 10px;
-    margin: 32px 8px 14px 0;
+    margin: 64px 8px 14px 0;
     text-align: center;
   }
   /* The ▒ shadow: an ::after offset one cell right+down, behind the

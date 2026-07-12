@@ -98,13 +98,7 @@
       <text class="cd-name" x="76" y="177">--X-prev</text>
     </svg>
     <figcaption>
-      Black links are formulas, always in force. The grey links only
-      conduct during their own keyframe &mdash; and the two keyframes
-      never overlap, so the circle is never complete: CSS never sees a
-      cycle. Yet across one lap, a value travels all the way round, and
-      <code>--X-prev</code> really does hold the previous value &mdash;
-      the buffer we wanted all along. (This diagram runs on the same
-      mechanism it explains, slowed 8&times;.)
+      Black arrows are perennial formulas, grey arrows only conduct during their own keyframe &mdash; and the two keyframes never overlap, so the circle is never complete. Across one lap, a value travels all the way round, and <code>--X-prev</code> holds the previous value. <br>(This diagram runs on the same mechanism, slowed 8&times;.)
     </figcaption>
   </figure>
 {/if}

@@ -531,7 +531,7 @@ pre, code, kbd {
   font-family: 'WebVGA', 'Perfect DOS VGA 437', 'Fixedsys', 'Terminal', monospace;
   letter-spacing: normal;
 }
-.step p { margin: 0 0 12px; font-size: 16px; line-height: 22px; }
+.step p { margin: 0 0 20px; font-size: 16px; line-height: 18px; }
 /* Nicer rag on flowing text everywhere (no-op where unsupported). */
 p, li, blockquote { text-wrap: pretty; }
 /* Readable prose measure — paragraphs and lists cap at ~80ch; code

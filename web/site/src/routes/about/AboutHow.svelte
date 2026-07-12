@@ -20,7 +20,7 @@
   </p>
   <CssTimeline />
   <p style="margin-top:16px">
-    A pitifully small set of tools for such a large job. But our best tool is <i>perseverance</i>. A better tool would solve a problem in one hit &mdash; instead, we just brute force the problem with millions of hits until it&rsquo;s fixed. That&rsquo;s why the file is an appalling 300+&nbsp;MB of text:
+    A pitifully small set of tools for such a large job. But our most impactful tool is <i>perseverance</i>. A better tool would solve each problem in one hit; ours takes millions. You might start to see why the file reaches an appalling 300+&nbsp;MB of text:
   </p>
   <MoonViz />
   <p>
@@ -29,7 +29,7 @@
 
   <ProblemBox tag="Problem 1">CSS can&rsquo;t do lists of instructions</ProblemBox>
   <p>
-    CSS declares properties once and forever &mdash; size, font, colour &mdash; with no step-by-step workflows. A huge pain in the arse for programs, which are lists of instructions by definition. CSS is conceptually more like a spreadsheet (bear with me) &mdash; each cell/property can be a formula, and they can even reference one another, but there is no order to any of it &mdash; it just exists, recalculating in response to input, but not having a direction of travel of its own.
+    CSS declares properties once and forever &mdash; size, font, colour &mdash; with no step-by-step workflows. A huge pain in the arse for programs, which are lists of instructions by definition. CSS is conceptually more similar to a spreadsheet (bear with me) &mdash; each cell/property can be expressed as a formula, and they can even reference one another, but there is no order to any of it &mdash; it just exists, recalculating when it needs to, but not having a direction of travel of its own.
   </p>
   <p>
     <b>The solution is the philosophical cornerstone of this project: instead of reconstructing programs in CSS, reconstruct an entire computer &mdash; CPU, RAM, PIT, PIC, etc.</b> and then use that to run the programs in their original language. The dream is: if we can just emulate all the components of a PC 1:1, code should just&hellip; run on it.
@@ -39,11 +39,11 @@
   </p>
   <Callout kind="tip" label="Fun fact">
     <p>
-      Recreating a computer is technically possible, as CSS is &lsquo;Turing complete&rsquo;. It&rsquo;s like saying &lsquo;anywhere is walking distance, if you have the time&rsquo;.
+      Any program is technically possible in CSS, as it&rsquo;s &lsquo;Turing complete&rsquo;. A bit like saying &lsquo;anywhere is walking distance, if you have the time&rsquo;.
     </p>
   </Callout>
   <p>
-    And so, we embark on a journey: mimicking the entire hardware of a computer and all its foibles flawlessly, cobbling together a processor, RAM, and a litany of other components, just with what we have lying around. 
+    To date, CSS has been used in computational tech demos, but never to run a production OS or real software &mdash; so when I started, I didn&rsquo;t have a clue whether it was possible in practice.
   </p>
   <Callout kind="info">
     <p>
@@ -51,7 +51,7 @@
     </p>
   </Callout>
   <p>
-    CSS doesn&rsquo;t even have an AND operator. Let&rsquo;s see how we might implement that.
+    To put things in perspective a little, CSS doesn&rsquo;t even have an AND operator. Those interested can expand below to see how long it takes to re-implement that very basic tool. 
   </p>
   <Foldable>
     {#snippet summary()}Just a taste: the AND function{/snippet}
@@ -67,50 +67,43 @@
     </p>
   </Foldable>
 
-  <p>
-    Here&rsquo;s a quick overview on how the basic components work around the limitation of &lsquo;no lists of instructions&rsquo;:
-  </p>
-
-  <ul class="sim-list bracket-list">
-    <li><b>Clock:</b> an animation ticks a counter, and every formula in the file re-evaluates each tick (<a href="#about/file/clock">the clock</a>)</li>
-    <li><b>CPU Registers:</b> each a set of formulas including every possible processor instruction that could change them, and how to calculate their resultant value. Those instructions are cobbled together with a combination of <code>if()</code> statements, calc, mod (remainder) and round (<a href="#about/file/cpu">the CPU</a>)</li>
-    <li><b>RAM:</b> a titanic list of hundreds of thousands of variables, declared one by one, each with a formula asking, every single tick: &lsquo;did this instruction just write to <i>my</i> address?&rsquo;. Reading them back is its own nightmare &mdash; CSS gives no way to get from an address (a number) to a variable (a name), so reads go through one colossal lookup function with one arm per address: &lsquo;is it address 0? is it address 1?&hellip;&rsquo;, 743,948 arms long (<a href="#about/file/decl">memory declarations</a>, <a href="#about/file/memr">reads</a>)</li>
-  </ul>
-
-  <ProblemBox tag="Problem 2">CSS cannot change a property while running</ProblemBox>
+  <ProblemBox tag="Problem 2">CSS cannot change variables later</ProblemBox>
   <p>
     In any other programming language, we can set a variable and then change it later:
   </p>
   <ReassignViz />
   <p>
-    In CSS, <b>you only get one chance to set a property.</b> A huge pain in the arse for programs, which require you to do that often.
-  </p>
-  <p>
-    At first this may seem insurmountable. But we can surmount it as follows:
+    In CSS, <b>there is no &lsquo;later&rsquo;</b>. If two declarations conflict, certain rules adjudicate which one overrides &mdash; but this doesn&rsquo;t change over time (mostly). Another huge pain in the arse for programs. At first this may seem insurmountable. But we can surmount it as follows:
   </p>
   <ol class="sim-list bracket-list bracket-list-num">
-    <li>Work out every possible state/value for the property at any given time, in advance.</li>
-    <li>Write one all-encompassing formula, which covers <i>in advance</i> all possible situations and the values that the variable could take consequently &mdash; which, when calculated, will give you the correct value for the property at any moment in time.</li>
+    <li>Enumerate every input that could influence your variable</li>
+    <li>Write one all-encompassing formula, which covers <i>in advance</i> all possible situations relevant to that variable and, in each situation, how to work out the consequent value of the variable. This formula, when calculated at any moment in time, must output the correct value for the variable in question.</li>
     <li>Recalculate the result of that formula for every single variable, every single cycle, even if the variable didn&rsquo;t change (in this model you don&rsquo;t know if it changed or not without checking).</li>
   </ol>
   <p>
-    If that sounds comically absurd, it&rsquo;s because it is:
+  <br/>
+    That might sound absurd. The consequences are comically so:
   </p>
-  <ol class="sim-list bracket-list bracket-list-num">
-    <li>CPU registers cover every possible CPU instruction that could affect them, and hold a formula to calculate their own new value for every situation that could arise.</li>
-    <li>EVERY byte of RAM must re-run its own formula to check, EVERY cycle, whether this tick&rsquo;s instruction wrote to their address, when 99.999% of the time, it didn&rsquo;t. If not written to, the byte of RAM copies its previous value, making that recomputation pointless (but necessary).</li>
-  </ol>
+  <ul class="sim-list bracket-list">
+    <li><b>Clock:</b> an animation ticks a counter, and EVERY formula in the file re-evaluates each tick.</li>
+    <li><b>CPU:</b> there&rsquo;s no logic unit (ALU) at all &mdash; how could there be? Instead, each CPU register is a spaghetti-formula defined in terms of <i>every instruction</i> that could touch that register, and enumerating how to calculate its own final value in each eventuality. </li>
+    <li><b>RAM:</b> emulated via a titanic list of hundreds of thousands of variables, each a formula which checks, every single cycle: &lsquo;did the current instruction just write to <i>my</i> address?&rsquo;. 99.999% of the time, it didn&rsquo;t, and the variable copies its own previous value back into itself from a buffer &mdash; pointlessly, but unavoidably.</li>
+  </ul>
   <p>
-    This is a heart-breaking and mind-boggling way to write code. Much more detail is included on exactly <i>how</i> this works on the next page.
+    <br/>It actually gets a little worse: you can&rsquo;t even <i>read</i> a variable at a dynamic position. Say you want to read the byte of memory at position X. There&rsquo;s no way to say <code>memory[number-X]</code>. Instead, you have to write a comprehensive <code>if()</code> statement that checks every variable that it could possibly be, one by one (!!!). And no cheating with an array, because CSS hasn&rsquo;t heard of her. Every byte that is <i>read</i> from RAM or disk requires traversing an <code>if()</code> statement with 743,948 arms &mdash; one per address. Just that one function, required to read one byte of memory, is the length of nine complete works of Shakespeare.
   </p>
+  <p>
+    A heart-breaking and mind-boggling way to write code. Much more detail is on the next page &mdash; <a href="#about/file">the File Map</a>.
+  </p>
+
 
   <ProblemBox tag="Problem 3">CSS variables can&rsquo;t reference themselves</ProblemBox>
   <p>
-    Each tick, every value &mdash; register or memory cell &mdash; must be recomputed from its previous one. But a variable can&rsquo;t reference itself in CSS (in most other languages, it can!):
+    Each tick, every value &mdash; register or memory cell &mdash; must be recomputed from its previous one. But a variable can&rsquo;t reference itself in CSS, which is unusual:
   </p>
   <CycleDiagrams panel="self" />
   <p>
-    Well, that&rsquo;s easy to solve &mdash; just use a buffer, right? Hold the previous value of <code>--X</code> somewhere and copy from that? CSS doesn&rsquo;t like that either: it detects <i>cycles</i> too, of any length, and ignores them.
+    Well, that&rsquo;s easy to solve &mdash; just use a buffer, right? Hold the previous value of <code>--X</code> somewhere and copy from that? CSS doesn&rsquo;t like that either: it detects <i>cycles</i> too, of any length, and ignores them. And we do need to update the buffer. 
   </p>
   <CycleDiagrams panel="pair" />
   <p>
@@ -118,23 +111,23 @@
   </p>
   <CycleDiagrams panel="ring" />
   <p>
-    Yes, this does mean there are four copies of every single variable.
+    This does mean that every single piece of machine state requires <b>four</b> variables.
   </p>
 
-  <ProblemBox tag="Problems 4&ndash;7">No inputs and outputs</ProblemBox>
+  <ProblemBox tag="Problems 4&ndash;7">CSS has no inputs or outputs</ProblemBox>
   <p>
     CSS can&rsquo;t read files, access a keyboard, or draw directly on the screen &mdash; so we cobble every one of these together:
   </p>
   <ul class="sim-list bracket-list">
     <li><b>The floppy disk:</b> CSS can&rsquo;t open anything at runtime &mdash; no files, no requests, no loading &mdash; so the entire floppy is baked into the stylesheet in advance, byte by byte, one <code>if()</code> arm per byte. DOS asks the drive for one 512-byte sector at a time, so the machine keeps a 512-byte window in memory whose contents aren&rsquo;t stored anywhere: those addresses read straight through to the disk table, at &lsquo;requested sector &times; 512 + offset&rsquo;. (<a href="#about/file/disk">See: disk</a>.)</li>
-    <li><b>The screen:</b> 64,000 <code>&lt;div&gt;</code>s are assembled in a 320&times;200 grid, each with a rule that colours it from its own byte of video RAM (skipping over the complexity of various video modes &mdash; Text, CGA, Mode&nbsp;13h&hellip;). This is, note, the only place in 300&nbsp;MB where CSS is doing its actual day job, although it's a laborious shift. (<a href="#about/file/screen">See: screen</a>).</li>
+    <li><b>The screen:</b> 64,000 <code>&lt;div&gt;</code>s are assembled in a 320&times;200 grid, each with a rule that colours it from its own byte of video RAM (skipping over the complexity of various video modes &mdash; Text, CGA, Mode&nbsp;13h&hellip;). This is, note, the only place in 300&nbsp;MB where CSS is doing its actual day job, although it&rsquo;s a laborious shift. (<a href="#about/file/screen">See: screen</a>).</li>
     <li><b>A keyboard:</b> CSS can see whether an element is being pressed at this exact moment via the <code>:active</code> selector. So the machine&rsquo;s keyboard is a set of real on-screen buttons, each carrying a rule &mdash; &lsquo;while I am held, the keyboard variable holds my key&rsquo;s code&rsquo; &mdash; wired into the two bytes of memory where the BIOS expects keyboard hardware. (<a href="#about/file/keys">See: keyboard</a>).</li>
     <li><b>Sound</b> just has no way to work, really. Except possibly displaying the sound wave visually&hellip;? Perhaps that&rsquo;s future work.</li>
   </ul>
 
-  <ProblemBox tag="Problem 8">There&rsquo;s too much code to realistically write down</ProblemBox>
+  <ProblemBox tag="Problem 8">There&rsquo;s too much code to realistically write</ProblemBox>
   <p>
-    The final code is cooked up using templates via a generator script called <b>Kiln</b> &mdash; it mechanically fills in every register table, memory formula, every one of the 743,948 read arms and so on. Could I write that in CSS too? Not directly; you can&rsquo;t really write programs in CSS. But you could write a DOS-compatible program to do it...
+    The final code is cooked up via a generator script called <b>Kiln</b> &mdash; it mechanically fills in all the register tables, memory formulas, the 743,948 read arms and so on from templates. Could I write that in CSS too? Not directly; you can&rsquo;t really write programs in CSS. I could write it as a DOS program that would run in CSS. 
   </p>
 
   <ProblemBox tag="Problem 9">This runs absurdly slowly, if it runs at all</ProblemBox>
@@ -147,7 +140,7 @@
     </ul>
   </Foldable>
   <p>
-    A browser really will evaluate all of this &mdash; at about two instructions per second. Not 2&nbsp;fps. Two <b>instructions</b> &mdash; add, multiply, etc. That's very slow:
+    In theory, a browser will evaluate all of this &mdash; at about two instructions per second. Not 2&nbsp;fps. Two <b>instructions</b> &mdash; add, multiply, etc. That&rsquo;s very slow:
   </p>
   <div class="stat-grid">
     <div class="stat-box">
