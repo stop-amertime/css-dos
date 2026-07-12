@@ -21,8 +21,9 @@
 //
 // Text/CGA colours use the fixed VGA 16-colour palette (--vgaRGB),
 // matching VGA_PALETTE_U32 in the JS decoder; text glyphs come from
-// the 8x8 ROM font (bios/corduroy/cga-8x8.bin — the same bitmap the
-// corduroy splash and the harness shooters use), baked into the
+// the 8x8 ROM font (embedded below as base64; same bitmap as
+// bios/corduroy/cga-8x8.bin, which the corduroy splash and the
+// harness shooters use), baked into the
 // 2048-arm --fontRow() function at build time. Attribute-bit-7 blink
 // and the cursor are not painted (they're time-based; the painter is
 // a pure function of machine state).
@@ -39,9 +40,6 @@
 // Calcite sees only integer cells and background-color rules — the
 // cardinal rule is untouched.
 
-import { readFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { cellIdxOf, DAC_LINEAR } from './memory.mjs';
 
 const FB_BASE = 0xA0000;      // Mode 13h framebuffer
@@ -59,14 +57,20 @@ const VGA16 = [
   [255, 85, 85], [255, 85, 255], [255, 255, 85], [255, 255, 255],
 ];
 
-const FONT_PATH = resolve(dirname(fileURLToPath(import.meta.url)),
-  '..', 'bios', 'corduroy', 'cga-8x8.bin');
+// The 8x8 ROM font, base64 of bios/corduroy/cga-8x8.bin (2048 bytes).
+// Embedded (not read off disk) because this module also runs in the
+// browser-builder graph, where node:fs doesn't exist. Regenerate if
+// the bin ever changes:
+//   node -e "console.log(require('fs').readFileSync('bios/corduroy/cga-8x8.bin').toString('base64'))"
+// Drift guard: tests/harness/pixels-render.playwright.mjs round-trips
+// glyphs against the JS decoder, which reads the bin itself.
+const FONT_B64 = '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';
 let fontBytes = null;
 function font() {
   if (!fontBytes) {
-    fontBytes = new Uint8Array(readFileSync(FONT_PATH));
+    fontBytes = Uint8Array.from(atob(FONT_B64), c => c.charCodeAt(0));
     if (fontBytes.length !== 2048) {
-      throw new Error(`cga-8x8.bin size ${fontBytes.length} !== 2048 — font file is wrong shape`);
+      throw new Error(`embedded cga-8x8 font size ${fontBytes.length} !== 2048 — FONT_B64 is corrupt`);
     }
   }
   return fontBytes;
