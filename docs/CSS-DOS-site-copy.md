@@ -1554,6 +1554,7 @@ CSS — verbatim from the cabinet
 
          … 6,920 more baked-in BIOS ROM bytes …
 
+    /* the disk window: requested sector × 512 + this arm's position */
     style(--at: 851968): --readDiskByte(calc((mod(var(--__1mc632), 256) + round(down, var(--__1mc632) / 256) * 256) * 512 + 0));
     style(--at: 851969): --readDiskByte(calc((mod(var(--__1mc632), 256) + round(down, var(--__1mc632) / 256) * 256) * 512 + 1));
 
@@ -1569,11 +1570,9 @@ But, once we've identified the correct memory cell, we have to write the formula
 
 #### Why are all three in one function?
 
-At first it might seem strange to combine all three of RAM, BIOS ROM and hard disk in one read function. 
+At first it might seem strange to cram RAM, BIOS ROM and the hard disk into one read function. Why not three functions, and pick the right one wherever a read happens?
 
-The reason is: there's necessarily only one caller path for "read a byte of address space", because the address space layout is not known in advance. You can't hoist the RAM/ROM/disk decision to the call sites because the call sites only know at runtime what the memory layout is, because it's only _decided_ at runtime. Different programs and operating systems handle the memory differently, split it up differently. 
-
-[Pls help me edit this section, I feel like its a bit wishywashy? Is it strictly technically true?]
+Because we can't know which one we'll need. The address being read isn't written down anywhere in the program — it's computed on the spot, usually from registers: *fetch me whatever DS × 16 + BX points at*. The exact same MOV instruction reads RAM this tick, a ROM table the next, the disk window the one after — wherever its registers happen to be pointing. Any read can land anywhere. So one function has to answer for everywhere.
 
 ### The RAM — 736,510 
 
@@ -1592,12 +1591,12 @@ The BIOS is read-only, so its bytes don’t need cells — each one is baked in 
 
 ### The disk window — 512
 
-[AA: this formula is dropped in out of nowhere and super unclear. what is 'my offset'??]
-The last 512 arms are the strangest. They don’t hold anything: each one computes “requested sector × 512 + my offset” — the sector number itself read out of a memory cell — and passes the question through to the disk function. Those 512 addresses are a *view* onto whichever sector was last asked for. The [disk section](#about/file/disk) picks it up from there.
+The last 512 arms are the strangest. They don’t hold anything at all.
+
+Instead, they’re a *window*. The BIOS writes the number of the sector it wants into an agreed memory cell (`--mc632`), then reads these 512 addresses. Each arm computes *the requested sector × 512 + its own position in the window* — the first arm serves the sector’s first byte, the last one its 512th — and hands the question straight to the disk function. Same 512 addresses, whichever sector was last asked for: change the number in the cell, and the view changes. (The gibberish in the formula — `mod(…, 256) + round(down, …) × 256` — is just gluing the 16-bit sector number back together from its packed cell.) The [disk section](#about/file/disk) picks it up from there.
 
 ### If all else fails - 1
-Finally, `else: 0);`, and the function ends.
-[AA: Does it ever actually reach this, or is it just there because it needs to be?]
+Finally, `else: 0);`, and the function ends. It looks like boilerplate. It isn’t — this arm answers *constantly*: every zero byte the ROM section left out lands here, and so does any address no arm mentions — the gaps between regions, places where nothing was ever built. A normal emulator would spend a bounds check and an error path on those. Here, a read of nowhere falls through all 743,948 questions and comes back 0.
 
 ### CAROUSEL SECTION: Memory — write formulas
 
