@@ -29,13 +29,13 @@
 
   <ProblemBox tag="Problem 1">CSS can&rsquo;t do lists of instructions</ProblemBox>
   <p>
-    CSS declares properties once and forever &mdash; size, font, colour &mdash; with no step-by-step workflows. A huge pain in the arse for programs, which are lists of instructions by definition. CSS is conceptually more like a spreadsheet (bear with me) &mdash; each cell/property can have a formula which works out its value, and they can even reference each other, but you can&rsquo;t write a <i>program</i> because there is no order to any of it &mdash; it just exists, recalculating in response to input, but not having a direction of travel of its own.
+    CSS declares properties once and forever &mdash; size, font, colour &mdash; with no step-by-step workflows. A huge pain in the arse for programs, which are lists of instructions by definition. CSS is conceptually more like a spreadsheet (bear with me) &mdash; each cell/property can be a formula, and they can even reference one another, but there is no order to any of it &mdash; it just exists, recalculating in response to input, but not having a direction of travel of its own.
   </p>
   <p>
-    <b>The solution is the philosophical cornerstone of this project: instead of running programs, reconstruct an entire computer &mdash; CPU, RAM, PIT, PIC, etc.</b> and then run the programs on <i>that</i> simulated computer.
+    <b>The solution is the philosophical cornerstone of this project: instead of reconstructing programs in CSS, reconstruct an entire computer &mdash; CPU, RAM, PIT, PIC, etc.</b> and then use that to run the programs in their original language. The dream is: if we can just emulate all the components of a PC 1:1, code should just&hellip; run on it.
   </p>
   <p>
-    This sounds a bizarre detour, but: a CPU is a fixed circuit whose outputs are always a function of its inputs. Programs are a terrible fit for CSS, but circuits are a surprisingly natural one. The dream is: if we can just emulate all the components of a PC 1:1, code should just&hellip; run on it.
+    This sounds a bizarre detour, but: a CPU is a fixed circuit whose outputs are always a function of its inputs. Programs are a terrible fit for CSS, but circuits are a surprisingly natural one. 
   </p>
   <Callout kind="tip" label="Fun fact">
     <p>
@@ -43,7 +43,7 @@
     </p>
   </Callout>
   <p>
-    And so, we embark on a journey: mimicking the entire hardware of a computer and all its foibles 1:1, cobbling together a processor, re-creating the RAM, the clock, the PIT, PIC, screen, keyboard, and so on.
+    And so, we embark on a journey: mimicking the entire hardware of a computer and all its foibles flawlessly, cobbling together a processor, RAM, and a litany of other components, just with what we have lying around. 
   </p>
   <Callout kind="info">
     <p>
