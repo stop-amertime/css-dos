@@ -123,3 +123,12 @@
     &mdash; without checking a million addresses one by one.
   </p>
 </Foldable>
+
+<style>
+  .punchline {
+    margin-top: 16px !important;
+    border-left: 4px solid var(--edit-red);
+    padding-left: 12px;
+    line-height: 18px !important;
+  }
+</style>

@@ -277,37 +277,18 @@ mod(calc(var(--DX-prev) * 65536 + var(--AX-prev)), max(1, var(--rmVal16)))`;
 <Foldable>
   {#snippet summary()}REP &mdash; the instruction that re-runs itself{/snippet}
   <p>
-    One instruction, one tick &mdash; but some 8086 instructions are
-    supposed to repeat. <code>REP MOVSB</code> copies CX bytes in one
-    go, and memory copies use it constantly. A loop can&rsquo;t run
-    inside a single tick, because a tick is defined as exactly one
-    instruction.
+    One instruction, one tick &mdash; but some 8086 instructions are supposed to repeat. <code>REP MOVSB</code> copies CX bytes in one go, and memory copies use it constantly. A loop can&rsquo;t run inside a single tick, because a tick is defined as exactly one instruction.
   </p>
   <p>
-    The fix: the instruction copies <b>one</b> byte, decrements CX,
-    and &mdash; if CX is still above zero &mdash; computes its
-    <i>next</i> instruction pointer to point back at itself. Next
-    tick, the CPU fetches the very same <code>REP MOVSB</code> again,
-    copies the next byte, and so on until CX reaches zero and IP
-    finally moves past it. From the outside it looks like one
-    instruction copying a whole block; underneath it&rsquo;s the same
-    instruction re-run N times by the clock.
+    The fix: the instruction copies <b>one</b> byte, decrements CX, and &mdash; if CX is still above zero &mdash; computes its <i>next</i> instruction pointer to point back at itself. Next tick, the CPU fetches the very same <code>REP MOVSB</code> again, copies the next byte, and so on until CX reaches zero and IP finally moves past it. From the outside it looks like one instruction copying a whole block; underneath it&rsquo;s the same instruction re-run N times by the clock.
   </p>
 </Foldable>
 
 <h3 class="anatomy-head">Power-on</h3>
 <p>
-  Nothing starts the machine. The clock animation begins ticking the
-  moment the stylesheet loads, and on tick one the fetch simply reads
-  from wherever CS:IP already point. The declarations put them there:
+  Nothing starts the machine. The clock animation begins ticking the moment the stylesheet loads, and on tick one the fetch simply reads from wherever CS:IP already point. The declarations put them there:
 </p>
 <CodeCss code={POWER_ON} />
 <p>
-  That is linear address 983,040 &mdash; the first ROM entry in the
-  <a href="#about/file/memr">read-formulas section</a> &mdash; and the byte there is 235, a jump
-  instruction. The machine&rsquo;s first act is to jump into the BIOS
-  proper, which sets up a stack, fills in the interrupt table, paints
-  its splash screen, and jumps again, into DOS. Power arrives, the
-  processor wakes up pointing at firmware, and everything else follows
-  &mdash; a cold boot, the same way a real PC did it.
+  That is linear address 983,040 &mdash; the first ROM entry in the <a href="#about/file/memr">read-formulas section</a> &mdash; and the byte there is 235, a jump instruction. The machine&rsquo;s first act is to jump into the BIOS proper, which sets up a stack, fills in the interrupt table, paints its splash screen, and jumps again, into DOS. Power arrives, the processor wakes up pointing at firmware, and everything else follows &mdash; a cold boot, the same way a real PC did it.
 </p>

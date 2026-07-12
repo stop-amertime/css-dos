@@ -12,6 +12,7 @@
   import Term from '../Term.svelte';
   import TreeView from './tree/TreeView.svelte';
   import { CLOCK_TREE, CLOCK_TREE_META } from './tree/clock-tree.js';
+  import { CELL_PLUMBING } from '../../lib/exhibits.js';
 
   const CLOCK_ANIM = `.clock {
   animation: anim-play 400ms steps(4, jump-end) infinite;
@@ -24,20 +25,6 @@
   50% { --clock: 2 }
   75% { --clock: 3 }
 }`;
-
-  const CELL_PLUMBING = `/* rule, always in force: the copy every formula reads —
-   defined as the _2 copy, power-on value as the fallback */
---mc5000-prev: var(--mc5000_2, 32861);
-
-/* rule, always in force: the cell's next value, computed from
-   -prev copies only (the write formula from the write-formulas section) */
---mc5000: …;
-
-/* the "execute" keyframe, at 75% of the lap: a copy of the computed value */
---mc5000_1: var(--mc5000);
-
-/* the "store" keyframe, at 25% of the lap: a copy of _1 */
---mc5000_2: var(--mc5000_1, 32861);`;
 
   const CONDUCTOR = `.motherboard {
   animation: store 1ms infinite, execute 1ms infinite;

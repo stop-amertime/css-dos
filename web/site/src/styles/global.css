@@ -532,6 +532,8 @@ pre, code, kbd {
   letter-spacing: normal;
 }
 .step p { margin: 0 0 12px; font-size: 16px; line-height: 22px; }
+/* Nicer rag on flowing text everywhere (no-op where unsupported). */
+p, li, blockquote { text-wrap: pretty; }
 /* Readable prose measure — paragraphs and lists cap at ~80ch; code
    panes, widgets and diagrams keep the full window width. */
 .subpage p, .subpage ul, .subpage ol, .subpage blockquote { max-width: 660px; }
@@ -556,6 +558,47 @@ pre, code, kbd {
   background: var(--edit-white);
 }
 .step .explainer { max-width: 900px; margin-bottom: 16px; }
+
+/* External links — blue, underline on hover. */
+.ext-link { color: var(--edit-blue); text-decoration: underline; }
+.ext-link:hover { color: #1111cc; }
+
+/* ── Code exhibit pane — white, black border, hard shadow. Shared by
+   CodeCss.svelte (Prism-highlighted extracts), the file-map tree's
+   boxed regions (TreeAst), and any widget that shows code. ── */
+.byte-example {
+  margin: 8px 0;
+  padding: 12px 16px;
+  background: var(--edit-white);
+  color: var(--edit-black);
+  border: 1px solid var(--edit-black);
+  font-family: 'WebVGA', monospace;
+  letter-spacing: normal;
+  font-size: 15px;
+  line-height: 20px;
+  white-space: pre;
+  overflow-x: auto;
+}
+/* The boxed look is for inline <code> in prose only — inside the pane
+   <code> must be plain. */
+.byte-example code {
+  background: none;
+  border: none;
+  padding: 0;
+}
+/* Prism tokens (CodeCss.svelte) — EGA palette on the light dialog
+   fill. Variables keep red and numbers green; functions and @-rules
+   get their own families. Plain properties and punctuation stay black
+   on purpose — colouring everything makes nothing stand out. */
+.byte-example .token.comment { color: #777; }
+.byte-example .token.variable { color: var(--edit-red); }
+.byte-example .token.selector { color: var(--edit-red); }
+.byte-example .token.number { color: #006600; }
+.byte-example .token.function { color: var(--edit-blue); }
+.byte-example .token.atrule { color: #aa00aa; }
+.byte-example .token.atrule .token.variable { color: var(--edit-red); }
+.byte-example .token.atrule .token.number { color: #006600; }
+.byte-example .token.string { color: #aa5500; }
 
 /* ===== Wizard nav (Back / Next bar) ===== */
 .wiz-nav {

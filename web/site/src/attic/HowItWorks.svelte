@@ -16,7 +16,7 @@
   import KeyboardDemo from '../components/KeyboardDemo.svelte';
   import FileMap from '../components/FileMap.svelte';
   import MoonViz from '../components/MoonViz.svelte';
-  import TricksPage from '../components/TricksPage.svelte';
+  import TricksPage from './TricksPage.svelte';
 
   let { strip, wizNav } = $props();
 

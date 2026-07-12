@@ -393,3 +393,242 @@
     <pre class="ast-line"><span class="tree-glyph" aria-hidden="true"></span><code>{@html hl(node.trailer)}</code></pre>
   {/if}
 {/if}
+
+<style>
+  /* One visual line of the tree: a fixed [+]/[-] gutter (kept on every
+     line so code columns stay aligned whether or not a row folds) and the
+     line's content — wrapped continuations align after the gutter. Code
+     lines are <pre> elements so the wizard's inline-code white-chip rule
+     (global.css `.window.wizard :not(pre) > code`) skips them by design —
+     reset the pre defaults here. */
+  .ast-line {
+    display: flex;
+    /* wrap-reverse: the first flex line sits at the BOTTOM, so the only
+       item allowed to wrap (the comment — everything else has basis 0 or
+       is rigid) stacks ABOVE the code line when the row gets tight,
+       instead of both squeezing side by side. When it fits, one line. */
+    flex-wrap: wrap-reverse;
+    align-items: baseline;
+    padding: 1px 0;
+    margin: 0;
+    border: none;
+    background: none;
+    white-space: normal;
+    overflow-x: visible;
+    font-size: inherit;
+    line-height: inherit;
+  }
+  /* The fold toggle: a drawn [+]/[-] box, EGA cyan (#00aaaa — EGA colour 3,
+     the interactable accent; the palette's --edit-cyan is BRIGHT cyan 11,
+     unreadable on this light pane). Every line keeps the slot so code
+     columns align; only foldable rows draw the box. */
+  /* The empty slot is width-only — giving it a fixed HEIGHT makes its
+     baseline its bottom edge (empty box + baseline alignment), which
+     pushed glyphless lines' text down ~7px and made wrapped continuations
+     look detached from their parent row. Only the drawn foldable box
+     below carries a height. */
+  .ast-line .tree-glyph {
+    flex: none;
+    width: 22px;
+    margin-right: 7px;
+    font-family: 'WebVGA', monospace;
+    letter-spacing: normal;
+    user-select: none;
+  }
+  .ast-line.is-foldable .tree-glyph {
+    height: 22px;
+    border: 1px solid #00aaaa;
+    color: #00aaaa;
+    font-weight: bold;
+    font-size: 22px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* .ast-line wraps with wrap-reverse (comments stack ABOVE the row), so
+       the cross axis runs bottom-to-top: flex-END is the visual TOP. With
+       flex-start the box sat beside the LAST soft-wrapped line of a long
+       code box (the phone-width @function-header bug, 2026-07-11). */
+    align-self: flex-end;
+    margin-top: 0;
+  }
+  /* WebVGA's glyph metrics sit slightly off true center in the box —
+     per-state padding nudges (padding moves the character, not the box):
+     '+' (closed) rides high, '-' (open) leans left. */
+  .ast-line.is-foldable .tree-glyph:not(.is-open) { padding-top: 3px; }
+  .ast-line.is-foldable .tree-glyph.is-open { padding-left: 2px; }
+  .ast-line.is-foldable:hover .tree-glyph {
+    background: #00aaaa;
+    color: var(--edit-white);
+  }
+  /* Code boxes get flex-basis 0 (not content size): with wrap-reverse
+     enabled, an item whose hypothetical size overflows the line would
+     wrap to the line ABOVE — basis 0 means code can never trigger that;
+     it stays on its line and absorbs leftover width, wrapping internally.
+     Only the comment (basis auto, flex none) can wrap up. */
+  .ast-line code {
+    flex: 1 1 0;
+    min-width: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    line-height: 20px;
+  }
+  /* A one-lined row's value gets its own box taking the remaining width:
+     if it soft-wraps, the continuation aligns to the VALUE's start (the
+     end of the condition), not the row start. The condition box beside it
+     is RIGID — a condition is an atomic label and must never wrap; the
+     value column absorbs all the squeeze. */
+  .ast-line code.ast-cond {
+    flex: none;
+    white-space: pre;
+  }
+  .ast-line .ast-val {
+    flex: 1 1 0;
+    min-width: 0;
+    margin-left: 1ch;
+  }
+  /* Trailing row comments: their own NON-shrinkable flex item at the
+     line's right edge — an annotation column. Never compresses (that
+     orphaned "*​/" onto its own line); the code column yields instead.
+     Baseline-aligned, so on a wrapped code row it sits at the top right. */
+  .ast-line .ast-comment {
+    margin-left: auto;
+    padding-left: 16px;
+    text-align: right;
+    flex: none;
+  }
+  .ast-line.is-foldable { cursor: pointer; user-select: none; }
+  .ast-line.is-foldable:hover { background: rgba(0, 0, 0, 0.05); }
+
+  /* Dim elision marker on folded rows. Injected via {@html}, not the
+     template — global. */
+  :global(.ast-ellipsis) { color: #999; }
+
+  /* Editorial section label rows. */
+  .ast-line.is-section .tree-label-group {
+    color: var(--edit-black);
+    font-weight: bold;
+  }
+
+  /* Children indent one level, with the dashed guide. Inside a code pane
+     each nesting level steps one shade deeper through a subtle blue ramp
+     (the pane itself is #f0f0f8), so depth reads at a glance instead of
+     level 3+ all flattening to the same tint. */
+  .ast-children {
+    margin-left: 14px;
+    padding: 2px 4px 2px 8px;
+    border-left: 1px dashed #ccd;
+  }
+  /* A wrapped continuation (a branch's over-budget value on its own line):
+     one structural level deeper, so it gets the SAME one-step tint as an
+     .ast-children container at its depth — consistent with inline values,
+     which show the same step via the .ast-depth chip. No guide (it's a
+     single value, not a child list). */
+  .ast-continuation {
+    margin-left: 14px;
+    padding: 0 4px 0 8px;
+    /* Tight to the row it wrapped from; the breathing room goes BELOW,
+       separating the pair from the next row. */
+    margin-bottom: 4px;
+  }
+  /* These chains span recursive TreeAst instances — each `.ast-children`
+     past the first is produced by a nested instance of this same
+     component, not this template, so Svelte's static CSS-usage prover
+     can't connect them across the component boundary. :global from the
+     second step on (the first step is this template's own boxed div and
+     stays scoped). */
+  .tree-ast :global(.ast-continuation) { background: #e9eaf5; }
+  .tree-ast :global(.ast-children .ast-continuation) { background: #e1e3f1; }
+  .tree-ast :global(.ast-children .ast-children .ast-continuation) { background: #d9dcec; }
+  .tree-ast :global(.ast-children .ast-children .ast-children .ast-continuation) { background: #d1d5e8; }
+  .tree-ast :global(.ast-children .ast-children .ast-children .ast-children .ast-continuation) { background: #c9cee3; }
+  .tree-ast :global(.ast-children .ast-children .ast-children .ast-children .ast-children .ast-continuation) { background: #c1c7df; }
+
+  .tree-ast :global(.ast-children) { background: #e9eaf5; }
+  .tree-ast :global(.ast-children .ast-children) { background: #e1e3f1; }
+  .tree-ast :global(.ast-children .ast-children .ast-children) { background: #d9dcec; }
+  .tree-ast :global(.ast-children .ast-children .ast-children .ast-children) { background: #d1d5e8; }
+  .tree-ast :global(.ast-children .ast-children .ast-children .ast-children .ast-children) { background: #c9cee3; }
+  .tree-ast :global(.ast-children .ast-children .ast-children .ast-children .ast-children .ast-children) { background: #c1c7df; }
+
+  /* Structural depth shows even INLINE: a branch's value is one level
+     deeper than its condition, so it carries the next tint step as a
+     text-hugging chip (an inner span — the value's flex box stretches to
+     fill the row, so the box itself can't carry the colour). Same chain
+     arithmetic as .ast-children, one rung deeper. clone keeps the chip's
+     padding on each fragment when it wraps. */
+  /* Chip colours run TWO rungs deeper than their row's background — a
+     small text chip needs real contrast where a large container area can
+     afford a subtle step. */
+  /* .ast-depth itself is {@html}-injected (never literal in any
+     template), and every .ast-children past the first spans a nested
+     TreeAst instance (see the background chain above) — both make the
+     chain unprovable by Svelte's static usage check, so it's global
+     from .ast-children on. Only .tree-ast (this template's own boxed
+     div) stays scoped. */
+  .tree-ast :global(.ast-depth) {
+    padding: 0 3px;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    background: #dfe2f0;
+  }
+  .tree-ast :global(.ast-children .ast-depth) { background: #d6daeb; }
+  .tree-ast :global(.ast-children .ast-children .ast-depth) { background: #cdd2e5; }
+  .tree-ast :global(.ast-children .ast-children .ast-children .ast-depth) { background: #c4cadf; }
+  .tree-ast :global(.ast-children .ast-children .ast-children .ast-children .ast-depth) { background: #bbc2d9; }
+  .tree-ast :global(.ast-children .ast-children .ast-children .ast-children .ast-children .ast-depth) { background: #b2bad3; }
+
+  /* A boxed section's children pane: ONE tinted box per real file region
+     (the @function cluster, the .cpu rule, the @property blocks) —
+     .byte-example supplies the WebVGA font and Prism palette; this
+     override swaps its border for the tint. */
+  .ast-children.tree-ast {
+    margin: 4px 0 8px 0;
+    background: #f0f0f8;
+    border: none;
+    padding: 6px 8px;
+    font-size: 14px;
+    white-space: normal;
+    overflow-x: visible;
+  }
+
+  /* Pagination: "(N more…)" as a real button — same cyan interactable
+     language as the fold boxes. */
+  .tree-more {
+    margin: 3px 0;
+    padding-left: 29px;
+  }
+  .tree-more button {
+    font: inherit;
+    font-size: 13px;
+    color: #00aaaa;
+    background: none;
+    border: 1px solid #00aaaa;
+    padding: 1px 8px;
+    cursor: pointer;
+  }
+  .tree-more button:hover {
+    background: #00aaaa;
+    color: var(--edit-white);
+  }
+
+  /* Editorial lines that are NOT source text: the truncation `note` rows
+     the extraction tool plants where a giant uniform run was capped, and
+     the transient loading indicator. Styled clearly as annotation, not
+     code — italic, dim. */
+  .ast-line .ast-note {
+    font-style: italic;
+    color: #666;
+  }
+
+  @media (max-width: 640px) {
+    .tree-ast { font-size: 13px; }
+    .ast-children { margin-left: 8px; padding-left: 5px; }
+    .ast-line .tree-glyph { width: 22px; }
+    /* On a phone-width pane, comments ALWAYS stack above their line
+       (flex-basis 100% = never shares a line; wrap-reverse puts its line
+       on top) instead of even attempting inline — no per-row layout
+       lottery on narrow screens. */
+    .ast-line .ast-comment { flex: 0 1 100%; padding-left: 0; }
+  }
+</style>

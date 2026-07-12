@@ -9,13 +9,9 @@
   // 2px sliver on the bar; the zoom box below expands them into
   // clickable segments. The selected segment drops a coloured
   // connector line out of the bar onto the section pane below (title +
-  // size live in the pane's header — About.svelte); hovering any
-  // segment shows a cursor tooltip (title + size), clicking jumps
-  // there.
-  // .anatomy-pane stays in cabinet-bar.css: it's rendered by
-  // About.svelte as a sibling of <CabinetBar>, not inside its own
-  // template, so it can't become a scoped style of this component.
-  import '../../styles/_fragments/cabinet-bar.css';
+  // size live in the pane's header — AboutFileMap.svelte, which also
+  // owns the .anatomy-pane styles); hovering any segment shows a
+  // cursor tooltip (title + size), clicking jumps there.
   import { GROUPS, SEGS, TINY, ZOOM } from './groups.js';
   import IconCursor from '~icons/pixelarticons/cursor-minimal';
 
