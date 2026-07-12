@@ -2,7 +2,7 @@
 // Every code string is real, verbatim CSS from a full carts/sokoban
 // build, round-trip-verified against the cabinet at generation time.
 // This module is the section's SKELETON; heavy folded nodes carry
-// lazy: { ref, count } and their children live in paged JSON chunks
+// lazy: { ref } and their children live in paged JSON chunks
 // under /anatomy/util/ (see the tool header for the format).
 // Regenerate: node tools/extract-tree-data.mjs util
 
@@ -10,7 +10,30 @@ export const UTIL_TREE = [
   {
     kind: 'root',
     children: [
-    { kind: 'section', label: "shifts, slices, sign helpers", code: `/* --- shifts, slices, sign helpers --- */`, folded: true, boxed: true, lazy: {"ref":"util/000","count":7} },
+    {
+      kind: 'section',
+      label: "shifts, slices, sign helpers",
+      code: `/* --- shifts, slices, sign helpers --- */`,
+      folded: true,
+      boxed: true,
+      children: [
+      { kind: 'block', code: `@function --lowerBytes(--a <integer>, --b <integer>) returns <integer> {
+  result: mod(var(--a), pow(2, var(--b)));
+}`, folded: true },
+      { kind: 'block', code: `@function --rightShift(--a <integer>, --b <integer>) returns <integer> {
+  result: round(down, var(--a) / pow(2, var(--b)));
+}`, folded: true },
+      { kind: 'block', code: `@function --u2s1(--u <integer>) returns <integer> {
+  result: calc(var(--u) - round(down, var(--u) / 128) * 256);
+}`, folded: true },
+      { kind: 'block', code: `@function --u2s2(--u <integer>) returns <integer> {
+  result: calc(var(--u) - max(0, round(down, var(--u) / 32768)) * 65536);
+}`, folded: true },
+      { kind: 'block', code: `@function --bit(--val <integer>, --idx <integer>) returns <integer> {
+  result: mod(--rightShift(var(--val), var(--idx)), 2);
+}`, folded: true },
+      ],
+    },
     {
       kind: 'section',
       label: "bitwise AND/OR/XOR/NOT",
@@ -18,9 +41,9 @@ export const UTIL_TREE = [
       folded: true,
       boxed: true,
       children: [
-      { kind: 'decl', code: `@function --xor(--a <integer>, --b <integer>) returns <integer> {`, trailer: `}`, folded: true, lazy: {"ref":"util/001","count":33} },
-      { kind: 'decl', code: `@function --and(--a <integer>, --b <integer>) returns <integer> {`, trailer: `}`, folded: true, lazy: {"ref":"util/002","count":33} },
-      { kind: 'decl', code: `@function --or(--a <integer>, --b <integer>) returns <integer> {`, trailer: `}`, folded: true, lazy: {"ref":"util/003","count":33} },
+      { kind: 'decl', code: `@function --xor(--a <integer>, --b <integer>) returns <integer> {`, trailer: `}`, folded: true, lazy: {"ref":"util/000"} },
+      { kind: 'decl', code: `@function --and(--a <integer>, --b <integer>) returns <integer> {`, trailer: `}`, folded: true, lazy: {"ref":"util/001"} },
+      { kind: 'decl', code: `@function --or(--a <integer>, --b <integer>) returns <integer> {`, trailer: `}`, folded: true, lazy: {"ref":"util/002"} },
       { kind: 'block', code: `@function --not(--a <integer>) returns <integer> {
   --a1: mod(var(--a), 2);
   --a2: mod(round(down, var(--a) / 2), 2);
@@ -109,11 +132,11 @@ export const UTIL_TREE = [
 }` },
       ],
     },
-    { kind: 'section', label: "packed-cell helpers", code: `/* --- packed-cell helpers --- */`, folded: true, boxed: true, lazy: {"ref":"util/004","count":5} },
-    { kind: 'section', label: "power-of-2 lookup", code: `/* --- power-of-2 lookup --- */`, folded: true, boxed: true, lazy: {"ref":"util/005","count":2} },
+    { kind: 'section', label: "packed-cell helpers", code: `/* --- packed-cell helpers --- */`, folded: true, boxed: true, lazy: {"ref":"util/003"} },
+    { kind: 'section', label: "power-of-2 lookup", code: `/* --- power-of-2 lookup --- */`, folded: true, boxed: true, lazy: {"ref":"util/004"} },
     ],
   },
 ];
 
 // Real measured size of this region in the sokoban cabinet.
-export const UTIL_TREE_META = { bytes: 14778 };
+export const UTIL_TREE_META = { bytes: 13680 };

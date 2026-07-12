@@ -1,5 +1,7 @@
-// Memory infrastructure: --readMem dispatch, per-byte write properties,
-// memory layout with embedded program binary, BIOS, and IVT.
+// Memory layout and packing: zone builders, the packed-cell scheme, the
+// initial memory image (program + BIOS + IVT + embedded data), and the
+// write-slot / disk-shadow @property registrations. The big streaming
+// emitters (--readMem arms, per-cell write rules) live in emit-css.mjs.
 //
 // Memory is sparse: only addresses in the provided address set are emitted.
 // Reads to unmapped addresses return 0; writes are silently dropped.
@@ -20,7 +22,7 @@ export const DAC_BYTES  = 768;
 // lives as ordinary packed memory cells at a linear base outside the 1 MB
 // 8086 space (same trick as the DAC). Cell initial values are the factory
 // floppy; INT 13h AH=03h writes reach the cells via the per-slot window
-// remap (--_dskAddrN, see emit-css.mjs emitDiskWriteRemap), and reads flow
+// remap (--_dskInN / --_dskOffN, see emit-css.mjs emitDiskWriteRemap), and reads flow
 // through --readDiskByte arms that reference the cells instead of literals.
 // Session-lifetime by construction: reload = @property initial values =
 // factory floppy. 0x200000 leaves the DAC shadow (0x100000) clear and
@@ -59,10 +61,10 @@ export const NUM_WRITE_SLOTS = 3;
 //
 // Reads: --readMem(addr) translates to inline byte extraction on
 // --__1mc{cellIdx} where cellIdx = addr >> 1 and off = addr & 1.
-// Writes: each cell's write rule is a 6-level cascade of --applySlot calls
-// that splice each active slot's byte into the cell; slot 0 outermost so it
-// wins on same-cell collisions (matching the old top-down byte-level
-// dispatch semantics).
+// Writes: each cell's write rule is a NUM_WRITE_SLOTS-deep cascade of
+// --applySlot calls that splice each active slot's write into the cell;
+// slot 0 outermost so it wins on same-cell collisions (matching the old
+// top-down byte-level dispatch semantics).
 //
 // Configurable via env var KILN_PACK (1 or 2). Default is 2.
 export const PACK_SIZE = (() => {

@@ -22,7 +22,8 @@ import { emitMOV_RegImm16, emitMOV_RegImm8, emitMOV_RegRM, emitMOV_SegRM, emitMO
 import { emitAllALU } from './patterns/alu.mjs';
 import { emitAllControl } from './patterns/control.mjs';
 import { emitAllStack } from './patterns/stack.mjs';
-import { emitAllMisc, emitPitDerivation, emitKeyboardWires, emitIRQArbitration, pitCounterDefaultExpr, picPendingDefaultExpr } from './patterns/misc.mjs';
+import { emitAllMisc } from './patterns/misc.mjs';
+import { emitIO, emitPitDerivation, emitKeyboardWires, emitIRQArbitration, pitCounterDefaultExpr, picPendingDefaultExpr } from './patterns/chipset.mjs';
 import { emitAllGroups } from './patterns/group.mjs';
 import { emitAllShifts, emitShiftFlagFunctions, emitShiftByNFlagFunctions } from './patterns/shift.mjs';
 import { emitAll186 } from './patterns/extended186.mjs';
@@ -91,6 +92,34 @@ function classifyWrite(addrExpr, comment = '') {
   if (/--__1SP/.test(addrExpr)) return 'stack';
   return 'ea';
 }
+
+// TF (Trap Flag) override: when previous FLAGS had TF=1, fire INT 1 instead
+// of the normal instruction. INT 1: push FLAGS/CS/IP, clear TF+IF, jump to
+// IVT[1]. Registers not listed hold their __1 value.
+const TF_OVERRIDES = {
+  'IP':    'var(--_tfIP)',
+  'CS':    'var(--_tfCS)',
+  'SP':    'calc(var(--__1SP) - 6)',
+  'flags': '--and(var(--__1flags), 64767)',  // & 0xFCFF = clear TF+IF
+};
+
+// IRQ override: when --_irqActive fires (unmasked pending IRQ with IF set
+// and no in-service IRQ), deliver the interrupt instead of the instruction
+// fetched from memory. Identical push shape to TF/INT (FLAGS/CS/IP), but
+// the vector comes from --picVector (8 or 9 for IRQ 0 / IRQ 1) and retIP
+// is the current __1IP (no instruction consumed). cycleCount += 61 matches
+// the real 8086 hardware-interrupt cost. picPending clears the acknowledged
+// bit (while still latching any new edges — the edge-OR below); picInService
+// sets it so that lower-priority IRQs block until EOI.
+const IRQ_OVERRIDES = {
+  'SP':       'calc(var(--__1SP) - 6)',
+  'IP':       '--read2(calc(var(--picVector) * 4))',
+  'CS':       '--read2(calc(var(--picVector) * 4 + 2))',
+  'flags':    '--and(var(--__1flags), 64767)',
+  'cycleCount': 'calc(var(--__1cycleCount) + 61)',
+  'picPending': '--and(--or(--or(var(--__1picPending), var(--_pitFired)), calc(var(--_kbdEdge) * 2)), --not(var(--_irqBit)))',
+  'picInService': '--or(var(--__1picInService), var(--_irqBit))',
+};
 
 /**
  * Dispatch table builder. Collects per-register entries keyed by opcode.
@@ -220,33 +249,6 @@ class DispatchTable {
         normalExpr = `if(\n${dispatchLines.join('\n')}\n  else: ${defaultExpr})`;
       }
     }
-
-    // TF (Trap Flag) override: when previous FLAGS had TF=1, fire INT 1 instead
-    // of the normal instruction. INT 1: push FLAGS/CS/IP, clear TF+IF, jump to IVT[1].
-    const TF_OVERRIDES = {
-      'IP':    'var(--_tfIP)',
-      'CS':    'var(--_tfCS)',
-      'SP':    'calc(var(--__1SP) - 6)',
-      'flags': '--and(var(--__1flags), 64767)',  // & 0xFCFF = clear TF+IF
-    };
-
-    // IRQ override: when --_irqActive fires (unmasked pending IRQ with IF set
-    // and no in-service IRQ), deliver the interrupt instead of the instruction
-    // fetched from memory. Identical push shape to TF/INT (FLAGS/CS/IP), but
-    // the vector comes from --picVector (8 or 9 for IRQ 0 / IRQ 1) and retIP
-    // is the current __1IP (no instruction consumed). cycleCount += 61 matches
-    // the real 8086 hardware-interrupt cost. picPending clears the acknowledged
-    // bit (while still latching any new edges); picInService sets it so that
-    // lower-priority IRQs block until EOI.
-    const IRQ_OVERRIDES = {
-      'SP':       'calc(var(--__1SP) - 6)',
-      'IP':       '--read2(calc(var(--picVector) * 4))',
-      'CS':       '--read2(calc(var(--picVector) * 4 + 2))',
-      'flags':    '--and(var(--__1flags), 64767)',
-      'cycleCount': 'calc(var(--__1cycleCount) + 61)',
-      'picPending': `--and(${/* edge-OR applied so concurrent edges don't get dropped */''}--or(--or(var(--__1picPending), var(--_pitFired)), calc(var(--_kbdEdge) * 2)), --not(var(--_irqBit)))`,
-      'picInService': '--or(var(--__1picInService), var(--_irqBit))',
-    };
 
     const tfExpr = TF_OVERRIDES[reg] || `var(--__1${reg})`;
     const irqExpr = IRQ_OVERRIDES[reg] || `var(--__1${reg})`;
@@ -755,13 +757,15 @@ function isAddrPlusOneAtomic(loAddr, hiAddr) {
   const hiEa = eaPair.exec(hiAddr);
   if (loEa && hiEa && hiEa[1] === `calc(${loEa[1]} + 1)`) return true;
 
-  // Generic +1 form (STOSW/MOVSW with rep guard):
-  //   lo: <expr>
-  //   hi: <same expr with the inner "+ var(--__1DI)" replaced by "+ var(--__1DI) + 1">
-  // The pattern files build hi by adding " + 1" textually. Match by
-  // checking if hi == lo with " + 1)" inserted before the final paren.
+  // Generic +1 form — the pattern files build hi by adding " + 1"
+  // textually. Match by checking if hi == lo with " + 1)" inserted before
+  // the final paren.
   // E.g. lo='calc(var(--__1ES) * 16 + var(--__1DI))'
   //      hi='calc(var(--__1ES) * 16 + var(--__1DI) + 1)'
+  // (STOSW/MOVSW addresses match this shape, but their VALUE halves are
+  // var(--AL)/var(--AH)-style rather than the --lowerBytes/--rightShift
+  // pair, so fuseWordVal rejects them and they stay two byte slots —
+  // address match alone never fuses a pair.)
   if (hiAddr.endsWith(' + 1)') && loAddr.endsWith(')')) {
     const loBase = loAddr.slice(0, -1);
     if (hiAddr === `${loBase} + 1)`) return true;
@@ -818,9 +822,10 @@ export function emitCSS(opts, writeStream) {
   emitAllALU(dispatch);       // ADD/SUB/CMP/AND/OR/XOR/ADC/SBB/TEST/INC/DEC
   emitAllControl(dispatch);   // JMP/Jcc/CALL/RET/INT/IRET/LOOP
   emitAllStack(dispatch);     // PUSH/POP/PUSHF/POPF
-  emitAllMisc(dispatch);      // HLT/NOP/LODSB/STOSB/MOV r/m imm/flag manip/CBW/CWD/XCHG
-  emitAllGroups(dispatch);    // Group FE/F7/F6/80-83
-  emitAllShifts(dispatch);    // SHL/SHR/SAR/ROL/ROR (D0-D1)
+  emitAllMisc(dispatch);      // HLT/NOP/string ops/MOV r/m imm/flag manip/CBW/CWD/XCHG/BCD
+  emitIO(dispatch);           // IN/OUT port handlers (PIC/PIT/keyboard/DAC/CGA)
+  emitAllGroups(dispatch);    // Group FE/FF/F6/F7/80-83
+  emitAllShifts(dispatch);    // shifts & rotates (D0-D3)
   emitAll186(dispatch);       // 80186+: PUSH imm, IMUL imm
   emitCycleCounts(dispatch);  // Per-instruction 8086 cycle costs
 
@@ -901,60 +906,12 @@ export function emitCSS(opts, writeStream) {
   writeStream.write('.cpu {\n');
   writeStream.write('  /* Each register\'s next value is selected by opcode via a\n');
   writeStream.write('     giant if(style(--opcode: N)) dispatch. This is the CPU. */\n');
-  // Chipset state — the support chips around the CPU, driven by the same
-  // dispatch-table machinery (OUT handlers in patterns/misc.mjs) but
-  // emitted PER CHIP in the .motherboard rule below (each chip's derived
-  // wires and registers sit together — see the CHIPSET section).
-  // Vars with no dispatch entries fall through to defaultExpr.
-  const PIT_REGS = ['pitMode', 'pitReload', 'pitCounter', 'pitWriteState'];
-  const PIC_REGS = ['picMask', 'picPending', 'picInService'];
-  // Keyboard controller registers: prevKeyboard snapshots --keyboard for
-  // edge detection; kbdScancodeLatch backs port 0x60 (holds the most
-  // recent make/break code until the next edge — without it, the break
-  // code is only readable on the single tick _kbdRelease fires, and if
-  // the IRQ-09h ISR runs even one tick later it reads scancode 0 and
-  // DOOM's key-held state sticks); kbdHeld0-7 is the hold-wire held set
-  // (scancodes latched while --kbdHold was up, drained as break codes
-  // when it drops — see kiln/patterns/misc.mjs emitKeyboardWires).
-  const KBD_REGS = ['prevKeyboard', 'kbdScancodeLatch',
-                    'kbdHeld0', 'kbdHeld1', 'kbdHeld2', 'kbdHeld3',
-                    'kbdHeld4', 'kbdHeld5', 'kbdHeld6', 'kbdHeld7'];
-  // VGA DAC state machines — write side updated by OUT 0x3C8 / 0x3C9,
-  // read side by OUT 0x3C7 / IN 0x3C9. See patterns/misc.mjs emitIO().
-  const DAC_REGS = ['dacWriteIndex', 'dacSubIndex',
-                    'dacReadIndex', 'dacReadSubIndex'];
-  // Custom defaults: the fall-through expression when no dispatch entry fires
-  // for this opcode. pitCounter ticks every instruction; picPending latches
-  // PIT+keyboard edges; prevKeyboard snapshots --keyboard. Everything else
-  // just holds its __1 value.
-  const customDefaults = {
-    pitCounter: pitCounterDefaultExpr(),
-    picPending: picPendingDefaultExpr(),
-    prevKeyboard: 'var(--keyboard)',
-    // On a press tick: latch the new scancode. On a release tick: latch the
-    // break code (prev scancode | 0x80). Otherwise: hold. The expression
-    // here mirrors --_kbdPort60 (see emitKeyboardWires) so port 0x60 reads
-    // can use the latch as a level-readable backing store.
-    kbdScancodeLatch: `if(
-      style(--_kbdPress: 1): --rightShift(var(--keyboard), 8);
-      style(--_kbdRelease: 1): --or(--rightShift(var(--__1prevKeyboard), 8), 128);
-      style(--_kbdDrain: 1): calc(var(--_kbdPopSc) + 128);
-      else: var(--__1kbdScancodeLatch)
-    )`,
-  };
-  // Hold-wire held set: append the latched scancode into this slot when
-  // its --_kbdApp flag fires, clear it when its --_kbdPop flag fires
-  // (drain), otherwise carry. Flags come from emitKeyboardWires.
-  for (let i = 0; i < 8; i++) {
-    customDefaults[`kbdHeld${i}`] = `if(
-      style(--_kbdApp${i}: 1): var(--_kbdLatchSc);
-      style(--_kbdPop${i}: 1): 0;
-      else: var(--__1kbdHeld${i})
-    )`;
-  }
-  const emitDispatchFor = (regs) => {
+  // Shared by the CPU and chipset sections. `defaults[reg]` is the
+  // fall-through expression when no dispatch entry fires for this opcode;
+  // registers not listed just hold their __1 value.
+  const emitDispatchFor = (regs, defaults = {}) => {
     for (const reg of regs) {
-      const defaultExpr = customDefaults[reg] ?? `var(--__1${reg})`;
+      const defaultExpr = defaults[reg] ?? `var(--__1${reg})`;
       writeStream.write(dispatch.emitRegisterDispatch(reg, defaultExpr) + '\n');
     }
   };
@@ -1017,6 +974,54 @@ export function emitCSS(opts, writeStream) {
   // @property blocks top-level, then a .motherboard {} block for its wires +
   // dispatch. The multiple .motherboard {} blocks merge into one computed
   // style on the player element.
+  //
+  // Chipset state is driven by the same dispatch-table machinery as the
+  // CPU registers (port handlers in patterns/chipset.mjs emitIO), but with
+  // chip-specific fall-through defaults: pitCounter ticks every
+  // instruction; picPending latches PIT+keyboard edges; prevKeyboard
+  // snapshots --keyboard; the keyboard latches follow their wire flags.
+  const PIT_REGS = ['pitMode', 'pitReload', 'pitCounter', 'pitWriteState'];
+  const PIC_REGS = ['picMask', 'picPending', 'picInService'];
+  // Keyboard controller registers: prevKeyboard snapshots --keyboard for
+  // edge detection; kbdScancodeLatch backs port 0x60 (holds the most
+  // recent make/break code until the next edge — without it, the break
+  // code is only readable on the single tick _kbdRelease fires, and if
+  // the IRQ-09h ISR runs even one tick later it reads scancode 0 and
+  // DOOM's key-held state sticks); kbdHeld0-7 is the hold-wire held set
+  // (scancodes latched while --kbdHold was up, drained as break codes
+  // when it drops — see kiln/patterns/chipset.mjs emitKeyboardWires).
+  const KBD_REGS = ['prevKeyboard', 'kbdScancodeLatch',
+                    'kbdHeld0', 'kbdHeld1', 'kbdHeld2', 'kbdHeld3',
+                    'kbdHeld4', 'kbdHeld5', 'kbdHeld6', 'kbdHeld7'];
+  // VGA DAC state machines — write side updated by OUT 0x3C8 / 0x3C9,
+  // read side by OUT 0x3C7 / IN 0x3C9. See patterns/chipset.mjs emitIO().
+  const DAC_REGS = ['dacWriteIndex', 'dacSubIndex',
+                    'dacReadIndex', 'dacReadSubIndex'];
+  const chipsetDefaults = {
+    pitCounter: pitCounterDefaultExpr(),
+    picPending: picPendingDefaultExpr(),
+    prevKeyboard: 'var(--keyboard)',
+    // On a press tick: latch the new scancode. On a release tick: latch the
+    // break code (prev scancode | 0x80). Otherwise: hold. The expression
+    // here mirrors --_kbdPort60 (see emitKeyboardWires) so port 0x60 reads
+    // can use the latch as a level-readable backing store.
+    kbdScancodeLatch: `if(
+      style(--_kbdPress: 1): --rightShift(var(--keyboard), 8);
+      style(--_kbdRelease: 1): --or(--rightShift(var(--__1prevKeyboard), 8), 128);
+      style(--_kbdDrain: 1): calc(var(--_kbdPopSc) + 128);
+      else: var(--__1kbdScancodeLatch)
+    )`,
+  };
+  // Hold-wire held set: append the latched scancode into this slot when
+  // its --_kbdApp flag fires, clear it when its --_kbdPop flag fires
+  // (drain), otherwise carry. Flags come from emitKeyboardWires.
+  for (let i = 0; i < 8; i++) {
+    chipsetDefaults[`kbdHeld${i}`] = `if(
+      style(--_kbdApp${i}: 1): var(--_kbdLatchSc);
+      style(--_kbdPop${i}: 1): 0;
+      else: var(--__1kbdHeld${i})
+    )`;
+  }
   w('/* ===== CHIPSET ===== */');
 
   writeStream.write('/* ===== PIT TIMER (8253) ===== */\n\n');
@@ -1025,7 +1030,7 @@ export function emitCSS(opts, writeStream) {
   writeStream.write('  /* --- timer countdown --- */\n');
   w(emitPitDerivation());
   writeStream.write('  /* --- registers --- */\n');
-  emitDispatchFor(PIT_REGS);
+  emitDispatchFor(PIT_REGS, chipsetDefaults);
   w('}');
 
   writeStream.write('/* ===== KEYBOARD CONTROLLER (8042) ===== */\n\n');
@@ -1034,7 +1039,7 @@ export function emitCSS(opts, writeStream) {
   writeStream.write('  /* --- edge detection --- */\n');
   w(emitKeyboardWires());
   writeStream.write('  /* --- registers --- */\n');
-  emitDispatchFor(KBD_REGS);
+  emitDispatchFor(KBD_REGS, chipsetDefaults);
   w('}');
 
   writeStream.write('/* ===== PIC INTERRUPT CONTROLLER (8259) ===== */\n\n');
@@ -1043,14 +1048,14 @@ export function emitCSS(opts, writeStream) {
   writeStream.write('  /* --- IRQ arbitration --- */\n');
   w(emitIRQArbitration());
   writeStream.write('  /* --- registers --- */\n');
-  emitDispatchFor(PIC_REGS);
+  emitDispatchFor(PIC_REGS, chipsetDefaults);
   w('}');
 
   writeStream.write('/* ===== VGA DAC ===== */\n\n');
   w(emitStatePropertiesFor('dac', templateOpts));
   writeStream.write('.motherboard {\n');
   writeStream.write('  /* --- index registers --- */\n');
-  emitDispatchFor(DAC_REGS);
+  emitDispatchFor(DAC_REGS, chipsetDefaults);
   w('}');
 
   // 4. Keyboard selectors — the :active key rules that turn an on-screen
@@ -1066,24 +1071,24 @@ export function emitCSS(opts, writeStream) {
   w(emitPixelPaintRules());
 
   // =====================================================================
-  // THE BULK — memory declarations, reads, writes, disk, clock
+  // 6-10. THE BULK — memory declarations, reads, writes, disk, clock
   // (This is ~99% of the file by volume: one @property per memory cell,
   //  one read arm per byte, one write-rule per cell, etc.)
   // =====================================================================
 
   w('/* ===== MEMORY DECLARATIONS ===== */');
-  // The per-cell @property array — one declaration per memory cell, the
-  // assembled power-on image in each initial-value. The subsystem-specific
+  // 6. Memory declarations — the per-cell @property array: one declaration
+  // per memory cell, the assembled power-on image in each initial-value. The subsystem-specific
   // declarations (registers, chipset, keyboard, write slots) have moved to
   // their own sections, so this is now purely the memory-cell array that
   // dominates the file.
   emitMemoryPropertiesStreaming(memOpts, writeStream);
 
-  // readMem @function (large — one branch per memory byte)
+  // 7. Memory reads — the readMem @function (large — one branch per memory byte)
   w('/* ===== MEMORY READS ===== */');
   emitReadMemStreaming(memOpts, writeStream);
 
-  // Per-byte memory write rules — the write-slot registrations live with
+  // 8. Memory writes — the write-slot registrations live with
   // them now, then the per-cell write cascade in its own .motherboard rule.
   w('/* ===== MEMORY WRITES ===== */');
   writeStream.write('/* --- write slot properties --- */\n\n');
@@ -1094,7 +1099,7 @@ export function emitCSS(opts, writeStream) {
   emitMemoryWriteRulesStreaming(memOpts, writeStream);
   w('}');
 
-  // The disk read @function (one arm per disk byte)
+  // 9. Disk — the read @function (one arm per disk byte)
   if (diskBytes) {
     w('/* ===== DISK ===== */');
     emitReadDiskByteStreaming(diskBytes, writeStream, writableDisk);

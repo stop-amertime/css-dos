@@ -4,9 +4,9 @@
   // full-width topper pinned to the top of the wizard's scroll band so
   // the map stays visible while a section is read. (The carousel is
   // stepped by the wizard's own Back/Next buttons — nav.next()/prev()
-  // walk the sections.) The three sections too small to see at true
-  // scale (utilities / CPU / keyboard — 319 KB together) are a single
-  // 2px sliver on the bar; the zoom box below expands them into
+  // walk the sections.) The four sections too small to see at true
+  // scale (utilities / CPU / chipset / keyboard — ~340 KB together) are
+  // a single 2px sliver on the bar; the zoom box below expands them into
   // clickable segments. The selected segment drops a coloured
   // connector line out of the bar onto the section pane below (title +
   // size live in the pane's header — About.svelte); hovering any
@@ -68,9 +68,9 @@
                 stroke={cur.c} stroke-width="5" pointer-events="none"
                 vector-effect="non-scaling-stroke" />
         {/if}
-        <!-- utilities + CPU + keyboard: one to-scale sliver (319 KB —
-             even 2px flatters it); the zoom box below is the click
-             target. Coloured as the CPU, 80% of the sliver's bytes. -->
+        <!-- utilities + CPU + chipset + keyboard: one to-scale sliver
+             (~340 KB — even 2px flatters it); the zoom box below is the
+             click target. Coloured as the CPU, ~90% of the sliver's bytes. -->
         <rect class:dim={active && !TINY.includes(active)}
               x="10" y="2" width="2" height="44" fill="#aa0000"
               pointer-events="none" />

@@ -1,4 +1,10 @@
 <script>
+  // ATTIC COMPONENT — referenced only by attic/HowItWorks.svelte (the
+  // retired How-it-works page). The LIVE file map is
+  // anatomy/CabinetBar.svelte + anatomy/groups.js; this figure predates
+  // the 2026-07-10 kiln file reorder (old section order, old colours)
+  // and is kept only so the archived page still renders as it shipped.
+  //
   // FileMap — the Sokoban cabinet (~309 MB) drawn to scale, in file
   // order. Sizes measured from a real build (see CABINET-ANATOMY.md).
   // The CPU is a 3px red hairline with a zoom callout — that IS the

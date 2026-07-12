@@ -232,10 +232,6 @@ export function emitDecodeProperties() {
   /* Opcode (first non-prefix byte) */
   --opcode: var(--q0);
 
-  /* d and w bits from opcode */
-  --dBit: --rightShift(--and(var(--opcode), 2), 1);
-  --wBit: --and(var(--opcode), 1);
-
   /* --- operand: memory or register? --- */
 
   /* ModR/M decode */
@@ -247,7 +243,6 @@ export function emitDecodeProperties() {
   --modrmExtra: --modrmLen(var(--mod), var(--rm));
 
   /* Displacement values for EA computation */
-  --dispByte: var(--q2);
   --disp8: --u2s1(var(--q2));
   --disp16: calc(var(--q2) + var(--q3) * 256);
 
@@ -385,9 +380,6 @@ export function emitPrecomputedState() {
   /* pow2(width - CL) for rotates: pow2(16 - cl) and pow2(8 - cl) */
   --_pow2inv16: --pow2(calc(16 - var(--_clMasked)));
   --_pow2inv8: --pow2(calc(8 - var(--_clMasked)));
-  /* CF bit index for SHL: bit (width - CL) of original value */
-  --_shlCFidx16: max(0, calc(16 - var(--_clMasked)));
-  --_shlCFidx8: max(0, calc(8 - var(--_clMasked)));
 
   /* --- trap flag (single-step) --- */
 

@@ -888,7 +888,7 @@ And the 8086’s parity flag reports the number of 1-bits in a result. Nothing i
 
 ### The rest of the utility functions
 
-The rest of the 66 sort into three rough families: byte plumbing, which splits and splices the two-bytes-per-cell memory (`--extractByte`, `--spliceByte`, `--applySlot` — the [write-formulas section](#about/file/memw) shows the last one at work); instruction decoding, which picks apart x86 operand bytes (`--getReg16`, `--modrmLen`); and thirty-six flag calculators (`--addFlags16`, `--shrFlags8`, …), which [the CPU section](#about/file/cpu) comes back to.
+The rest of the 61 sort into three rough families: byte plumbing, which splits and splices the two-bytes-per-cell memory (`--applySlot`, `--mergelow`, `--mergehigh` — the [write-formulas section](#about/file/memw) shows the first one at work); instruction decoding, which picks apart x86 operand bytes (`--getReg16`, `--modrmLen`); and thirty-five flag calculators (`--addFlags16`, `--shrFlags8`, …), which [the CPU section](#about/file/cpu) comes back to.
 
 ### CAROUSEL SECTION: CPU
 

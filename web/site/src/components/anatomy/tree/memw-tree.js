@@ -2,7 +2,7 @@
 // Every code string is real, verbatim CSS from a full carts/sokoban
 // build, round-trip-verified against the cabinet at generation time.
 // This module is the section's SKELETON; heavy folded nodes carry
-// lazy: { ref, count } and their children live in paged JSON chunks
+// lazy: { ref } and their children live in paged JSON chunks
 // under /anatomy/memw/ (see the tool header for the format).
 // Regenerate: node tools/extract-tree-data.mjs memw
 
@@ -49,7 +49,7 @@ export const MEMW_TREE = [
 }`, folded: true },
       ],
     },
-    { kind: 'section', label: "per-cell write rules", code: `/* --- per-cell write rules --- */`, folded: true, boxed: true, lazy: {"ref":"memw/000","count":1} },
+    { kind: 'section', label: "per-cell write rules", code: `/* --- per-cell write rules --- */`, folded: true, boxed: true, lazy: {"ref":"memw/000"} },
     ],
   },
 ];

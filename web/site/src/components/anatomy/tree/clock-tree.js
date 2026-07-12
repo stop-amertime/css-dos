@@ -2,7 +2,7 @@
 // Every code string is real, verbatim CSS from a full carts/sokoban
 // build, round-trip-verified against the cabinet at generation time.
 // This module is the section's SKELETON; heavy folded nodes carry
-// lazy: { ref, count } and their children live in paged JSON chunks
+// lazy: { ref } and their children live in paged JSON chunks
 // under /anatomy/clock/ (see the tool header for the format).
 // Regenerate: node tools/extract-tree-data.mjs clock
 
@@ -46,7 +46,7 @@ export const CLOCK_TREE = [
       folded: true,
       boxed: true,
       children: [
-      { kind: 'decl', code: `.motherboard {`, trailer: `}`, lazy: {"ref":"clock/000","count":50} },
+      { kind: 'decl', code: `.motherboard {`, trailer: `}`, lazy: {"ref":"clock/000"} },
       ],
     },
     {
@@ -61,12 +61,12 @@ export const CLOCK_TREE = [
         code: `@keyframes store {`,
         trailer: `}`,
         children: [
-        { kind: 'decl', code: `0%, 100% {`, trailer: `}`, lazy: {"ref":"clock/003","count":45} },
+        { kind: 'decl', code: `0%, 100% {`, trailer: `}`, lazy: {"ref":"clock/003"} },
         ],
       },
       ],
     },
-    { kind: 'section', label: "2 · execute keyframe", code: `/* --- 2 · execute keyframe --- */`, folded: true, boxed: true, lazy: {"ref":"clock/006","count":1} },
+    { kind: 'section', label: "2 · execute keyframe", code: `/* --- 2 · execute keyframe --- */`, folded: true, boxed: true, lazy: {"ref":"clock/006"} },
     {
       kind: 'section',
       label: "clock keyframes",

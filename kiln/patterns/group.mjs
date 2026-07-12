@@ -1,12 +1,13 @@
 // Group opcode emitters: 0xFE, 0xFF, 0xF6, 0xF7, 0x80-0x83
 // These use the reg field of ModR/M to select the sub-operation.
 
-// Wrap logic flag expressions to preserve AF (bit 4) from previous tick.
-// On 8086, AF is undefined for AND/OR/XOR — real hardware preserves it.
-// Wrap logic flag expressions to preserve AF+TF+IF+DF from previous tick.
-const pKeep = (flagExpr, mask = 1808) => `calc(${flagExpr} + --and(var(--__1flags), ${mask}))`;
-
 import { REG16, SPLIT_REGS } from './regs.mjs';
+
+// Wrap a flag expression to preserve untouched bits from the previous tick.
+// Default mask 1808 = 0x710 = TF|IF|DF|AF — the logic ops' preserve set
+// (on 8086, AF is undefined for AND/OR/XOR; real hardware preserves it).
+// Arithmetic ops pass 1792 = 0x700 = TF|IF|DF (their flag fns compute AF).
+const pKeep = (flagExpr, mask = 1808) => `calc(${flagExpr} + --and(var(--__1flags), ${mask}))`;
 
 /**
  * Group 0xFE: byte operations on r/m8
@@ -206,9 +207,6 @@ export function emitGroup_F6(dispatch) {
 // 2026-07-12 during the file-map reorg — it had drifted to a different AF
 // computation than the live copy.)
 
-/**
- * Register all group opcodes.
- */
 /**
  * Group 0x80: ALU r/m8, imm8
  * Group 0x82: same as 0x80

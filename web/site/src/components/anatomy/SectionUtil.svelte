@@ -1,10 +1,12 @@
 <script>
-  // Bit & byte helpers — the 21 shared @functions the file opens with:
+  // Bit & byte helpers — the 17 shared @functions the file opens with:
   // bit operations, byte plumbing, packed-cell helpers, the power-of-2
   // lookup. The CPU-only helpers (decode ADT, flag arithmetic) moved to
-  // the CPU section in the 2026-07-12 file-map reorg, so this section is
-  // now just the genuinely-shared primitives. Extracts verbatim from
-  // sokoban.css; the count (21) and size (~15 KB) measured from the same file.
+  // the CPU section in the 2026-07-12 file-map reorg, and the same day's
+  // dead-code sweep deleted four never-called helpers, so this section is
+  // now just the genuinely-shared, genuinely-used primitives. Extracts
+  // verbatim from sokoban.css; the count (17) and size (~14 KB) measured
+  // from the same file.
   import Foldable from '../Foldable.svelte';
   import Term from '../Term.svelte';
   import CodeCss from '../CodeCss.svelte';
@@ -51,7 +53,7 @@
 <p>
   After a short header comment (the build recipe, for humans opening
   the file), the first thing in the <Term t="cabinet">cabinet</Term> is a toolbox:
-  <b>21 small functions</b> that everything else is built from. They
+  <b>17 small functions</b> that everything else is built from. They
   exist because of a supply problem:
 </p>
 
@@ -184,14 +186,14 @@
 
 <h3 class="anatomy-head">What else is in the box</h3>
 <p>
-  The rest of the 66 sort into three rough families: byte plumbing,
+  The rest of the 61 sort into three rough families: byte plumbing,
   which splits and splices the two-bytes-per-cell memory
-  (<code>--extractByte</code>, <code>--spliceByte</code>,
-  <code>--applySlot</code> &mdash; the
+  (<code>--applySlot</code>, <code>--mergelow</code>,
+  <code>--mergehigh</code> &mdash; the
   <a href="#about/file/memw">write-formulas section</a> shows the
-  last one at work); instruction decoding, which picks apart x86
+  first one at work); instruction decoding, which picks apart x86
   operand bytes (<code>--getReg16</code>, <code>--modrmLen</code>);
-  and thirty-six flag calculators
+  and thirty-five flag calculators
   (<code>--addFlags16</code>, <code>--shrFlags8</code>, &hellip;),
   which <a href="#about/file/cpu">the CPU section</a> comes back to.
 </p>

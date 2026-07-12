@@ -1,4 +1,8 @@
-// Execution engine: clock, double-buffer, store/execute keyframes, HTML wrapper.
+// Execution engine and machine state: the clock/double-buffer/store-execute
+// keyframes, the register + state-var tables and their @property grouping,
+// and the on-screen keyboard's :active selector rules (kept here with the
+// state tables they drive — the emitted rules are load-bearing in every
+// player: calcite's input-edge recogniser matches them).
 // The 14 CPU registers, in the order used by the 8086.
 // Each has: name, initial value
 export const REGISTERS = [
@@ -24,7 +28,7 @@ export const STATE_VARS = [
   { name: 'cycleCount', init: 0 },
   { name: '_tfPending', init: 0 },
 
-  // PIC (i8259) state — see kiln/patterns/misc.mjs emitIO().
+  // PIC (i8259) state — see kiln/patterns/chipset.mjs emitIO().
   // picMask: IMR. Bit set = IRQ masked. Init 0xFF (all masked) matches real
   // BIOS POST before the OS unmasks IRQ 0/1.
   // picPending: IRR. Bit set = IRQ requested, not yet acknowledged.
@@ -33,7 +37,7 @@ export const STATE_VARS = [
   { name: 'picPending', init: 0 },
   { name: 'picInService', init: 0 },
 
-  // PIT (i8253) channel 0 state — see kiln/patterns/misc.mjs emitIO().
+  // PIT (i8253) channel 0 state — see kiln/patterns/chipset.mjs emitIO().
   // pitMode: counting mode (0..5 from control word bits 3-1).
   // pitReload: 16-bit reload latch, loaded by OUT 0x40 lo/hi sequence.
   // pitCounter: running countdown; reloads from pitReload on zero crossing.
@@ -70,7 +74,7 @@ export const STATE_VARS = [
   { name: 'kbdHeld6', init: 0 },
   { name: 'kbdHeld7', init: 0 },
 
-  // VGA DAC state — see patterns/misc.mjs emitIO().
+  // VGA DAC state — see patterns/chipset.mjs emitIO().
   // dacWriteIndex: which of the 256 DAC registers is currently being written
   //   (set by OUT 0x3C8; auto-increments after every 3 writes to 0x3C9).
   // dacSubIndex: 0/1/2 counter for R/G/B within a single DAC register.
@@ -347,7 +351,7 @@ const KEYBOARD_KEYS = [
  *                          delivering them: presses accumulate as held
  *                          keys (chords), and when the wire drops every
  *                          latched key's break code is drained back out.
- *                          See patterns/misc.mjs emitKeyboardWires. In the
+ *                          See patterns/chipset.mjs emitKeyboardWires. In the
  *                          raw player the player's hold-mode checkbox
  *                          drives this directly; the calcite bridge
  *                          mirrors it via set_pseudo_class_active.

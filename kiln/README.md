@@ -15,20 +15,23 @@ are the implementation guide.
 ```
 kiln/
   emit-css.mjs       Top-level emitter. Wires dispatch tables + memory + template.
-  decode.mjs         Instruction decode @functions.
-  memory.mjs         Zone builders, --readMem emission, write slots.
-  template.mjs       Execution engine: clock, double buffer, register aliases.
-  css-lib.mjs        Utility @functions (bitwise, shifts, byte extraction).
+  decode.mjs         Instruction decode @functions + per-tick decode properties.
+  memory.mjs         Memory layout: zone builders, packed cells, initial image.
+  template.mjs       Execution engine: clock, double buffer, state tables, keyboard rules.
+  css-lib.mjs        Shared bit & byte helper @functions.
+  pixels.mjs         Mode 13h pixel painter (raw player).
   cycle-counts.mjs   Per-opcode 8086 cycle counts.
   patterns/
+    regs.mjs         Shared REG16 / SPLIT_REGS register tables.
     alu.mjs          ADD/SUB/CMP/AND/OR/XOR/ADC/SBB/TEST/INC/DEC.
     control.mjs      JMP/Jcc/CALL/RET/INT/IRET/LOOP.
     stack.mjs        PUSH/POP/PUSHF/POPF.
-    mov.mjs          MOV/XCHG/LEA/LDS/LES.
-    misc.mjs         HLT/NOP/string ops/flag manipulation/CBW/CWD/XCHG.
-    group.mjs        Group opcode dispatch (80-83, D0-D3, F6-F7, FE-FF).
-    shift.mjs        SHL/SHR/SAR/ROL/ROR.
-    extended186.mjs  80186+ patterns (PUSH imm, IMUL imm, ENTER/LEAVE, INS/OUTS).
+    mov.mjs          MOV/LEA/LDS/LES.
+    misc.mjs         HLT/NOP/string ops/flag manipulation/CBW/CWD/XCHG/BCD/INT3/INTO.
+    chipset.mjs      PIT/PIC/keyboard/DAC wires + the IN/OUT port handlers.
+    group.mjs        Group opcode dispatch (80-83, F6/F7, FE/FF).
+    shift.mjs        Shifts & rotates (D0-D3): SHL/SHR/SAR/ROL/ROR/RCL/RCR.
+    extended186.mjs  80186+ patterns (PUSH imm, IMUL imm).
     flags.mjs        Flag-computation @functions shared by ALU.
   AGENT-GUIDE.md     How to add a new instruction.
 ```
@@ -73,14 +76,15 @@ frame.) `NUM_WRITE_SLOTS` in `memory.mjs` is the source of truth.
 
 Slot gating: each slot is fronted by a per-tick `--_slotNLive`
 property that is 1 only when the current opcode uses slot N (or a TF
-trap / hardware IRQ is pushing the 6-byte frame). The per-byte write
-rule nests all six slot checks behind these gates, so non-writing
+trap / hardware IRQ is pushing the 3-word frame). The per-cell write
+rule nests every slot check behind these gates, so non-writing
 instructions — NOP, MOV reg,reg, jumps, most ALU reg-reg, flag ops —
-short-circuit at slot 0 and evaluate zero `style(--memAddrN: addr)`
-branches. Calcite's broadcast-write recogniser
-(`crates/calcite-core/src/pattern/broadcast_write.rs`) peels each gate
-off and skips the entire address table for gated-off slots; Chrome
-gets the same speedup from the normal top-down `if()` short-circuit.
+short-circuit at each slot's gate and evaluate zero address
+comparisons. Calcite's packed-broadcast-write recogniser
+(`crates/calcite-core/src/pattern/packed_broadcast_write.rs`) peels
+each gate off and skips the entire address table for gated-off slots;
+Chrome gets the same speedup from the normal top-down `if()`
+short-circuit.
 
 ## The execution engine
 

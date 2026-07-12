@@ -1,5 +1,5 @@
 // lazy.js — chunk fetcher for the anatomy Tree View's progressive
-// disclosure. Skeleton modules (<id>-tree.js) carry lazy: { ref, count }
+// disclosure. Skeleton modules (<id>-tree.js) carry lazy: { ref }
 // on heavy nodes; the children live in paged JSON files under
 // public/anatomy/<ref>.json, written by tools/extract-tree-data.mjs.
 // Chunk format: { nodes: [...], next: { ref, remaining } | null }.

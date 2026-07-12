@@ -2,7 +2,7 @@
 // Every code string is real, verbatim CSS from a full carts/sokoban
 // build, round-trip-verified against the cabinet at generation time.
 // This module is the section's SKELETON; heavy folded nodes carry
-// lazy: { ref, count } and their children live in paged JSON chunks
+// lazy: { ref } and their children live in paged JSON chunks
 // under /anatomy/cpu/ (see the tool header for the format).
 // Regenerate: node tools/extract-tree-data.mjs cpu
 
@@ -10,7 +10,7 @@ export const CPU_TREE = [
   {
     kind: 'root',
     children: [
-    { kind: 'section', label: "REGISTER DECLARATIONS", code: `/* ===== REGISTER DECLARATIONS ===== */`, folded: true, boxed: true, lazy: {"ref":"cpu/000","count":18} },
+    { kind: 'section', label: "REGISTER DECLARATIONS", code: `/* ===== REGISTER DECLARATIONS ===== */`, folded: true, boxed: true, lazy: {"ref":"cpu/000"} },
     {
       kind: 'section',
       label: "1 · FETCH & DECODE",
@@ -18,7 +18,7 @@ export const CPU_TREE = [
       folded: true,
       boxed: true,
       children: [
-      { kind: 'section', label: "decode helpers", code: `/* --- decode helpers --- */`, folded: true, lazy: {"ref":"cpu/006","count":17} },
+      { kind: 'section', label: "decode helpers", code: `/* --- decode helpers --- */`, folded: true, lazy: {"ref":"cpu/006"} },
       ],
     },
     {
@@ -28,7 +28,7 @@ export const CPU_TREE = [
       folded: true,
       boxed: true,
       children: [
-      { kind: 'decl', code: `.cpu {`, trailer: `}`, lazy: {"ref":"cpu/007","count":50} },
+      { kind: 'decl', code: `.cpu {`, trailer: `}`, lazy: {"ref":"cpu/007"} },
       ],
     },
     {
@@ -38,7 +38,7 @@ export const CPU_TREE = [
       folded: true,
       boxed: true,
       children: [
-      { kind: 'decl', code: `.cpu {`, trailer: `}`, lazy: {"ref":"cpu/036","count":21} },
+      { kind: 'decl', code: `.cpu {`, trailer: `}`, lazy: {"ref":"cpu/036"} },
       ],
     },
     {
@@ -59,15 +59,15 @@ export const CPU_TREE = [
      or word for every live slot. Three slots is the worst case: INT
      (and the TF-trap / hardware-IRQ frame) pushes FLAGS, CS and IP
      in one tick. */` },
-        { kind: 'section', label: "slot 0", code: `/* --- slot 0 --- */`, folded: true, lazy: {"ref":"cpu/045","count":6} },
+        { kind: 'section', label: "slot 0", code: `/* --- slot 0 --- */`, folded: true, lazy: {"ref":"cpu/045"} },
         ],
       },
       ],
     },
-    { kind: 'section', label: "HELPERS", code: `/* ===== HELPERS ===== */`, folded: true, boxed: true, lazy: {"ref":"cpu/055","count":11} },
+    { kind: 'section', label: "HELPERS", code: `/* ===== HELPERS ===== */`, folded: true, boxed: true, lazy: {"ref":"cpu/055"} },
     ],
   },
 ];
 
 // Real measured size of this region in the sokoban cabinet.
-export const CPU_TREE_META = { bytes: 306502 };
+export const CPU_TREE_META = { bytes: 304674 };

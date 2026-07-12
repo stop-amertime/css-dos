@@ -89,8 +89,8 @@ For word writes: two `addMemWrite` calls — lo byte at addr, hi byte at addr+1.
 Address `-1` means "no write" (disabled slot).
 
 Slot usage is tracked per opcode and drives the `--_slotNLive` gates
-that wrap the per-byte write rules: an opcode that calls `addMemWrite`
-N times lights up slots 0…N-1 for that tick, and slots N…5 stay off.
+that wrap the per-cell write rules: an opcode that calls `addMemWrite`
+N times lights up slots 0…N-1 for that tick, and the rest stay off.
 Opcodes that never call `addMemWrite` leave every gate at 0, so
 non-writing instructions skip all address lookups entirely. You don't
 need to do anything for this to work — just call `addMemWrite` in slot

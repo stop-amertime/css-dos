@@ -15,7 +15,7 @@
 // rgb(0 0 0) black. That's correct: such carts never paint Mode 13h.
 //
 // This is CSS-DOS PLATFORM knowledge (Mode 13h geometry, DAC layout)
-// living in the EMITTER, exactly where memory.mjs/patterns/misc.mjs
+// living in the EMITTER, exactly where memory.mjs/patterns/chipset.mjs
 // already keep VGA/DAC knowledge. Calcite sees only integer cells and
 // background-color rules — the cardinal rule is untouched.
 

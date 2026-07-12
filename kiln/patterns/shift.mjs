@@ -274,9 +274,8 @@ export function emitShift_D3(dispatch) {
     `Shift D3 → mem hi`);
 
   // Flags: when CL=0 flags unchanged; otherwise compute per-operation flags
-  // CF for SHL: bit (16-CL) of original = --bit(rmVal16, --_shlCFidx16),
-  //   but need to zero it when CL > 16: multiply by max(0, min(1, 17-CL))
-  // CF for SHR/SAR: bit (CL-1) of original = --bit(rmVal16, CL-1)
+  // (--shlFlagsN16 etc. below compute the shifted-out CF bit inline).
+  // CF for SHL: bit (16-CL) of original. CF for SHR/SAR: bit (CL-1) of original.
   // CF for ROL: bit 0 of result. CF for ROR: bit 15 of result.
   dispatch.addEntry('flags', 0xD3,
     `if(style(--_clMasked: 0): var(--__1flags); ` +

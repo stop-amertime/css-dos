@@ -51,12 +51,13 @@
   // at most one button is visible. Comment landmarks always render.
   let shownCount = $state(PAGE);
 
-  // PROGRESSIVE DISCLOSURE: a node with `lazy: { ref, count }` has its
+  // PROGRESSIVE DISCLOSURE: a node with `lazy: { ref }` has its
   // children in paged JSON chunks (see lazy.js / extract-tree-data.mjs).
   // The first page loads when the node is first opened — or on mount for
   // non-foldable lazy nodes, which only mount once an ancestor fold opened,
   // so nothing is fetched for parts of the tree the reader never visits.
-  // Further pages ride the "(N more…)" button.
+  // Further pages ride the "(N more…)" button; each loaded page prefetches
+  // the one after it so the button click renders from cache.
   let fetched = $state(null);     // loaded chunk nodes, once any page is in
   let nextPage = $state(null);    // { ref, remaining } | null
   let loadState = $state('idle'); // 'idle' | 'loading' | 'error'
@@ -87,6 +88,13 @@
   });
   const children = $derived(fetched ?? node.children ?? []);
 
+  // One page ahead stays warm: fetchChunk caches the promise, so the
+  // eventual loadNext resolves from cache. Errors are swallowed here —
+  // the failed promise is evicted, and the real loadNext retries + shows
+  // the error UI if it fails again.
+  function prefetch(next) {
+    if (next) fetchChunk(next.ref).catch(() => {});
+  }
   async function loadFirst() {
     if (!node.lazy || fetched != null || loadState === 'loading') return;
     loadState = 'loading';
@@ -95,6 +103,7 @@
       fetched = page.nodes;
       nextPage = page.next;
       loadState = 'idle';
+      prefetch(page.next);
     } catch {
       loadState = 'error';
     }
@@ -107,6 +116,7 @@
       fetched = [...fetched, ...page.nodes];
       nextPage = page.next;
       loadState = 'idle';
+      prefetch(page.next);
     } catch {
       loadState = 'error';
     }

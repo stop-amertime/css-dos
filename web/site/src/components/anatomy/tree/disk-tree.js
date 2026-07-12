@@ -2,7 +2,7 @@
 // Every code string is real, verbatim CSS from a full carts/sokoban
 // build, round-trip-verified against the cabinet at generation time.
 // This module is the section's SKELETON; heavy folded nodes carry
-// lazy: { ref, count } and their children live in paged JSON chunks
+// lazy: { ref } and their children live in paged JSON chunks
 // under /anatomy/disk/ (see the tool header for the format).
 // Regenerate: node tools/extract-tree-data.mjs disk
 
@@ -19,7 +19,7 @@ export const DISK_TREE = [
         kind: 'decl',
         code: `result:`,
         children: [
-        { kind: 'if', code: `if(`, trailer: `);`, lazy: {"ref":"disk/000","count":3} },
+        { kind: 'if', code: `if(`, trailer: `);`, lazy: {"ref":"disk/000"} },
         ],
       },
       ],
@@ -29,4 +29,4 @@ export const DISK_TREE = [
 ];
 
 // Real measured size of this region in the sokoban cabinet.
-export const DISK_TREE_META = { bytes: 12945591 };
+export const DISK_TREE_META = { bytes: 12788804 };

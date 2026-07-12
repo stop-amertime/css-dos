@@ -1,16 +1,17 @@
 // MOV instruction emitters.
 // Covers: MOV reg,imm (0xB0-0xBF), MOV r/m,reg (0x88-0x8B), MOV r/m,imm (0xC6-0xC7)
 
+import { REG16, SPLIT_REGS } from './regs.mjs';
+
 /**
  * Register entries for MOV reg16, imm16 (opcodes 0xB8-0xBF).
  * B8+r: MOV AX/CX/DX/BX/SP/BP/SI/DI, imm16
  * Instruction is 3 bytes: opcode + imm16
  */
 export function emitMOV_RegImm16(dispatch) {
-  const regOrder = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI'];
   for (let i = 0; i < 8; i++) {
     const opcode = 0xB8 + i;
-    const reg = regOrder[i];
+    const reg = REG16[i];
     // imm16 is at q1:q2 (bytes 1-2 after opcode)
     dispatch.addEntry(reg, opcode, `calc(var(--q1) + var(--q2) * 256)`,
       `MOV ${reg}, imm16`);
@@ -75,11 +76,10 @@ export function emitMOV_RegRM(dispatch) {
   // We need a conditional in each register's dispatch that checks if reg == our index.
 
   // 0x8B: MOV reg16, r/m16 — reg field selects destination register
-  const regOrder16 = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI'];
   for (let r = 0; r < 8; r++) {
-    dispatch.addEntry(regOrder16[r], 0x8B,
-      `if(style(--reg: ${r}): var(--rmVal16); else: var(--__1${regOrder16[r]}))`,
-      `MOV ${regOrder16[r]}, r/m16 (if reg=${r})`);
+    dispatch.addEntry(REG16[r], 0x8B,
+      `if(style(--reg: ${r}): var(--rmVal16); else: var(--__1${REG16[r]}))`,
+      `MOV ${REG16[r]}, r/m16 (if reg=${r})`);
   }
   // IP: 2 + modrmExtra
   dispatch.addEntry('IP', 0x8B, `calc(var(--__1IP) + 2 + var(--modrmExtra))`, `MOV reg16, r/m16`);
@@ -89,13 +89,7 @@ export function emitMOV_RegRM(dispatch) {
   // so we combine them into a single dispatch entry per 16-bit register.
   //   reg=0→AL(AX low), reg=1→CL(CX low), reg=2→DL(DX low), reg=3→BL(BX low)
   //   reg=4→AH(AX high), reg=5→CH(CX high), reg=6→DH(DX high), reg=7→BH(BX high)
-  const splitRegs = [
-    { reg: 'AX', lowIdx: 0, highIdx: 4 },
-    { reg: 'CX', lowIdx: 1, highIdx: 5 },
-    { reg: 'DX', lowIdx: 2, highIdx: 6 },
-    { reg: 'BX', lowIdx: 3, highIdx: 7 },
-  ];
-  for (const { reg, lowIdx, highIdx } of splitRegs) {
+  for (const { reg, lowIdx, highIdx } of SPLIT_REGS) {
     dispatch.addEntry(reg, 0x8A,
       `if(style(--reg: ${lowIdx}): --mergelow(var(--__1${reg}), var(--rmVal8)); ` +
       `style(--reg: ${highIdx}): --mergehigh(var(--__1${reg}), var(--rmVal8)); ` +
@@ -108,8 +102,8 @@ export function emitMOV_RegRM(dispatch) {
   // If mod=11, r/m is a register. If mod!=11, it's a memory write.
   // For register destination (mod=11): rm field selects register
   for (let r = 0; r < 8; r++) {
-    dispatch.addEntry(regOrder16[r], 0x89,
-      `if(style(--mod: 3) and style(--rm: ${r}): var(--regVal16); else: var(--__1${regOrder16[r]}))`,
+    dispatch.addEntry(REG16[r], 0x89,
+      `if(style(--mod: 3) and style(--rm: ${r}): var(--regVal16); else: var(--__1${REG16[r]}))`,
       `MOV r/m16(reg), reg16 (if rm=${r})`);
   }
   // Memory write: if mod!=3, write regVal16 to ea
@@ -125,7 +119,7 @@ export function emitMOV_RegRM(dispatch) {
 
   // 0x88: MOV r/m8, reg8 (d=0, w=0) — destination is r/m (byte)
   // When mod=11, rm selects a register. Combine lo/hi into one entry per 16-bit reg.
-  for (const { reg, lowIdx, highIdx } of splitRegs) {
+  for (const { reg, lowIdx, highIdx } of SPLIT_REGS) {
     dispatch.addEntry(reg, 0x88,
       `if(style(--mod: 3) and style(--rm: ${lowIdx}): --mergelow(var(--__1${reg}), var(--regVal8)); ` +
       `style(--mod: 3) and style(--rm: ${highIdx}): --mergehigh(var(--__1${reg}), var(--regVal8)); ` +
@@ -157,15 +151,14 @@ export function emitMOV_SegRM(dispatch) {
   dispatch.addEntry('IP', 0x8E, `calc(var(--__1IP) + 2 + var(--modrmExtra))`, `MOV segreg, r/m16`);
 
   // 0x8C: MOV r/m16, segreg — destination is r/m, source is segreg
-  const regOrder16 = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI'];
   // If mod=11, rm selects destination register
   for (let r = 0; r < 8; r++) {
     const branches = segs.map((seg, s) =>
       `style(--mod: 3) and style(--rm: ${r}) and style(--reg: ${s}): var(--__1${seg})`
     );
-    dispatch.addEntry(regOrder16[r], 0x8C,
-      `if(${branches.join('; ')}; else: var(--__1${regOrder16[r]}))`,
-      `MOV r/m16(${regOrder16[r]}), segreg`);
+    dispatch.addEntry(REG16[r], 0x8C,
+      `if(${branches.join('; ')}; else: var(--__1${REG16[r]}))`,
+      `MOV r/m16(${REG16[r]}), segreg`);
   }
   // Memory write: if mod!=3, write segreg value to EA
   // Uses precomputed --segRegVal from decode.mjs
@@ -220,11 +213,10 @@ export function emitMOV_AccMem(dispatch) {
  * LEA reg16, [mem] (0x8D) — load effective address
  */
 export function emitLEA(dispatch) {
-  const regOrder16 = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI'];
   for (let r = 0; r < 8; r++) {
-    dispatch.addEntry(regOrder16[r], 0x8D,
-      `if(style(--reg: ${r}): var(--eaOff); else: var(--__1${regOrder16[r]}))`,
-      `LEA ${regOrder16[r]}, [mem]`);
+    dispatch.addEntry(REG16[r], 0x8D,
+      `if(style(--reg: ${r}): var(--eaOff); else: var(--__1${REG16[r]}))`,
+      `LEA ${REG16[r]}, [mem]`);
   }
   dispatch.addEntry('IP', 0x8D, `calc(var(--__1IP) + 2 + var(--modrmExtra))`, `LEA`);
 }
@@ -234,11 +226,10 @@ export function emitLEA(dispatch) {
  * LDS reg16, [mem] (0xC5): load pointer — reg = [EA], DS = [EA+2]
  */
 export function emitLES(dispatch) {
-  const regOrder16 = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI'];
   for (let r = 0; r < 8; r++) {
-    dispatch.addEntry(regOrder16[r], 0xC4,
-      `if(style(--reg: ${r}): --read2(var(--ea)); else: var(--__1${regOrder16[r]}))`,
-      `LES ${regOrder16[r]}, [mem]`);
+    dispatch.addEntry(REG16[r], 0xC4,
+      `if(style(--reg: ${r}): --read2(var(--ea)); else: var(--__1${REG16[r]}))`,
+      `LES ${REG16[r]}, [mem]`);
   }
   dispatch.addEntry('ES', 0xC4,
     `--read2(calc(var(--ea) + 2))`,
@@ -247,11 +238,10 @@ export function emitLES(dispatch) {
 }
 
 export function emitLDS(dispatch) {
-  const regOrder16 = ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI'];
   for (let r = 0; r < 8; r++) {
-    dispatch.addEntry(regOrder16[r], 0xC5,
-      `if(style(--reg: ${r}): --read2(var(--ea)); else: var(--__1${regOrder16[r]}))`,
-      `LDS ${regOrder16[r]}, [mem]`);
+    dispatch.addEntry(REG16[r], 0xC5,
+      `if(style(--reg: ${r}): --read2(var(--ea)); else: var(--__1${REG16[r]}))`,
+      `LDS ${REG16[r]}, [mem]`);
   }
   dispatch.addEntry('DS', 0xC5,
     `--read2(calc(var(--ea) + 2))`,

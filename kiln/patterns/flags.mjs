@@ -33,12 +33,13 @@ const ADD_AF = (dst, src) =>
 // SUB AF: borrow from bit 4→3: lo_dst < lo_src
 const SUB_AF = (dst, src) =>
   `calc(round(down, max(0, sign(mod(${src}, 16) - mod(${dst}, 16) - 0.5)) + 0.5) * 16)`;
-// INC AF: (dst & 0xF) == 0xF → res low nibble wraps from F to 0
-const INC_AF = (dst) =>
-  `if(style(--_nibble: 15): 16; else: 0)`;
-// DEC AF: (dst & 0xF) == 0x0 → res low nibble wraps from 0 to F
-const DEC_AF = (dst) =>
-  `if(style(--_nibble: 0): 16; else: 0)`;
+// INC AF: (dst & 0xF) == 0xF → res low nibble wraps from F to 0.
+// DEC AF: (dst & 0xF) == 0x0 → res low nibble wraps from 0 to F.
+// Both test --_nibble, a local the ENCLOSING @function must define as
+// mod(dst, 16) — a style() query can only match a whole custom property,
+// not an inline expression, so the nibble needs its own local.
+const INC_AF = `if(style(--_nibble: 15): 16; else: 0)`;
+const DEC_AF = `if(style(--_nibble: 0): 16; else: 0)`;
 
 export function emitFlagFunctions() {
   return `
@@ -126,14 +127,7 @@ ${PARITY.map((p, i) => `    style(--low8: ${i}): ${p * 4};`).join('\n')}
   result: calc(var(--cf) + var(--pf) + ${SUB_AF('var(--dst)', 'var(--src)')} + var(--zfsf) + var(--of) + 2);
 }
 
-/* --- logic flags (AND/OR/XOR/TEST) --- */
-
-@function --logicFlags16(--res <integer>) returns <integer> {
-  --pf: --parity(var(--res));
-  --zf: if(style(--res: 0): 64; else: 0);
-  --sf: calc(--bit(var(--res), 15) * 128);
-  result: calc(var(--pf) + var(--zf) + var(--sf) + 2);
-}
+/* --- logic flags (pre-computed 8-bit result: AAM/AAD and the BCD adjusts) --- */
 
 @function --logicFlags8(--res <integer>) returns <integer> {
   --pf: --parity(var(--res));
@@ -205,7 +199,7 @@ ${PARITY.map((p, i) => `    style(--low8: ${i}): ${p * 4};`).join('\n')}
   --sf: calc(--bit(var(--res), 15) * 128);
   --of: if(style(--res: 32768): 2048; else: 0);
   --keep: --and(var(--oldFlags), 1792);
-  result: calc(var(--cf) + var(--pf) + ${INC_AF('var(--dst)')} + var(--zf) + var(--sf) + var(--of) + var(--keep) + 2);
+  result: calc(var(--cf) + var(--pf) + ${INC_AF} + var(--zf) + var(--sf) + var(--of) + var(--keep) + 2);
 }
 
 @function --decFlags16(--dst <integer>, --res <integer>, --oldFlags <integer>) returns <integer> {
@@ -216,7 +210,7 @@ ${PARITY.map((p, i) => `    style(--low8: ${i}): ${p * 4};`).join('\n')}
   --sf: calc(--bit(var(--res), 15) * 128);
   --of: if(style(--res: 32767): 2048; else: 0);
   --keep: --and(var(--oldFlags), 1792);
-  result: calc(var(--cf) + var(--pf) + ${DEC_AF('var(--dst)')} + var(--zf) + var(--sf) + var(--of) + var(--keep) + 2);
+  result: calc(var(--cf) + var(--pf) + ${DEC_AF} + var(--zf) + var(--sf) + var(--of) + var(--keep) + 2);
 }
 
 @function --incFlags8(--dst <integer>, --res <integer>, --oldFlags <integer>) returns <integer> {
@@ -227,7 +221,7 @@ ${PARITY.map((p, i) => `    style(--low8: ${i}): ${p * 4};`).join('\n')}
   --sf: calc(--bit(var(--res), 7) * 128);
   --of: if(style(--res: 128): 2048; else: 0);
   --keep: --and(var(--oldFlags), 1792);
-  result: calc(var(--cf) + var(--pf) + ${INC_AF('var(--dst)')} + var(--zf) + var(--sf) + var(--of) + var(--keep) + 2);
+  result: calc(var(--cf) + var(--pf) + ${INC_AF} + var(--zf) + var(--sf) + var(--of) + var(--keep) + 2);
 }
 
 @function --decFlags8(--dst <integer>, --res <integer>, --oldFlags <integer>) returns <integer> {
@@ -238,7 +232,7 @@ ${PARITY.map((p, i) => `    style(--low8: ${i}): ${p * 4};`).join('\n')}
   --sf: calc(--bit(var(--res), 7) * 128);
   --of: if(style(--res: 127): 2048; else: 0);
   --keep: --and(var(--oldFlags), 1792);
-  result: calc(var(--cf) + var(--pf) + ${DEC_AF('var(--dst)')} + var(--zf) + var(--sf) + var(--of) + var(--keep) + 2);
+  result: calc(var(--cf) + var(--pf) + ${DEC_AF} + var(--zf) + var(--sf) + var(--of) + var(--keep) + 2);
 }
 
 /* --- ADC flags --- */

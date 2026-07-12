@@ -2,12 +2,12 @@
 // Every code string is real, verbatim CSS from a full carts/sokoban
 // build, round-trip-verified against the cabinet at generation time.
 // This module is the section's SKELETON; heavy folded nodes carry
-// lazy: { ref, count } and their children live in paged JSON chunks
+// lazy: { ref } and their children live in paged JSON chunks
 // under /anatomy/decl/ (see the tool header for the format).
 // Regenerate: node tools/extract-tree-data.mjs decl
 
 export const DECL_TREE = [
-  { kind: 'root', lazy: {"ref":"decl/000","count":6} },
+  { kind: 'root', lazy: {"ref":"decl/000"} },
 ];
 
 // Real measured size of this region in the sokoban cabinet.

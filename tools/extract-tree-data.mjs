@@ -16,7 +16,7 @@
 //     `next` ref + remaining count, so totals are always known without
 //     downloading the tail).
 // A folded node whose children live in a chunk carries
-//   lazy: { ref: '<id>/<NNN>', count: <shipped child count> }
+//   lazy: { ref: '<id>/<NNN>' }
 // instead of `children`. Chunk files are JSON: { nodes: [...], next:
 // { ref, remaining } | null }.
 //
@@ -163,7 +163,7 @@ function splitTopLevel(body) {
     if (c === '(') depth++;
     else if (c === ')') depth--;
     else if (c === ';' && depth === 0) {
-      let end = trailingCommentEnd(body, j + 1);
+      const end = trailingCommentEnd(body, j + 1);
       parts.push(body.slice(start, end));
       start = end;
       j = end;
@@ -252,6 +252,18 @@ function parseIf(text) {
 // level nests inside. The banner text is the group's `code` (round-trip
 // covers it); its cleaned title is the label. Smaller `/* note */` comments
 // stay inline as block nodes.
+
+// The ONE banner classifier — parseBody marks banners with it and
+// Grouper.comment groups by it, so the two can't drift (a mismatch used
+// to silently degrade a banner into a plain comment line).
+function classifyBanner(text) {
+  const major = text.match(/^\/\* =+ (.+?) =+ \*\/$/s);
+  if (major) return { level: 'major', title: major[1].trim() };
+  const sub = text.match(/^\/\* -+ (.+?) -+ \*\/$/s);
+  if (sub) return { level: 'sub', title: sub[1].trim() };
+  return null;
+}
+
 class Grouper {
   constructor() {
     this.groups = [];
@@ -281,10 +293,9 @@ class Grouper {
     this.openMajor('', '(preamble)');
   }
   comment(text) {
-    const majorBanner = text.match(/^\/\* =+ (.+?) =+ \*\/$/s);
-    const subBanner = text.match(/^\/\* -+ (.+?) -+ \*\/$/s);
-    if (majorBanner) this.openMajor(text, majorBanner[1].trim());
-    else if (subBanner) this.openSub(text, subBanner[1].trim());
+    const banner = classifyBanner(text);
+    if (banner?.level === 'major') this.openMajor(text, banner.title);
+    else if (banner?.level === 'sub') this.openSub(text, banner.title);
     else this.push({ kind: 'block', code: text });
   }
   push(node) {
@@ -339,7 +350,7 @@ function parseBody(body) {
     if (body[i] === '/' && body[i + 1] === '*') {
       const end = body.indexOf('*/', i + 2) + 2;
       const text = body.slice(i, end);
-      if (/^\/\* [=-]+ .+? [=-]+ \*\/$/s.test(text) && /^\/\* (=+|-+) /.test(text)) {
+      if (classifyBanner(text)) {
         items.push({ __banner: text });
       } else {
         push({ kind: 'block', code: text });
@@ -716,6 +727,9 @@ function buildRuns(serialized, k) {
     const out = [];
     for (const [from, to] of segments) {
       const len = to - from;
+      // A segment only earns a run when every CLASS has a healthy row
+      // count: len/k rows per class, so requiring len >= RUN_MIN * k/2
+      // keeps >= RUN_MIN/2 rows in each class (k=1 → RUN_MIN as usual).
       if (len < RUN_MIN * Math.max(1, k / 2)) {
         for (let i = from; i < to; i++) out.push({ explicit: serialized[i] });
         continue;
@@ -820,7 +834,7 @@ class ChunkWriter {
   nextRef() {
     return `${this.sectionId}/${String(this.counter++).padStart(3, '0')}`;
   }
-  // Writes `children` as one or more pages; returns { ref, count }.
+  // Writes `children` as one or more pages; returns the first page's ref.
   writePages(children) {
     // A page must never consist only of landmark comments with the real
     // content stranded on the next page — that renders as a "(N more…)"
@@ -858,7 +872,7 @@ class ChunkWriter {
       };
       this.files.push({ name: refs[k], json: JSON.stringify(payload) });
     });
-    return { ref: refs[0], count: children.length };
+    return refs[0];
   }
   flush() {
     const dir = resolve(CHUNK_DIR, this.sectionId);
@@ -882,8 +896,7 @@ function externalize(node, writer) {
   const limit = node.folded != null ? INLINE_LIMIT : 4 * INLINE_LIMIT;
   const size = JSON.stringify(node.children).length;
   if (size <= limit) return;
-  const { ref, count } = writer.writePages(node.children);
-  node.lazy = { ref, count };
+  node.lazy = { ref: writer.writePages(node.children) };
   delete node.children;
 }
 
@@ -925,7 +938,7 @@ function writeSkeleton(id, nodes, bytes) {
   lines.push(`// Every code string is real, verbatim CSS from a full carts/sokoban`);
   lines.push(`// build, round-trip-verified against the cabinet at generation time.`);
   lines.push(`// This module is the section's SKELETON; heavy folded nodes carry`);
-  lines.push(`// lazy: { ref, count } and their children live in paged JSON chunks`);
+  lines.push(`// lazy: { ref } and their children live in paged JSON chunks`);
   lines.push(`// under /anatomy/${id}/ (see the tool header for the format).`);
   lines.push(`// Regenerate: node tools/extract-tree-data.mjs ${id}`);
   lines.push('');

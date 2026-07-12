@@ -1021,15 +1021,13 @@ CSS, of course, doesn't have bits. CSS has *numbers*, and four arithmetic operat
 
 But here's the thing. *Shifting left by N is the same as multiplying by 2^N.* `0b00010110` shifted left by 2 is `0b01011000`, which in decimal is 22 → 88, which is 22 × 4, which is 22 × 2². The bits moving sideways and the value getting bigger are the same operation seen from two different angles.
 
-So the project's "left shift" function is, in its entirety, this:
+So a left shift, everywhere the cabinet needs one, is in its entirety this:
 
 ```css
-@function --leftShift(--a, --b) {
-  result: calc(var(--a) * pow(2, var(--b)));
-}
+calc(var(--a) * pow(2, var(--b)))
 ```
 
-*"To shift `a` left by `b`, multiply it by 2 to the power of `b`."* That's the whole shifter. The corresponding right shift uses integer division:
+*"To shift `a` left by `b`, multiply it by 2 to the power of `b`."* That's the whole shifter. The right shift — common enough to earn its own named helper function — uses integer division:
 
 ```css
 @function --rightShift(--a, --b) {

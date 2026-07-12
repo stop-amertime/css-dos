@@ -2,7 +2,7 @@
 // Every code string is real, verbatim CSS from a full carts/sokoban
 // build, round-trip-verified against the cabinet at generation time.
 // This module is the section's SKELETON; heavy folded nodes carry
-// lazy: { ref, count } and their children live in paged JSON chunks
+// lazy: { ref } and their children live in paged JSON chunks
 // under /anatomy/chipset/ (see the tool header for the format).
 // Regenerate: node tools/extract-tree-data.mjs chipset
 
@@ -113,7 +113,7 @@ export const CHIPSET_TREE = [
             },
             ],
           },
-          { kind: 'section', label: "registers", code: `/* --- registers --- */`, folded: true, lazy: {"ref":"chipset/002","count":4} },
+          { kind: 'section', label: "registers", code: `/* --- registers --- */`, folded: true, lazy: {"ref":"chipset/002"} },
           ],
         },
         ],
@@ -183,12 +183,12 @@ export const CHIPSET_TREE = [
         trailer: `}`,
         folded: true,
         children: [
-        { kind: 'section', label: "edge detection", code: `/* --- edge detection --- */`, folded: true, lazy: {"ref":"chipset/004","count":29} },
+        { kind: 'section', label: "edge detection", code: `/* --- edge detection --- */`, folded: true, lazy: {"ref":"chipset/004"} },
         ],
       },
       ],
     },
-    { kind: 'section', label: "PIC INTERRUPT CONTROLLER (8259)", code: `/* ===== PIC INTERRUPT CONTROLLER (8259) ===== */`, folded: true, boxed: true, lazy: {"ref":"chipset/006","count":4} },
+    { kind: 'section', label: "PIC INTERRUPT CONTROLLER (8259)", code: `/* ===== PIC INTERRUPT CONTROLLER (8259) ===== */`, folded: true, boxed: true, lazy: {"ref":"chipset/006"} },
     {
       kind: 'section',
       label: "VGA DAC",
@@ -222,7 +222,7 @@ export const CHIPSET_TREE = [
         trailer: `}`,
         folded: true,
         children: [
-        { kind: 'section', label: "index registers", code: `/* --- index registers --- */`, folded: true, lazy: {"ref":"chipset/009","count":4} },
+        { kind: 'section', label: "index registers", code: `/* --- index registers --- */`, folded: true, lazy: {"ref":"chipset/007"} },
         ],
       },
       ],
@@ -232,4 +232,4 @@ export const CHIPSET_TREE = [
 ];
 
 // Real measured size of this region in the sokoban cabinet.
-export const CHIPSET_TREE_META = { bytes: 19320 };
+export const CHIPSET_TREE_META = { bytes: 17960 };
