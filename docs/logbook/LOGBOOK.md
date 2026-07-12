@@ -4,7 +4,7 @@ Chronological work entries. Newest first. The durable handbook
 (current state, sentinels, gotchas, how to test) is in
 [`STATUS.md`](STATUS.md).
 
-Last updated: 2026-07-12
+Last updated: 2026-07-13
 
 Entries are individual files in [`entries/`](entries/). This page is
 the **index only** — read the tag + one-line summary, open the 1–3
@@ -22,6 +22,7 @@ See [`PROTOCOL.md`](PROTOCOL.md).
 
 | Date | Tag | Entry |
 |------|-----|-------|
+| 2026-07-13 | LANDED | [File Map copy gaps closed: from-scratch doc diff found SectionCpu missing the instruction decoder/error-handling/Chrome-waste subsections, SectionKeys missing press-detection/hold-mode, SectionScreen's pixel exhibit stale pre-screenPx-dispatcher; SectionUtil's 66-vs-21 count fixed after verifying 21 against generated tree data](entries/2026-07-13-file-map-copy-gaps-closed.md) |
 | 2026-07-12 | LANDED | [File Map pane restyle: one coloured-border code pane (icon + name + size header, TreeView inside — name/size de-duplicated, TreeView chrome-less + hoisted to AboutFileMap) over a borderless tinted explanation in a centred 680px column; header text = section colour darkened; clock→gold, keys→forest green; filemap window-body padding 24/28→12/14. Finding: stale :5173 dev servers served deleted about.css from Vite cache](entries/2026-07-12-filemap-pane-restyle.md) |
 | 2026-07-12 | LANDED | [How page fresh-reader review + copy polish (`72b4e16`, on owner dedup restructure `c383aae`): typo + straight→curly punctuation fixes, tighter perseverance/"comically absurd" lines, tech-demos para tied to fun-fact box, File Map link replaces vague "next page", crash-honest "In theory, a browser will evaluate" — verified live via Playwright](entries/2026-07-12-how-page-review-polish.md) |
 | 2026-07-12 | LANDED | [About section full refactor, look unchanged: About.svelte split into 7 routes/about/ subpage components + thin shell; exhibit strings → lib/exhibits.js; about/anatomy/UNPLACED/cabinet-bar/tree-view fragment CSS dissolved into component scoped styles (+ .byte-example/.ext-link → global.css, dead rules deleted); new SectionHead + ProblemBox components; prose unwrapped to one-line-per-paragraph source; text-wrap: pretty site-wide — verified via before/after Playwright shots of all 17 About pages](entries/2026-07-12-about-section-refactor.md) |
