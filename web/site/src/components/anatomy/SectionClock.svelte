@@ -4,10 +4,10 @@
   // walk-through is the main body (owner: don't bury the mechanism
   // in a fold). Facts from CABINET-ANATOMY.md §4, §12, §14–16;
   // keyframe extracts verbatim from sokoban.css (names tidied to
-  // flow order: --__0/--__2/--__1mc5000 → --mc5000_1/_2/_3).
-  import TickClock from '../TickClock.svelte';
+  // flow order: --__0/--__2/--__1mc5000 → --mc5000_1/_2/-prev).
   import CodeCss from '../CodeCss.svelte';
   import CycleDiagrams from './CycleDiagrams.svelte';
+  import Foldable from '../Foldable.svelte';
   import Term from '../Term.svelte';
   import TreeView from './tree/TreeView.svelte';
   import { CLOCK_TREE, CLOCK_TREE_META } from './tree/clock-tree.js';
@@ -26,10 +26,10 @@
 
   const CELL_PLUMBING = `/* rule, always in force: the copy every formula reads —
    defined as the _2 copy, power-on value as the fallback */
---mc5000_3: var(--mc5000_2, 32861);
+--mc5000-prev: var(--mc5000_2, 32861);
 
 /* rule, always in force: the cell's next value, computed from
-   _3 copies only (the write formula from the write-formulas section) */
+   -prev copies only (the write formula from the write-formulas section) */
 --mc5000: …;
 
 /* the "execute" keyframe, at 75% of the lap: a copy of the computed value */
@@ -38,10 +38,10 @@
 /* the "store" keyframe, at 25% of the lap: a copy of _1 */
 --mc5000_2: var(--mc5000_1, 32861);`;
 
-  const CYCLE_ROWS = `style(--opcode: 144): calc(var(--snapshot-cycleCount) + 3);   /* NOP: 3 cycles */
-style(--opcode: 136): calc(var(--snapshot-cycleCount)
+  const CYCLE_ROWS = `style(--opcode: 144): calc(var(--cycleCount-prev) + 3);   /* NOP: 3 cycles */
+style(--opcode: 136): calc(var(--cycleCount-prev)
   + if(style(--mod: 3): 2; else: 9));   /* MOV: 2 — or 9 if memory is involved */
-style(--opcode: 212): calc(var(--snapshot-cycleCount) + 83);  /* AAM: 83 — division was expensive */`;
+style(--opcode: 212): calc(var(--cycleCount-prev) + 83);  /* AAM: 83 — division was expensive */`;
 
   const CONDUCTOR = `.motherboard {
   animation: store 1ms infinite, execute 1ms infinite;
@@ -92,7 +92,7 @@ style(--opcode: 212): calc(var(--snapshot-cycleCount) + 83);  /* AAM: 83 — div
 <p>
   Follow one lap. At the 25% keyframe, last lap&rsquo;s
   <code>_1</code> copies move into <code>_2</code> &mdash; and since
-  every <code>_3</code> is defined as its <code>_2</code>, every
+  every <code>-prev</code> is defined as its <code>_2</code>, every
   formula now reads the new state and re-evaluates. At the 75%
   keyframe, the freshly computed values are copied into
   <code>_1</code>. Repeat forever.
@@ -106,7 +106,48 @@ style(--opcode: 212): calc(var(--snapshot-cycleCount) + 83);  /* AAM: 83 — div
   once.&rdquo;
 </p>
 
-<TickClock />
+<Foldable>
+  {#snippet summary()}The nitty-gritty: what actually freezes the copies{/snippet}
+  <p>
+    The <code>_1</code> and <code>_2</code> lines live inside the
+    <code>store</code> and <code>execute</code> <code>@keyframes</code>
+    blocks (attached to the machine permanently, paused &mdash; the
+    wiring is at the bottom of this page). The load-bearing browser
+    behaviour: while an animation is <i>running</i>, a
+    <code>var()</code> inside its keyframes re-resolves continuously
+    &mdash; the copy is a live wire, tracking its source. While it is
+    <i>paused</i>, the browser stops re-resolving, and the copy simply
+    holds its last value. The pause is the freeze &mdash; the only way
+    in CSS to keep a value still.
+  </p>
+  <p>
+    Why two copies between <code>--X</code> and <code>--X-prev</code>,
+    not one? Because the four variables form a ring, and a ring whose
+    links are all live at once is a circular reference no matter how
+    many hops it has. With a single in-between copy, the moment its
+    keyframe ran, every link would conduct at once &mdash; a cycle at
+    the exact instant of handover, every tick. With two, unpaused
+    strictly in turn, at least one link is frozen at every instant,
+    and CSS never has a cycle to reject.
+  </p>
+  <p>
+    The names here are tidied for reading. In the real file,
+    <code>--X-prev</code>, <code>--X_1</code> and <code>--X_2</code>
+    for memory cell 5000 are <code>--__1mc5000</code>,
+    <code>--__0mc5000</code> and <code>--__2mc5000</code> &mdash; and
+    only the base <code>--mc5000</code> is ever declared. The three
+    copies have no <code>@property</code> block anywhere: an
+    unregistered CSS variable springs into existence the first time
+    something assigns it.
+  </p>
+  <p>
+    And the very first tick? Neither copy animation has ever run, so
+    nothing has ever been copied. That is what the
+    <code>,&nbsp;32861</code> fallbacks riding in the plumbing lines
+    are for: they supply each cell&rsquo;s power-on value until the
+    real handover machinery delivers its first cargo.
+  </p>
+</Foldable>
 
 <p>
   And that is where the 43&nbsp;MB goes: the animation is 0.1&nbsp;KB,

@@ -9,8 +9,8 @@
   import TreeView from './tree/TreeView.svelte';
   import { MEMR_TREE, MEMR_TREE_META } from './tree/memr-tree.js';
 
-  const KBD_ARMS = `style(--at: 1280): --lowerBytes(var(--snapshot-keyboard), 8);
-style(--at: 1281): --rightShift(var(--snapshot-keyboard), 8);`;
+  const KBD_ARMS = `style(--at: 1280): --lowerBytes(var(--keyboard-prev), 8);
+style(--at: 1281): --rightShift(var(--keyboard-prev), 8);`;
 </script>
 
 <TreeView nodes={MEMR_TREE} title="Memory reads" bytes={MEMR_TREE_META.bytes} />

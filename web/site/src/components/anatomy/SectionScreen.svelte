@@ -10,15 +10,15 @@
   import { SCREEN_TREE, SCREEN_TREE_META } from './tree/screen-tree.js';
 
   const RETRACE = `/* in retrace? — 1 while the beam would be flying back */
-max(0, sign(3409 - mod(var(--snapshot-cycleCount), 68182)))`;
+max(0, sign(3409 - mod(var(--cycleCount-prev), 68182)))`;
 
-  const PIXEL_RULE = `#p31840 { --ci: mod(var(--snapshot-mc343600), 256); background-color: --paletteRGB(var(--ci)); }`;
+  const PIXEL_RULE = `#p31840 { --ci: mod(var(--mc343600-prev), 256); background-color: --paletteRGB(var(--ci)); }`;
 
   const PALETTE_FN = `@function --paletteRGB(--idx <integer>) returns <color> {
   result: if(
-    style(--idx: 0): rgb(round(mod(var(--snapshot-mc524288), 256) * 255 / 63)
-                         round(round(down, var(--snapshot-mc524288) / 256) * 255 / 63)
-                         round(mod(var(--snapshot-mc524289), 256) * 255 / 63));
+    style(--idx: 0): rgb(round(mod(var(--mc524288-prev), 256) * 255 / 63)
+                         round(round(down, var(--mc524288-prev) / 256) * 255 / 63)
+                         round(mod(var(--mc524289-prev), 256) * 255 / 63));
     /* … all 256 palette slots … */
     else: rgb(0 0 0));
 }`;

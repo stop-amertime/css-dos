@@ -20,7 +20,7 @@ export const KEYS_TREE = [
   inherits: true;
   initial-value: 0;
 }`, folded: true },
-    { kind: 'decl', code: `.motherboard {`, trailer: `}`, folded: true, lazy: {"ref":"keys/000","count":64} },
+    { kind: 'decl', code: `.motherboard {`, trailer: `}`, lazy: {"ref":"keys/000","count":64} },
     ],
   },
 ];

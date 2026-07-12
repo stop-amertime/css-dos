@@ -16,8 +16,8 @@
   initial-value: 32861;
 }`;
 
-  const FALLBACKS = `--snapshot-mc5000: var(--staged-mc5000, 32861);
---staged-mc5000: var(--held-mc5000, 32861);`;
+  const FALLBACKS = `--mc5000-prev: var(--mc5000_2, 32861);
+--mc5000_2: var(--mc5000_1, 32861);`;
 </script>
 
 <TreeView nodes={DECL_TREE} title="Memory declarations" bytes={DECL_TREE_META.bytes} />
@@ -59,11 +59,12 @@
 <p>
   There&rsquo;s a wrinkle: <code>--mc5000</code> isn&rsquo;t the only
   variable for that cell. The <a href="#about/file/clock">clock
-  section</a> explains why every tick has
-  to read a frozen snapshot of memory while the new values are being
-  computed &mdash; and that trick needs each cell to exist as <b>four</b>
-  variables: the freshly computed value, the snapshot the formulas
-  read, and two hand-over copies that pass results to the next tick.
+  section</a> explains why every tick has to read the <i>previous</i>
+  values of memory while the new ones are being computed &mdash; and
+  why that trick needs each cell to exist as <b>four</b> variables:
+  the freshly computed value, the <code>-prev</code> copy the formulas
+  read, and the two courier copies (<code>_1</code>, <code>_2</code>)
+  that carry results across to the next tick.
 </p>
 <p>
   Yet only the first one is ever declared. The other three have no
@@ -77,12 +78,12 @@
 </p>
 <CodeCss code={FALLBACKS} />
 <p>
-  If the staged copy doesn&rsquo;t exist yet &mdash; tick one, nothing
-  stored &mdash; the snapshot falls back to 32861, the declared
-  power-on value. Which means every byte of the machine&rsquo;s
-  starting memory is actually written into the file <b>three
-  times</b>: once as an <code>initial-value</code>, and twice more as
-  fallbacks.
+  If the <code>_2</code> copy doesn&rsquo;t exist yet &mdash; tick
+  one, nothing has been carried over &mdash; <code>-prev</code> falls
+  back to 32861, the declared power-on value. Which means every byte
+  of the machine&rsquo;s starting memory is actually written into the
+  file <b>three times</b>: once as an <code>initial-value</code>, and
+  twice more as fallbacks.
 </p>
 
 <Callout kind="tip" label="The one optimisation">

@@ -18,7 +18,15 @@ export const CPU_TREE = [
       folded: true,
       boxed: true,
       children: [
-      { kind: 'section', label: "decode helpers", code: `/* --- decode helpers --- */`, folded: true, lazy: {"ref":"cpu/006","count":17} },
+      {
+        kind: 'decl',
+        code: `.cpu {`,
+        trailer: `}`,
+        children: [
+        { kind: 'section', label: "fetch next instruction", code: `/* --- fetch next instruction --- */`, folded: true, lazy: {"ref":"cpu/005","count":16} },
+        ],
+      },
+      { kind: 'section', label: "decode helpers", code: `/* --- decode helpers --- */`, folded: true, lazy: {"ref":"cpu/006","count":16} },
       ],
     },
     {

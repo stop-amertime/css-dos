@@ -49,17 +49,213 @@ export const SCREEN_TREE = [
     },
     {
       kind: 'section',
-      label: "pixel rules",
-      code: `/* --- pixel rules --- */`,
+      label: "VGA 16-colour palette (text + CGA modes)",
+      code: `/* --- VGA 16-colour palette (text + CGA modes) --- */`,
       folded: true,
       boxed: true,
       children: [
-      { kind: 'run', count: 64000, period: 2, templates: ["{\"kind\":\"decl\",\"code\":\".motherboard #p%%0%% {\",\"children\":[{\"kind\":\"decl\",\"code\":\"--ci:\",\"children\":[{\"kind\":\"value\",\"code\":\"mod(var(--__%%1%%mc%%2%%), %%3%%);\"}]},{\"kind\":\"block\",\"code\":\"background-color: --paletteRGB(var(--ci));\"}],\"trailer\":\"}\",\"folded\":true}","{\"kind\":\"decl\",\"code\":\".motherboard #p%%0%% {\",\"children\":[{\"kind\":\"decl\",\"code\":\"--ci:\",\"children\":[{\"kind\":\"value\",\"code\":\"round(down, var(--__%%1%%mc%%2%%) / %%3%%);\"}]},{\"kind\":\"block\",\"code\":\"background-color: --paletteRGB(var(--ci));\"}],\"trailer\":\"}\",\"folded\":true}"], cols: [[{"b":0,"s":2},{"c":1},{"b":327680,"s":1},{"c":256}],[{"b":1,"s":2},{"c":1},{"b":327680,"s":1},{"c":256}]] },
+      {
+        kind: 'decl',
+        code: `@function --vgaRGB(--i <integer>) returns <color> {`,
+        trailer: `}`,
+        children: [
+        {
+          kind: 'decl',
+          code: `result:`,
+          children: [
+          {
+            kind: 'if',
+            code: `if(`,
+            trailer: `);`,
+            children: [
+            {
+              kind: 'branch',
+              code: `style(--i: 1):`,
+              children: [
+              { kind: 'value', code: `rgb(0 0 170);` },
+              ],
+            },
+            {
+              kind: 'branch',
+              code: `style(--i: 2):`,
+              children: [
+              { kind: 'value', code: `rgb(0 170 0);` },
+              ],
+            },
+            {
+              kind: 'branch',
+              code: `style(--i: 3):`,
+              children: [
+              { kind: 'value', code: `rgb(0 170 170);` },
+              ],
+            },
+            {
+              kind: 'branch',
+              code: `style(--i: 4):`,
+              children: [
+              { kind: 'value', code: `rgb(170 0 0);` },
+              ],
+            },
+            {
+              kind: 'branch',
+              code: `style(--i: 5):`,
+              children: [
+              { kind: 'value', code: `rgb(170 0 170);` },
+              ],
+            },
+            {
+              kind: 'branch',
+              code: `style(--i: 6):`,
+              children: [
+              { kind: 'value', code: `rgb(170 85 0);` },
+              ],
+            },
+            {
+              kind: 'branch',
+              code: `style(--i: 7):`,
+              children: [
+              { kind: 'value', code: `rgb(170 170 170);` },
+              ],
+            },
+            {
+              kind: 'branch',
+              code: `style(--i: 8):`,
+              children: [
+              { kind: 'value', code: `rgb(85 85 85);` },
+              ],
+            },
+            {
+              kind: 'branch',
+              code: `style(--i: 9):`,
+              children: [
+              { kind: 'value', code: `rgb(85 85 255);` },
+              ],
+            },
+            {
+              kind: 'branch',
+              code: `style(--i: 10):`,
+              children: [
+              { kind: 'value', code: `rgb(85 255 85);` },
+              ],
+            },
+            {
+              kind: 'branch',
+              code: `style(--i: 11):`,
+              children: [
+              { kind: 'value', code: `rgb(85 255 255);` },
+              ],
+            },
+            {
+              kind: 'branch',
+              code: `style(--i: 12):`,
+              children: [
+              { kind: 'value', code: `rgb(255 85 85);` },
+              ],
+            },
+            {
+              kind: 'branch',
+              code: `style(--i: 13):`,
+              children: [
+              { kind: 'value', code: `rgb(255 85 255);` },
+              ],
+            },
+            {
+              kind: 'branch',
+              code: `style(--i: 14):`,
+              children: [
+              { kind: 'value', code: `rgb(255 255 85);` },
+              ],
+            },
+            {
+              kind: 'branch',
+              code: `style(--i: 15):`,
+              children: [
+              { kind: 'value', code: `rgb(255 255 255);` },
+              ],
+            },
+            {
+              kind: 'branch',
+              code: `else:`,
+              children: [
+              { kind: 'value', code: `rgb(0 0 0)` },
+              ],
+            },
+            ],
+          },
+          ],
+        },
+        ],
+      },
       ],
     },
+    {
+      kind: 'section',
+      label: "8x8 ROM font (text modes)",
+      code: `/* --- 8x8 ROM font (text modes) --- */`,
+      folded: true,
+      boxed: true,
+      children: [
+      {
+        kind: 'decl',
+        code: `@function --fontRow(--k <integer>) returns <integer> {`,
+        trailer: `}`,
+        children: [
+        {
+          kind: 'decl',
+          code: `result:`,
+          children: [
+          { kind: 'if', code: `if(`, trailer: `);`, lazy: {"ref":"screen/000","count":2} },
+          ],
+        },
+        ],
+      },
+      ],
+    },
+    { kind: 'section', label: "mode decode helpers", code: `/* --- mode decode helpers --- */`, folded: true, boxed: true, lazy: {"ref":"screen/001","count":10} },
+    {
+      kind: 'section',
+      label: "video state (BDA mode byte, CGA palette reg)",
+      code: `/* --- video state (BDA mode byte, CGA palette reg) --- */`,
+      folded: true,
+      boxed: true,
+      children: [
+      { kind: 'block', code: `@property --vidMode {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 3;
+}`, folded: true },
+      { kind: 'block', code: `@property --vidPal {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
+      {
+        kind: 'decl',
+        code: `.motherboard {`,
+        trailer: `}`,
+        children: [
+        {
+          kind: 'decl',
+          code: `--vidMode:`,
+          children: [
+          { kind: 'value', code: `round(down, var(--__1mc548) / 256);` },
+          ],
+        },
+        {
+          kind: 'decl',
+          code: `--vidPal:`,
+          children: [
+          { kind: 'value', code: `round(down, var(--__1mc633) / 256);` },
+          ],
+        },
+        ],
+      },
+      ],
+    },
+    { kind: 'section', label: "pixel rules", code: `/* --- pixel rules --- */`, folded: true, boxed: true, lazy: {"ref":"screen/002","count":64000} },
     ],
   },
 ];
 
 // Real measured size of this region in the sokoban cabinet.
-export const SCREEN_TREE_META = { bytes: 6979937 };
+export const SCREEN_TREE_META = { bytes: 14311774 };

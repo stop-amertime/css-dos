@@ -26,7 +26,7 @@
   else: var(--cell));
 }`;
 
-  const ASSEMBLED_CELL = `--mc5000: --applySlot(--applySlot(--applySlot(var(--snapshot-mc5000),
+  const ASSEMBLED_CELL = `--mc5000: --applySlot(--applySlot(--applySlot(var(--mc5000-prev),
       var(--_slot2Live), calc(var(--memAddr2) - 5000 * 2),
       calc(var(--memAddr2) + 1 - 5000 * 2), var(--memVal2), var(--_writeWidth)),
     /* … slot 1, the same shape … */),

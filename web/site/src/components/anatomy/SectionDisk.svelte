@@ -16,7 +16,7 @@
     /* … one arm per byte of the floppy … */`;
 
   const WINDOW_ARM = `style(--at: 852016): --readDiskByte(calc(
-  (mod(var(--snapshot-mc632), 256) + round(down, var(--snapshot-mc632) / 256) * 256) * 512 + 48));`;
+  (mod(var(--mc632-prev), 256) + round(down, var(--mc632-prev) / 256) * 256) * 512 + 48));`;
 </script>
 
 <TreeView nodes={DISK_TREE} title="Disk" bytes={DISK_TREE_META.bytes} />

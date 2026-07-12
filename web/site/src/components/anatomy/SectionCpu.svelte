@@ -13,16 +13,16 @@
   import { CPU_TREE, CPU_TREE_META } from './tree/cpu-tree.js';
 
   const AX_TABLE = `--AX: if(
-  style(--_irqActive: 1): var(--snapshot-AX);  /* interrupt pending — hardware outranks the program this tick */
+  style(--_irqActive: 1): var(--AX-prev);  /* interrupt pending — hardware outranks the program this tick */
   else: if(
     style(--opcode: 0): …;    /* ADD, one flavour */
     style(--opcode: 1): …;    /* ADD, another */
     …                     /* every opcode that can touch AX */
-    else: var(--snapshot-AX)));   /* untouched: keep the old value */`;
+    else: var(--AX-prev)));   /* untouched: keep the old value */`;
 
-  const ADD_AX = `style(--opcode: 5): --lowerBytes(calc(var(--snapshot-AX) + var(--imm16)), 16);   /* ADD AX, imm16 */`;
+  const ADD_AX = `style(--opcode: 5): --lowerBytes(calc(var(--AX-prev) + var(--imm16)), 16);   /* ADD AX, imm16 */`;
 
-  const ADD_IP = `style(--opcode: 5): calc(var(--snapshot-IP) + 3);   /* ADD is three bytes long */`;
+  const ADD_IP = `style(--opcode: 5): calc(var(--IP-prev) + 3);   /* ADD is three bytes long */`;
 
   const ADD_FLAGS = `@function --addFlags16(--dst <integer>, --src <integer>) returns <integer> {
   --raw: calc(var(--dst) + var(--src));
@@ -37,25 +37,25 @@
     + var(--zfsf) + var(--of) + 2);
 }`;
 
-  const JZ_ROW = `style(--opcode: 116): --lowerBytes(calc(var(--snapshot-IP) + 2
-  + --bit(var(--snapshot-flags), 6) * --u2s1(var(--q1))), 16);   /* JZ — jump if zero */`;
+  const JZ_ROW = `style(--opcode: 116): --lowerBytes(calc(var(--IP-prev) + 2
+  + --bit(var(--flags-prev), 6) * --u2s1(var(--q1))), 16);   /* JZ — jump if zero */`;
 
   const JL_COND = `/* JL, "jump if less": taken when the sign flag differs from the
    overflow flag — an XOR, done as a + b − 2ab on two flag bits */
-calc(--bit(var(--snapshot-flags), 7) + --bit(var(--snapshot-flags), 11)
-   - 2 * --bit(var(--snapshot-flags), 7) * --bit(var(--snapshot-flags), 11))`;
+calc(--bit(var(--flags-prev), 7) + --bit(var(--flags-prev), 11)
+   - 2 * --bit(var(--flags-prev), 7) * --bit(var(--flags-prev), 11))`;
 
   const DIV_ROWS = `/* AX takes the quotient */
-round(down, calc((var(--snapshot-DX) * 65536 + var(--snapshot-AX)) / max(1, var(--rmVal16))))
+round(down, calc((var(--DX-prev) * 65536 + var(--AX-prev)) / max(1, var(--rmVal16))))
 /* DX takes the remainder */
-mod(calc(var(--snapshot-DX) * 65536 + var(--snapshot-AX)), max(1, var(--rmVal16)))`;
+mod(calc(var(--DX-prev) * 65536 + var(--AX-prev)), max(1, var(--rmVal16)))`;
 
-  const DAA = `style(--opcode: 39): calc(round(down, var(--snapshot-AX) / 256) * 256
+  const DAA = `style(--opcode: 39): calc(round(down, var(--AX-prev) / 256) * 256
   + mod(calc(var(--AL)
   + calc(min(1, calc(round(down, mod(var(--AL), 16) / 10)
-  + mod(round(down, var(--snapshot-flags) / 16), 2))) * 6)
+  + mod(round(down, var(--flags-prev) / 16), 2))) * 6)
   + calc(min(1, calc(round(down, var(--AL) / 154)
-  + mod(var(--snapshot-flags), 2))) * 96)), 256))`;
+  + mod(var(--flags-prev), 2))) * 96)), 256))`;
 
   const TF_DELAY = `--_tf: var(--__1_tfPending);   /* this tick's trap = LAST tick's request */`;
 
@@ -109,7 +109,7 @@ mod(calc(var(--snapshot-DX) * 65536 + var(--snapshot-AX)), max(1, var(--rmVal16)
   <p>
     Code here is real cabinet code, structurally exact &mdash; only the
     variable names are tidied for reading: <code>--__1IP</code> becomes
-    <code>--snapshot-IP</code>.
+    <code>--IP-prev</code>.
   </p>
 </Callout>
 <CodeCss code={REG_VARS} />
@@ -137,8 +137,8 @@ mod(calc(var(--snapshot-DX) * 65536 + var(--snapshot-AX)), max(1, var(--rmVal16)
 
 <h3 class="anatomy-head">One instruction, all the way through</h3>
 <p>
-  Opcode 5 is &ldquo;add a number to AX&rdquo;. When the snapshot says
-  <code>--opcode: 5</code>, this row fires in the AX table:
+  Opcode 5 is &ldquo;add a number to AX&rdquo;. When
+  <code>--opcode</code> is 5, this row fires in the AX table:
 </p>
 <CodeCss code={ADD_AX} />
 <p>

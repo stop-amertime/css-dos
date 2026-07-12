@@ -17,10 +17,10 @@
   const PIT_COUNTER = `--pitCounter: if(
   /* … rows for the OUT opcodes that program the timer … */
   else: if(
-    style(--snapshot-pitReload: 0): 0;   /* never armed — hold at zero */
-    else: calc(var(--snapshot-pitCounter) - var(--_pitDecrement)
-      + max(0, sign(calc(var(--_pitDecrement) - var(--snapshot-pitCounter) + 1)))
-        * var(--snapshot-pitReload))));  /* count down; past zero, reload — and IRQ 0 fires */`;
+    style(--pitReload-prev: 0): 0;   /* never armed — hold at zero */
+    else: calc(var(--pitCounter-prev) - var(--_pitDecrement)
+      + max(0, sign(calc(var(--_pitDecrement) - var(--pitCounter-prev) + 1)))
+        * var(--pitReload-prev))));  /* count down; past zero, reload — and IRQ 0 fires */`;
 </script>
 
 <TreeView nodes={CHIPSET_TREE} title="Chipset" bytes={CHIPSET_TREE_META.bytes} />
@@ -59,7 +59,7 @@
   Every time the counter crosses zero it reloads itself and raises
   IRQ&nbsp;0 &mdash; the tick DOS keeps its clock by. The interrupt
   controller&rsquo;s fall-through latches any newly arrived interrupt
-  requests; the keyboard controller&rsquo;s snapshots the current key
+  requests; the keyboard controller&rsquo;s copies the current key
   so the next tick can spot the change. The chips&rsquo;
   <code>else</code> branches are where the machine&rsquo;s
   concurrency lives.

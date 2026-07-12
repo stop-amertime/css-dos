@@ -41,7 +41,6 @@ export const CHIPSET_TREE = [
         kind: 'decl',
         code: `.motherboard {`,
         trailer: `}`,
-        folded: true,
         children: [
         {
           kind: 'section',
@@ -181,7 +180,6 @@ export const CHIPSET_TREE = [
         kind: 'decl',
         code: `.motherboard {`,
         trailer: `}`,
-        folded: true,
         children: [
         { kind: 'section', label: "edge detection", code: `/* --- edge detection --- */`, folded: true, lazy: {"ref":"chipset/004","count":29} },
         ],
@@ -220,7 +218,6 @@ export const CHIPSET_TREE = [
         kind: 'decl',
         code: `.motherboard {`,
         trailer: `}`,
-        folded: true,
         children: [
         { kind: 'section', label: "index registers", code: `/* --- index registers --- */`, folded: true, lazy: {"ref":"chipset/009","count":4} },
         ],

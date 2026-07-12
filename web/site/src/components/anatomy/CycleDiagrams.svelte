@@ -5,10 +5,10 @@
   //   panel="self" — a variable referencing itself, banned
   //   panel="pair" — two variables feeding each other: a cycle of any
   //                  length is still detected and ignored
-  //   panel="ring" — the machine's answer: a ring of four (--X and its
-  //                  numbered copies) where the two keyframe links only
-  //                  conduct during their own quarter of the clock lap,
-  //                  so the ring is never fully connected
+  //   panel="ring" — the machine's answer: a ring of four (--X, courier
+  //                  copies _1/_2, and --X-prev) where the two keyframe
+  //                  links only conduct during their own quarter of the
+  //                  clock lap, so the ring is never fully connected
   // The ring animates on the same 3.2s lap as TickClock and, like it,
   // runs on the very mechanism it explains (pure CSS keyframes).
   let { panel } = $props();
@@ -66,7 +66,7 @@
       {/each}
     </div>
     <svg class="cd-ring" viewBox="0 0 360 230" role="img"
-         aria-label="Four boxes in a ring: dash dash X and its three numbered copies, clockwise. The X-to-X_1 and X_1-to-X_2 links light up only during their own keyframe; the links from X_2 to X_3 and X_3 back to X are always on — so the ring is never fully connected.">
+         aria-label="Four boxes in a ring, clockwise: dash dash X, two courier copies X_1 and X_2, and X-prev. The X-to-X_1 and X_1-to-X_2 links light up only during their own keyframe; the links from X_2 to X-prev and X-prev back to X are always on — so the ring is never fully connected.">
       <!-- execute latch: X → X_1, conducts during the 75% keyframe only -->
       <line class="cd-latch cd-exec" x1="130" y1="44" x2="226" y2="44" />
       <polygon class="cd-lhead cd-exec-head" points="234,44 224,39 224,49" />
@@ -95,13 +95,16 @@
       <rect class="cd-box" x="236" y="156" width="96" height="32" />
       <text class="cd-name" x="284" y="177">--X_2</text>
       <rect class="cd-box" x="28" y="156" width="96" height="32" />
-      <text class="cd-name" x="76" y="177">--X_3</text>
+      <text class="cd-name" x="76" y="177">--X-prev</text>
     </svg>
     <figcaption>
       Black links are formulas, always in force. The grey links only
       conduct during their own keyframe &mdash; and the two keyframes
       never overlap, so the circle is never complete: CSS never sees a
-      cycle. Yet across one lap, a value travels all the way round.
+      cycle. Yet across one lap, a value travels all the way round, and
+      <code>--X-prev</code> really does hold the previous value &mdash;
+      the buffer we wanted all along. (This diagram runs on the same
+      mechanism it explains, slowed 8&times;.)
     </figcaption>
   </figure>
 {/if}
