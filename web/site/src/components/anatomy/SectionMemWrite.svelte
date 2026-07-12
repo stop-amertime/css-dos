@@ -34,7 +34,7 @@
   calc(var(--memAddr0) + 1 - 5000 * 2), var(--memVal0), var(--_writeWidth));`;
 </script>
 
-<TreeView nodes={MEMW_TREE} title="Memory — write formulas" bytes={MEMW_TREE_META.bytes} />
+<TreeView nodes={MEMW_TREE} title="Memory writes" bytes={MEMW_TREE_META.bytes} />
 
 <p>
   The single biggest section of the file, and the reason for most of

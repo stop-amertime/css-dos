@@ -11,20 +11,42 @@ export const CHIPSET_TREE = [
     kind: 'root',
     children: [
     {
-      kind: 'decl',
-      code: `.motherboard {`,
-      trailer: `}`,
+      kind: 'section',
+      label: "PIT TIMER (8253)",
+      code: `/* ===== PIT TIMER (8253) ===== */`,
+      folded: true,
+      boxed: true,
       children: [
+      { kind: 'block', code: `@property --pitMode {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
+      { kind: 'block', code: `@property --pitReload {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
+      { kind: 'block', code: `@property --pitCounter {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
+      { kind: 'block', code: `@property --pitWriteState {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
       {
-        kind: 'section',
-        label: "PIT TIMER (8253)",
-        code: `/* ===== PIT TIMER (8253) ===== */`,
+        kind: 'decl',
+        code: `.motherboard {`,
+        trailer: `}`,
         folded: true,
         children: [
         {
           kind: 'section',
-          label: "tick derivation",
-          code: `/* --- tick derivation --- */`,
+          label: "timer countdown",
+          code: `/* --- timer countdown --- */`,
           folded: true,
           children: [
           { kind: 'block', code: `/* PIT ticks elapsed this instruction, derived from --cycleCount (4.77 MHz / 4) */` },
@@ -91,179 +113,116 @@ export const CHIPSET_TREE = [
             },
             ],
           },
+          { kind: 'section', label: "registers", code: `/* --- registers --- */`, folded: true, lazy: {"ref":"chipset/002","count":4} },
           ],
         },
-        { kind: 'section', label: "registers", code: `/* --- registers --- */`, folded: true, lazy: {"ref":"chipset/002","count":4} },
         ],
       },
+      ],
+    },
+    {
+      kind: 'section',
+      label: "KEYBOARD CONTROLLER (8042)",
+      code: `/* ===== KEYBOARD CONTROLLER (8042) ===== */`,
+      folded: true,
+      boxed: true,
+      children: [
+      { kind: 'block', code: `@property --prevKeyboard {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
+      { kind: 'block', code: `@property --kbdScancodeLatch {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
+      { kind: 'block', code: `@property --kbdHeld0 {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
+      { kind: 'block', code: `@property --kbdHeld1 {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
+      { kind: 'block', code: `@property --kbdHeld2 {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
+      { kind: 'block', code: `@property --kbdHeld3 {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
+      { kind: 'block', code: `@property --kbdHeld4 {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
+      { kind: 'block', code: `@property --kbdHeld5 {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
+      { kind: 'block', code: `@property --kbdHeld6 {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
+      { kind: 'block', code: `@property --kbdHeld7 {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
       {
-        kind: 'section',
-        label: "KEYBOARD CONTROLLER",
-        code: `/* ===== KEYBOARD CONTROLLER ===== */`,
+        kind: 'decl',
+        code: `.motherboard {`,
+        trailer: `}`,
         folded: true,
         children: [
-        { kind: 'section', label: "edge detection", code: `/* --- edge detection --- */`, folded: true, lazy: {"ref":"chipset/003","count":28} },
-        { kind: 'section', label: "registers", code: `/* --- registers --- */`, folded: true, lazy: {"ref":"chipset/004","count":10} },
+        { kind: 'section', label: "edge detection", code: `/* --- edge detection --- */`, folded: true, lazy: {"ref":"chipset/004","count":29} },
         ],
       },
+      ],
+    },
+    { kind: 'section', label: "PIC INTERRUPT CONTROLLER (8259)", code: `/* ===== PIC INTERRUPT CONTROLLER (8259) ===== */`, folded: true, boxed: true, lazy: {"ref":"chipset/006","count":4} },
+    {
+      kind: 'section',
+      label: "VGA DAC",
+      code: `/* ===== VGA DAC ===== */`,
+      folded: true,
+      boxed: true,
+      children: [
+      { kind: 'block', code: `@property --dacWriteIndex {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
+      { kind: 'block', code: `@property --dacSubIndex {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
+      { kind: 'block', code: `@property --dacReadIndex {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
+      { kind: 'block', code: `@property --dacReadSubIndex {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
       {
-        kind: 'section',
-        label: "PIC INTERRUPT CONTROLLER (8259)",
-        code: `/* ===== PIC INTERRUPT CONTROLLER (8259) ===== */`,
+        kind: 'decl',
+        code: `.motherboard {`,
+        trailer: `}`,
         folded: true,
         children: [
-        {
-          kind: 'section',
-          label: "IRQ arbitration",
-          code: `/* --- IRQ arbitration --- */`,
-          folded: true,
-          children: [
-          { kind: 'block', code: `/* which unmasked pending IRQ wins this tick (IRQ 0 outranks IRQ 1) */` },
-          {
-            kind: 'decl',
-            code: `--_picEffective:`,
-            folded: true,
-            children: [
-            {
-              kind: 'if',
-              code: `if(`,
-              trailer: `);`,
-              children: [
-              {
-                kind: 'branch',
-                code: `style(--__1picInService: 0):`,
-                children: [
-                { kind: 'value', code: `--and(var(--__1picPending), --not(var(--__1picMask)));` },
-                ],
-              },
-              {
-                kind: 'branch',
-                code: `else:`,
-                children: [
-                { kind: 'value', code: `0` },
-                ],
-              },
-              ],
-            },
-            ],
-          },
-          {
-            kind: 'decl',
-            code: `--_ifFlag:`,
-            children: [
-            { kind: 'value', code: `--bit(var(--__1flags), 9);` },
-            ],
-          },
-          {
-            kind: 'decl',
-            code: `--_irqActive:`,
-            folded: true,
-            children: [
-            {
-              kind: 'if',
-              code: `if(`,
-              trailer: `);`,
-              children: [
-              {
-                kind: 'branch',
-                code: `style(--_ifFlag: 0):`,
-                children: [
-                { kind: 'value', code: `0;` },
-                ],
-              },
-              {
-                kind: 'branch',
-                code: `style(--_picEffective: 0):`,
-                children: [
-                { kind: 'value', code: `0;` },
-                ],
-              },
-              {
-                kind: 'branch',
-                code: `else:`,
-                children: [
-                { kind: 'value', code: `1` },
-                ],
-              },
-              ],
-            },
-            ],
-          },
-          {
-            kind: 'decl',
-            code: `--_irq0Pending:`,
-            children: [
-            { kind: 'value', code: `--and(var(--_picEffective), 1);` },
-            ],
-          },
-          {
-            kind: 'decl',
-            code: `--picVector:`,
-            folded: true,
-            children: [
-            {
-              kind: 'if',
-              code: `if(`,
-              trailer: `);`,
-              children: [
-              {
-                kind: 'branch',
-                code: `style(--_irq0Pending: 1):`,
-                children: [
-                { kind: 'value', code: `8;` },
-                ],
-              },
-              {
-                kind: 'branch',
-                code: `else:`,
-                children: [
-                { kind: 'value', code: `9` },
-                ],
-              },
-              ],
-            },
-            ],
-          },
-          {
-            kind: 'decl',
-            code: `--_irqBit:`,
-            folded: true,
-            children: [
-            {
-              kind: 'if',
-              code: `if(`,
-              trailer: `);`,
-              children: [
-              {
-                kind: 'branch',
-                code: `style(--_irq0Pending: 1):`,
-                children: [
-                { kind: 'value', code: `1;` },
-                ],
-              },
-              {
-                kind: 'branch',
-                code: `else:`,
-                children: [
-                { kind: 'value', code: `2` },
-                ],
-              },
-              ],
-            },
-            ],
-          },
-          ],
-        },
-        { kind: 'section', label: "registers", code: `/* --- registers --- */`, folded: true, lazy: {"ref":"chipset/005","count":3} },
-        ],
-      },
-      {
-        kind: 'section',
-        label: "VGA DAC",
-        code: `/* ===== VGA DAC ===== */`,
-        folded: true,
-        children: [
-        { kind: 'section', label: "index registers", code: `/* --- index registers --- */`, folded: true, lazy: {"ref":"chipset/008","count":4} },
+        { kind: 'section', label: "index registers", code: `/* --- index registers --- */`, folded: true, lazy: {"ref":"chipset/009","count":4} },
         ],
       },
       ],
@@ -273,4 +232,4 @@ export const CHIPSET_TREE = [
 ];
 
 // Real measured size of this region in the sokoban cabinet.
-export const CHIPSET_TREE_META = { bytes: 17394 };
+export const CHIPSET_TREE_META = { bytes: 19320 };

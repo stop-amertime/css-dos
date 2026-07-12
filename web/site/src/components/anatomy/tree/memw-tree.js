@@ -11,21 +11,48 @@ export const MEMW_TREE = [
     kind: 'root',
     children: [
     {
-      kind: 'decl',
-      code: `.motherboard {`,
-      trailer: `}`,
+      kind: 'section',
+      label: "write slot properties",
+      code: `/* --- write slot properties --- */`,
+      folded: true,
+      boxed: true,
       children: [
-      { kind: 'block', code: `/* one write rule per cell: a 3-slot --applySlot cascade (slot 0 outermost, so it wins same-cell collisions). Idle slots short-circuit at their --_slotNLive gate. */` },
-      { kind: 'run', count: 359680, period: 1, templates: ["{\"kind\":\"decl\",\"code\":\"--mc%%0%%:\",\"children\":[{\"kind\":\"value\",\"code\":\"--applySlot(--applySlot(--applySlot(var(--__%%1%%mc%%2%%), var(--_slot%%3%%Live), calc(var(--memAddr%%4%%) - %%5%% * %%6%%), calc(var(--memAddr%%7%%) + %%8%% - %%9%% * %%10%%), var(--memVal%%11%%), var(--_writeWidth)), var(--_slot%%12%%Live), calc(var(--memAddr%%13%%) - %%14%% * %%15%%), calc(var(--memAddr%%16%%) + %%17%% - %%18%% * %%19%%), var(--memVal%%20%%), var(--_writeWidth)), var(--_slot%%21%%Live), calc(var(--memAddr%%22%%) - %%23%% * %%24%%), calc(var(--memAddr%%25%%) + %%26%% - %%27%% * %%28%%), var(--memVal%%29%%), var(--_writeWidth));\"}],\"folded\":true}"], cols: [[{"b":0,"s":1},{"c":1},{"b":0,"s":1},{"c":2},{"c":2},{"b":0,"s":1},{"c":2},{"c":2},{"c":1},{"b":0,"s":1},{"c":2},{"c":2},{"c":1},{"c":1},{"b":0,"s":1},{"c":2},{"c":1},{"c":1},{"b":0,"s":1},{"c":2},{"c":1},{"c":0},{"c":0},{"b":0,"s":1},{"c":2},{"c":0},{"c":1},{"b":0,"s":1},{"c":2},{"c":0}]] },
-      { kind: 'block', code: `/* gap: bytes 0xAFA00-0xB7FFF unpopulated in this build */` },
-      { kind: 'run', count: 8192, period: 1, templates: ["{\"kind\":\"decl\",\"code\":\"--mc%%0%%:\",\"children\":[{\"kind\":\"value\",\"code\":\"--applySlot(--applySlot(--applySlot(var(--__%%1%%mc%%2%%), var(--_slot%%3%%Live), calc(var(--memAddr%%4%%) - %%5%% * %%6%%), calc(var(--memAddr%%7%%) + %%8%% - %%9%% * %%10%%), var(--memVal%%11%%), var(--_writeWidth)), var(--_slot%%12%%Live), calc(var(--memAddr%%13%%) - %%14%% * %%15%%), calc(var(--memAddr%%16%%) + %%17%% - %%18%% * %%19%%), var(--memVal%%20%%), var(--_writeWidth)), var(--_slot%%21%%Live), calc(var(--memAddr%%22%%) - %%23%% * %%24%%), calc(var(--memAddr%%25%%) + %%26%% - %%27%% * %%28%%), var(--memVal%%29%%), var(--_writeWidth));\"}],\"folded\":true}"], cols: [[{"b":376832,"s":1},{"c":1},{"b":376832,"s":1},{"c":2},{"c":2},{"b":376832,"s":1},{"c":2},{"c":2},{"c":1},{"b":376832,"s":1},{"c":2},{"c":2},{"c":1},{"c":1},{"b":376832,"s":1},{"c":2},{"c":1},{"c":1},{"b":376832,"s":1},{"c":2},{"c":1},{"c":0},{"c":0},{"b":376832,"s":1},{"c":2},{"c":0},{"c":1},{"b":376832,"s":1},{"c":2},{"c":0}]] },
-      { kind: 'block', code: `/* gap: bytes 0xBC000-0xFFFFF unpopulated in this build */` },
-      { kind: 'run', count: 384, period: 1, templates: ["{\"kind\":\"decl\",\"code\":\"--mc%%0%%:\",\"children\":[{\"kind\":\"value\",\"code\":\"--applySlot(--applySlot(--applySlot(var(--__%%1%%mc%%2%%), var(--_slot%%3%%Live), calc(var(--memAddr%%4%%) - %%5%% * %%6%%), calc(var(--memAddr%%7%%) + %%8%% - %%9%% * %%10%%), var(--memVal%%11%%), var(--_writeWidth)), var(--_slot%%12%%Live), calc(var(--memAddr%%13%%) - %%14%% * %%15%%), calc(var(--memAddr%%16%%) + %%17%% - %%18%% * %%19%%), var(--memVal%%20%%), var(--_writeWidth)), var(--_slot%%21%%Live), calc(var(--memAddr%%22%%) - %%23%% * %%24%%), calc(var(--memAddr%%25%%) + %%26%% - %%27%% * %%28%%), var(--memVal%%29%%), var(--_writeWidth));\"}],\"folded\":true}"], cols: [[{"b":524288,"s":1},{"c":1},{"b":524288,"s":1},{"c":2},{"c":2},{"b":524288,"s":1},{"c":2},{"c":2},{"c":1},{"b":524288,"s":1},{"c":2},{"c":2},{"c":1},{"c":1},{"b":524288,"s":1},{"c":2},{"c":1},{"c":1},{"b":524288,"s":1},{"c":2},{"c":1},{"c":0},{"c":0},{"b":524288,"s":1},{"c":2},{"c":0},{"c":1},{"b":524288,"s":1},{"c":2},{"c":0}]] },
+      { kind: 'block', code: `@property --memAddr0 {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: -1;
+}`, folded: true },
+      { kind: 'block', code: `@property --memVal0 {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
+      { kind: 'block', code: `@property --memAddr1 {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: -1;
+}`, folded: true },
+      { kind: 'block', code: `@property --memVal1 {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
+      { kind: 'block', code: `@property --memAddr2 {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: -1;
+}`, folded: true },
+      { kind: 'block', code: `@property --memVal2 {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
       ],
     },
+    { kind: 'section', label: "per-cell write rules", code: `/* --- per-cell write rules --- */`, folded: true, boxed: true, lazy: {"ref":"memw/000","count":1} },
     ],
   },
 ];
 
 // Real measured size of this region in the sokoban cabinet.
-export const MEMW_TREE_META = { bytes: 170718762 };
+export const MEMW_TREE_META = { bytes: 170719352 };

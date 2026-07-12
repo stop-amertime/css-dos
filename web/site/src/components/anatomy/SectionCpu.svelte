@@ -71,7 +71,7 @@ mod(calc(var(--snapshot-DX) * 65536 + var(--snapshot-AX)), max(1, var(--rmVal16)
 <p>
   This section is the fourteen <Term t="register">registers</Term> &mdash; <code>--AX</code>,
   <code>--BX</code>, <code>--IP</code> and the rest &mdash; and the
-  tables that define them. It is about 265&nbsp;KB: less than a tenth
+  tables that define them. It is about 307&nbsp;KB: less than a tenth
   of a percent of the file does all of the machine&rsquo;s thinking.
 </p>
 
@@ -170,8 +170,8 @@ mod(calc(var(--snapshot-DX) * 65536 + var(--snapshot-AX)), max(1, var(--rmVal16)
   &ldquo;is the result zero?&rdquo; and &ldquo;is its top bit
   set?&rdquo; (a 16-bit number&rsquo;s way of being negative) &mdash;
   the <b>zero</b> and <b>sign</b> flags, each parked at its own bit
-  position. <code>--pf</code>, the <b>parity flag</b>, comes from the
-  256-entry lookup table in the utility-functions section. The long
+  position. <code>--pf</code>, the <b>parity flag</b>, comes from a
+  256-entry lookup table in this section&rsquo;s flag helpers. The long
   line in the middle is the <b>half-carry</b> flag &mdash; &ldquo;did
   the bottom four bits overflow?&rdquo; &mdash; built out of
   <code>sign()</code> because CSS has no <code>&lt;</code>. And the
@@ -202,7 +202,7 @@ mod(calc(var(--snapshot-DX) * 65536 + var(--snapshot-AX)), max(1, var(--rmVal16)
   Some conditions cost more. &ldquo;Jump if less&rdquo; is taken
   when the sign flag and the overflow flag disagree &mdash; an XOR,
   which CSS doesn&rsquo;t have. The
-  <a href="#about/file/util">utility section</a> builds XOR out of
+  <a href="#about/file/util">bit &amp; byte helpers</a> build XOR out of
   multiplication, and here it is at work on two flag bits:
 </p>
 <CodeCss code={JL_COND} />

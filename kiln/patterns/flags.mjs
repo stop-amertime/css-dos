@@ -42,8 +42,6 @@ const DEC_AF = (dst) =>
 
 export function emitFlagFunctions() {
   return `
-/* ===== FLAG COMPUTATION ===== */
-
 @function --parity(--val <integer>) returns <integer> {
   --low8: --lowerBytes(var(--val), 8);
   result: if(

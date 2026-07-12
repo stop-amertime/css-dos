@@ -44,7 +44,12 @@
   const PAGE = 20;
 
   let open = $state(!node.folded);
-  let runShown = $state({}); // run index -> items revealed (default PAGE)
+  // ONE shared reveal cursor across all comment-delimited runs in this node,
+  // so the reader sees "first N, then a single (N more…) button" — never a
+  // stack of per-run buttons. Runs reveal in order: run i+1's items only
+  // appear once run i is fully shown, so at most one run is partial and thus
+  // at most one button is visible. Comment landmarks always render.
+  let shownCount = $state(PAGE);
 
   // PROGRESSIVE DISCLOSURE: a node with `lazy: { ref, count }` has its
   // children in paged JSON chunks (see lazy.js / extract-tree-data.mjs).
@@ -234,14 +239,15 @@
     if (cur.comment || cur.items.length) out.push(cur);
     return out;
   });
-  const shownFor = (i) => runShown[i] ?? PAGE;
-
   // WEIGHTED page cursor: a `run` node stands for `count` real rows, so it
-  // spends that many rows of the group's page. A partially-spent run is
-  // the last thing visible in its group — the siblings behind it wait
-  // behind the same single "(N more…)" button, and the button's total
-  // counts every real row, not wire nodes.
+  // spends that many rows of the shared page budget. Runs draw from the SAME
+  // cursor in order (the `budgetBefore` rows spent by earlier runs are passed
+  // in), so at most one run is partially shown — the rest wait behind one
+  // "(N more…)" button whose total counts every real row, not wire nodes.
   const weightOf = (c) => (c.kind === 'run' ? c.count : 1);
+  // Rows this run reveals given `limit` rows of shared budget still available
+  // when it starts (0 = nothing left; a later run past the cursor shows only
+  // its comment landmark, no items).
   function visibleFor(run, limit) {
     const out = [];
     let used = 0;
@@ -258,6 +264,30 @@
     }
     return { out, used };
   }
+  // Total real rows (weighted) in a run's items.
+  const runWeight = (run) => run.items.reduce((n, c) => n + weightOf(c), 0);
+  // Rows of the shared cursor already spent by the runs before index `i` —
+  // each earlier run consumes min(its weight, whatever budget it saw). This
+  // is what makes reveal sequential: run i only starts once the runs ahead of
+  // it are full.
+  function runsSpentBefore(i) {
+    let spent = 0;
+    for (let k = 0; k < i; k++) {
+      spent += Math.min(runWeight(runs[k]), Math.max(0, shownCount - spent));
+    }
+    return spent;
+  }
+  // Total rows still hidden across every run (plus any pages still on the
+  // wire) — the single "(N more…)" button's honest count.
+  const hiddenTotal = $derived.by(() => {
+    let shown = 0;
+    for (let i = 0; i < runs.length; i++) {
+      shown += visibleFor(runs[i], Math.max(0, shownCount - runsSpentBefore(i))).used;
+    }
+    const onWire = nextPage ? nextPage.remaining : 0;
+    const total = runs.reduce((n, run) => n + runWeight(run), 0) + onWire;
+    return total - shown;
+  });
 
   // RUN UNIFORMITY (wrap): within a run, rows sharing a code shape (text
   // with numbers masked — "style(--opcode: #):" / "--mc#:") wrap
@@ -296,11 +326,14 @@
   // short and more pages exist on the wire, pull the next chunk first. The
   // shown count always includes what's still on the server, so totals are
   // honest before anything downloads.
-  async function more(i, run) {
-    const target = shownFor(i) + PAGE;
-    const loaded = run.items.reduce((n, c) => n + weightOf(c), 0);
+  // Reveal one more page across the shared cursor. When the loaded rows run
+  // short of the new target and more pages exist on the wire, pull the next
+  // chunk first so the totals stay honest.
+  async function more() {
+    const target = shownCount + PAGE;
+    const loaded = runs.reduce((n, run) => n + runWeight(run), 0);
     if (loaded < target && nextPage) await loadNext();
-    runShown[i] = target;
+    shownCount = target;
   }
   function retry() {
     loadState = 'idle';
@@ -314,18 +347,16 @@
     {#if run.comment}
       <TreeAst node={run.comment} budget={budget - 2} />
     {/if}
-    {@const vis = visibleFor(run, shownFor(i))}
+    {@const vis = visibleFor(run, Math.max(0, shownCount - runsSpentBefore(i)))}
     {#each vis.out as v}
       <TreeAst node={v.item} rowLimit={v.take} forceSplit={runForcedKeys[i].has(maskKey(v.item))} budget={budget - 2} />
     {/each}
-    {@const netMore = i === runs.length - 1 && nextPage ? nextPage.remaining : 0}
-    {@const hidden = run.items.reduce((n, c) => n + weightOf(c), 0) + netMore - vis.used}
-    {#if hidden > 0 && loadState !== 'error'}
-      <div class="tree-more">
-        <button onclick={() => more(i, run)}>({hidden.toLocaleString('en-US')} more&hellip;)</button>
-      </div>
-    {/if}
   {/each}
+  {#if hiddenTotal > 0 && loadState !== 'error'}
+    <div class="tree-more">
+      <button onclick={more}>({hiddenTotal.toLocaleString('en-US')} more&hellip;)</button>
+    </div>
+  {/if}
   {#if loadState === 'loading' && runs.length === 0}
     <pre class="ast-line"><span class="tree-glyph" aria-hidden="true"></span><code class="ast-note">loading&hellip;</code></pre>
   {:else if loadState === 'error'}

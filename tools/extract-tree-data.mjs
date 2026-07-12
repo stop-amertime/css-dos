@@ -74,14 +74,14 @@ function readCabinet() {
 // `/* ===== ... ===== */` banners some regions contain (css-lib's own
 // headings inside UTILITY FUNCTIONS) become groups WITHIN the region.
 const SECTIONS = [
-  { id: 'util',    banner: 'UTILITY FUNCTIONS' },
+  { id: 'util',    banner: 'BIT & BYTE HELPERS' },
   { id: 'cpu',     banner: 'CPU' },
   { id: 'chipset', banner: 'CHIPSET' },
-  { id: 'keys',    banner: 'KEYBOARD' },
-  { id: 'screen',  banner: 'MODE 13h PIXEL PAINTER (raw player only)' },
-  { id: 'decl',    banner: 'PROPERTY DECLARATIONS' },
-  { id: 'memr',    banner: 'MEMORY READ' },
-  { id: 'memw',    banner: 'MEMORY WRITE RULES' },
+  { id: 'keys',    banner: 'KEYBOARD SELECTORS' },
+  { id: 'screen',  banner: 'DISPLAY' },
+  { id: 'decl',    banner: 'MEMORY DECLARATIONS' },
+  { id: 'memr',    banner: 'MEMORY READS' },
+  { id: 'memw',    banner: 'MEMORY WRITES' },
   { id: 'disk',    banner: 'DISK' },
   { id: 'clock',   banner: 'CLOCK' },
 ];
@@ -264,12 +264,18 @@ class Grouper {
     this.groups.push(this.major);
   }
   openSub(comment, title) {
-    if (!this.major) this.fallbackMajor();
+    // A `---` sub-banner with no open major is its own group: there is no
+    // major to nest it under, so promote it to the major level. This is the
+    // normal shape inside a rule body (e.g. a chip rule delimited only by
+    // `--- edge detection --- / --- registers ---`) and for leading subs
+    // before a body's first `===== major =====`. The banner text is kept
+    // verbatim, so the round-trip check is unaffected.
+    if (!this.major) { this.openMajor(comment, title); return; }
     this.sub = { kind: 'section', label: title, code: comment, folded: true, children: [] };
     this.major.children.push(this.sub);
   }
-  // Content before the first banner has no honest label — that is a KILN
-  // bug (plant a banner over it), not something to paper over here.
+  // A real preamble (raw content, no banner at all, before any banner) still
+  // has no honest label — that is a KILN bug (plant a banner over it).
   fallbackMajor() {
     console.error('  WARNING: content before the first banner — add a banner in kiln (showing as "(preamble)")');
     this.openMajor('', '(preamble)');
@@ -392,12 +398,21 @@ function parseBody(body) {
     i = comment ? afterC : close + 1;
   }
   if (!items.some((it) => it.__banner)) return items;
+  // Group by the body's own banners. Any items BEFORE the first banner are a
+  // legitimate lead (e.g. a rule's opening comment, or the precomputed decls
+  // before the trap-flag sub-banner) — they render flat, ahead of the groups,
+  // with no "(preamble)" warning (that warning is for the region/kiln level).
+  // A leading `--- x ---` with no `=====` above it opens its own group
+  // (Grouper.openSub promotes it): banners inside a rule body are already one
+  // level below the section that contains the rule.
+  const firstBanner = items.findIndex((it) => it.__banner);
+  const lead = items.slice(0, firstBanner);
   const grouper = new Grouper();
-  for (const it of items) {
+  for (const it of items.slice(firstBanner)) {
     if (it.__banner) grouper.comment(it.__banner);
     else grouper.push(it);
   }
-  return grouper.groups;
+  return [...lead, ...grouper.groups];
 }
 
 // A rule node: selector line, parsed declarations as children, '}' trailer.
@@ -807,13 +822,20 @@ class ChunkWriter {
   }
   // Writes `children` as one or more pages; returns { ref, count }.
   writePages(children) {
+    // A page must never consist only of landmark comments with the real
+    // content stranded on the next page — that renders as a "(N more…)"
+    // button with nothing above it (the disk-window bug). A page may close
+    // only once it holds at least one substantive (non-comment) node, so a
+    // leading comment always rides onto the page with the content it labels.
+    const isComment = (c) => c.kind === 'block' && (c.code ?? '').startsWith('/*');
+    const hasSubstance = (page) => page.some((c) => !isComment(c));
     // Split into pages by serialized size.
     const pages = [];
     let cur = [];
     let curLen = 0;
     for (const c of children) {
       const len = JSON.stringify(c).length + 1;
-      if (cur.length && curLen + len > PAGE_LIMIT) {
+      if (cur.length && curLen + len > PAGE_LIMIT && hasSubstance(cur)) {
         pages.push(cur);
         cur = [];
         curLen = 0;
@@ -932,14 +954,23 @@ function countWhere(nodes, pred) {
 
 const SANITY = {
   util: (nodes) => {
+    // Shared primitives only — the flag arithmetic @functions moved to CPU.
     const fns = countWhere(nodes, (n) => (n.code ?? '').startsWith('@function'));
-    if (fns < 50) throw new Error(`util: only ${fns} @functions found (expected 50+)`);
+    if (fns < 15) throw new Error(`util: only ${fns} @functions found (expected 15+ shared primitives)`);
   },
   cpu: (nodes) => {
     for (const reg of ['AX', 'CX', 'DX', 'BX', 'SP', 'BP', 'SI', 'DI', 'CS', 'DS', 'ES', 'SS', 'IP', 'flags']) {
       if (!countWhere(nodes, (n) => n.code === `--${reg}:`)) {
         throw new Error(`cpu: --${reg}: dispatch missing`);
       }
+    }
+    // Flag arithmetic now lives with the CPU (moved out of the shared helpers).
+    if (!countWhere(nodes, (n) => (n.code ?? '').startsWith('@function --addFlags16'))) {
+      throw new Error('cpu: flag arithmetic @functions missing (expected under CPU HELPERS)');
+    }
+    // Register @property declarations are homed with the CPU now.
+    if (!countWhere(nodes, (n) => (n.code ?? '').startsWith('@property --AX'))) {
+      throw new Error('cpu: register @property declarations missing (expected under CPU)');
     }
   },
   chipset: (nodes) => {
@@ -948,10 +979,18 @@ const SANITY = {
         throw new Error(`chipset: --${v}: dispatch missing`);
       }
     }
+    // Each chip's @property registrations are now homed beside it.
+    if (!countWhere(nodes, (n) => (n.code ?? '').startsWith('@property --picMask'))) {
+      throw new Error('chipset: chip @property declarations missing (expected beside their chip)');
+    }
   },
   keys: (nodes) => {
     const rows = countWhere(nodes, (n) => (n.code ?? '').includes(':active'));
     if (rows < 60) throw new Error(`keys: only ${rows} :active rows (expected 60+)`);
+    // The --keyboard / --kbdHold wire registrations live with the selectors.
+    if (!countWhere(nodes, (n) => (n.code ?? '').startsWith('@property --keyboard'))) {
+      throw new Error('keys: --keyboard @property missing (expected with keyboard selectors)');
+    }
   },
   screen: (nodes) => {
     const px = countWhere(nodes, (n) => /#p\d+ \{/.test(n.code ?? ''));
@@ -968,6 +1007,10 @@ const SANITY = {
   memw: (nodes) => {
     const rules = countWhere(nodes, (n) => /^--mc\d+:/.test(n.code ?? ''));
     if (rules < 10_000) throw new Error(`memw: only ${rules} cell write rules (expected 10k+)`);
+    // Write-slot @property registrations are homed with the write rules now.
+    if (!countWhere(nodes, (n) => (n.code ?? '').startsWith('@property --memAddr0'))) {
+      throw new Error('memw: --memAddr0 @property missing (expected with memory writes)');
+    }
   },
   disk: (nodes) => {
     const arms = countWhere(nodes, (n) => (n.code ?? '').startsWith('style(--idx:'));

@@ -179,7 +179,7 @@
       <ul class="sim-list">
         <li><code>calc()</code>, <code>mod()</code> and <code>round()</code>
           do real arithmetic &mdash; enough to build AND, OR and the rest
-          of a CPU&rsquo;s toolkit (<a href="#about/file/util">utility functions</a>)</li>
+          of a CPU&rsquo;s toolkit (<a href="#about/file/util">bit &amp; byte helpers</a>)</li>
         <li>one typed variable per pair of bytes holds the state
           (<a href="#about/file/decl">memory</a>)</li>
         <li>an <code>if()</code> table per register spells out what every

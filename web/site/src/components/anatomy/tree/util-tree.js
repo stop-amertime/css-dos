@@ -10,12 +10,110 @@ export const UTIL_TREE = [
   {
     kind: 'root',
     children: [
-    { kind: 'section', label: "BIT & BYTE HELPERS", code: `/* ===== BIT & BYTE HELPERS ===== */`, folded: true, boxed: true, lazy: {"ref":"util/006","count":7} },
-    { kind: 'section', label: "INSTRUCTION DECODE", code: `/* ===== INSTRUCTION DECODE ===== */`, folded: true, boxed: true, lazy: {"ref":"util/007","count":16} },
-    { kind: 'section', label: "FLAG COMPUTATION", code: `/* ===== FLAG COMPUTATION ===== */`, folded: true, boxed: true, lazy: {"ref":"util/016","count":15} },
+    { kind: 'section', label: "shifts, slices, sign helpers", code: `/* --- shifts, slices, sign helpers --- */`, folded: true, boxed: true, lazy: {"ref":"util/000","count":7} },
+    {
+      kind: 'section',
+      label: "bitwise AND/OR/XOR/NOT",
+      code: `/* --- bitwise AND/OR/XOR/NOT --- */`,
+      folded: true,
+      boxed: true,
+      children: [
+      { kind: 'decl', code: `@function --xor(--a <integer>, --b <integer>) returns <integer> {`, trailer: `}`, folded: true, lazy: {"ref":"util/001","count":33} },
+      { kind: 'decl', code: `@function --and(--a <integer>, --b <integer>) returns <integer> {`, trailer: `}`, folded: true, lazy: {"ref":"util/002","count":33} },
+      { kind: 'decl', code: `@function --or(--a <integer>, --b <integer>) returns <integer> {`, trailer: `}`, folded: true, lazy: {"ref":"util/003","count":33} },
+      { kind: 'block', code: `@function --not(--a <integer>) returns <integer> {
+  --a1: mod(var(--a), 2);
+  --a2: mod(round(down, var(--a) / 2), 2);
+  --a3: mod(round(down, var(--a) / 4), 2);
+  --a4: mod(round(down, var(--a) / 8), 2);
+  --a5: mod(round(down, var(--a) / 16), 2);
+  --a6: mod(round(down, var(--a) / 32), 2);
+  --a7: mod(round(down, var(--a) / 64), 2);
+  --a8: mod(round(down, var(--a) / 128), 2);
+  --a9: mod(round(down, var(--a) / 256), 2);
+  --a10: mod(round(down, var(--a) / 512), 2);
+  --a11: mod(round(down, var(--a) / 1024), 2);
+  --a12: mod(round(down, var(--a) / 2048), 2);
+  --a13: mod(round(down, var(--a) / 4096), 2);
+  --a14: mod(round(down, var(--a) / 8192), 2);
+  --a15: mod(round(down, var(--a) / 16384), 2);
+  --a16: mod(round(down, var(--a) / 32768), 2);
+  result: calc(
+    (1 - var(--a1)) +
+    (1 - var(--a2)) * 2 +
+    (1 - var(--a3)) * 4 +
+    (1 - var(--a4)) * 8 +
+    (1 - var(--a5)) * 16 +
+    (1 - var(--a6)) * 32 +
+    (1 - var(--a7)) * 64 +
+    (1 - var(--a8)) * 128 +
+    (1 - var(--a9)) * 256 +
+    (1 - var(--a10)) * 512 +
+    (1 - var(--a11)) * 1024 +
+    (1 - var(--a12)) * 2048 +
+    (1 - var(--a13)) * 4096 +
+    (1 - var(--a14)) * 8192 +
+    (1 - var(--a15)) * 16384 +
+    (1 - var(--a16)) * 32768
+  );
+}`, folded: true },
+      ],
+    },
+    {
+      kind: 'section',
+      label: "8-bit wrappers",
+      code: `/* --- 8-bit wrappers --- */`,
+      folded: true,
+      boxed: true,
+      children: [
+      { kind: 'block', code: `/* Chrome can't nest function calls as arguments, so these provide
+   pre-composed 8-bit variants of the bitwise ops. */` },
+      { kind: 'block', code: `@function --or8(--a <integer>, --b <integer>) returns <integer> {
+  --full: --or(var(--a), var(--b));
+  result: --lowerBytes(var(--full), 8);
+}`, folded: true },
+      { kind: 'block', code: `@function --and8(--a <integer>, --b <integer>) returns <integer> {
+  --full: --and(var(--a), var(--b));
+  result: --lowerBytes(var(--full), 8);
+}`, folded: true },
+      { kind: 'block', code: `@function --xor8(--a <integer>, --b <integer>) returns <integer> {
+  --full: --xor(var(--a), var(--b));
+  result: --lowerBytes(var(--full), 8);
+}`, folded: true },
+      ],
+    },
+    {
+      kind: 'section',
+      label: "byte merges",
+      code: `/* --- byte merges --- */`,
+      folded: true,
+      boxed: true,
+      children: [
+      { kind: 'block', code: `@function --mergelow(--old <integer>, --new <integer>) returns <integer> {
+  result: calc(round(down, var(--old) / 256) * 256 + --lowerBytes(var(--new), 8));
+}`, folded: true },
+      { kind: 'block', code: `@function --mergehigh(--old <integer>, --new <integer>) returns <integer> {
+  result: calc(var(--new) * 256 + --lowerBytes(var(--old), 8));
+}`, folded: true },
+      ],
+    },
+    {
+      kind: 'section',
+      label: "16-bit memory read",
+      code: `/* --- 16-bit memory read --- */`,
+      folded: true,
+      boxed: true,
+      children: [
+      { kind: 'block', code: `@function --read2(--at <integer>) returns <integer> {
+  result: calc(--readMem(var(--at)) + --readMem(calc(var(--at) + 1)) * 256);
+}` },
+      ],
+    },
+    { kind: 'section', label: "packed-cell helpers", code: `/* --- packed-cell helpers --- */`, folded: true, boxed: true, lazy: {"ref":"util/004","count":5} },
+    { kind: 'section', label: "power-of-2 lookup", code: `/* --- power-of-2 lookup --- */`, folded: true, boxed: true, lazy: {"ref":"util/005","count":2} },
     ],
   },
 ];
 
 // Real measured size of this region in the sokoban cabinet.
-export const UTIL_TREE_META = { bytes: 41642 };
+export const UTIL_TREE_META = { bytes: 14778 };

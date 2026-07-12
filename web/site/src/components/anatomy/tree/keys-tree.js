@@ -10,10 +10,20 @@ export const KEYS_TREE = [
   {
     kind: 'root',
     children: [
-    { kind: 'decl', code: `.motherboard {`, trailer: `}`, lazy: {"ref":"keys/000","count":64} },
+    { kind: 'block', code: `@property --keyboard {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
+    { kind: 'block', code: `@property --kbdHold {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
+    { kind: 'decl', code: `.motherboard {`, trailer: `}`, folded: true, lazy: {"ref":"keys/000","count":64} },
     ],
   },
 ];
 
 // Real measured size of this region in the sokoban cabinet.
-export const KEYS_TREE_META = { bytes: 3508 };
+export const KEYS_TREE_META = { bytes: 3691 };

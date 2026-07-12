@@ -3,9 +3,10 @@
 // dispatch tables, and combines with infrastructure (clock, memory, decode).
 
 import { emitCSSLib } from './css-lib.mjs';
-import { emitDecodeFunction, emitDecodeProperties } from './decode.mjs';
+import { emitDecodeFunction, emitDecodeProperties, emitPrecomputedState } from './decode.mjs';
 import {
-  emitPropertyDecls, emitBufferReads, emitRegisterAliases,
+  emitStatePropertiesFor, emitClockWireProperty, emitKeyboardWireProperties,
+  emitBufferReads, emitRegisterAliases,
   emitStoreKeyframe, emitExecuteKeyframe, emitClockKeyframes,
   emitClockRule, emitClockPlumbingOpen,
   emitKeyboardRules,
@@ -835,50 +836,69 @@ export function emitCSS(opts, writeStream) {
 
   // =====================================================================
   // File order (mirrors the site's file map):
-  //   utility functions → CPU → chipset → keyboard → pixel painter →
-  //   property declarations → memory read → memory write → disk → clock
+  //   bit & byte helpers → CPU → chipset → keyboard selectors → display →
+  //   memory declarations → memory reads → memory writes → disk → clock
+  //
+  // Each subsystem is one contiguous banner span: its @functions, its
+  // @property registrations, and its rule(s) sit together, so a reader
+  // meets each part of the machine as a coherent unit. The @property /
+  // @function order across the file is functionally inert (var() and
+  // function resolution are name-based), so grouping by subsystem is free.
   //
   // The .cpu and .motherboard rules target the SAME player element (it
   // carries both classes), so their custom properties merge into one
   // computed style. The split is organisational: the CPU proper (decode
   // + register dispatch tables) under .cpu, everything else on the
-  // board — chipset, memory, plumbing — under .motherboard.
+  // board — chipset, memory, clock — under .motherboard.
   // =====================================================================
 
-  // 1. Utility @functions
-  w('/* ===== UTILITY FUNCTIONS ===== */');
+  // 1. Bit & byte helpers — the shared low-level ops everything is built
+  //    from. Only the genuinely-shared primitives live here; the
+  //    CPU-only flag arithmetic and decode helpers sit with the CPU.
+  w('/* ===== BIT & BYTE HELPERS ===== */');
   w(emitCSSLib());
-  w(emitDecodeFunction());
-  w(emitFlagFunctions());
-  w(emitShiftFlagFunctions());
-  w(emitShiftByNFlagFunctions());
 
-  // 2. CPU — instruction decode + the register dispatch tables.
-  // Rule layout (the ===== / --- banner comments delimit the regions the
-  // site's anatomy Tree View mirrors — see tools/extract-tree-data.mjs):
-  //   FETCH & DECODE  (decode.mjs's sub-regions + the unknown-opcode flag)
-  //   REGISTERS       (8-bit aliases + the per-register dispatch tables)
-  //   MEMORY WRITE SLOTS
-  // Custom-property order within one rule is functionally inert (var()
-  // resolution is name-based), so this grouping is free.
+  // 2. CPU — decode, register dispatch, output, and its own helpers.
+  //    Banner spans (the ===== / --- comments the site's file map mirrors —
+  //    see tools/extract-tree-data.mjs):
+  //      1 · FETCH & DECODE           (decode @functions + decode properties)
+  //      PRECOMPUTED EXECUTION STATE  (per-instruction precomputed operands)
+  //      2 · UPDATE REGISTERS         (the per-register dispatch tables)
+  //      3 · OUTPUT: MEMORY WRITE SLOTS
+  //      HELPERS                      (register aliases + flag arithmetic)
+  //    @functions can't nest in a rule, so the decode/flag @functions are
+  //    emitted top-level inside the CPU banner span, around the .cpu rule.
   w('/* ===== CPU ===== */');
+  // The CPU's own state registrations — the 14 registers plus the
+  // bookkeeping latches (halt / cycleCount / trap-flag pending / haltCode).
+  // Power-on values ride in initial-value. Homed with the CPU rather than in
+  // one monolithic declaration dump so a register's declaration sits with the
+  // logic that updates it.
+  writeStream.write('/* ===== REGISTER DECLARATIONS ===== */\n\n');
+  w(emitStatePropertiesFor('cpu', templateOpts));
+  // Each CPU stage is emitted as its own .cpu {} block under a top-level
+  // banner, so every stage reads as a sibling group in the file map (the
+  // blocks merge into one computed style on the player element). @functions
+  // can't nest in a rule, so the decode/flag @functions sit top-level within
+  // their stage's banner span.
+  writeStream.write('/* ===== 1 · FETCH & DECODE ===== */\n\n');
+  w(emitDecodeFunction());
   writeStream.write('.cpu {\n');
-  writeStream.write('  /* ===== FETCH & DECODE ===== */\n');
   w(emitDecodeProperties());
-
   // Unknown opcode detection — sets --unknownOp=1 and --haltCode=opcode
   writeStream.write('  /* --- unknown opcode flag --- */\n');
   writeStream.write(dispatch.emitUnknownOpFlag() + '\n');
-  writeStream.write('  --haltCode: calc(var(--unknownOp) * var(--opcode)); /* the offending opcode, 0 while running */\n\n');
+  writeStream.write('  --haltCode: calc(var(--unknownOp) * var(--opcode)); /* the offending opcode, 0 while running */\n');
+  w('}');
 
-  writeStream.write('  /* ===== REGISTERS ===== */\n');
-  writeStream.write('  /* --- register aliases (8-bit halves) --- */\n');
-  writeStream.write('  /* Read-only views of the previous tick\'s (--__1) word registers. */\n');
-  w(emitRegisterAliases());
-  writeStream.write('\n');
+  writeStream.write('/* ===== PRECOMPUTED EXECUTION STATE ===== */\n\n');
+  writeStream.write('.cpu {\n');
+  w(emitPrecomputedState());
+  w('}');
 
   // Per-register dispatch tables — the heart of instruction execution
-  writeStream.write('  /* --- register update formulas --- */\n');
+  writeStream.write('/* ===== 2 · UPDATE REGISTERS ===== */\n\n');
+  writeStream.write('.cpu {\n');
   writeStream.write('  /* Each register\'s next value is selected by opcode via a\n');
   writeStream.write('     giant if(style(--opcode: N)) dispatch. This is the CPU. */\n');
   // Chipset state — the support chips around the CPU, driven by the same
@@ -947,12 +967,13 @@ export function emitCSS(opts, writeStream) {
   emitDispatchFor(['CS', 'DS', 'ES', 'SS']);
   writeStream.write('  /* instruction pointer & FLAGS */\n');
   emitDispatchFor(['IP', 'flags']);
-  writeStream.write('  /* execution bookkeeping: halt latch + 8086 cycle counter */\n');
+  writeStream.write('  /* cycle counter + halt latch */\n');
   emitDispatchFor(['halt', 'cycleCount']);
-  writeStream.write('\n');
+  w('}');
 
   // Memory write slots — the CPU's write port onto the bus
-  writeStream.write('  /* ===== MEMORY WRITE SLOTS ===== */\n');
+  writeStream.write('/* ===== 3 · OUTPUT: MEMORY WRITE SLOTS ===== */\n\n');
+  writeStream.write('.cpu {\n');
   writeStream.write('  /* The CPU\'s write port onto the bus: three (addr, val) slot pairs.\n');
   writeStream.write('     Slot N writes --memValN to linear address --memAddrN this tick\n');
   writeStream.write('     (addr -1 = slot idle); the shared --_writeWidth below picks byte\n');
@@ -966,66 +987,109 @@ export function emitCSS(opts, writeStream) {
   if (writableDisk) {
     writeStream.write(emitDiskWriteRemap(writableDisk) + '\n\n');
   }
-
   w('}');
 
-  // 3. Chipset — the support chips around the CPU, one group PER CHIP,
-  // each with its derived wires first and its registers after. Same
-  // dispatch machinery as the CPU registers; custom-property order
-  // within the rule is name-resolved, so the per-chip grouping is free.
+  // CPU helpers — supporting definitions the dispatch above leans on:
+  // the 8-bit register aliases (in-rule computed props) and the flag
+  // arithmetic @functions (top-level, so emitted after the rule closes).
+  // Only the CPU uses these, so they live with the CPU, not in the shared
+  // bit & byte helpers.
+  writeStream.write('/* ===== HELPERS ===== */\n\n');
+  writeStream.write('.cpu {\n');
+  writeStream.write('  /* --- register aliases (8-bit halves) --- */\n');
+  writeStream.write('  /* Read-only views of the previous tick\'s (--__1) word registers. */\n');
+  w(emitRegisterAliases());
+  w('}');
+  writeStream.write('/* --- flag arithmetic --- */\n\n');
+  w(emitFlagFunctions());
+  w(emitShiftFlagFunctions());
+  w(emitShiftByNFlagFunctions());
+
+  // 3. Chipset — the support chips around the CPU, one group PER CHIP. Each
+  // chip's @property registrations, its derived wires, and its register
+  // dispatch sit together under one banner so a reader meets each chip as a
+  // whole. The @property order across the file is inert (name-resolved), so
+  // homing each chip's declarations beside its logic is free.
   // Story order: the timer (time source) → the keyboard (input source) →
   // the interrupt controller (arbitrates both) → the DAC (output side).
+  //
+  // @functions/@property can't nest in a rule, so each chip emits its
+  // @property blocks top-level, then a .motherboard {} block for its wires +
+  // dispatch. The multiple .motherboard {} blocks merge into one computed
+  // style on the player element.
   w('/* ===== CHIPSET ===== */');
+
+  writeStream.write('/* ===== PIT TIMER (8253) ===== */\n\n');
+  w(emitStatePropertiesFor('pit', templateOpts));
   writeStream.write('.motherboard {\n');
-  writeStream.write('  /* ===== PIT TIMER (8253) ===== */\n');
-  writeStream.write('  /* --- tick derivation --- */\n');
+  writeStream.write('  /* --- timer countdown --- */\n');
   w(emitPitDerivation());
   writeStream.write('  /* --- registers --- */\n');
   emitDispatchFor(PIT_REGS);
-  writeStream.write('\n  /* ===== KEYBOARD CONTROLLER ===== */\n');
+  w('}');
+
+  writeStream.write('/* ===== KEYBOARD CONTROLLER (8042) ===== */\n\n');
+  w(emitStatePropertiesFor('kbd', templateOpts));
+  writeStream.write('.motherboard {\n');
   writeStream.write('  /* --- edge detection --- */\n');
   w(emitKeyboardWires());
   writeStream.write('  /* --- registers --- */\n');
   emitDispatchFor(KBD_REGS);
-  writeStream.write('\n  /* ===== PIC INTERRUPT CONTROLLER (8259) ===== */\n');
+  w('}');
+
+  writeStream.write('/* ===== PIC INTERRUPT CONTROLLER (8259) ===== */\n\n');
+  w(emitStatePropertiesFor('pic', templateOpts));
+  writeStream.write('.motherboard {\n');
   writeStream.write('  /* --- IRQ arbitration --- */\n');
   w(emitIRQArbitration());
   writeStream.write('  /* --- registers --- */\n');
   emitDispatchFor(PIC_REGS);
-  writeStream.write('\n  /* ===== VGA DAC ===== */\n');
+  w('}');
+
+  writeStream.write('/* ===== VGA DAC ===== */\n\n');
+  w(emitStatePropertiesFor('dac', templateOpts));
+  writeStream.write('.motherboard {\n');
   writeStream.write('  /* --- index registers --- */\n');
   emitDispatchFor(DAC_REGS);
   w('}');
 
-  // 4. Keyboard :active rules (separate .motherboard block)
-  w('/* ===== KEYBOARD ===== */');
+  // 4. Keyboard selectors — the :active key rules that turn an on-screen
+  // key press into the --keyboard value, plus the --keyboard / --kbdHold
+  // wire registrations they drive. The keyboard CONTROLLER (edge detection,
+  // scancode latch, held set) lives in the chipset above; this section is
+  // the input surface.
+  w('/* ===== KEYBOARD SELECTORS ===== */');
+  w(emitKeyboardWireProperties());
   w(emitKeyboardRules());
 
-  // 4b. Mode 13h pixel painter (raw player only; inert in calcite path).
+  // 5. Display — the pixel painter. Emits its own DISPLAY banner.
   w(emitPixelPaintRules());
 
   // =====================================================================
-  // THE BULK — @property declarations, memory, disk, clock plumbing
+  // THE BULK — memory declarations, reads, writes, disk, clock
   // (This is ~99% of the file by volume: one @property per memory cell,
   //  one read arm per byte, one write-rule per cell, etc.)
   // =====================================================================
 
-  w('/* ===== PROPERTY DECLARATIONS ===== */');
-  w(`/* Below: ${addresses.length} @property declarations (one per memory byte),\n` +
-    '   followed by memory read/write rules, the disk, and the clock.\n' +
-    '   The CPU logic above is a small fraction of this file. The rest is memory. */\n');
-  w(emitPropertyDecls(templateOpts));
-  // Memory properties — emit in chunks to avoid huge strings
+  w('/* ===== MEMORY DECLARATIONS ===== */');
+  // The per-cell @property array — one declaration per memory cell, the
+  // assembled power-on image in each initial-value. The subsystem-specific
+  // declarations (registers, chipset, keyboard, write slots) have moved to
+  // their own sections, so this is now purely the memory-cell array that
+  // dominates the file.
   emitMemoryPropertiesStreaming(memOpts, writeStream);
-  w(emitWriteSlotProperties());
-  if (writableDisk) w(emitDiskAddrProperties());
 
   // readMem @function (large — one branch per memory byte)
-  w('/* ===== MEMORY READ ===== */');
+  w('/* ===== MEMORY READS ===== */');
   emitReadMemStreaming(memOpts, writeStream);
 
-  // Per-byte memory write rules — their own .motherboard rule
-  w('/* ===== MEMORY WRITE RULES ===== */');
+  // Per-byte memory write rules — the write-slot registrations live with
+  // them now, then the per-cell write cascade in its own .motherboard rule.
+  w('/* ===== MEMORY WRITES ===== */');
+  writeStream.write('/* --- write slot properties --- */\n\n');
+  w(emitWriteSlotProperties());
+  if (writableDisk) w(emitDiskAddrProperties());
+  writeStream.write('/* --- per-cell write rules --- */\n\n');
   writeStream.write('.motherboard {\n');
   emitMemoryWriteRulesStreaming(memOpts, writeStream);
   w('}');
@@ -1036,29 +1100,31 @@ export function emitCSS(opts, writeStream) {
     emitReadDiskByteStreaming(diskBytes, writeStream, writableDisk);
   }
 
-  // Clock — one contiguous section: the heartbeat rule, the plumbing
-  // rule (paused store/execute animations + all double-buffer reads),
-  // and the keyframes that do the handover.
+  // 10. Clock — the tick engine: the animation that advances the beat, the
+  // double-buffer reads that give each tick a stable view of memory, and the
+  // store/execute keyframes that hand this tick's computed values over to be
+  // next tick's current values. The --clock wire registration lives here too.
   w('/* ===== CLOCK ===== */');
+  w(emitClockWireProperty());
   w('/* --- clock animation --- */');
   w(emitClockRule());
-  w('/* --- double-buffer plumbing --- */');
+  w('/* --- double-buffer reads --- */');
   writeStream.write(emitClockPlumbingOpen() + '\n');
-  writeStream.write('  /* Double-buffer reads */\n');
+  writeStream.write('  /* this tick\'s stable view of every double-buffered value */\n');
   w(emitBufferReads(templateOpts));
   emitMemoryBufferReadsStreaming(memOpts, writeStream);
   w('}');
 
-  // Keyframes — store
-  w('/* --- store keyframe --- */');
+  // The value hand-over runs in two ordered phases per tick: store latches
+  // this tick's computed values, then execute exposes them for next tick.
+  w('/* --- 1 · store keyframe --- */');
   const storeKf = emitStoreKeyframe(templateOpts);
   const storeKfOpen = storeKf.replace('  }\n}', '');
   writeStream.write(storeKfOpen);
   emitMemoryStoreKeyframeStreaming(memOpts, writeStream);
   writeStream.write('  }\n}\n\n');
 
-  // Execute keyframe
-  w('/* --- execute keyframe --- */');
+  w('/* --- 2 · execute keyframe --- */');
   const execKf = emitExecuteKeyframe(templateOpts);
   const execKfOpen = execKf.replace('  }\n}', '');
   writeStream.write(execKfOpen);

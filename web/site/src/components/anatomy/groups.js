@@ -2,11 +2,11 @@
 // the drawn bar segments. Order = file order (of first appearance).
 // The carousel also has a 'map' overview page (router FILE_SECTIONS)
 // that isn't a file section and so isn't listed here.
-// Sizes measured 2026-07-10 from a real Sokoban build (309,801,718
-// bytes) after the motherboard/cpu split: banner byte offsets
-// util 24,979 / cpu 66,717 / chipset 331,885 / keys 348,315 /
-// screen 351,835 / decl 7,331,748 / memr 39,366,670 /
-// memw 83,138,481 / disk 253,856,953 / clock 266,802,460.
+// Sizes measured 2026-07-12 from a real Sokoban build (~309.8 MB)
+// after the file-map reorg (declarations homed with their subsystem):
+// region bytes util 14,778 / cpu 306,502 / chipset 19,320 /
+// keys 3,691 / screen 6,979,937 / decl 32,030,848 / memr 43,772,403 /
+// memw 170,719,352 / disk 12,945,591 / clock 43,000,160.
 // Colours are semantic families (EGA-leaning): silicon = reds
 // (CPU dark, chipset light), I/O = cyans (screen dark, keys light),
 // memory = blues (decl light → memr mid → memw dark, biggest =
@@ -15,14 +15,14 @@
 // that moves gets the loudest colour (and stays clear of the warm
 // reds, which read as silicon).
 export const GROUPS = [
-  { id: 'util',    label: 'Utility functions',               size: '42 KB',  c: '#00aa00' },
-  { id: 'cpu',     label: 'CPU',                             size: '265 KB', c: '#aa0000' },
-  { id: 'chipset', label: 'Chipset',                         size: '16 KB',  c: '#ff5555' },
-  { id: 'keys',    label: 'Keyboard & debug display',        size: '3.5 KB', c: '#55ffff' },
-  { id: 'screen',  label: 'Screen',                          size: '7 MB',   c: '#00aaaa' },
-  { id: 'decl',    label: 'Variable declarations',           size: '32 MB',  c: '#5555ff' },
-  { id: 'memr',    label: 'Memory — read formulas',          size: '44 MB',  c: '#2222cc' },
-  { id: 'memw',    label: 'Memory — write formulas',         size: '171 MB', c: '#0000aa' },
+  { id: 'util',    label: 'Bit & byte helpers',              size: '15 KB',  c: '#00aa00' },
+  { id: 'cpu',     label: 'CPU',                             size: '307 KB', c: '#aa0000' },
+  { id: 'chipset', label: 'Chipset',                         size: '19 KB',  c: '#ff5555' },
+  { id: 'keys',    label: 'Keyboard selectors',              size: '3.7 KB', c: '#55ffff' },
+  { id: 'screen',  label: 'Display',                         size: '7 MB',   c: '#00aaaa' },
+  { id: 'decl',    label: 'Memory declarations',             size: '32 MB',  c: '#5555ff' },
+  { id: 'memr',    label: 'Memory reads',                    size: '44 MB',  c: '#2222cc' },
+  { id: 'memw',    label: 'Memory writes',                   size: '171 MB', c: '#0000aa' },
   { id: 'disk',    label: 'Disk',                            size: '13 MB',  c: '#aa00aa' },
   { id: 'clock',   label: 'Clock',                           size: '43 MB',  c: '#ffff55' },
 ];
@@ -48,12 +48,12 @@ export const SEGS = [
 ];
 
 // Zoom box segments: the TINY sliver expanded to a 240px box —
-// ~350× the bar's scale. Proportional to 42 / 265 / 16 / 3.5 KB,
+// ~350× the bar's scale. Proportional to 15 / 307 / 19 / 3.7 KB,
 // except keys is held to a 6px minimum so it can be hovered and
 // clicked.
 export const ZOOM = [
-  { g: 'util',    x: 10,  w: 30  },  // the 66 @functions
-  { g: 'cpu',     x: 40,  w: 192 },  // decode + register tables + write slots
+  { g: 'util',    x: 10,  w: 16  },  // the 21 shared @functions
+  { g: 'cpu',     x: 26,  w: 206 },  // decode + register tables + write slots + flag arithmetic
   { g: 'chipset', x: 232, w: 12  },  // PIT, PIC, keyboard controller, DAC
-  { g: 'keys',    x: 244, w: 6   },  // debug + keyboard (min width)
+  { g: 'keys',    x: 244, w: 6   },  // keyboard selectors (min width)
 ];

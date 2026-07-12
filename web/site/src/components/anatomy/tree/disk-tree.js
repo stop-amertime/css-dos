@@ -29,4 +29,4 @@ export const DISK_TREE = [
 ];
 
 // Real measured size of this region in the sokoban cabinet.
-export const DISK_TREE_META = { bytes: 12788804 };
+export const DISK_TREE_META = { bytes: 12945591 };

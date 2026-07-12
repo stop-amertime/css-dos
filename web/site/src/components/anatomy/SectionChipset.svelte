@@ -36,7 +36,7 @@
 </p>
 <CodeCss code={CHIP_VARS} />
 <p>
-  All of it fits in about 16&nbsp;KB &mdash; its own little block in
+  All of it fits in about 19&nbsp;KB &mdash; its own little block in
   the file, between the CPU and the keyboard. (The keyboard
   controller&rsquo;s input side and the palette&rsquo;s colour maths
   have their own pages: <a href="#about/file/keys">keyboard</a>,

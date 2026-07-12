@@ -10,6 +10,11 @@ export const CLOCK_TREE = [
   {
     kind: 'root',
     children: [
+    { kind: 'block', code: `@property --clock {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 0;
+}`, folded: true },
     {
       kind: 'section',
       label: "clock animation",
@@ -36,8 +41,8 @@ export const CLOCK_TREE = [
     },
     {
       kind: 'section',
-      label: "double-buffer plumbing",
-      code: `/* --- double-buffer plumbing --- */`,
+      label: "double-buffer reads",
+      code: `/* --- double-buffer reads --- */`,
       folded: true,
       boxed: true,
       children: [
@@ -46,8 +51,8 @@ export const CLOCK_TREE = [
     },
     {
       kind: 'section',
-      label: "store keyframe",
-      code: `/* --- store keyframe --- */`,
+      label: "1 · store keyframe",
+      code: `/* --- 1 · store keyframe --- */`,
       folded: true,
       boxed: true,
       children: [
@@ -61,7 +66,7 @@ export const CLOCK_TREE = [
       },
       ],
     },
-    { kind: 'section', label: "execute keyframe", code: `/* --- execute keyframe --- */`, folded: true, boxed: true, lazy: {"ref":"clock/006","count":1} },
+    { kind: 'section', label: "2 · execute keyframe", code: `/* --- 2 · execute keyframe --- */`, folded: true, boxed: true, lazy: {"ref":"clock/006","count":1} },
     {
       kind: 'section',
       label: "clock keyframes",
@@ -115,4 +120,4 @@ export const CLOCK_TREE = [
 ];
 
 // Real measured size of this region in the sokoban cabinet.
-export const CLOCK_TREE_META = { bytes: 43000036 };
+export const CLOCK_TREE_META = { bytes: 43000160 };

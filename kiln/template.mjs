@@ -91,38 +91,59 @@ export const STATE_VARS = [
   { name: 'haltCode', init: 0 },
 ];
 
-/**
- * Emit @property declarations for all double-buffered variables.
- */
-export function emitPropertyDecls(opts) {
-  const all = getAllVars(opts);
-  const lines = [];
-  lines.push(`/* platform wires: --clock, --keyboard, --kbdHold */`);
-  lines.push(`@property --clock {
+// One @property registration block for a double-buffered <integer> variable.
+function propertyBlock(name, init) {
+  return `@property --${name} {
   syntax: '<integer>';
   inherits: true;
-  initial-value: 0;
-}`);
-  lines.push(`@property --keyboard {
-  syntax: '<integer>';
-  inherits: true;
-  initial-value: 0;
-}`);
-  lines.push(`@property --kbdHold {
-  syntax: '<integer>';
-  inherits: true;
-  initial-value: 0;
-}`);
-  lines.push(`/* machine state: registers, chipset latches, bookkeeping. initial-value = power-on state. */`);
-  for (const v of all) {
-    lines.push(`@property --${v.name} {
-  syntax: '<integer>';
-  inherits: true;
-  initial-value: ${v.init};
-}`);
-  }
-  return lines.join('\n\n');
+  initial-value: ${init};
+}`;
 }
+
+// The subsystem each state variable's @property registration belongs with,
+// so a variable's declaration sits in the same file-map section as the logic
+// that drives it (instead of one monolithic declaration dump). Keys are the
+// group ids; a variable not listed here defaults to the CPU group (the 14
+// registers + bookkeeping latches). Platform wires (--clock/--keyboard/
+// --kbdHold) are not double-buffered state vars and are emitted separately
+// by their own section (see emitClockWireProperty / emitKeyboardWireProperties).
+const STATE_VAR_GROUP = {
+  picMask: 'pic', picPending: 'pic', picInService: 'pic',
+  pitMode: 'pit', pitReload: 'pit', pitCounter: 'pit', pitWriteState: 'pit',
+  prevKeyboard: 'kbd', kbdScancodeLatch: 'kbd',
+  kbdHeld0: 'kbd', kbdHeld1: 'kbd', kbdHeld2: 'kbd', kbdHeld3: 'kbd',
+  kbdHeld4: 'kbd', kbdHeld5: 'kbd', kbdHeld6: 'kbd', kbdHeld7: 'kbd',
+  dacWriteIndex: 'dac', dacSubIndex: 'dac',
+  dacReadIndex: 'dac', dacReadSubIndex: 'dac',
+};
+
+// Emit the @property registrations for one subsystem group ('cpu' | 'pit' |
+// 'kbd' | 'pic' | 'dac'). The CPU group carries the 14 registers plus the
+// bookkeeping latches (halt / cycleCount / _tfPending / haltCode); the chip
+// groups carry only their own latches. Each group is emitted inside its own
+// file-map section so declarations sit with the logic that uses them.
+export function emitStatePropertiesFor(group, opts) {
+  const all = getAllVars(opts);
+  return all
+    .filter(v => (STATE_VAR_GROUP[v.name] ?? 'cpu') === group)
+    .map(v => propertyBlock(v.name, v.init))
+    .join('\n\n');
+}
+
+// Platform wire registrations, emitted by the sections that own the wire:
+// --clock by the clock section, --keyboard / --kbdHold by the keyboard
+// selectors section. They are not double-buffered state vars.
+export function emitClockWireProperty() {
+  return propertyBlock('clock', 0);
+}
+export function emitKeyboardWireProperties() {
+  return `${propertyBlock('keyboard', 0)}\n\n${propertyBlock('kbdHold', 0)}`;
+}
+
+// The per-cell memory @property array is emitted directly by
+// emit-css.mjs (emitMemoryPropertiesStreaming) — it dominates the file and
+// must stream. The subsystem state registrations above are the small,
+// human-scale remainder.
 
 /**
  * Emit the machine element's __1 variable reads (read from double-buffer).

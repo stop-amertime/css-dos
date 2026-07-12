@@ -24,7 +24,7 @@ max(0, sign(3409 - mod(var(--snapshot-cycleCount), 68182)))`;
 }`;
 </script>
 
-<TreeView nodes={SCREEN_TREE} title="Screen" bytes={SCREEN_TREE_META.bytes} />
+<TreeView nodes={SCREEN_TREE} title="Display" bytes={SCREEN_TREE_META.bytes} />
 
 <p>
   CSS can&rsquo;t draw pixels. It can colour elements. So the screen is

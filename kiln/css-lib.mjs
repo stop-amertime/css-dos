@@ -2,8 +2,6 @@
 
 export function emitCSSLib() {
   return `
-/* ===== BIT & BYTE HELPERS ===== */
-
 /* --- shifts, slices, sign helpers --- */
 
 @function --lowerBytes(--a <integer>, --b <integer>) returns <integer> {

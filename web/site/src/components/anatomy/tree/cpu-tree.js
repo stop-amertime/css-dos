@@ -10,92 +10,64 @@ export const CPU_TREE = [
   {
     kind: 'root',
     children: [
+    { kind: 'section', label: "REGISTER DECLARATIONS", code: `/* ===== REGISTER DECLARATIONS ===== */`, folded: true, boxed: true, lazy: {"ref":"cpu/000","count":18} },
     {
-      kind: 'decl',
-      code: `.cpu {`,
-      trailer: `}`,
+      kind: 'section',
+      label: "1 · FETCH & DECODE",
+      code: `/* ===== 1 · FETCH & DECODE ===== */`,
+      folded: true,
+      boxed: true,
       children: [
-      { kind: 'section', label: "FETCH & DECODE", code: `/* ===== FETCH & DECODE ===== */`, folded: true, lazy: {"ref":"cpu/005","count":8} },
-      {
-        kind: 'section',
-        label: "REGISTERS",
-        code: `/* ===== REGISTERS ===== */`,
-        folded: true,
-        children: [
-        {
-          kind: 'section',
-          label: "register aliases (8-bit halves)",
-          code: `/* --- register aliases (8-bit halves) --- */`,
-          folded: true,
-          children: [
-          { kind: 'block', code: `/* Read-only views of the previous tick's (--__1) word registers. */` },
-          {
-            kind: 'decl',
-            code: `--AL:`,
-            children: [
-            { kind: 'value', code: `--lowerBytes(var(--__1AX), 8);` },
-            ],
-          },
-          {
-            kind: 'decl',
-            code: `--CL:`,
-            children: [
-            { kind: 'value', code: `--lowerBytes(var(--__1CX), 8);` },
-            ],
-          },
-          {
-            kind: 'decl',
-            code: `--DL:`,
-            children: [
-            { kind: 'value', code: `--lowerBytes(var(--__1DX), 8);` },
-            ],
-          },
-          {
-            kind: 'decl',
-            code: `--BL:`,
-            children: [
-            { kind: 'value', code: `--lowerBytes(var(--__1BX), 8);` },
-            ],
-          },
-          {
-            kind: 'decl',
-            code: `--AH:`,
-            children: [
-            { kind: 'value', code: `--rightShift(var(--__1AX), 8);` },
-            ],
-          },
-          {
-            kind: 'decl',
-            code: `--CH:`,
-            children: [
-            { kind: 'value', code: `--rightShift(var(--__1CX), 8);` },
-            ],
-          },
-          {
-            kind: 'decl',
-            code: `--DH:`,
-            children: [
-            { kind: 'value', code: `--rightShift(var(--__1DX), 8);` },
-            ],
-          },
-          {
-            kind: 'decl',
-            code: `--BH:`,
-            children: [
-            { kind: 'value', code: `--rightShift(var(--__1BX), 8);` },
-            ],
-          },
-          ],
-        },
-        { kind: 'section', label: "register update formulas", code: `/* --- register update formulas --- */`, folded: true, lazy: {"ref":"cpu/034","count":21} },
-        ],
-      },
-      { kind: 'section', label: "MEMORY WRITE SLOTS", code: `/* ===== MEMORY WRITE SLOTS ===== */`, folded: true, lazy: {"ref":"cpu/043","count":5} },
+      { kind: 'section', label: "decode helpers", code: `/* --- decode helpers --- */`, folded: true, lazy: {"ref":"cpu/006","count":17} },
       ],
     },
+    {
+      kind: 'section',
+      label: "PRECOMPUTED EXECUTION STATE",
+      code: `/* ===== PRECOMPUTED EXECUTION STATE ===== */`,
+      folded: true,
+      boxed: true,
+      children: [
+      { kind: 'decl', code: `.cpu {`, trailer: `}`, lazy: {"ref":"cpu/007","count":50} },
+      ],
+    },
+    {
+      kind: 'section',
+      label: "2 · UPDATE REGISTERS",
+      code: `/* ===== 2 · UPDATE REGISTERS ===== */`,
+      folded: true,
+      boxed: true,
+      children: [
+      { kind: 'decl', code: `.cpu {`, trailer: `}`, lazy: {"ref":"cpu/036","count":21} },
+      ],
+    },
+    {
+      kind: 'section',
+      label: "3 · OUTPUT: MEMORY WRITE SLOTS",
+      code: `/* ===== 3 · OUTPUT: MEMORY WRITE SLOTS ===== */`,
+      folded: true,
+      boxed: true,
+      children: [
+      {
+        kind: 'decl',
+        code: `.cpu {`,
+        trailer: `}`,
+        children: [
+        { kind: 'block', code: `/* The CPU's write port onto the bus: three (addr, val) slot pairs.
+     Slot N writes --memValN to linear address --memAddrN this tick
+     (addr -1 = slot idle); the shared --_writeWidth below picks byte
+     or word for every live slot. Three slots is the worst case: INT
+     (and the TF-trap / hardware-IRQ frame) pushes FLAGS, CS and IP
+     in one tick. */` },
+        { kind: 'section', label: "slot 0", code: `/* --- slot 0 --- */`, folded: true, lazy: {"ref":"cpu/045","count":6} },
+        ],
+      },
+      ],
+    },
+    { kind: 'section', label: "HELPERS", code: `/* ===== HELPERS ===== */`, folded: true, boxed: true, lazy: {"ref":"cpu/055","count":11} },
     ],
   },
 ];
 
 // Real measured size of this region in the sokoban cabinet.
-export const CPU_TREE_META = { bytes: 278130 };
+export const CPU_TREE_META = { bytes: 306502 };

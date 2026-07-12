@@ -55,7 +55,7 @@ ${arms.join('\n')}
 
 export function emitPixelPaintRules({ width = 320, height = 200 } = {}) {
   const lines = [];
-  lines.push('/* ===== MODE 13h PIXEL PAINTER (raw player only) ===== */');
+  lines.push('/* ===== DISPLAY ===== */');
   lines.push('/* --- palette function --- */');
   lines.push(emitPaletteFunction());
   const count = width * height;

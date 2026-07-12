@@ -201,36 +201,10 @@ export function emitGroup_F6(dispatch) {
     `Group F6`);
 }
 
-/**
- * Add 8-bit INC/DEC flag functions to flags.mjs output
- */
-export function emitIncDecFlags8() {
-  return `
-@function --incFlags8(--dst <integer>, --res <integer>, --oldFlags <integer>) returns <integer> {
-  --cf: --bit(var(--oldFlags), 0);
-  --pf: --parity(var(--res));
-  --_xor_rd: --xor(var(--res), var(--dst));
-  --_xor_rd1: --xor(var(--_xor_rd), 1);
-  --af: calc(--bit(var(--_xor_rd1), 4) * 16);
-  --zf: if(style(--res: 0): 64; else: 0);
-  --sf: calc(--bit(var(--res), 7) * 128);
-  --of: if(style(--res: 128): 2048; else: 0);
-  result: calc(var(--cf) + var(--pf) + var(--af) + var(--zf) + var(--sf) + var(--of) + 2);
-}
-
-@function --decFlags8(--dst <integer>, --res <integer>, --oldFlags <integer>) returns <integer> {
-  --cf: --bit(var(--oldFlags), 0);
-  --pf: --parity(var(--res));
-  --_xor_rd: --xor(var(--res), var(--dst));
-  --_xor_rd1: --xor(var(--_xor_rd), 1);
-  --af: calc(--bit(var(--_xor_rd1), 4) * 16);
-  --zf: if(style(--res: 0): 64; else: 0);
-  --sf: calc(--bit(var(--res), 7) * 128);
-  --of: if(style(--res: 127): 2048; else: 0);
-  result: calc(var(--cf) + var(--pf) + var(--af) + var(--zf) + var(--sf) + var(--of) + 2);
-}
-`;
-}
+// (--incFlags8 / --decFlags8 live in kiln/patterns/flags.mjs, emitted by
+// emitFlagFunctions. A stale never-called duplicate here was removed
+// 2026-07-12 during the file-map reorg — it had drifted to a different AF
+// computation than the live copy.)
 
 /**
  * Register all group opcodes.

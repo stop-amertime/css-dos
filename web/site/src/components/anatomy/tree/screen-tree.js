@@ -62,4 +62,4 @@ export const SCREEN_TREE = [
 ];
 
 // Real measured size of this region in the sokoban cabinet.
-export const SCREEN_TREE_META = { bytes: 6979970 };
+export const SCREEN_TREE_META = { bytes: 6979937 };

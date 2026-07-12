@@ -29,4 +29,4 @@ export const MEMR_TREE = [
 ];
 
 // Real measured size of this region in the sokoban cabinet.
-export const MEMR_TREE_META = { bytes: 43772402 };
+export const MEMR_TREE_META = { bytes: 43772403 };
