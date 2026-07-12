@@ -30,6 +30,7 @@
   import Prism from '../../../lib/prism.js';
   import TreeAst from './TreeAst.svelte'; // self-import: Svelte 5 deprecates <svelte:self>
   import { fetchChunk, expandRun } from './lazy.js';
+  import DosSpinner from '../../DosSpinner.svelte';
 
   // forceSplit: set by the PARENT when this node sits in a run of
   // same-shaped siblings where any member exceeds the line budget —
@@ -358,7 +359,7 @@
     </div>
   {/if}
   {#if loadState === 'loading' && runs.length === 0}
-    <pre class="ast-line"><span class="tree-glyph" aria-hidden="true"></span><code class="ast-note">loading&hellip;</code></pre>
+    <pre class="ast-line"><span class="tree-glyph" aria-hidden="true"></span><code class="ast-note">loading <DosSpinner /></code></pre>
   {:else if loadState === 'error'}
     <div class="tree-more">
       <button onclick={retry}>failed to load &mdash; retry</button>
