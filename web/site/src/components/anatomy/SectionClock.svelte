@@ -158,7 +158,7 @@
   section</a> covers it.
 </p>
 
-<h3 class="anatomy-head">How one animation conducts two more</h3>
+<h3 class="anatomy-head">How the store and execute steps get triggered</h3>
 <p>
   The store and execute steps are themselves <code>@keyframes</code>
   &mdash; and an animation can&rsquo;t call another animation. So the

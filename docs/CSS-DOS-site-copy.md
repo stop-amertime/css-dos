@@ -566,7 +566,7 @@ Here is the register AX — structurally exact from the cabinet, arithmetic elid
     style(--opcode: 0): …;    /* ADD, one flavour */
     style(--opcode: 1): …;    /* ADD, another */
     …                         /* every opcode that can touch AX */
-    else: var(--snapshot-AX));   /* untouched: keep the old value */
+    else: var(--AX-prev));   /* untouched: keep the old value */
 ```
 
 One table, keyed on the current instruction, with a row for everything that could ever happen to AX — and that final `else` is this whole problem in one line of CSS: a variable’s single, permanent definition has to end with *“otherwise, I am what I was.”* Fourteen of these tables, one per register, are the machine’s entire brain.
@@ -577,11 +577,11 @@ Memory gets the same treatment at scale. Each tick, the current instruction broa
 
 In any programming language, you increment a variable using `x=x+1` . In CSS, that’s off the table: a variable whose definition mentions itself is a *circular reference*, and CSS rejects it outright. 
 
-This one is simple to solve - just keep a *complete second set* of all variables that *could* change - a ‘snapshot’ - from which you can copy variables as required. So, each variable actually needs two copies - what it is *now* and what it was *before.* Since at most 3 of the machine’s 368,256 memory cells change in any given cycle, over 99.999% of this copying is redundant. 
+This one is simple to solve - just keep a *complete second set* of all variables that *could* change, holding their *previous* values - each `--X` gets an `--X-prev` - and copy from those. So, each variable actually needs two copies - what it is *now* and what it was *before.* Since at most 3 of the machine’s 368,256 memory cells change in any given cycle, over 99.999% of this copying is redundant. 
 
 Except that’s actually still not quite enough. Every formula must read the frozen *before*-picture while the *after*-picture is being computed — if new values landed the moment they were ready, half the machine would calculate from the old state and half from the new, and the state would be scrambled beyond repair. 
 
-That one is simple to solve too: create *another complete copy* of all variables as a buffer between the two. New values are parked there, then handed over all at once, on a beat of the clock, when nothing is reading. (In the real file every memory cell ends up as **four** variables. If you know electronics or graphics, yes: we have just reinvented the flip-flop — the CSS-as-circuits analogy holding up worryingly well — or, if you prefer, double-buffering.) 
+That one is simple to solve too: create *another complete copy* of all variables as a buffer between the two. New values are parked there, then handed over all at once, at a fixed point of each clock lap, when nothing is reading. (In the real file every memory cell ends up as **four** variables. If you know electronics or graphics, yes: we have just reinvented the flip-flop — the CSS-as-circuits analogy holding up worryingly well — or, if you prefer, double-buffering.) 
 
 ### Problems 4-7: No inputs and outputs.
 
@@ -908,17 +908,17 @@ A register might change depending on the current instruction: ADD puts a sum in 
 
 ```css
 --AX: if(
-  style(--_irqActive: 1): var(--snapshot-AX);  /* interrupt pending — hardware outranks the program this tick */
+  style(--_irqActive: 1): var(--AX-prev);  /* interrupt pending — hardware outranks the program this tick */
   else: if(
     style(--opcode: 0): …;    /* ADD, one flavour */
     style(--opcode: 1): …;    /* ADD, another */
     …                     /* every opcode that can touch AX */
-    else: var(--snapshot-AX)));   /* untouched: keep the old value */
+    else: var(--AX-prev)));   /* untouched: keep the old value */
 ```
 
 Note
 
-Code here is real cabinet code, structurally exact — only the variable names are tidied for reading: `--__1IP` becomes `--snapshot-IP`.
+Code here is real cabinet code, structurally exact — only the variable names are tidied for reading: `--__1IP` becomes `--IP-prev`.
 
 Fourteen of these tables, one per register — that *is* the CPU:
 
@@ -946,8 +946,8 @@ Worse, the first byte might not even be the instruction — it might be a *prefi
 So, the long way around. Every tick, eight bytes can be fetched from wherever IP points, enough for the worst case: two prefixes plus the longest instruction:
 
 ```css
---csBase: calc(var(--snapshot-CS) * 16);
---ipAddr: calc(var(--csBase) + var(--snapshot-IP));
+--csBase: calc(var(--CS-prev) * 16);
+--ipAddr: calc(var(--csBase) + var(--IP-prev));
 --raw0: --readMem(var(--ipAddr));
 --raw1: --readMem(calc(var(--ipAddr) + 1));
 /* … --raw2 through --raw7 … */
@@ -1007,12 +1007,12 @@ We can either have elegant DRY code that costs every tick, or scoped ugliness an
 
 The instruction in question is ADD - opcode 5. We'll take a look at everything that needs to update to process this instruction. 
 
-Opcode 5 is “add a number to AX”. When the snapshot says `--opcode: 5`, this row fires for the AX register:
+Opcode 5 is “add a number to AX”. When `--opcode` is 5, this row fires for the AX register:
 
 ```css
 --AX: if(
   …
-  style(--opcode: 5): --lowerBytes(calc(var(--snapshot-AX) + var(--imm16)), 16);   /* ADD AX, imm16 */
+  style(--opcode: 5): --lowerBytes(calc(var(--AX-prev) + var(--imm16)), 16);   /* ADD AX, imm16 */
   …);
 ```
 
@@ -1023,7 +1023,7 @@ Meanwhile, the IP property is also recalculating itself based on the opcode. The
 ```css
 --IP: if(
   …
-  style(--opcode: 5): calc(var(--snapshot-IP) + 3);   /* ADD is three bytes long */
+  style(--opcode: 5): calc(var(--IP-prev) + 3);   /* ADD is three bytes long */
   …);
 ```
 
@@ -1064,8 +1064,8 @@ With arithmetic, again: `--bit()` pulls one flag out of the flags register as a 
 ```css
 --IP: if(
   …
-  style(--opcode: 116): --lowerBytes(calc(var(--snapshot-IP) + 2
-    + --bit(var(--snapshot-flags), 6) * --u2s1(var(--q1))), 16);   /* JZ — jump if zero */
+  style(--opcode: 116): --lowerBytes(calc(var(--IP-prev) + 2
+    + --bit(var(--flags-prev), 6) * --u2s1(var(--q1))), 16);   /* JZ — jump if zero */
   …);
 
 /* --u2s1(): reinterprets an unsigned byte (0 to 255) as signed (−128 to 127) */
@@ -1082,8 +1082,8 @@ Some conditions cost more. “Jump if less” is taken when the sign flag and th
 ```css
 /* JL, "jump if less": taken when the sign flag differs from the
    overflow flag — an XOR, done as a + b − 2ab on two flag bits */
-calc(--bit(var(--snapshot-flags), 7) + --bit(var(--snapshot-flags), 11)
-   - 2 * --bit(var(--snapshot-flags), 7) * --bit(var(--snapshot-flags), 11))
+calc(--bit(var(--flags-prev), 7) + --bit(var(--flags-prev), 11)
+   - 2 * --bit(var(--flags-prev), 7) * --bit(var(--flags-prev), 11))
 ```
 
 #### ▸ DIV, DAA, and the less reasonable instructions
@@ -1092,9 +1092,9 @@ Now we're cooking. DIV divides a 32-bit number — held across two registers, DX
 
 ```css
 /* AX takes the quotient */
-round(down, calc((var(--snapshot-DX) * 65536 + var(--snapshot-AX)) / max(1, var(--rmVal16))))
+round(down, calc((var(--DX-prev) * 65536 + var(--AX-prev)) / max(1, var(--rmVal16))))
 /* DX takes the remainder */
-mod(calc(var(--snapshot-DX) * 65536 + var(--snapshot-AX)), max(1, var(--rmVal16)))
+mod(calc(var(--DX-prev) * 65536 + var(--AX-prev)), max(1, var(--rmVal16)))
 ```
 
 The `max(1, …)` is there because a program can ask to divide by zero, and the formula has to stay legal CSS when it does.
@@ -1102,12 +1102,12 @@ The `max(1, …)` is there because a program can ask to divide by zero, and the 
 This is DAA, “decimal adjust AL” — a calculator-era relic that patches up sums done on numbers stored as decimal digits. DOS-era programs really use it, so:
 
 ```css
-style(--opcode: 39): calc(round(down, var(--snapshot-AX) / 256) * 256
+style(--opcode: 39): calc(round(down, var(--AX-prev) / 256) * 256
   + mod(calc(var(--AL)
   + calc(min(1, calc(round(down, mod(var(--AL), 16) / 10)
-  + mod(round(down, var(--snapshot-flags) / 16), 2))) * 6)
+  + mod(round(down, var(--flags-prev) / 16), 2))) * 6)
   + calc(min(1, calc(round(down, var(--AL) / 154)
-  + mod(var(--snapshot-flags), 2))) * 96)), 256))
+  + mod(var(--flags-prev), 2))) * 96)), 256))
 ```
 
 DAA needs to ask “is this 4-bit chunk bigger than 9?”, and with no `<` available it asks by dividing: `round(down, nibble / 10)` is 1 exactly for 10–15 and 0 otherwise. The whole family of decimal instructions runs on that idiom.
@@ -1123,8 +1123,8 @@ For us, a tick *is* one evaluation of every formula in the file. To achieve the 
 ```css
 /* the IP row for MOVSB (opcode 164) */
 style(--opcode: 164): if(
-  style(--_repContinue: 1): calc(var(--snapshot-IP) - var(--prefixLen));
-  else: calc(var(--snapshot-IP) + 1));
+  style(--_repContinue: 1): calc(var(--IP-prev) - var(--prefixLen));
+  else: calc(var(--IP-prev) + 1));
 ```
 
 Next tick, the fetch lands on the same instruction, and the entire machine — fourteen register tables, all 368,256 memory formulas — re-evaluates from scratch to copy two more bytes. The CX register counts down by one per tick; on the last iteration `--_repContinue` hits 0 and IP finally moves on. Copying a 64 KB block this way is 32,768 complete evaluations of the 300 MB stylesheet, each evaluation moving just *two bytes*. Sisyphean.
@@ -1147,7 +1147,7 @@ When `--_irqActive` is 1, every register takes the first branch — the instruct
     - **IP and CS** load the handler's address from a table in memory
     - **SP** drops by six, for the three pushed words: the paused instruction's address (where the handler will return to) and the flags
     - **flags** clears its interrupt bit, so the handler can't itself be interrupted
-    - **cycleCount** charges 61 cycles — what the real 8086 billed for a hardware interrupt. (The counter is a register table like the others: each opcode's row adds the cost Intel's manual lists for it. What it's actually *for* — see the [clock section](#about/file/clock).)
+    - **cycleCount** charges 61 cycles — what the real 8086 billed for a hardware interrupt. (The counter is a register table like the others: each opcode's row adds the cost Intel's manual lists for it. What it's actually *for* — see the [chipset section](#about/file/chipset).)
 
 Behind that sits a simulated interrupt controller — three variables tracking which interrupts are masked, pending, and currently being serviced, with the timer outranking the keyboard. Clearing the serviced bit — the lowest bit set — uses a classic bit hack: `x AND (x − 1)` deletes the lowest set bit of a number, no loop required.
 
@@ -1195,15 +1195,30 @@ A CPU register's table ends with "otherwise, keep the old value" — if the curr
 --pitCounter: if(
   /* … rows for the OUT opcodes that program the timer … */
   else: if(
-    style(--snapshot-pitReload: 0): 0;   /* never armed — hold at zero */
-    else: calc(var(--snapshot-pitCounter) - var(--_pitDecrement)
-      + max(0, sign(calc(var(--_pitDecrement) - var(--snapshot-pitCounter) + 1)))
-        * var(--snapshot-pitReload))));  /* count down; past zero, reload — and IRQ 0 fires */
+    style(--pitReload-prev: 0): 0;   /* never armed — hold at zero */
+    else: calc(var(--pitCounter-prev) - var(--_pitDecrement)
+      + max(0, sign(calc(var(--_pitDecrement) - var(--pitCounter-prev) + 1)))
+        * var(--pitReload-prev))));  /* count down; past zero, reload — and IRQ 0 fires */
 ```
 
 (Note the shape: the *idle* case takes the `if` and the real work is the `else`, which looks backwards. But a `style()` test can only ask *is this variable exactly this value?* — there is no ≠ or >. The only case that can be named as one exact value is `--pitReload` being 0, a timer that was never programmed — so it gets the `if`, and counting falls through to the `else`.)
 
-Every time the counter crosses zero it reloads itself and raises IRQ 0 — the tick DOS keeps its clock by. The interrupt controller's fall-through latches any newly arrived interrupt requests; the keyboard controller's snapshots the current key so the next tick can spot the change. The chips' `else` branches are where the machine's concurrency lives.
+Every time the counter crosses zero it reloads itself and raises IRQ 0 — the tick DOS keeps its clock by. The interrupt controller's fall-through latches any newly arrived interrupt requests; the keyboard controller's copies the current key so the next tick can spot the change. The chips' `else` branches are where the machine's concurrency lives.
+
+### Where the timer's ticks come from
+
+The countdown above needs something to count, and CSS can't read a wall clock. So the timer is derived from a number the CPU already tracks: a running tally of the cycles each instruction *would have cost* on the real 4.77 MHz chip. The tally is one more register table — every instruction's row adds what Intel's 1978 manual billed for it:
+
+```css
+style(--opcode: 144): calc(var(--cycleCount-prev) + 3);   /* NOP: 3 cycles */
+style(--opcode: 136): calc(var(--cycleCount-prev)
+  + if(style(--mod: 3): 2; else: 9));   /* MOV: 2 — or 9 if memory is involved */
+style(--opcode: 212): calc(var(--cycleCount-prev) + 83);  /* AAM: 83 — division was expensive */
+```
+
+The gearing is real 1981 engineering: the PC's timer chip ran at exactly one quarter of the CPU's clock, so the timer's ticks are simply `cycleCount / 4`. The chip is simulated down to its quirks — in its default square-wave mode the counter genuinely counts down by *two* per tick, and its 16-bit reload value has to arrive as two separate byte writes before the count starts, just like the real part.
+
+So the machine keeps two times: the [clock animation](#about/file/clock) decides how fast the world computes, and the cycle tally decides what the software *believes* the time is. Evaluate the file faster and everything speeds up together, still in step — DOS's sense of time is tied to work done, not to your wall clock.
 
 ### CAROUSEL SECTION: Keyboard & debug display
 
@@ -1237,12 +1252,12 @@ Wait, 7777? 8051? Those aren't scancodes. In fact, each number packs the key’s
 
 `:active` can only answer one question: *is this element held down now?* However, a program only gets round to asking the keyboard hundreds of ticks afterwards. CSS speaks in the present tense; the PC demands past tense.
 
-So the past is reconstructed, like in Crimewatch. The variable `--prevKeyboard` remembers what `--keyboard` said one tick ago — its entire definition is "copy the current value", and the flip-flop plumbing makes the copy arrive a tick late, which for once is exactly what we want. Compare the two and you get *events* out of a *state*:
+So the past is reconstructed, like in Crimewatch. The variable `--prevKeyboard` remembers what `--keyboard` said one tick ago — its entire definition is "copy the current value", and the [clock section](#about/file/clock)'s handover plumbing makes the copy arrive a tick late, which for once is exactly what we want. Compare the two and you get *events* out of a *state*:
 
 ```css
 --_kbdPress: if(
   style(--keyboard: 0): 0;               /* nothing held now → no press */
-  style(--snapshot-prevKeyboard: 0): 1;  /* held now, empty last tick → a press! */
+  style(--prevKeyboard-prev: 0): 1;  /* held now, empty last tick → a press! */
   else: 0);
 ```
 
@@ -1267,9 +1282,9 @@ And, you guessed it: each pigeonhole individually evaluates whether it's the one
 /* slot 2 claims the key only if slots 0 and 1 are taken */
 --_kbdApp2: if(
   style(--_kbdLatch: 0): 0;
-  style(--snapshot-kbdHeld0: 0): 0;
-  style(--snapshot-kbdHeld1: 0): 0;
-  style(--snapshot-kbdHeld2: 0): 1;
+  style(--kbdHeld0-prev: 0): 0;
+  style(--kbdHeld1-prev: 0): 0;
+  style(--kbdHeld2-prev: 0): 1;
   else: 0);
 ```
 
@@ -1298,15 +1313,15 @@ Mercifully, the one thing CSS was actually built for is to colour boxes. If you 
 
 …⋱= 64,000<div>s320 pixels200 rows
 
-Each rule reads its pixel’s byte of video memory (`--vram-…`) and looks the colour up in the palette. No image, no canvas — when a game draws, it writes bytes, and divs change colour. These 64,000 rules are 7 MB of the file, and they’re always in it — this is the pure-CSS renderer, proven to paint in real Chromium.
+Each rule reads its pixel’s bytes of video memory (`--vram-…`) and turns them into a colour for whichever screen mode the machine is currently in — the 256-colour game mode shown here, the DOS text screen (glyphs drawn from an 8×8 ROM font baked into the file), or the old four-colour CGA modes. No image, no canvas — when a game draws, it writes bytes, and divs change colour. These 64,000 rules are 14 MB of the file, and they’re always in it — this is the pure-CSS renderer, proven to paint in real Chromium.
 
 Each rule is one line. Pixel 31,840 — row 99, column 160, the middle of the screen — is:
 
 ```css
-#p31840 { --ci: mod(var(--snapshot-mc343600), 256); background-color: --paletteRGB(var(--ci)); }
+#p31840 { --ci: mod(var(--mc343600-prev), 256); background-color: --screenPx(var(--vidMode), var(--ci), mod(var(--mc382908-prev), 256), var(--mc377332-prev), var(--mc377832-prev), 3, 128, 128, var(--vidPal)); }
 ```
 
-`mod()` digs the pixel’s byte out of its packed memory cell, and the palette function turns that byte into a colour.
+`mod()` digs the pixel’s byte out of its packed memory cell, and `--screenPx()` — the mode dispatcher — decides what the bytes mean. `--vidMode` is the machine’s current video mode: in the 256-colour game mode it hands `--ci` to the palette function below; in text mode it reads the character cell instead and looks the glyph row up in the ROM font; in CGA it unpacks two-bit pixels. One rule, every screen the machine can show.
 
 ### The palette — how 256 colours get chosen
 
@@ -1317,9 +1332,9 @@ The lookup itself is a shared 256-way `if()` function, `--paletteRGB`, that turn
 ```css
 @function --paletteRGB(--idx <integer>) returns <color> {
   result: if(
-    style(--idx: 0): rgb(round(mod(var(--snapshot-mc524288), 256) * 255 / 63)
-                         round(round(down, var(--snapshot-mc524288) / 256) * 255 / 63)
-                         round(mod(var(--snapshot-mc524289), 256) * 255 / 63));
+    style(--idx: 0): rgb(round(mod(var(--mc524288-prev), 256) * 255 / 63)
+                         round(round(down, var(--mc524288-prev) / 256) * 255 / 63)
+                         round(mod(var(--mc524289-prev), 256) * 255 / 63));
     /* … all 256 palette slots … */
     else: rgb(0 0 0));
 }
@@ -1327,7 +1342,7 @@ The lookup itself is a shared 256-way `if()` function, `--paletteRGB`, that turn
 
 The mess inside `rgb()` is three live memory reads — red, green, blue — each scaled by 255/63 because a real VGA’s palette chip only kept six bits per channel: programs wrote brightnesses from 0 to 63, and the machine honours that.
 
-FUN FACT: Of the file’s thousands of functions, this is the only one that returns a colour! All the others just return integers. 
+FUN FACT: Of the file’s thousands of functions, only three return a colour — this one, its fixed 16-colour cousin `--vgaRGB` (text and CGA modes), and the `--screenPx` dispatcher itself. All the others just return integers. 
 
 #### ▸ The palette read-back cursor
 
@@ -1342,16 +1357,16 @@ From the CPU's side, we have three consecutive OUTs to the same port, each carry
 --dacSubIndex: if(
   style(--q1: 968): 0;                                      /* OUT 0x3C8: new colour slot — reset */
   style(--q1: 967): 0;                                      /* OUT 0x3C7 (read cursor) also resets */
-  style(--q1: 969) and style(--snapshot-dacSubIndex: 2): 0; /* blue just landed: wrap to red… */
-  style(--q1: 969): calc(var(--snapshot-dacSubIndex) + 1);  /* …otherwise advance R→G→B */
-  else: var(--snapshot-dacSubIndex));
+  style(--q1: 969) and style(--dacSubIndex-prev: 2): 0; /* blue just landed: wrap to red… */
+  style(--q1: 969): calc(var(--dacSubIndex-prev) + 1);  /* …otherwise advance R→G→B */
+  else: var(--dacSubIndex-prev));
 ```
 
 ### Text mode & CGA — the shared bytes
 
 Mode 13h isn’t the only screen the machine carries. Text mode — the 80×25 grid the DOS prompt lives on — is its own region of video memory at a different address: two bytes per character, the letter and its colours. And the older CGA graphics modes have their own aperture which overlaps the text region. Yikes. That’s how 1981 CGA hardware behaved, since RAM was scarce and you can't use both modes at once. We must mimic it faithfully. 
 
-The overlap is authentic; what comes next isn’t. On a real PC, a program’s `OUT 0x3D9, AL` lands in a register *inside* the CGA chip, and the same chip uses it as it paints — the hardware that receives the setting is the hardware that draws. CSS-DOS has no such chip, and its screen is drawn by something else entirely: a separate renderer that reads the finished video memory. So the machine leaves that renderer a note. On the `OUT`, it copies the value into a spare byte of the BIOS data area, and does the same for the current video mode — two shadow bytes recording what the program *asked for*, so whatever draws the screen can tell which of these overlapping modes it meant. A real PC needs no such note, because there the sender and the painter are one piece of silicon.
+The overlap is authentic; what comes next isn’t. On a real PC, a program’s `OUT 0x3D9, AL` lands in a register *inside* the CGA chip, and the same chip uses it as it paints — the hardware that receives the setting is the hardware that draws. CSS-DOS has no such chip, and its screen is drawn by something else entirely: a separate renderer that reads the finished video memory. So the machine leaves that renderer a note. On the `OUT`, it copies the value into a spare byte of the BIOS data area, and does the same for the current video mode — two shadow bytes recording what the program *asked for*, so whatever draws the screen can tell which of these overlapping modes it meant. Both readers use it: the fast external renderer, and the 64,000 pixel rules above, whose `--vidMode` and `--vidPal` are exactly these two bytes. A real PC needs no such note, because there the sender and the painter are one piece of silicon.
 
 That palette byte carries one famous bit: the choice between CGA’s two four-colour palettes — green/red/yellow or cyan/magenta/white — the reason so many old PC games are those exact colours.
 
@@ -1363,7 +1378,7 @@ We fake its position from a number the CPU already tracks — the running count 
 
 ```css
 /* in retrace? — 1 during the last 3409 cycles of each frame */
-max(0, sign(3409 - mod(var(--snapshot-cycleCount), 68182)))
+max(0, sign(3409 - mod(var(--cycleCount-prev), 68182)))
 ```
 The electron beam of a CRT monitor, mimicked with a `mod()` and a `sign()` so that games can synchronise to it. 
 
@@ -1388,18 +1403,20 @@ Just the repeated should-be-implicit `inherits:true` instructions total about 6 
 
 ### One cell, four variables
 
-[AA: would prefer a more neutral writing here, 'remember the flip flop we invented' is a fucking annoying tone]
-There’s a wrinkle: `--mc5000` isn’t the only variable for that cell. Remember the flip-flop we accidentally reinvented on the last page — every value that can change needs a frozen *before*-copy to read while the *after*-copy is being computed. In the real file that comes to **four** variables per cell: the freshly computed value, the snapshot the formulas read, and two hand-over copies that pass results to the next tick (the [clock section](#about/file/clock) walks through that process).
+There’s a wrinkle: `--mc5000` isn’t the only variable for that cell. The [clock section](#about/file/clock) explains why every tick has to read the *previous* values of memory while the new ones are being computed — and why that trick needs each cell to exist as **four** variables:
+
+- the freshly computed value,
+- the `-prev` copy the formulas read,
+- and the two courier copies (`_1`, `_2`) that carry results across to the next tick.
 
 Yet only the first one is ever declared. The other three have no `@property` block anywhere in the file — an unregistered CSS variable simply springs into existence the first time something assigns it. What they *do* need is the power-on value, for the very first tick, before anything has been handed over. It rides along as a fallback, right inside their plumbing lines (variable names tidied for reading — the real ones are `--__1mc5000` etc.):
 
-[I slightly hate staged and held, what is that? is it the snapshot copy? they dont make sense at all as names]
 ```css
---snapshot-mc5000: var(--staged-mc5000, 32861);
---staged-mc5000: var(--held-mc5000, 32861);
+--mc5000-prev: var(--mc5000_2, 32861);
+--mc5000_2: var(--mc5000_1, 32861);
 ```
 
-If the staged copy doesn’t exist yet — tick one, nothing stored — the snapshot falls back to 32861, the declared power-on value. Which means every byte of the machine’s starting memory is actually written into the file **three times**: once as an `initial-value`, and twice more as fallbacks.
+If the `_2` copy doesn’t exist yet — tick one, nothing has been carried over — `-prev` falls back to 32861, the declared power-on value. Which means every byte of the machine’s starting memory is actually written into the file **three times**: once as an `initial-value`, and twice more as fallbacks.
 
 The one optimisation
 
@@ -1428,7 +1445,7 @@ Wait, *read* formulas? How complex can *reading* a variable be? Don't you just..
 
 If only. Let's say we want to read memory cell number 12345. Each memory cell has one variable, say `var(--memory-12345)`.  In a normal programming language, we'd place the memory cells in a list and find the 12345th entry, e.g. `memory[12345]`.
 
-But CSS doesn't *have* lists. Hmm. Maybe we can search for the number in the variable name somehow? Nope. Well, there must be some hack to go from knowing you want address 12345, to picking out --mem-12345? If there is, I haven't found it. 
+But CSS doesn't have lists. Hmm. Can we somehow search the number/ the variable name..? Nope. 
 
 So with a huge sigh, we roll up our sleeves and just brute force it. As in, *check every possible option* one-by-one. 
 
@@ -1547,7 +1564,15 @@ CSS — verbatim from the cabinet
 
 Just this function is nine complete works of Shakespeare. 
 
-But, once we've identified the correct memory cell, we have to write the formula to read out the correct byte from within. Let's explore the three types of formula above: 
+But, once we've identified the correct memory cell, we have to write the formula to read out the correct byte from within. There are three types of fomula - RAM, BIOS ROM and disk window.
+
+#### Why are all three in one function?
+
+At first it might seem strange to combine all three of RAM, BIOS ROM and hard disk in one read function. 
+
+The reason is: there's necessarily only one caller path for "read a byte of address space", because the address space layout is not known in advance. You can't hoist the RAM/ROM/disk decision to the call sites because the call sites only know at runtime what the memory layout is, because it's only _decided_ at runtime. Different programs and operating systems handle the memory differently, split it up differently. 
+
+[Pls help me edit this section, I feel like its a bit wishywashy? Is it strictly technically true?]
 
 ### The RAM — 736,510 
 
@@ -1556,8 +1581,8 @@ The overwhelming bulk. Memory cells hold two bytes each, so every cell gets a pa
 Two arms hiding in the middle of the RAM range aren’t memory at all: addresses 1280 and 1281 are wired straight to the live keyboard value — the aperture from the [keyboard section](#about/file/keys), plumbed in. When the BIOS keyboard service reads those addresses, it gets real keypresses through the same function as everything else:
 
 ```css
-style(--at: 1280): --lowerBytes(var(--snapshot-keyboard), 8);
-style(--at: 1281): --rightShift(var(--snapshot-keyboard), 8);
+style(--at: 1280): --lowerBytes(var(--keyboard-prev), 8);
+style(--at: 1281): --rightShift(var(--keyboard-prev), 8);
 ```
 
 ### The BIOS ROM — 6,924
@@ -1640,7 +1665,7 @@ The middle two cases are the awkward one: a 16-bit write to an odd address lands
 Assembled, this is one cell of the machine — verbatim, names tidied as usual, the middle slot elided:
 
 ```css
---mc5000: --applySlot(--applySlot(--applySlot(var(--snapshot-mc5000),
+--mc5000: --applySlot(--applySlot(--applySlot(var(--mc5000-prev),
       var(--_slot2Live), calc(var(--memAddr2) - 5000 * 2),
       calc(var(--memAddr2) + 1 - 5000 * 2), var(--memVal2), var(--_writeWidth)),
     /* … slot 1, the same shape … */),
@@ -1683,7 +1708,7 @@ Window byte 48’s actual arm, in full:
 
 ```css
 style(--at: 852016): --readDiskByte(calc(
-  (mod(var(--snapshot-mc632), 256) + round(down, var(--snapshot-mc632) / 256) * 256) * 512 + 48));
+  (mod(var(--mc632-prev), 256) + round(down, var(--mc632-prev) / 256) * 256) * 512 + 48));
 ```
 
 [AA: Badly written please fix]
@@ -1723,77 +1748,72 @@ Only one thing in CSS changes on its own: an **animation**. Everything else in t
 
 The counter ticks 0, 1, 2, 3, repeat. Each lap, every formula in the file re-evaluates once and the machine advances by one CPU instruction.
 
-### Why four beats and not one?
+### Why does every value need four variables?
 
-[[[ BOOKMARK!! ]]]
-This is Problem 3 from the last page — no variable may reference itself, so every cell exists as four variables, the flip-flop — now with the actual machinery on the table. The clock’s four beats are what drive the handover. Here is one cell’s full plumbing:
+Each tick, every value — register or memory cell — must be recomputed from its previous one. But a variable can't reference itself in CSS (in most other languages, it can!):
+
+[DIAGRAM: one box `--X` with an arrow looping back to itself, struck through by a prohibition sign — beside the offending code:]
 
 ```css
-/* always in force: the snapshot — the copy every formula reads —
-   is wired to the staged copy from last tick */
---snapshot-mc5000: var(--staged-mc5000, 32861);
+--X: calc(var(--X) + 1);
+```
 
-/* always in force: the next value, computed from snapshots only
-   (this is the write formula from the write-formulas section) */
+Well, that's easy to solve — just use a buffer, right? Hold the previous value of `--X` somewhere and copy from that? CSS doesn't like that either: it detects *cycles* too, of any length, and ignores them.
+
+[DIAGRAM: `--X` and `--X-prev` feeding each other, struck through — beside:]
+
+```css
+--X: calc(var(--X-prev) + 1);
+/* …and, elsewhere… */
+--X-prev: var(--X);
+```
+
+What we need is a system that lets state through without ever, at any instant, having a complete route from start to end — a bit like an airlock:
+
+[DIAGRAM: the animated ring, clockwise: `--X` → `--X_1` (execute, at 75%) → `--X_2` (store, at 25%) → `--X-prev` (always) → back to `--X` (always). Keyframe strip above it, highlighted in turn:]
+
+> 0% — rest — nothing runs — a spacer
+> 25% — store — `--X_2 ← --X_1` — every formula reacts and recomputes
+> 50% — rest — nothing runs — the recomputation finishes
+> 75% — execute — `--X_1 ← --X`
+
+[Ring caption:] Black links are formulas, always in force. The grey links only conduct during their own keyframe — and the two keyframes never overlap, so the circle is never complete: CSS never sees a cycle. Yet across one lap, a value travels all the way round, and `--X-prev` really does hold the previous value — the buffer we wanted all along. (This diagram runs on the same mechanism it explains, slowed 8×.)
+
+Here is one cell's full plumbing:
+
+```css
+/* rule, always in force: the copy every formula reads —
+   defined as the _2 copy, power-on value as the fallback */
+--mc5000-prev: var(--mc5000_2, 32861);
+
+/* rule, always in force: the cell's next value, computed from
+   -prev copies only (the write formula from the write-formulas section) */
 --mc5000: …;
 
-/* beat 3 — the "execute" keyframe: park the computed value */
---held-mc5000: var(--mc5000);
+/* the "execute" keyframe, at 75% of the lap: a copy of the computed value */
+--mc5000_1: var(--mc5000);
 
-/* beat 1 — the "store" keyframe: stage the parked value
-   so it becomes the NEXT tick's snapshot */
---staged-mc5000: var(--held-mc5000, 32861);
+/* the "store" keyframe, at 25% of the lap: a copy of _1 */
+--mc5000_2: var(--mc5000_1, 32861);
 ```
 
-Follow one lap of the clock. The formulas compute the whole machine’s next state, reading only the frozen snapshots. On beat 3, the results are parked in the *held* copies. On beat 1 of the next lap, the parked values move into the *staged* copies — and since the snapshots are wired to those, every formula now sees the new state, and computes the tick after. Round and round, forever.
+Follow one lap. At the 25% keyframe, last lap's `_1` copies move into `_2` — and since every `-prev` is defined as its `_2`, every formula now reads the new state and re-evaluates. At the 75% keyframe, the freshly computed values are copied into `_1`. Repeat forever.
 
-Why the two-step handover? Because each copy is written at one beat and read at another, nothing is ever read and overwritten at the same moment. The machine never sees a half-updated version of itself — every tick gets a clean before-picture, even though 368,256 cells and fourteen registers all change “at once.”
+The reason for the two-step handover: each copy is written at one keyframe and read at another, so nothing is ever read and overwritten at the same moment. The machine never sees a half-updated version of itself — every tick gets a clean before-picture, even though 368,256 cells and fourteen registers all change "at once."
 
-```css
-@keyframes tick {
-  0%   { --clock: 0 }
-  25%  { --clock: 1 }
-  50%  { --clock: 2 }
-  75%  { --clock: 3 }
-}
-.motherboard {
-  animation: tick 400ms
-    steps(4) infinite;
-}
-```
+- [EXPANDABLE: The nitty-gritty: what actually freezes the copies]
+    - The `_1` and `_2` lines live inside the `store` and `execute` `@keyframes` blocks (attached to the machine permanently, paused — the wiring is at the bottom of this page). The load-bearing browser behaviour: while an animation is *running*, a `var()` inside its keyframes re-resolves continuously — the copy is a live wire, tracking its source. While it is *paused*, the browser stops re-resolving, and the copy simply holds its last value. The pause is the freeze — the only way in CSS to keep a value still.
+    - Why two copies between `--X` and `--X-prev`, not one? Because the four variables form a ring, and a ring whose links are all live at once is a circular reference no matter how many hops it has. With a single in-between copy, the moment its keyframe ran, every link would conduct at once — a cycle at the exact instant of handover, every tick. With two, unpaused strictly in turn, at least one link is frozen at every instant, and CSS never has a cycle to reject.
+    - The names here are tidied for reading. In the real file, `--X-prev`, `--X_1` and `--X_2` for memory cell 5000 are `--__1mc5000`, `--__0mc5000` and `--__2mc5000` — and only the base `--mc5000` is ever declared. The three copies have no `@property` block anywhere: an unregistered CSS variable springs into existence the first time something assigns it.
+    - And the very first tick? Neither copy animation has ever run, so nothing has ever been copied. That is what the `, 32861` fallbacks riding in the plumbing lines are for: they supply each cell's power-on value until the real handover machinery delivers its first cargo.
 
-0 rest nothing moves
+And that is where this section's 43 MB goes: the animation itself is 0.1 KB, but the three plumbing lines have to be written out per cell — three complete sweeps over all of memory (15 + 15 + 13 MB), just to move values from one copy to the next. The registers get the same treatment in a much smaller block inside the CPU.
 
-1 copy in the buffer becomes the snapshot every formula reads
-
-2 compute every formula re-derives from the fresh snapshot
-
-3 copy out the results are parked in the buffer for next tick
-
-The moving highlight is itself a CSS animation — the same mechanism, slowed 8×. The cabinet’s clock does a full lap every 400 ms; Calcite runs the same lap hundreds of thousands of times a second.
-
-And that is where this section’s 43 MB goes: the animation itself is 0.1 KB, but the three plumbing lines have to be written out per cell — three complete sweeps over all of memory (15 + 15 + 13 MB), just to move values from one copy to the next. The registers get the same treatment in a much smaller block inside the CPU.
-
-### The other clock — the one DOS sees
-
-The animation is the machine’s heartbeat, but DOS has never heard of it. What DOS expects is the PC’s **timer chip**, interrupting it 18.2 times a second — that’s how it keeps the time of day, and how games pace themselves. And of course CSS can’t read a wall clock. So the timer is derived from a number the CPU already tracks: a running tally of the cycles each instruction *would have cost* on the real 4.77 MHz chip.
-
-The tally is one more register table — every instruction’s row adds what Intel’s 1978 manual billed for it:
-
-```css
-style(--opcode: 144): calc(var(--snapshot-cycleCount) + 3);   /* NOP: 3 cycles */
-style(--opcode: 136): calc(var(--snapshot-cycleCount)
-  + if(style(--mod: 3): 2; else: 9));   /* MOV: 2 — or 9 if memory is involved */
-style(--opcode: 212): calc(var(--snapshot-cycleCount) + 83);  /* AAM: 83 — division was expensive */
-```
-
-The gearing is real 1981 engineering: the PC’s timer chip ran at exactly one quarter of the CPU’s clock, so the machine’s timer ticks are simply `cycleCount / 4`. The chip is simulated down to its quirks — in its default square-wave mode the counter genuinely counts down by *two* per tick, and its 16-bit reload value has to arrive as two separate byte writes before the count starts, just like the real part. Every time the counter crosses zero, the timer interrupt fires and DOS’s clock advances.
-
-So the machine keeps two times: the CSS animation decides how fast the world computes, and the cycle counter decides what the software *believes* the time is. Evaluate the file faster and everything speeds up together, still in step — DOS’s sense of time is tied to work done, not to your wall clock.
+One thing this animation is *not*: the time DOS sees. DOS gets its time from the simulated timer chip, which counts something else entirely — the [chipset section](#about/file/chipset) covers it.
 
 ### How the store and execute steps get triggered
 
-The store and execute steps are themselves `@keyframes` — and an animation can’t call another animation. So the cabinet attaches both to the machine element permanently, **paused**, and the clock unpauses each one for a single beat — verbatim:
+The store and execute steps are themselves `@keyframes` — and an animation can’t call another animation. So the cabinet attaches both to the machine element permanently, **paused**, and the clock unpauses each one for a quarter of every lap — verbatim:
 
 ```css
 .motherboard {
