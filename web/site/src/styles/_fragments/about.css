@@ -288,6 +288,37 @@
   white-space: nowrap;
 }
 
+/* — the "how slow is it" stat grid (Problem 9) — three boxed numbers,
+   same border/shadow language as the code exhibits. */
+.stat-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 12px 0;
+}
+.stat-box {
+  flex: 1 1 140px;
+  border: 1px solid var(--edit-black);
+  background: var(--edit-white);
+  box-shadow: 4px 4px 0 var(--edit-black);
+  padding: 14px 10px;
+  text-align: center;
+}
+.stat-box .stat-num {
+  display: block;
+  font-family: 'WebVGA', monospace; letter-spacing: normal;
+  font-size: 22px;
+  line-height: 24px;
+  color: var(--edit-red);
+}
+.stat-box .stat-label {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--edit-black);
+}
+
 /* External links — blue, underline on hover. (wizard.css dropped its
    .ext-link rule; markup still uses the class, so define it here.) */
 .ext-link { color: var(--edit-blue); text-decoration: underline; }
