@@ -404,11 +404,16 @@
         <Foldable>
           {#snippet summary()}Can it run my own programs?{/snippet}
           <p>
-            Yes &mdash; that&rsquo;s the Build step. Hand the builder
-            any DOS program small enough for a floppy and it bakes the
-            machine and your files into a fresh
-            <Term t="cabinet">cabinet</Term>. The presets on the Build
-            page were made the same way.
+            Yes &mdash; visit the Build page and hand the builder any
+            DOS program (.com/.exe) or folder. Two conditions: it has
+            to fit on a floppy, and it has to stick to 8086 instructions
+            (no Intel 286 or 386 opcodes). The builder bakes it into a
+            <Term t="cabinet">cabinet</Term> for you &mdash; every
+            preset here was made exactly that way. One more limit: the
+            finished file must stay under ~536&nbsp;MB, or you hit V8&rsquo;s
+            string size limit and the file simply won&rsquo;t load in a
+            browser. If that happens, try reducing the machine&rsquo;s
+            RAM.
           </p>
         </Foldable>
       </div>

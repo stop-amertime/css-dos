@@ -22,6 +22,13 @@ max(0, sign(3409 - mod(var(--cycleCount-prev), 68182)))`;
     /* … all 256 palette slots … */
     else: rgb(0 0 0));
 }`;
+
+  const DAC_SUBINDEX = `--dacSubIndex: if(
+  style(--q1: 968): 0;                                      /* OUT 0x3C8: new colour slot — reset */
+  style(--q1: 967): 0;                                      /* OUT 0x3C7 (read cursor) also resets */
+  style(--q1: 969) and style(--dacSubIndex-prev: 2): 0; /* blue just landed: wrap to red… */
+  style(--q1: 969): calc(var(--dacSubIndex-prev) + 1);  /* …otherwise advance R→G→B */
+  else: var(--dacSubIndex-prev));`;
 </script>
 
 <TreeView nodes={SCREEN_TREE} title="Display" bytes={SCREEN_TREE_META.bytes} />
@@ -87,6 +94,17 @@ max(0, sign(3409 - mod(var(--cycleCount-prev), 68182)))`;
     without disturbing the write cursor. So does this one.
   </p>
 </Foldable>
+
+<h3 class="anatomy-head">Counting to three</h3>
+<p>
+  From the CPU&rsquo;s side, we have three consecutive OUTs to the same
+  port, each carrying a bare number. Nothing about the third write says
+  &ldquo;I am a blue&rdquo;. On real hardware the chip counts them
+  privately. In CSS, we call in the usual suspects: the cursor and its
+  R/G/B counter are just two more register-style variables, handled
+  manually.
+</p>
+<CodeCss code={DAC_SUBINDEX} />
 
 <h3 class="anatomy-head">Text mode &amp; CGA &mdash; the shared bytes</h3>
 <p>

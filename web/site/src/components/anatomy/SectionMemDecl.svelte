@@ -94,3 +94,74 @@
     memory-related in the file doubles.
   </p>
 </Callout>
+
+<h3 class="anatomy-head">Hidden storage above the 1 MB limit</h3>
+<p>
+  The machine needs some storage the running program can never see.
+  The palette is the clearest case: a program sets a colour by writing
+  three bytes to a port, and on real hardware those bytes live inside
+  the VGA chip &mdash; not in any memory the program can read back. The
+  writable floppy (covered in the <a href="#about/file/disk">disk
+  section</a>) is the same problem, hundreds of kilobytes bigger. Where
+  does a machine built entirely out of memory cells keep private data?
+</p>
+<p>
+  Above the ceiling. An 8086 address is assembled from two 16-bit
+  registers, as segment &times; 16 + offset &mdash; and that arithmetic
+  runs out a whisker past one megabyte. The chip cannot count any
+  higher. But this machine&rsquo;s memory isn&rsquo;t a real address
+  space &mdash; it&rsquo;s variable names, and a name is just text.
+  Nothing stops the file defining cells past the point where addresses
+  stop. So the palette lives as perfectly ordinary memory cells
+  starting at byte 1,048,576 (packed two to a cell, that&rsquo;s
+  <code>--mc524288</code> &mdash; the very cell the palette function
+  reads), and the writable floppy&rsquo;s contents at byte 2,097,152.
+  The only formulas that mention these cells are the machine&rsquo;s
+  own: the palette port, the disk machinery.
+</p>
+<Callout kind="info" label="For the pedantic">
+  <p>
+    The whisker: segment 0xFFFF reaches up to address 1,114,095, so the
+    palette &mdash; at exactly 1 MB &mdash; technically sits
+    <i>inside</i> the 8086&rsquo;s odd little overshoot zone, not beyond
+    it. On the real chip those addresses wrapped around to zero, and no
+    real-mode program forms them; later PCs turned the overshoot into
+    the &ldquo;high memory area&rdquo; DOS users squeezed an extra
+    64&nbsp;KB from. The disk image at 2&nbsp;MB is beyond any possible
+    pointer, full stop.
+  </p>
+</Callout>
+<p>
+  One booby trap up here shaped a whole feature: a big number is safe
+  in a variable&rsquo;s <i>name</i> &mdash; that&rsquo;s text &mdash;
+  but not in a computed <i>value</i>. Chrome keeps only about six
+  significant digits of a computed numeric property, so any formula
+  whose result crossed a million would silently lose its low digits.
+  The formulas around this hidden storage therefore never compute a
+  full address: they work in small offsets &mdash; &ldquo;byte 31,204
+  of the disk&rdquo; &mdash; and the million-plus base appears only as
+  literal text, in variable names and match keys, never as the output
+  of arithmetic. It&rsquo;s also why writable floppies are capped at
+  720&nbsp;KB: a byte&rsquo;s position <i>within</i> the disk is a
+  computed value, and past a million, neighbouring bytes would start to
+  blur into one another.
+</p>
+
+<h3 class="anatomy-head">No bounds checks</h3>
+<p>
+  A conventional emulator spends code on unmapped memory: it allocates
+  the full address space up front, or checks every access against a
+  table of what exists. Here that code is zero lines. For addresses no
+  program could ever touch, Kiln emits <i>nothing</i> &mdash; no
+  declaration, no read arm, no write formula; the address simply does
+  not occur anywhere in 300&nbsp;MB. Read one and you fall through
+  every arm of the big lookup to its final <code>else: 0</code>; write
+  one and the broadcast finds no cell whose formula mentions that
+  address, so the write lands nowhere, and nothing complains. (The CPU
+  exploits the same mechanism on purpose when it cancels a write by
+  aiming it at address &minus;1.)
+</p>
+<p>
+  There&rsquo;s no bounds check because there is no boundary &mdash;
+  just places where the CSS stops.
+</p>

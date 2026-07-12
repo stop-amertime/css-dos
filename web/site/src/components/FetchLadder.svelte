@@ -19,6 +19,7 @@
   slab += '    style(--at: 983042): 144;\n';
   slab += '    style(--at: 983043): 144;\n';
   slab += '\n         … 6,920 more baked-in BIOS ROM bytes …\n\n';
+  slab += '    /* the disk window: requested sector × 512 + this arm\'s position */\n';
   slab += '    style(--at: 851968): --readDiskByte(calc((mod(var(--__1mc632), 256) + round(down, var(--__1mc632) / 256) * 256) * 512 + 0));\n';
   slab += '    style(--at: 851969): --readDiskByte(calc((mod(var(--__1mc632), 256) + round(down, var(--__1mc632) / 256) * 256) * 512 + 1));\n';
   slab += '\n         … 510 more — the 512-byte disk window …\n\n';

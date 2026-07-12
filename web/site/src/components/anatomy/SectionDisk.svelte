@@ -51,11 +51,13 @@
 </p>
 <CodeCss code={WINDOW_ARM} />
 <p>
-  The clutter in the middle is the sector number being dug out of
-  memory cell 632 &mdash; the &ldquo;which sector do you want&rdquo;
-  register is itself two bytes of ordinary RAM. DOS writes a number
-  there, and 512 addresses instantly mean a different part of the
-  disk.
+  The clutter in the middle is the sector number: the &ldquo;which
+  sector do you want&rdquo; register is memory cell 632 &mdash; two
+  bytes of ordinary RAM &mdash; and the
+  <code>mod(&hellip;) + round(&hellip;) &times; 256</code> is just
+  gluing its 16-bit value back together. DOS writes a number into that
+  cell, and all 512 window addresses instantly point at a different
+  part of the disk.
 </p>
 
 <p>

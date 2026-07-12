@@ -88,10 +88,12 @@ mod(calc(var(--DX-prev) * 65536 + var(--AX-prev)), max(1, var(--rmVal16)))`;
   </p>
   <p>
     The processor&rsquo;s whole job is a loop: read the number IP
-    points at, do what it says, move IP past it, repeat. On a real
-    chip that loop is wiring &mdash; nobody writes code to make a CPU
-    fetch; it fetches because that&rsquo;s what the silicon does.
-    Here there is no silicon, so the loop has to be made of variables.
+    points at, do what it says, move IP past it, repeat. On a real chip
+    that loop is wiring. There&rsquo;s no code underneath making that
+    happen &mdash; the CPU fetches the next number the way a lightbulb
+    lights up when you press the switch: it&rsquo;s engineered to do
+    it. Here there is no silicon, so the loop has to be made of
+    variables.
   </p>
 </Foldable>
 
