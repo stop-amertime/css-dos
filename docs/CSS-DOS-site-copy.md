@@ -1,69 +1,3 @@
-# CSS-DOS Site Copy
-
-- Pastebin
-    
-    
-    - COPY: FAQS
-        - did you use AI?
-            - Yes! Claude was very helpful. It definitely wouldn't have been able to figure all this out on its own but it was super useful to remove a lot of drudgery from the process. It also made some perf optimisations in Calcite that I don't understand. Overall this project may not have been finished before my patience ran out if I had to code it manually.
-            - I wrote a lot of hacky BS code before AI came along. (perhaps link my code golf account?) but I'm no coding god.
-            - fun fact: I actually didn't know rust at all before this project so Claude was hugely helpful in that regard.
-        - How did you debug this?
-            - With enormous pain. Many tears were shed… I had to create a lot of debug tools myself. This project truly made me appreciate debug tooling. There's nothing like a program crashing, and having absolutely zero clue or insight into what in the very opaque system was breaking. Even Claude was a bit useless in this regard, as it would end up chasing the bytes around trying to look for a fix. I had to create a variety of tools.
-        - How long did this take?
-            - about 6mos of on-and-off hobbyist work.
-        - …Why?
-            - (why should be an FAQ question?)
-        - please email me with any questions, I'd love to hear more from interested people. (*ahmed*.*elhadi*.*amer* and then *@gmail.com)*
-        - 
-        - Did you use AI?
-            - yes and I have things to say about it
-            - it banged out so much code that would have taken years
-            - but sometimes felt like ‘press button to finish game’
-            - beware of it in creative projects
-        
-    - change the top bar to include contact?
-    
-    ## HOW IS THIS POSSIBLE
-    
-    - CSS is **Turing**-**complete** (dotted explanation), which in computer terms is like saying ‘anywhere is walking distance if you have the time’
-    - Nevertheless, this is only possible due to two tools recently added to CSS: if() statements and reusable @functions.
-    - The entire house of cards is built from those basic blocks
-    - [table] CSS variables with if() statements, calc
-    - These will solve any problem eventually through sheer brute force if we hit the problem enough times.
-    - This leads to some of the filthiest, most repetitive, circuitous and unintelligible code ever written in earnest. (colour this)
-    - The waste is enormous - the final file is an astonishing 300mb of text.
-    
-    ## Calcite section in ‘how it works’
-    
-    instead of spamming up the player
-    
-     the player can say ‘running using calcite” with a link to attempt to load the raw html page
-    
-     (this is here for completeness but WILL crash your browser if you attempt to open it) 
-    
-    OPTION 2: show a popup once that explains Calcite? or a step in the flow once that explains it. 
-    
-    that'll be good to work ou
-    
-    1. In the explainer, an explanation of the ‘shim’ - the page is innocent (no html/js) 
-    Calcite **intercepts through HTTP, runs a SW in your browser, quickly translates it
-    This is the closest thing to how V8 works. 
-    (except if i had a chrome extension, but i dont want to make people download that due to the friction) this** 
-    *I wish I could insert calcite into chrome, buuuut I can’t.* 
-    
-    ## how it works section
-    
-    include more real code and good ways to explain the code
-    
-    ## CPU section
-    
-    On ‘how is this possible’ page: 
-    
-    - However, it wont actually RUN. It would bring Chrome to its knees. For that, we need Calcite. OR: that will be discussed later.
-    - Do we need a specific Calcite page?
-    
-
 # CSS-DOS — About section copy
 
 Extracted 2026-07-08 from the rendered site.
@@ -1348,8 +1282,7 @@ FUN FACT: Of the file’s thousands of functions, only three return a colour —
 
 There’s a second, separate cursor for *reading* the palette back — a fade effect needs to read the current colours before dimming them, and real VGA hardware let it ask without disturbing the write cursor. If real hardware did it, we have to support it too. 
 
-[Again, overly floral and not meaningful]
-### One port, three meanings
+### Counting to three
 
 From the CPU's side, we have three consecutive OUTs to the same port, each carrying a bare number. Nothing about the third write says "I am a blue". On real hardware the chip counts them privately. In CSS, we call in the usual suspects: the cursor and its R/G/B counter are just two more register-style variables, handled manually. 
 
