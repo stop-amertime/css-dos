@@ -152,6 +152,7 @@
     max-width: 680px;
     margin-inline: auto;
   }
+  /* Foldable's own 16px stack margin is the spacing here — the old
+     fragment's 10px override was losing the cascade and never rendered. */
   .faq-list { margin-top: 20px; max-width: 660px; }
-  .faq-list > :global(.foldable) { margin: 10px 0; }
 </style>

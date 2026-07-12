@@ -1,8 +1,9 @@
 // Code exhibits shown on the About pages.
 //
-// CELL_PLUMBING — one memory cell's four-variable ring (Problem 3 on
-// "How is this possible?" and SectionClock's "Why four keyframes?"
-// fold — the same explanation appears in both places on purpose).
+// CELL_PLUMBING — one memory cell's four-variable ring, shown in
+// SectionClock's "Why do we need four keyframes?" fold. (It used to
+// appear on "How is this possible?" too; the owner trimmed that page
+// down to a one-line summary, 2026-07-12.)
 //
 // AND_FULL_EXHIBIT — Problem 1's full AND machinery, verbatim from the
 // Kiln emitters (kiln/css-lib.mjs, kiln/patterns/flags.mjs).
