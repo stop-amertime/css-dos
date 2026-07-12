@@ -1,12 +1,13 @@
 <script>
-  // The clock — the four-beat animation (0.1 KB) and the three
-  // memory sweeps it drives (43 MB). The snapshot/staged/held
+  // The clock — the four-keyframe animation (0.1 KB) and the three
+  // memory sweeps it drives (43 MB). The four-variable ring
   // walk-through is the main body (owner: don't bury the mechanism
   // in a fold). Facts from CABINET-ANATOMY.md §4, §12, §14–16;
-  // keyframe extracts verbatim from sokoban.css (names tidied:
-  // --__1mc5000 → --snapshot-mc5000).
+  // keyframe extracts verbatim from sokoban.css (names tidied to
+  // flow order: --__0/--__2/--__1mc5000 → --mc5000_1/_2/_3).
   import TickClock from '../TickClock.svelte';
   import CodeCss from '../CodeCss.svelte';
+  import CycleDiagrams from './CycleDiagrams.svelte';
   import Term from '../Term.svelte';
   import TreeView from './tree/TreeView.svelte';
   import { CLOCK_TREE, CLOCK_TREE_META } from './tree/clock-tree.js';
@@ -23,20 +24,19 @@
   75% { --clock: 3 }
 }`;
 
-  const CELL_PLUMBING = `/* always in force: the snapshot — the copy every formula reads —
-   is wired to the staged copy from last tick */
---snapshot-mc5000: var(--staged-mc5000, 32861);
+  const CELL_PLUMBING = `/* rule, always in force: the copy every formula reads —
+   defined as the _2 copy, power-on value as the fallback */
+--mc5000_3: var(--mc5000_2, 32861);
 
-/* always in force: the next value, computed from snapshots only
-   (this is the write formula from the write-formulas section) */
+/* rule, always in force: the cell's next value, computed from
+   _3 copies only (the write formula from the write-formulas section) */
 --mc5000: …;
 
-/* beat 3 — the "execute" keyframe: park the computed value */
---held-mc5000: var(--mc5000);
+/* the "execute" keyframe, at 75% of the lap: a copy of the computed value */
+--mc5000_1: var(--mc5000);
 
-/* beat 1 — the "store" keyframe: stage the parked value
-   so it becomes the NEXT tick's snapshot */
---staged-mc5000: var(--held-mc5000, 32861);`;
+/* the "store" keyframe, at 25% of the lap: a copy of _1 */
+--mc5000_2: var(--mc5000_1, 32861);`;
 
   const CYCLE_ROWS = `style(--opcode: 144): calc(var(--snapshot-cycleCount) + 3);   /* NOP: 3 cycles */
 style(--opcode: 136): calc(var(--snapshot-cycleCount)
@@ -65,30 +65,42 @@ style(--opcode: 212): calc(var(--snapshot-cycleCount) + 83);  /* AAM: 83 — div
   <Term t="cabinet">cabinet</Term> and its only moving part.
 </p>
 
-<h3 class="anatomy-head">Why four beats and not one?</h3>
+<h3 class="anatomy-head">Why does every value need four variables?</h3>
 <p>
-  Because a formula isn&rsquo;t allowed to refer to itself. A memory
-  cell&rsquo;s next value is computed from its current one &mdash; but
-  written as one variable, that&rsquo;s a circular definition, and CSS
-  rejects it. So every cell exists as <b>several</b> variables: the
-  copy the formulas read, and the copies used to hand each
-  tick&rsquo;s results across to the next tick. Here is one cell&rsquo;s
-  full plumbing:
+  Each tick, every value &mdash; register or memory cell &mdash; must
+  be recomputed from its previous one. But a variable can&rsquo;t
+  reference itself in CSS (in most other languages, it can!):
+</p>
+<CycleDiagrams panel="self" />
+<p>
+  Well, that&rsquo;s easy to solve &mdash; just use a buffer, right?
+  Hold the previous value of <code>--X</code> somewhere and copy from
+  that? CSS doesn&rsquo;t like that either: it detects <i>cycles</i>
+  too, of any length, and ignores them.
+</p>
+<CycleDiagrams panel="pair" />
+<p>
+  What we need is a system that lets state through without ever, at
+  any instant, having a complete route from start to end &mdash; a bit
+  like an airlock:
+</p>
+<CycleDiagrams panel="ring" />
+<p>
+  Here is one cell&rsquo;s full plumbing:
 </p>
 <CodeCss code={CELL_PLUMBING} />
 <p>
-  Follow one lap of the clock. The formulas compute the whole
-  machine&rsquo;s next state, reading only the frozen snapshots. On
-  beat 3, the results are parked in the <i>held</i> copies. On beat 1
-  of the next lap, the parked values move into the <i>staged</i>
-  copies &mdash; and since the snapshots are wired to those, every
-  formula now sees the new state, and computes the tick after. Round
-  and round.
+  Follow one lap. At the 25% keyframe, last lap&rsquo;s
+  <code>_1</code> copies move into <code>_2</code> &mdash; and since
+  every <code>_3</code> is defined as its <code>_2</code>, every
+  formula now reads the new state and re-evaluates. At the 75%
+  keyframe, the freshly computed values are copied into
+  <code>_1</code>. Repeat forever.
 </p>
 <p>
   The reason for the two-step handover: each copy is written at one
-  beat and read at another, so nothing is ever read and overwritten at
-  the same moment. The machine never sees a half-updated version of
+  keyframe and read at another, so nothing is ever read and
+  overwritten at the same moment. The machine never sees a half-updated version of
   itself &mdash; every tick gets a clean before-picture, even though
   368,256 cells and fourteen registers all change &ldquo;at
   once.&rdquo;
@@ -143,6 +155,7 @@ style(--opcode: 212): calc(var(--snapshot-cycleCount) + 83);  /* AAM: 83 — div
   The store and execute steps are themselves <code>@keyframes</code>
   &mdash; and an animation can&rsquo;t call another animation. So the
   cabinet attaches both to the CPU permanently, <b>paused</b>, and
-  the clock unpauses each one for a single beat &mdash; verbatim:
+  the clock unpauses each one for a quarter of every lap &mdash;
+  verbatim:
 </p>
 <CodeCss code={CONDUCTOR} />
