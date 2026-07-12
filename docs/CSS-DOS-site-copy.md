@@ -1697,7 +1697,6 @@ CSS can’t open anything at runtime — no files, no requests, no loading — s
     /* … one arm per byte of the floppy … */
 ```
 
-[AA: You go straight into FAT here - what is FAT?]
 (Already meaningful: 235, 60, 144 is the x86 jump instruction that every FAT boot sector opens with. Byte zero of the disk is the first thing the machine boots.)
 
 ### The window
@@ -1711,8 +1710,7 @@ style(--at: 852016): --readDiskByte(calc(
   (mod(var(--mc632-prev), 256) + round(down, var(--mc632-prev) / 256) * 256) * 512 + 48));
 ```
 
-[AA: Badly written please fix]
-The clutter in the middle is the sector number being dug out of memory cell 632 — the “which sector do you want” register is itself two bytes of ordinary RAM. DOS writes a number there, and 512 addresses instantly mean a different part of the disk.
+The clutter in the middle is the sector number: the “which sector do you want” register is memory cell 632 — two bytes of ordinary RAM — and the `mod(…) + round(…) × 256` is just gluing its 16-bit value back together. DOS writes a number into that cell, and all 512 window addresses instantly point at a different part of the disk.
 
 This is the one section that grows with the game — Sokoban’s disk is 13 MB of the file; Doom’s 1.3 MB floppy takes its cabinet to ~330 MB. The machine itself costs ~296 MB before any game arrives, so Zork — 85 KB of words on a screen — still comes out around 300 MB. 
 
