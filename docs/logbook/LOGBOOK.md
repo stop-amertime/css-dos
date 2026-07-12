@@ -22,6 +22,7 @@ See [`PROTOCOL.md`](PROTOCOL.md).
 
 | Date | Tag | Entry |
 |------|-----|-------|
+| 2026-07-12 | LANDED | [How/Calcite/FAQs pages replaced verbatim from docs/CSS-DOS-site-copy.md (full Problems 1-9 essay incl. complete AND-function exhibit, Calcite's 5 rules, full FAQ list); Credits now credits MS-DOS 4.00 + FreeDOS — verified via headless Playwright, zero console errors](entries/2026-07-12-about-how-calcite-faqs-credits-port.md) |
 | 2026-07-12 | LANDED | [Copy-sweep additions ported from doc into live components: hidden-storage/no-bounds-checks (SectionMemDecl), why-one-function/disk-window/else:0 (SectionMemRead + FetchLadder), disk window-clutter wording (SectionDisk), new DAC "Counting to three" section (SectionScreen), CPU background lightbulb line, rewritten Build FAQ — verified via headless Playwright, zero console errors](entries/2026-07-12-copy-sweep-port-to-components.md) |
 | 2026-07-12 | LANDED | [Hero footer links: About home's GitHub line replaced by three side-by-side icon+word links — Source (repo), My site (ahmedamer.co.uk), Contact me (…/#contact); inline currentColor SVGs, wrapping flex row, verified 1200/390 px](entries/2026-07-12-hero-footer-links.md) |
 | 2026-07-12 | LANDED | [Locked-control tooltips: disabled "3 Play" tab + Build "Next »" show a yellow DOS bubble saying why on hover/tap (StepDots `disabledTip`, router `nextTip`, global `.tip-anchor` — pointer-events trick for disabled buttons; strip fade moved off the li so the bubble stays crisp)](entries/2026-07-12-locked-control-tooltips.md) |
