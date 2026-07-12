@@ -198,13 +198,25 @@
   align-self: flex-start;
 }
 .intro-hero .intro-fn .fn-star { color: var(--edit-red); }
-.intro-hero .intro-gh {
+/* The hero's footer links: Source / My site / Contact me, icon + word
+   each, side by side (wrapping on narrow phones). */
+.intro-hero .intro-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
   margin: 12px 0 0;
   font-size: 14px;
   line-height: 16px;
 }
-.intro-hero .intro-gh a { color: var(--edit-blue); text-decoration: none; }
-.intro-hero .intro-gh a:hover { text-decoration: underline; }
+.intro-hero .intro-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--edit-blue);
+  text-decoration: none;
+}
+.intro-hero .intro-links a:hover { text-decoration: underline; }
+.intro-hero .intro-links svg { width: 15px; height: 15px; flex: none; }
 
 .punchline {
   margin-top: 16px !important;
