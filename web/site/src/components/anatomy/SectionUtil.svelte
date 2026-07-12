@@ -140,7 +140,7 @@
 
 <SectionHead>What else is in the box</SectionHead>
 <p>
-  The rest of the 66 sort into three rough families: byte plumbing, which splits and splices the two-bytes-per-cell memory (<code>--extractByte</code>, <code>--spliceByte</code>, <code>--applySlot</code> &mdash; the <a href="#about/file/memw">write-formulas section</a> shows the last one at work); instruction decoding, which picks apart x86 operand bytes (<code>--getReg16</code>, <code>--modrmLen</code>); and thirty-six flag calculators (<code>--addFlags16</code>, <code>--shrFlags8</code>, &hellip;), which <a href="#about/file/cpu">the CPU section</a> comes back to.
+  The rest of these 21 are byte plumbing: functions that split and splice the two-bytes-per-cell memory (<code>--extractByte</code>, <code>--spliceByte</code>, <code>--applySlot</code> &mdash; the <a href="#about/file/memw">write-formulas section</a> shows the last one at work) and read a 16-bit value across two of them. The instruction-decoding helpers that pick apart x86 operand bytes, and the flag calculators (<code>--addFlags16</code>, <code>--shrFlags8</code>, &hellip;), are CPU-specific rather than shared, so they live in <a href="#about/file/cpu">the CPU section</a> instead.
 </p>
 
 <style>

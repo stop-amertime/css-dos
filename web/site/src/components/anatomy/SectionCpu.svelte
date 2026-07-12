@@ -63,6 +63,32 @@ mod(calc(var(--DX-prev) * 65536 + var(--AX-prev)), max(1, var(--rmVal16)))`;
 
   const POWER_ON = `@property --CS { … initial-value: 61440; }   /* 0xF000 — the BIOS ROM */
 @property --IP { … initial-value: 0; }`;
+
+  const RAW_FETCH = `--csBase: calc(var(--CS-prev) * 16);
+--ipAddr: calc(var(--csBase) + var(--IP-prev));
+--raw0: --readMem(var(--ipAddr));
+--raw1: --readMem(calc(var(--ipAddr) + 1));
+/* … --raw2 through --raw7 … */`;
+
+  const PREFIX_QUEUE = `--isPrefix0: if(
+  style(--raw0: 38): 1;   /* the six prefix bytes: */
+  style(--raw0: 46): 1;   /* four segment overrides… */
+  style(--raw0: 54): 1;
+  style(--raw0: 62): 1;
+  style(--raw0: 242): 1;  /* …and two REPeat prefixes */
+  style(--raw0: 243): 1;
+else: 0);
+--prefixLen: calc(var(--isPrefix0) + var(--isPrefix1));
+
+--q0: if(style(--prefixLen: 0): var(--raw0); style(--prefixLen: 1): var(--raw1); else: var(--raw2));
+--q1: if(style(--prefixLen: 0): var(--raw1); style(--prefixLen: 1): var(--raw2); else: var(--raw3));
+/* … through --q5 … */
+
+--opcode: var(--q0);`;
+
+  const MODRM = `--mod: --rightShift(var(--q1), 6);
+--reg: --lowerBytes(--rightShift(var(--q1), 3), 3);
+--rm:  --lowerBytes(var(--q1), 3);`;
 </script>
 
 <p>
@@ -101,6 +127,53 @@ mod(calc(var(--DX-prev) * 65536 + var(--AX-prev)), max(1, var(--rmVal16)))`;
 <p>
   These tables are the same CSS in every cabinet: Doom&rsquo;s CPU and Zork&rsquo;s are byte-identical, and everything that differs between two cabinets is memory and disk.
 </p>
+
+<SectionHead>The instruction decoder</SectionHead>
+<p>
+  An 8086 instruction is one to six bytes long, and the only way to tell how long is to look at the instruction itself &mdash; an ADD, for example, is three bytes. Worse, the first byte might not even be the instruction &mdash; it might be a <i>prefix</i>, a modifier saying to use a different memory segment or repeat N times. Every normal emulator handles this with a little parsing loop: read a byte, act accordingly, continue reading. No loops in CSS, though.
+</p>
+<p>
+  So, the long way around. Every tick, eight bytes can be fetched from wherever IP points, enough for the worst case: two prefixes plus the longest instruction:
+</p>
+<CodeCss code={RAW_FETCH} />
+<p>
+  (That&rsquo;s a painful <i>eight</i> separate trips through the 743,948-arm read function, every tick, mostly fetching irrelevant bytes that ended up being in the next instruction over.)
+</p>
+<p>
+  Then, prefixes. A real 8086 consumes them one at a time off a queue. We can&rsquo;t make a queue, so we move the <i>labels</i> instead of the bytes. <code>--prefixLen</code> counts how many of the leading bytes are prefixes (there are only six byte values to check), and the queue the rest of the CPU actually reads &mdash; <code>--q0</code> to <code>--q5</code> &mdash; is a set of aliases, each pointing at the corresponding raw byte:
+</p>
+<CodeCss code={PREFIX_QUEUE} />
+<p>
+  Everything downstream can then simply use <code>--q0</code> as the opcode. Prefixes never reach the 850 register-table rows at all; only the IP table gets a single <code>+ prefixLen</code> to skip over however many prefixes exist.
+</p>
+<p>
+  The second byte, on most instructions, is a dense little operand descriptor &mdash; two bits of addressing mode, three bits of register, three of register-or-memory. CSS has no way to slice bits out of a byte, so, as ever: divide and take remainders.
+</p>
+<CodeCss code={MODRM} />
+
+<SectionHead>How do errors work?</SectionHead>
+<p>
+  Nothing <i>can</i> crash, because nothing is running. If an invalid opcode is detected, the IP table&rsquo;s fall-through is to stay put &mdash; the machine re-fetches the invalid byte repeatedly &mdash; while a diagnostic variable (<code>--haltCode</code>) holds the offending value up for scrutiny. We shouldn&rsquo;t hit an invalid opcode; if we do, the system grinds to a halt on purpose to make it easier to investigate. There&rsquo;s not much else to sensibly do.
+</p>
+
+<SectionHead>Decode everything, keep what&rsquo;s needed</SectionHead>
+<p>
+  Some waste is unavoidable &mdash; with no sequencing, we often don&rsquo;t have the privilege of computing only what we need. The current instruction might have no second byte, no immediate, no memory operand, but they are computed anyway: the memory address an operand <i>would</i> use, both operand values, the immediates, the signed reinterpretations that only multiplication cares about &mdash; the full product, in fact, of a multiply that almost certainly isn&rsquo;t happening. Around seventy of these standing values are derived each tick, and then the opcode selects the few that mean something; the rest are computed pointlessly and discarded.
+</p>
+<Callout kind="info" label="Chrome leads to waste, too">
+  <p>
+    Although this project is written for &lsquo;spec-compliant CSS&rsquo;, we need to actually <i>test</i> it in Chrome. Therefore, Chrome&rsquo;s foibles shaped the CPU&rsquo;s anatomy: some ways of nesting one <code>@function</code> call inside another work in Chrome, and others fail, in patterns the spec doesn&rsquo;t predict and had to be mapped by experiment.
+  </p>
+  <p>
+    Kiln flattens defensively. Where a register row wants <code>--bit()</code> nested inside something else, the bit gets hoisted out into its own named property &mdash; the carry flag exists as a standing per-tick property (<code>--_cf</code>) for exactly this reason. And a hoisted property is paid for every tick, repeatedly, whether this tick&rsquo;s instruction wants a carry flag or not.
+  </p>
+  <p>
+    There&rsquo;s a counter-trick, and it explains some of the ugliest code in Kiln. The maths functions &mdash; <code>mod()</code>, <code>round()</code>, <code>min()</code>, <code>calc()</code> &mdash; are built into CSS and nest freely; it&rsquo;s only the user-defined <code>@function</code>s that are delicate. So when an expression should only be paid for when its instruction actually runs, Kiln builds it out of nothing but raw arithmetic and buries it inside that opcode&rsquo;s branch, where <code>if()</code> evaluates it lazily. The DAA expression seen elsewhere on this page is written entirely in <code>mod</code> and <code>round</code> so it can live inside opcode 39&rsquo;s row, the one place where only DAA pays for it very occasionally. (And it&rsquo;s pasted out twice &mdash; once in AX&rsquo;s table, once in flags&rsquo; &mdash; because the fourteen tables evaluate in parallel and cannot share intermediate results.)
+  </p>
+  <p>
+    We can either have elegant DRY code that costs every tick, or scoped ugliness and duplication. Kiln haggles instruction by instruction.
+  </p>
+</Callout>
 
 <SectionHead>One instruction, all the way through</SectionHead>
 <p>

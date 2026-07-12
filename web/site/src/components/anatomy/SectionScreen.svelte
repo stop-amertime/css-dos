@@ -11,7 +11,7 @@
   const RETRACE = `/* in retrace? — 1 while the beam would be flying back */
 max(0, sign(3409 - mod(var(--cycleCount-prev), 68182)))`;
 
-  const PIXEL_RULE = `#p31840 { --ci: mod(var(--mc343600-prev), 256); background-color: --paletteRGB(var(--ci)); }`;
+  const PIXEL_RULE = `#p31840 { --ci: mod(var(--mc343600-prev), 256); background-color: --screenPx(var(--vidMode), var(--ci), mod(var(--mc382908-prev), 256), var(--mc377332-prev), var(--mc377832-prev), 3, 128, 128, var(--vidPal)); }`;
 
   const PALETTE_FN = `@function --paletteRGB(--idx <integer>) returns <color> {
   result: if(
@@ -44,7 +44,7 @@ max(0, sign(3409 - mod(var(--cycleCount-prev), 68182)))`;
 </p>
 <CodeCss code={PIXEL_RULE} />
 <p>
-  <code>mod()</code> digs the pixel&rsquo;s byte out of its packed memory cell, and the palette function turns that byte into a colour.
+  <code>mod()</code> digs the pixel&rsquo;s byte out of its packed memory cell, and <code>--screenPx()</code> &mdash; the mode dispatcher &mdash; decides what the bytes mean. <code>--vidMode</code> is the machine&rsquo;s current video mode: in the 256-colour game mode it hands <code>--ci</code> to the palette function below; in text mode it reads the character cell instead and looks the glyph row up in the ROM font; in CGA it unpacks two-bit pixels. One rule, every screen the machine can show.
 </p>
 
 <SectionHead>The palette &mdash; how 256 colours get chosen</SectionHead>
@@ -56,7 +56,10 @@ max(0, sign(3409 - mod(var(--cycleCount-prev), 68182)))`;
 </p>
 <CodeCss code={PALETTE_FN} />
 <p>
-  The mess inside <code>rgb()</code> is three live memory reads &mdash; red, green, blue &mdash; each scaled by 255/63 because a real VGA&rsquo;s palette chip only kept six bits per channel: programs wrote brightnesses from 0 to 63, and the machine honours that. Of the file&rsquo;s thousands of functions, this is the only one that returns a colour &mdash; everything else in 300&nbsp;MB computes integers.
+  The mess inside <code>rgb()</code> is three live memory reads &mdash; red, green, blue &mdash; each scaled by 255/63 because a real VGA&rsquo;s palette chip only kept six bits per channel: programs wrote brightnesses from 0 to 63, and the machine honours that.
+</p>
+<p class="dim small">
+  Of the file&rsquo;s thousands of functions, only three return a colour &mdash; this one, its fixed 16-colour cousin <code>--vgaRGB</code> (text and CGA modes), and the <code>--screenPx</code> dispatcher itself. All the others just return integers.
 </p>
 <Foldable>
   {#snippet summary()}The palette read-back cursor{/snippet}
