@@ -11,24 +11,7 @@ export const CPU_TREE = [
     kind: 'root',
     children: [
     { kind: 'section', label: "REGISTER DECLARATIONS", code: `/* ===== REGISTER DECLARATIONS ===== */`, folded: true, boxed: true, lazy: {"ref":"cpu/000","count":18} },
-    {
-      kind: 'section',
-      label: "1 · FETCH & DECODE",
-      code: `/* ===== 1 · FETCH & DECODE ===== */`,
-      folded: true,
-      boxed: true,
-      children: [
-      {
-        kind: 'decl',
-        code: `.cpu {`,
-        trailer: `}`,
-        children: [
-        { kind: 'section', label: "fetch next instruction", code: `/* --- fetch next instruction --- */`, folded: true, lazy: {"ref":"cpu/005","count":16} },
-        ],
-      },
-      { kind: 'section', label: "decode helpers", code: `/* --- decode helpers --- */`, folded: true, lazy: {"ref":"cpu/006","count":16} },
-      ],
-    },
+    { kind: 'section', label: "1 · FETCH & DECODE", code: `/* ===== 1 · FETCH & DECODE ===== */`, folded: true, boxed: true, lazy: {"ref":"cpu/006","count":2} },
     {
       kind: 'section',
       label: "PRECOMPUTED EXECUTION STATE",
@@ -49,29 +32,7 @@ export const CPU_TREE = [
       { kind: 'decl', code: `.cpu {`, trailer: `}`, lazy: {"ref":"cpu/036","count":21} },
       ],
     },
-    {
-      kind: 'section',
-      label: "3 · OUTPUT: MEMORY WRITE SLOTS",
-      code: `/* ===== 3 · OUTPUT: MEMORY WRITE SLOTS ===== */`,
-      folded: true,
-      boxed: true,
-      children: [
-      {
-        kind: 'decl',
-        code: `.cpu {`,
-        trailer: `}`,
-        children: [
-        { kind: 'block', code: `/* The CPU's write port onto the bus: three (addr, val) slot pairs.
-     Slot N writes --memValN to linear address --memAddrN this tick
-     (addr -1 = slot idle); the shared --_writeWidth below picks byte
-     or word for every live slot. Three slots is the worst case: INT
-     (and the TF-trap / hardware-IRQ frame) pushes FLAGS, CS and IP
-     in one tick. */` },
-        { kind: 'section', label: "slot 0", code: `/* --- slot 0 --- */`, folded: true, lazy: {"ref":"cpu/045","count":6} },
-        ],
-      },
-      ],
-    },
+    { kind: 'section', label: "3 · OUTPUT: MEMORY WRITE SLOTS", code: `/* ===== 3 · OUTPUT: MEMORY WRITE SLOTS ===== */`, folded: true, boxed: true, lazy: {"ref":"cpu/045","count":1} },
     { kind: 'section', label: "HELPERS", code: `/* ===== HELPERS ===== */`, folded: true, boxed: true, lazy: {"ref":"cpu/055","count":11} },
     ],
   },

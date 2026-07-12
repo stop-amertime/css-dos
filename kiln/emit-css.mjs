@@ -880,9 +880,11 @@ export function emitCSS(opts, writeStream) {
   // banner, so every stage reads as a sibling group in the file map (the
   // blocks merge into one computed style on the player element). @functions
   // can't nest in a rule, so the decode/flag @functions sit top-level within
-  // their stage's banner span.
+  // their stage's banner span — AFTER the rule, so the `--- decode helpers ---`
+  // banner scopes only the @functions (a `---` span runs until the next
+  // banner; putting the rule after it would swallow the rule — see
+  // tools/extract-tree-data.mjs Grouper). Same shape as HELPERS below.
   writeStream.write('/* ===== 1 · FETCH & DECODE ===== */\n\n');
-  w(emitDecodeFunction());
   writeStream.write('.cpu {\n');
   w(emitDecodeProperties());
   // Unknown opcode detection — sets --unknownOp=1 and --haltCode=opcode
@@ -890,6 +892,7 @@ export function emitCSS(opts, writeStream) {
   writeStream.write(dispatch.emitUnknownOpFlag() + '\n');
   writeStream.write('  --haltCode: calc(var(--unknownOp) * var(--opcode)); /* the offending opcode, 0 while running */\n');
   w('}');
+  w(emitDecodeFunction());
 
   writeStream.write('/* ===== PRECOMPUTED EXECUTION STATE ===== */\n\n');
   writeStream.write('.cpu {\n');

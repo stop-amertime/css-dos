@@ -33,6 +33,9 @@ behaviour was needed):
   now guarantees every page carries a substantive node. (extractor)
 - *Stacked "(N more…)" buttons* — per-run buttons stacked. One shared
   reveal cursor across all runs → at most one button. (TreeAst.svelte)
+  **SUPERSEDED same day**: the shared cursor clumped later runs'
+  comments above one global button; per-run pagination restored — see
+  2026-07-12-filemap-nesting-run-splits.
 
 Verified in the built site (vite preview + Playwright): CPU shows the
 six stages; disk shows its arms + one button; memory-declarations is

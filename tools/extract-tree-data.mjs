@@ -257,20 +257,30 @@ class Grouper {
     this.groups = [];
     this.major = null;
     this.sub = null;
+    this.majorPromoted = false;
   }
   openMajor(comment, title) {
     this.major = { kind: 'section', label: title, code: comment, folded: true, children: [] };
     this.sub = null;
+    this.majorPromoted = false;
     this.groups.push(this.major);
   }
   openSub(comment, title) {
-    // A `---` sub-banner with no open major is its own group: there is no
-    // major to nest it under, so promote it to the major level. This is the
-    // normal shape inside a rule body (e.g. a chip rule delimited only by
-    // `--- edge detection --- / --- registers ---`) and for leading subs
-    // before a body's first `===== major =====`. The banner text is kept
-    // verbatim, so the round-trip check is unaffected.
-    if (!this.major) { this.openMajor(comment, title); return; }
+    // A `---` sub-banner with no open `=====` major is its own group: there
+    // is no major to nest it under, so promote it to the major level. This
+    // is the normal shape inside a rule body (e.g. a chip rule delimited
+    // only by `--- edge detection --- / --- registers ---`) and for leading
+    // subs before a body's first `===== major =====`. EVERY such sub is a
+    // sibling at the major level — a promoted sub must not become a major
+    // that swallows the `---` groups after it (that bug nested slot 1/2
+    // under slot 0, `registers` under `timer countdown`, etc. — fixed
+    // 2026-07-12). The banner text is kept verbatim, so the round-trip
+    // check is unaffected.
+    if (!this.major || this.majorPromoted) {
+      this.openMajor(comment, title);
+      this.majorPromoted = true;
+      return;
+    }
     this.sub = { kind: 'section', label: title, code: comment, folded: true, children: [] };
     this.major.children.push(this.sub);
   }
@@ -618,13 +628,20 @@ function hoistAndRoot(nodes) {
   return { kind: 'root', children: items };
 }
 
+// @property registration blocks and labelled sub-groups read as reference
+// material beside a rule, not competing structure — a lone rule among them
+// IS the section's body, so it renders open (owner feedback 2026-07-12;
+// before this, every chipset chip cost an extra click on `.motherboard {`).
+const isRegistrationNode = (n) =>
+  n.kind === 'block' && (n.code ?? '').startsWith('@property');
+
 function unfoldCeremony(node) {
   if (node.kind === 'if' || node.kind === 'branch') return;
   const kids = node.children ?? [];
-  const structural = kids.filter((c) => !isCommentNode(c));
-  if (structural.length === 1 && structural[0].kind !== 'section'
-      && structural[0].folded != null) {
-    delete structural[0].folded;
+  const body = kids.filter((c) =>
+    !isCommentNode(c) && c.kind !== 'section' && !isRegistrationNode(c));
+  if (body.length === 1 && body[0].folded != null) {
+    delete body[0].folded;
   }
   for (const c of kids) unfoldCeremony(c);
 }
