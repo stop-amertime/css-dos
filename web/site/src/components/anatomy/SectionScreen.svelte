@@ -31,7 +31,7 @@ max(0, sign(3409 - mod(var(--cycleCount-prev), 68182)))`;
 </script>
 
 <p>
-  Mercifully, the one thing CSS was actually built for is to colour boxes. If you think about it, pixels are just coloured boxes. So the screen is a 320&times;200 grid of <code>&lt;div&gt;</code> elements, each one a pixel: 64,000 of them. Each simply reads the relevant byte of video-specific memory (aka Video RAM, aka VRAM):
+  If you think about it, pixels are just coloured boxes. Mercifully, the one thing CSS was actually built for is to colour boxes. So the screen is a 320&times;200 grid of <code>&lt;div&gt;</code> elements, each one a pixel: 64,000 of them. Each simply reads the relevant byte of video-specific memory (aka Video RAM, aka VRAM):
 </p>
 
 <PixelScreen />

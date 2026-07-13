@@ -9,11 +9,8 @@
 </script>
 
 <p>
-  The bar above is a real file (Sokoban), to scale and in order. Click
-  a section to delve<span class="map-fn-star">*</span> in.
-</p>
-<p class="map-fn small">
-  <span class="map-fn-star">*</span>written by a human, I promise
+  The bar above is a real .css file (Sokoban), to scale and in order. <br> Click
+  a section to see its contents.
 </p>
 
 <style>

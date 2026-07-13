@@ -1,7 +1,5 @@
 <script>
-  // The keyboard section — 4 KB of :active key rules. Copy recycled
-  // from the retired "Screen, keys, time" and "The CPU" pages; facts
-  // from CABINET-ANATOMY.md §7.
+  // The keyboard section — 4 KB of :active key rules.
   import KeyboardDemo from '../KeyboardDemo.svelte';
   import Callout from '../Callout.svelte';
   import CodeCss from '../CodeCss.svelte';
@@ -32,6 +30,10 @@
 
 <KeyboardDemo />
 
+<p>
+Mouse support is actually <i>easier</i> than keyboard support - I just detect the screen pixel divs being clickable using <code>:active</code>, and report a mouse click event in the relevant location. 
+</p>
+
 <SectionHead>Detecting presses and releases</SectionHead>
 <p>
   <code>:active</code> can only answer one question: <i>is this element held down now?</i> However, a program only gets round to asking the keyboard hundreds of ticks afterwards. CSS speaks in the present tense; the PC demands past tense.
@@ -52,7 +54,7 @@
 </p>
 <CodeCss code={HOLD_CHECKBOX} />
 <p>
-  This is the only button that has no real keyboard key equivalent. While this mode is on, key releases are filed away instead of delivered. Letting go of a key drops its code into one of eight numbered pigeonholes (<code>--kbdHeld0</code> through <code>--kbdHeld7</code>; CSS has no arrays, so a queue is eight variables and willpower).
+  This is the only button that has no real keyboard key equivalent. While this mode is on, key releases and mouse releases are filed away instead of delivered. Letting go of a key drops its code into one of eight numbered pigeonholes (<code>--kbdHeld0</code> through <code>--kbdHeld7</code>; CSS has no arrays, so a queue is eight variables and willpower).
 </p>
 <p>
   Uncheck &lsquo;Hold Mode&rsquo; and the machine simulates one release per opportunity, politely paced, each new one synthesised only after the program&rsquo;s interrupt handler has fully digested the previous.
@@ -61,12 +63,3 @@
   And, you guessed it: each pigeonhole individually evaluates whether it&rsquo;s the one being filled, by checking if each one below it is full:
 </p>
 <CodeCss code={HOLD_SLOT} />
-
-<Callout kind="warn" label="Honest limits">
-  <p>
-    CSS cannot see your physical keyboard &mdash; no selector reacts to a real keypress, so every program is piloted from the on-screen keys.
-  </p>
-  <p>
-    And CSS cannot make sound either, so there&rsquo;s no audio. I considered, but never got around to, displaying the audio waveform graphically.
-  </p>
-</Callout>
