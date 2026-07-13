@@ -14,7 +14,7 @@
     Every programming language has this problem: source code is written for humans, and running it directly just <i>is</i> slow. And every language solves it the same way: <b>compile the source into something faster before running it.</b> Chrome compiles JavaScript to machine code before running it (the V8 engine, written in C++), as does every other browser. Python quietly compiles <code>.py</code> to bytecode before running it. Almost nothing runs from raw source these days except shell scripts and declarative languages like CSS.
   </p>
   <p>
-    Nobody previously wrote a compiler for CSS, because nobody had ever been foolish enough to need one. Thus, CSS-DOS grew a second project: a compiler of its own, which took about as long to build as the CSS-generating half of the project.
+    Nobody had previously written a compiler that <i>runs</i> CSS, because nobody had ever been foolish enough to need one. Thus, CSS-DOS grew a second project: a compiler of its own, which took about as long to build as the CSS-generating half of the project.
   </p>
   <p>
     <b>Calcite</b> is a <Term t="jit">JIT compiler</Term> for computational CSS &mdash; written in Rust, shipped as <Term t="wasm">WebAssembly</Term>, running in the background and operating on a player page which is itself entirely HTML/CSS (mimicking the model of an in-browser engine like V8). On load, it reads the whole stylesheet once and recognises the repetitive shapes that an emulated computer forces CSS into &mdash; the 368,256 near-identical write formulas, the colossal lookup functions, the register tables. It compiles those shapes into native routines, over 200,000&times; faster than the above baseline speed.

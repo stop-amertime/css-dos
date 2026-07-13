@@ -94,7 +94,7 @@
               <div class="opt-stack">
                 <CheckRow bind:checked={build.options.textVga} label="Text (B8000)" />
                 <CheckRow bind:checked={build.options.gfx} label="Mode 13h (A0000)" />
-                <CheckRow bind:checked={build.options.cgaGfx} label="CGA 0x04 (B8000)" />
+                <CheckRow bind:checked={build.options.cgaGfx} label="CGA Mode 4/6 (B8000)" />
               </div>
             </div>
             <div class="opt-set">

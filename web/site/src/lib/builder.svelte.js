@@ -115,7 +115,7 @@ class Build {
     const v = [];
     if (this.options.textVga) v.push('Text');
     if (this.options.gfx) v.push('Mode 13h');
-    if (this.options.cgaGfx) v.push('CGA 0x04');
+    if (this.options.cgaGfx) v.push('CGA Mode 4/6');
     return v.join(' + ') || '(none)';
   }
   get specRun() {
