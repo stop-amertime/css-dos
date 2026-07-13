@@ -121,10 +121,7 @@
     justify-content: center;
   }
   .ram-formula code { background: none; border: none; padding: 0; }
-  .ram-formula .tok-prop    { color: var(--edit-red); }
-  .ram-formula .tok-fn      { color: #006600; }
-  .ram-formula .tok-num     { color: var(--edit-blue); }
-  .ram-formula .tok-comment { color: #777; }
+  /* .tok-* colours come from global.css. */
 
   /* — right pane: cells + button + feed — */
   .ram-try {
@@ -171,19 +168,11 @@
   }
   .ram-cell.hit .ram-val { font-weight: bold; }
 
+  /* .demo-toggle chrome comes from global.css; only sizing here. */
   .ram-write .demo-toggle {
-    font-family: 'WebVGA', monospace; letter-spacing: normal;
     font-size: 15px;
     padding: 6px 12px;
     background: var(--edit-white);
-    color: var(--edit-black);
-    border: 1px solid var(--edit-black);
-    box-shadow: 2px 2px 0 var(--edit-black);
-    cursor: pointer;
-  }
-  .ram-write .demo-toggle:active {
-    transform: translate(2px, 2px);
-    box-shadow: none;
   }
   .ram-write .demo-toggle:disabled {
     color: #777;

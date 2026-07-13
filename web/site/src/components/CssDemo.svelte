@@ -116,10 +116,7 @@
     white-space: pre;
     overflow-x: auto;
   }
-  .css-demo-code .tok-sel  { color: var(--edit-blue); }
-  .css-demo-code .tok-prop { color: var(--edit-red); }
-  .css-demo-code .tok-fn   { color: #006600; }
-  .css-demo-code .tok-at   { color: var(--edit-blue); }
+  /* .tok-* colours come from global.css. */
   .css-demo-result {
     border-left: 1px solid var(--edit-black);
     padding: 12px;
@@ -165,18 +162,10 @@
     color: var(--edit-white);
   }
   .css-demo-result .demo-box-branch.on { --on: 1; }
+  /* .demo-toggle chrome comes from global.css; only sizing here. */
   .css-demo-result .demo-toggle {
-    font-family: 'WebVGA', monospace; letter-spacing: normal;
     font-size: 14px;
     padding: 4px 10px;
     background: var(--edit-white);
-    color: var(--edit-black);
-    border: 1px solid var(--edit-black);
-    box-shadow: 2px 2px 0 var(--edit-black);
-    cursor: pointer;
-  }
-  .css-demo-result .demo-toggle:active {
-    transform: translate(2px, 2px);
-    box-shadow: none;
   }
 </style>

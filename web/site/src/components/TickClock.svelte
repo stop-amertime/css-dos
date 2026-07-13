@@ -73,12 +73,10 @@
     justify-content: center;
   }
   .tick-code code { background: none; border: none; padding: 0; }
+  /* .tok-* colours come from global.css, except: @keyframes red and
+     keyframe selectors green here, so the clock's two halves read apart. */
   .tick-code .tok-at      { color: var(--edit-red); }
-  .tick-code .tok-prop    { color: var(--edit-red); }
-  .tick-code .tok-num     { color: var(--edit-blue); }
-  .tick-code .tok-comment { color: #777; }
   .tick-code .tok-sel     { color: #006600; }
-  .tick-code .tok-fn      { color: #006600; }
 
   /* — right pane: the four beats — */
   .tick-beats {

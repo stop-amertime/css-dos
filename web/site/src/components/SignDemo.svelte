@@ -64,19 +64,11 @@
   }
   .sd-gap { width: 14px; }
 
+  /* .demo-toggle chrome comes from global.css; only sizing here. */
   .sign-demo .demo-toggle {
-    font-family: 'WebVGA', monospace; letter-spacing: normal;
     font-size: 15px;
     padding: 3px 9px;
     background: var(--edit-white);
-    color: var(--edit-black);
-    border: 1px solid var(--edit-black);
-    box-shadow: 2px 2px 0 var(--edit-black);
-    cursor: pointer;
-  }
-  .sign-demo .demo-toggle:active {
-    transform: translate(2px, 2px);
-    box-shadow: none;
   }
 
   .sd-result {

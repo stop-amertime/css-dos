@@ -559,6 +559,34 @@ p, li, blockquote { text-wrap: pretty; }
 }
 .step .explainer { max-width: 900px; margin-bottom: 16px; }
 
+/* ── Sim / bracket lists — [ ] as the bullet, DOS-menu style. Shared
+   prose vocabulary: usable in any step/subpage/anatomy section. ── */
+.sim-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+.sim-list li { margin-bottom: 6px; line-height: 16px; }
+.bracket-list { padding-left: 30px; }
+.bracket-list li {
+  position: relative;
+  padding-left: 6px;
+  margin-bottom: 14px;
+}
+.bracket-list li:last-child { margin-bottom: 6px; }
+.bracket-list li::before {
+  content: '[]';
+  position: absolute;
+  left: -30px;
+  width: 24px;
+  color: var(--edit-blue);
+  font-weight: bold;
+}
+/* bracket-list-num: [1] [2] … — same DOS-menu style, numbered */
+.bracket-list-num { counter-reset: bracket-num; }
+.bracket-list-num li { counter-increment: bracket-num; }
+.bracket-list-num li::before { content: '[' counter(bracket-num) ']'; }
+
 /* External links — blue, underline on hover. */
 .ext-link { color: var(--edit-blue); text-decoration: underline; }
 .ext-link:hover { color: #1111cc; }
@@ -599,6 +627,35 @@ p, li, blockquote { text-wrap: pretty; }
 .byte-example .token.atrule .token.variable { color: var(--edit-red); }
 .byte-example .token.atrule .token.number { color: #006600; }
 .byte-example .token.string { color: #aa5500; }
+
+/* ── Hand-rolled code tokens (.tok-*) — the palette the inline demo
+   widgets (CssDemo, CssTimeline, RamWrite, TickClock, KeyboardDemo,
+   PixelScreen, CycleDiagrams…) mark their snippets up with. Distinct
+   from the Prism .token.* palette above (different colour convention;
+   unifying them would visibly change one side). Components may
+   override a token locally where a demo colour-codes on purpose. ── */
+.tok-sel     { color: var(--edit-blue); }
+.tok-prop    { color: var(--edit-red); }
+.tok-fn      { color: #006600; }
+.tok-num     { color: var(--edit-blue); }
+.tok-at      { color: var(--edit-blue); }
+.tok-comment { color: #777; }
+
+/* ── Demo toggle — the small DOS push-button the interactive demos use
+   (hard shadow, presses down on :active). Size, padding and fill vary
+   per demo and stay in the component. ── */
+.demo-toggle {
+  font-family: 'WebVGA', monospace;
+  letter-spacing: normal;
+  color: var(--edit-black);
+  border: 1px solid var(--edit-black);
+  box-shadow: 2px 2px 0 var(--edit-black);
+  cursor: pointer;
+}
+.demo-toggle:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
 
 /* ===== Wizard nav (Back / Next bar) ===== */
 .wiz-nav {

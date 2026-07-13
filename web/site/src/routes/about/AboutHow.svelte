@@ -173,32 +173,7 @@
     margin-inline: auto;
   }
 
-  /* — sim / bracket lists: [ ] as the bullet, DOS-menu style — */
-  .sim-list {
-    list-style: none;
-    margin: 8px 0 0;
-    padding: 0;
-  }
-  .sim-list li { margin-bottom: 6px; line-height: 16px; }
-  .bracket-list { padding-left: 30px; }
-  .bracket-list li {
-    position: relative;
-    padding-left: 6px;
-    margin-bottom: 14px;
-  }
-  .bracket-list li:last-child { margin-bottom: 6px; }
-  .bracket-list li::before {
-    content: '[]';
-    position: absolute;
-    left: -30px;
-    width: 24px;
-    color: var(--edit-blue);
-    font-weight: bold;
-  }
-  /* bracket-list-num: [1] [2] … — same DOS-menu style, numbered */
-  .bracket-list-num { counter-reset: bracket-num; }
-  .bracket-list-num li { counter-increment: bracket-num; }
-  .bracket-list-num li::before { content: '[' counter(bracket-num) ']'; }
+  /* sim / bracket lists ([ ] bullets) now live in global.css. */
 
   /* — the "how slow is it" stat grid (Problem 9) — three boxed numbers,
      same border/shadow language as the code exhibits. */

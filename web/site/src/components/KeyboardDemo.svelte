@@ -90,10 +90,9 @@
     justify-content: center;
   }
   .kbd-code code { background: none; border: none; padding: 0; }
-  .kbd-code .tok-sel     { color: var(--edit-blue); }
-  .kbd-code .tok-prop    { color: var(--edit-red); }
+  /* .tok-* colours come from global.css, except the keycodes: green
+     here (not the global blue) so they pop as the payload. */
   .kbd-code .tok-num     { color: #006600; }
-  .kbd-code .tok-comment { color: #777; }
 
   .kbd-try {
     display: flex;

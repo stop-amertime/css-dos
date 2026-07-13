@@ -203,10 +203,7 @@
     white-space: pre;
     overflow-x: auto;
   }
-  .tl-code .tok-sel  { color: var(--edit-blue); }
-  .tl-code .tok-prop { color: var(--edit-red); }
-  .tl-code .tok-fn   { color: #006600; }
-  .tl-code .tok-at   { color: var(--edit-blue); }
+  /* .tok-* colours come from global.css. */
   .tl-result {
     flex: 1;
     padding: 12px;
@@ -254,19 +251,11 @@
     color: var(--edit-white);
   }
   .tl-result .demo-box-branch.on { --on: 1; }
+  /* .demo-toggle chrome comes from global.css; only sizing + the cyan
+     call-to-action fill here. */
   .tl-result .demo-toggle {
-    font-family: 'WebVGA', monospace;
-    letter-spacing: normal;
     font-size: 14px;
     padding: 4px 10px;
     background: var(--edit-cyan);
-    color: var(--edit-black);
-    border: 1px solid var(--edit-black);
-    box-shadow: 2px 2px 0 var(--edit-black);
-    cursor: pointer;
-  }
-  .tl-result .demo-toggle:active {
-    transform: translate(2px, 2px);
-    box-shadow: none;
   }
 </style>

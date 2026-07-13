@@ -87,10 +87,7 @@
     justify-content: center;
   }
   .pixel-code code { background: none; border: none; padding: 0; }
-  .pixel-code .tok-sel     { color: var(--edit-blue); }
-  .pixel-code .tok-prop    { color: var(--edit-red); }
-  .pixel-code .tok-fn      { color: #006600; }
-  .pixel-code .tok-comment { color: #777; }
+  /* .tok-* colours come from global.css. */
 
   /* Colour chip linking a rule to its pixel in the diagram. */
   .px-chip {

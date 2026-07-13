@@ -133,10 +133,7 @@
     max-width: 100%;
   }
   .cd-code code { background: none; border: none; padding: 0; }
-  .cd-code .tok-prop    { color: var(--edit-red); }
-  .cd-code .tok-num     { color: var(--edit-blue); }
-  .cd-code .tok-fn      { color: #006600; }
-  .cd-code .tok-comment { color: #777; }
+  /* .tok-* colours come from global.css. */
   .cd-self { width: 100%; max-width: 230px; height: auto; display: block; flex: 0 1 200px; }
   .cd-pair { width: 100%; max-width: 276px; height: auto; display: block; flex: 0 1 240px; }
 
