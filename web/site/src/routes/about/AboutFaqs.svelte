@@ -45,10 +45,7 @@
         <b>A physical keyboard, or any other physical input.</b> I think clicking buttons is the only viable input mechanism to mimic a keyboard.
       </p>
       <p>
-        <b>Any more complex OS than MS-DOS</b> would be a real pain in the arse, perhaps even impossible. Anything using protected mode, or 286/386 instructions is a significant step up in complexity. There&rsquo;s a solid barrier in the way: V8&rsquo;s string size limit, which carts are already pushing up against. On the other hand, emulating <i>this</i> was already a huge pain in the arse that seems like it might actually be impossible, so never say never.
-      </p>
-      <p>
-        <b>Windows 1.01, famously&hellip; actually, it runs now.</b> An earlier draft of this answer listed it here: &ldquo;surprisingly possible &mdash; just a GUI layer over 16-bit real-mode DOS, the main barrier is mouse support &mdash; but I&rsquo;m releasing this first, the scope creep would be too egregious.&rdquo; The scope crept. The screen&rsquo;s pixels are themselves clickable now, feeding an emulated serial mouse, and Windows 1.01 is the first preset on the Build page. (Windows 1.x menus only stay open while the button is held down, so the player grew a Hold Mode switch that latches the mouse button for you.)
+        <b>Any more complex OS than Windows 1.01</b> would be a real pain in the arse, perhaps even impossible. Anything using protected mode, or 286/386 instructions is a significant step up in complexity. There&rsquo;s a solid barrier in the way: V8&rsquo;s string size limit, which carts are already pushing up against. On the other hand, emulating <i>this</i> was already a huge pain in the arse that seems like it might actually be impossible, so never say never.
       </p>
       <p class="dim small">
         A minor note: I like the name CSS-DOS, but lack a catchy name for a CSS Windows. CSSWin and WinCSS are uncomfortably close to Tailwind CSS and Windsurf. I&rsquo;d probably go for Windows.css &mdash; nobody take that name, please.
@@ -65,7 +62,7 @@
     <Foldable>
       {#snippet summary()}How long did this take?{/snippet}
       <p>
-        About six months of on-and-off hobbyist work. I have no idea how many AI tokens I used on the project, but it&rsquo;s easily in the hundreds of millions, probably thousands of pounds of API-equivalent usage. Worth it? Hopefully - if you enjoyed it, drop me a line at hello {at sign} ahmedamer.co.uk to make me feel better about that. 
+        About six months of on-and-off hobbyist work. I have no idea how many AI tokens I used on the project, but it&rsquo;s easily in the hundreds of millions, probably thousands of pounds of API-equivalent usage. Worth it? Hopefully - if you enjoyed it, drop me a line at hello [at sign] ahmedamer.co.uk to help me feel better about that. 
       </p>
     </Foldable>
 
