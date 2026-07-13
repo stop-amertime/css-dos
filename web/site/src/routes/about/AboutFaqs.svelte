@@ -79,10 +79,10 @@
     <Foldable>
       {#snippet summary()}Did you use AI?{/snippet}
       <p>
-        Yes, I did. A lot, actually. Claude churned out much of the mechanical work, helped me keep track, write good docs and commits which would otherwise fall by the wayside due to my ADHD. It feels relevant to mention that I'm a published AI safety researcher and red-teamer, and am very aware that LLMs are not a tool one can just point at a problem and press 'Go'. I'd label myself more an 'LLM-assisted' but not 'vibe coded' - I have <i>stared</i> at this code. 
+        Yes, I did. A lot, actually. I haven't personally written much code by hand in the last year or so, but I would still say the code is <i>my code</i>. Claude churned out much of the mechanical work, helped me keep track, write good docs and organise commits. Prior to AI, these fell by the wayside due to my ADHD. It feels relevant to mention that I'm a published AI safety researcher and red-teamer, and am very aware that LLMs are not a tool one can just point at a problem and press 'Go'. I'd label this project 'LLM-assisted' but not 'vibe coded'. 
       </p>
       <p>
-        I also find AI <i>writing</i> to be cringeworthy and generic in tone and lacking in substance - I'm typing this right now myself, and the copy on this website is edited by me personally with a real keyboard word-by-word, with proofreading and mistake-fixing by Claude.
+        I find AI <i>writing</i> to be cringe-inducing and bland. I'm typing this myself. All the copy on this website is edited by me personally with a real keyboard word-by-word, with only proofreading and mistake-fixing by Claude.
       </p>
       <p>
         Claude could never have figured the project out on its own, but it was immensely helpful. Claude lacked the intuition to contribute reliably on a conceptual level, although it had its moments &mdash; the writable shadow-disk, and <code>&lt;img&gt;</code> tag hack in Calcite, among others were Claude&rsquo;s idea. However, this project is an unusual one, taking Claude well out of distribution, and it often took a laughably inept path through implementations and needed constant shepherding. But what it lacked in smarts, it made up for in being able to spew out menial code at a rate that far surpasses mine, like a slightly dim intern with the speed of the Flash. 
