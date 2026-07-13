@@ -34,20 +34,20 @@
 </script>
 
 <p>
-  The single biggest section of the file, and the reason for most of its size. You already know why it has to exist &mdash; this is Problem 2 from the last page. This section is what it costs.
+  The reason that memory-write-formulas are the largest section of the file, is covered in 'Problem 2'  of the 'How?' section previously, but lets go into more depth.
 </p>
 <p>
-  One more time, because this is where it costs 171&nbsp;MB: a normal language assigns &mdash; <code>x&nbsp;=&nbsp;y</code>, and x changes. A stylesheet has no order; every rule is in force the whole time, and you only get to declare, once, what x <i>is</i>:
+  A normal language assigns &mdash; <code>x&nbsp;=&nbsp;y</code>, and x changes. A stylesheet has no order; every rule is in force the whole time, and you only get to declare, once, what x <i>is</i>:
 </p>
 <CodeCss code={'--x: 5;'} />
 <p>
-  So the definition itself has to do the work: each byte of memory is written as a formula that works out, every <Term t="tick">tick</Term>, what its value now is &mdash; closer to a spreadsheet cell than to a line of code. The formula asks one question &mdash; did this tick&rsquo;s instruction write to <i>my</i> address? Three <b>write slots</b> carry the answer: small shared variables holding the addresses and values of whatever the current instruction writes.
+  So each byte of memory is written as a formula that works out, every <Term t="tick">tick</Term>, what its value now is &mdash; closer to a spreadsheet cell than to a line of code. The formula asks one question &mdash; did this tick&rsquo;s instruction write to <i>my</i> address? Three <b>write slots</b> carry the answer: small shared variables holding the addresses and values of whatever the current instruction writes.
 </p>
 
 <RamWrite />
 
 <p>
-  Naturally, this means every byte has to re-check its formula every single tick, whether it was written or not. In a normal programming language, <code>x&nbsp;=&nbsp;y</code> changes x and touches nothing else. Here, an instruction that writes one byte &mdash; or no bytes at all &mdash; still makes all 650,000 write formulas ask their question again. This is massively inefficient.
+  Every byte has to re-check its formula every single tick, whether it was written or not. An instruction that writes one byte &mdash; or no bytes at all &mdash; still has all 650,000 write formulas recalculate.
 </p>
 <p class="punchline">
   More than half the file (171&nbsp;MB) is this single formula, written out once per memory cell.
@@ -62,14 +62,11 @@
   The middle two cases are the awkward one: a 16-bit write to an odd address lands half in one cell and half in the next, so <i>both</i> cells fire, each splicing in its own half. And in every cell&rsquo;s formula the three slot calls are nested with slot 0 outermost, so if two slots ever hit the same cell, slot 0 wins.
 </p>
 <p>
-  Assembled, this is one cell of the machine &mdash; verbatim, names tidied as usual, the middle slot elided:
+  Assembled, this is one cell of the machine:
 </p>
 <CodeCss code={ASSEMBLED_CELL} />
 <p>
-  This line, once per cell &mdash; 368,256 times, each with its own address baked into the arithmetic &mdash; is the 171&nbsp;MB.
-</p>
-<p>
-  Why stop at two bytes per cell, when four would halve everything again? Arithmetic: four packed bytes can reach past four billion, beyond what the 32-bit signed integers all this maths must survive in can hold. Two bytes tops out at 65,535 and is always safe.
+  Why stop at two bytes per cell, when four would halve everything again? Arithmetic: four packed bytes can represent numbers past four billion, beyond the capacity of 32-bit signed integers. Two bytes top out at 65,535 and are always safe.
 </p>
 
 <Foldable>

@@ -101,91 +101,47 @@ style(--opcode: 164): if(
 </script>
 
 <p>
-  This section is the fourteen <Term t="register">registers</Term> &mdash; <code>--AX</code>, <code>--BX</code>, <code>--IP</code> and so on &mdash; and the tables that define them. Less than 0.1% of the file.
+The first question: why is there no ALU in the above list?
+<br><br>
 </p>
 
 <Foldable class="fold-bg">
-  {#snippet summary()}Background: what a CPU does{/snippet}
-  <p>
-    Memory (RAM) is a long row of numbered boxes, each holding a byte (a number from 0 to 255). A program is numbers sitting in those boxes, and some of the numbers are instructions: the sequence 184,&nbsp;5,&nbsp;0 means &ldquo;put the number 5 into AX&rdquo;. AX is a <b>register</b> &mdash; one of fourteen values the processor keeps directly to hand instead of in memory. Another register, IP, holds the address of the current instruction.
+  {#snippet summary()}Background: CPUs for dummies{/snippet}
+  <ul class="sim-list bracket-list">
+      <li>A real processor is a set of tiny electrical circuits set up to do computations when electricity is pulsed through it. Here are the basics you need to know, simplified a little:</li>
+      <li><b>Registers</b> are working memory: fourteen slots the CPU uses to keep numbers to hand while it performs operations with them, like a chef's workstation.</li>
+      <li>Some registers are general purpose, like ones named AX, BX, CX...</li>
+      <li>Other registers have a set purpose, like IP (Instruction Pointer), which we will come back to momentarily. </li>
+      <li>Imagine memory (RAM) as a set of boxes on the shelves in front of the chef, each holding a byte (a number from 0 to 255). </li>
+      <li>A program is a list of individual instructions, and one instruction is made up of multiple bytes. For example, a MOVE instruction (move a number from one place to another) is three bytes: 184 WHAT WHERE. 184,&nbsp;5,&nbsp;0 means &ldquo;put the number 5 into register AX&rdquo;. (0 means AX, 1 means BX, etc.).</li>
+      <li>The number 184 is the <b>opcode</b> for MOVE number to AX. The people making the programs for that CPU just have to know that information.</li>
+      <li>The IP register holds <b>which byte</b> in memory the CPU is looking in to find the current instruction. Since a MOVE instruction is 3 bytes long (MOVE NUMBER WHERE), after a MOVE instruction, the CPU circuitry is set up to add 3 to IP to read the next instruction.</li>
+      <li><b>The ALU</b> (Arithmetic Logic Unit) is the part of the processor with all the circuits that actually perform the calculations on the registers and memory - circuits that add numbers, divide them, move them around, and every other operation the CPU can do. </li>
+    </ul>
+
+  <p><br>
+    A full set of the 8086 opcodes can be found <a href="http://www.mlsite.net/8086/">here</a>
+    <br>
+    If you want to learn more about CPUs in general, <a href="https://cpu.land/">cpu.land is a great resource.</a>
   </p>
-  <p>
-    The processor runs in a loop: read the number IP points at, execute that instruction, move IP past it, repeat. On a real processor, that loop is made from many tiny electrical circuits that do the computations. There&rsquo;s no code underneath making that happen &mdash; the CPU fetches the next number the way a lightbulb lights up when you press the switch: it&rsquo;s engineered to do it.
-  </p>
+
 </Foldable>
 
 <p>
-  A register might change depending on the current instruction: ADD puts a sum in AX, MOV loads a value into it, POP pulls one off the stack into it. But <code>--AX</code> is a CSS variable, and we only get one chance to define it, as covered on the previous page. So the definition has to cover, in advance, everything that could ever happen to the register &mdash; one table, keyed on the current <Term t="opcode">opcode</Term>, with a row for every instruction that can touch it. You saw this table&rsquo;s skeleton on the last page; here is the real thing:
+  We don't have a good way to create an ALU directly, due to aforementioned issues with CSS and sequential programs. A better strategy turns out to be, to flip the usual order of things. We create a variable for each register, let's take --AX as an example. --AX is then set to a formula that has a case for every instruction that could affect --AX, and then actually performs the logical operation inline, updating its own value. If the opcode isn't in that list, the variable just copies its own previous value. 
 </p>
-<CodeCss code={AX_TABLE} />
-<Callout kind="info">
-  <p>
-    Code here is real cabinet code, structurally exact &mdash; only the variable names are tidied for reading: <code>--__1IP</code> becomes <code>--IP-prev</code>.
+<p>
+  Evaluating all fourteen registers against the current opcode is how an instruction is executed. 
   </p>
-</Callout>
-<p>
-  Fourteen of these tables, one per register &mdash; that <i>is</i> the CPU:
-</p>
-<CodeCss code={REG_VARS} />
-<p>
-  Evaluating all fourteen against the current opcode, once, is how an instruction gets executed. And the opcode itself is just another variable: the cabinet contains the line <code>--opcode:&nbsp;var(--q0)</code>, where <code>--q0</code> is the byte of memory IP points at, fetched through the monstrous function in the <a href="#about/file/memr">read-formulas section</a>.
+  <img src="assets/cart-before-horse.png" style="display:block;width:50%; margin:auto;margin-bottom:32px"/>
+  <p>The opcode is just another variable: the cabinet contains the line <code>--opcode:&nbsp;var(--q0)</code>, where <code>--q0</code> is the byte of memory IP points at, fetched through the monstrous function in the <a href="#about/file/memr">read-formulas section</a>.
 </p>
 <p>
-  All fourteen tables, drawn as one grid &mdash; a mark where a table has a row for an opcode:
+  Here's a visualisation of the contents of all fourteen registers &mdash; with a mark if a register's formula has a row for that opcode:
 </p>
 
 <CpuCoverage />
 
-<p>
-  These tables are the same CSS in every cabinet: Doom&rsquo;s CPU and Zork&rsquo;s are byte-identical, and everything that differs between two cabinets is memory and disk.
-</p>
-
-<SectionHead>The instruction decoder</SectionHead>
-<p>
-  An 8086 instruction is one to six bytes long, and the only way to tell how long is to look at the instruction itself &mdash; an ADD, for example, is three bytes. Worse, the first byte might not even be the instruction &mdash; it might be a <i>prefix</i>, a modifier saying to use a different memory segment or repeat N times. Every normal emulator handles this with a little parsing loop: read a byte, act accordingly, continue reading. No loops in CSS, though.
-</p>
-<p>
-  So, the long way around. Every tick, eight bytes can be fetched from wherever IP points, enough for the worst case: two prefixes plus the longest instruction:
-</p>
-<CodeCss code={RAW_FETCH} />
-<p>
-  (That&rsquo;s a painful <i>eight</i> separate trips through the 743,948-arm read function, every tick, mostly fetching irrelevant bytes that ended up being in the next instruction over.)
-</p>
-<p>
-  Then, prefixes. A real 8086 consumes them one at a time off a queue. We can&rsquo;t make a queue, so we move the <i>labels</i> instead of the bytes. <code>--prefixLen</code> counts how many of the leading bytes are prefixes (there are only six byte values to check), and the queue the rest of the CPU actually reads &mdash; <code>--q0</code> to <code>--q5</code> &mdash; is a set of aliases, each pointing at the corresponding raw byte:
-</p>
-<CodeCss code={PREFIX_QUEUE} />
-<p>
-  Everything downstream can then simply use <code>--q0</code> as the opcode. Prefixes never reach the 850 register-table rows at all; only the IP table gets a single <code>+ prefixLen</code> to skip over however many prefixes exist.
-</p>
-<p>
-  The second byte, on most instructions, is a dense little operand descriptor &mdash; two bits of addressing mode, three bits of register, three of register-or-memory. CSS has no way to slice bits out of a byte, so, as ever: divide and take remainders.
-</p>
-<CodeCss code={MODRM} />
-
-<SectionHead>How do errors work?</SectionHead>
-<p>
-  Nothing <i>can</i> crash, because nothing is running. If an invalid opcode is detected, the IP table&rsquo;s fall-through is to stay put &mdash; the machine re-fetches the invalid byte repeatedly &mdash; while a diagnostic variable (<code>--haltCode</code>) holds the offending value up for scrutiny. We shouldn&rsquo;t hit an invalid opcode; if we do, the system grinds to a halt on purpose to make it easier to investigate. There&rsquo;s not much else to sensibly do.
-</p>
-
-<SectionHead>Decode everything, keep what&rsquo;s needed</SectionHead>
-<p>
-  Some waste is unavoidable &mdash; with no sequencing, we often don&rsquo;t have the privilege of computing only what we need. The current instruction might have no second byte, no immediate, no memory operand, but they are computed anyway: the memory address an operand <i>would</i> use, both operand values, the immediates, the signed reinterpretations that only multiplication cares about &mdash; the full product, in fact, of a multiply that almost certainly isn&rsquo;t happening. Around seventy of these standing values are derived each tick, and then the opcode selects the few that mean something; the rest are computed pointlessly and discarded.
-</p>
-<Callout kind="info" label="Chrome leads to waste, too">
-  <p>
-    Although this project is written for &lsquo;spec-compliant CSS&rsquo;, we need to actually <i>test</i> it in Chrome. Therefore, Chrome&rsquo;s foibles shaped the CPU&rsquo;s anatomy: some ways of nesting one <code>@function</code> call inside another work in Chrome, and others fail, in patterns the spec doesn&rsquo;t predict and had to be mapped by experiment.
-  </p>
-  <p>
-    Kiln flattens defensively. Where a register row wants <code>--bit()</code> nested inside something else, the bit gets hoisted out into its own named property &mdash; the carry flag exists as a standing per-tick property (<code>--_cf</code>) for exactly this reason. And a hoisted property is paid for every tick, repeatedly, whether this tick&rsquo;s instruction wants a carry flag or not.
-  </p>
-  <p>
-    There&rsquo;s a counter-trick, and it explains some of the ugliest code in Kiln. The maths functions &mdash; <code>mod()</code>, <code>round()</code>, <code>min()</code>, <code>calc()</code> &mdash; are built into CSS and nest freely; it&rsquo;s only the user-defined <code>@function</code>s that are delicate. So when an expression should only be paid for when its instruction actually runs, Kiln builds it out of nothing but raw arithmetic and buries it inside that opcode&rsquo;s branch, where <code>if()</code> evaluates it lazily. The DAA expression seen elsewhere on this page is written entirely in <code>mod</code> and <code>round</code> so it can live inside opcode 39&rsquo;s row, the one place where only DAA pays for it very occasionally. (And it&rsquo;s pasted out twice &mdash; once in AX&rsquo;s table, once in flags&rsquo; &mdash; because the fourteen tables evaluate in parallel and cannot share intermediate results.)
-  </p>
-  <p>
-    We can either have elegant DRY code that costs every tick, or scoped ugliness and duplication. Kiln haggles instruction by instruction.
-  </p>
-</Callout>
 
 <SectionHead>One instruction, all the way through</SectionHead>
 <p>
@@ -199,7 +155,7 @@ style(--opcode: 164): if(
   In plain English: New AX = old AX plus the number that followed the opcode in memory, trimmed back to 16 bits because registers wrap.
 </p>
 <p>
-  Meanwhile, the IP property is also recalculating itself based on the opcode. The ADD instruction is 3 bytes long (ADD,X,Y), so we need to add 3 to the IP counter to find the next instruction.
+  Meanwhile, the IP property is also recalculating itself based on the opcode. The ADD instruction is 3 bytes long (ADD A B), so we need to add 3 to the IP counter to find the next instruction.
 </p>
 <CodeCss code={ADD_IP} />
 <p>
@@ -225,10 +181,7 @@ style(--opcode: 164): if(
 
 <SectionHead>How branching works</SectionHead>
 <p>
-  If you&rsquo;ve read this far, I&rsquo;m going to assume you know what branching is. So how does an &ldquo;if&rdquo; happen?
-</p>
-<p>
-  With arithmetic, again: <code>--bit()</code> pulls one flag out of the flags register as a 0 or a 1, and the jump multiplies its travel distance by it. This is the real IP row for JZ, &ldquo;jump if zero&rdquo;:
+  How does an an &ldquo;if&rdquo; happen? With arithmetic, again: <code>--bit()</code> pulls one flag out of the flags register as a 0 or a 1, and the jump multiplies its travel distance by it. This is the real IP row for JZ, &ldquo;jump if zero&rdquo;:
 </p>
 <CodeCss code={JZ_ROW} />
 <p>
@@ -291,6 +244,52 @@ style(--opcode: 164): if(
   </p>
   <CodeCss code={TF_DELAY} />
 </Foldable>
+
+<SectionHead>Is the variable length of instructions an issue?</SectionHead>
+<p>
+  Yes. An 8086 instruction is one to six bytes long, and the only way to tell how long is to check, which we can't do. Worse, the first byte might not even be the instruction &mdash; it might be a <i>prefix</i>, a modifier e.g. 'use a different memory segment' or 'repeat N times'. We can't use a parsing loop, because we can't use loops.
+</p>
+<p>
+  So, the long way round. Every tick, eight bytes are fetched from where IP points, enough for the worst case scenario: two prefixes plus the longest instruction:
+</p>
+<CodeCss code={RAW_FETCH} />
+<p>
+  (That&rsquo;s <i>eight</i> trips through the 743,948-arm read function, every tick, mostly fetching irrelevant bytes that ended up being in the next instruction over.)
+</p>
+<p>
+  Then, prefixes. A real 8086 consumes them one at a time off a queue. We can&rsquo;t make a queue, so we move the <i>labels</i> instead of the bytes. <code>--prefixLen</code> counts how many of the leading bytes are prefixes (there are only six byte values to check), and the queue the rest of the CPU actually reads &mdash; <code>--q0</code> to <code>--q5</code> &mdash; is a set of aliases, each pointing at the corresponding raw byte:
+</p>
+<CodeCss code={PREFIX_QUEUE} />
+<p>
+  Everything downstream can then simply use <code>--q0</code> as the opcode. The IP table is wrapped in <code>+ prefixLen</code> to skip over however many prefixes exist.
+</p>
+<p>
+  The second byte, on most instructions, is a dense operand descriptor &mdash; two bits of addressing mode, three bits of register, three of register-or-memory. We pull those bytes out manually, of course:
+</p>
+<CodeCss code={MODRM} />
+
+<SectionHead>How do errors work?</SectionHead>
+<p>
+  Nothing in the CSS <i>can</i> crash, because nothing is running. If an opcode is read that isn't in var(--IP)'s huge formula, the fall-through is to stay put &mdash; the machine re-fetches the invalid byte repeatedly &mdash; while a diagnostic variable (<code>--haltCode</code>) holds the offending value up for scrutiny. We shouldn&rsquo;t hit an invalid opcode; if we do, the system grinds to a halt on purpose to make it easier to investigate. 
+</p>
+
+<SectionHead>The cost of so many re-evaluating formulas</SectionHead>
+<p>
+  Some waste is unavoidable with no sequencing. The current instruction might have no second byte, no immediate, no memory operand, but they are computed anyway: the memory address an operand <i>would</i> use, both operand values, the immediates, the signed reinterpretations that only multiplication cares about &mdash; the full product, in fact, of a multiply that almost certainly isn&rsquo;t happening. Around seventy of these standing values are derived each tick, and then the opcode selects the few that mean something; the rest are computed pointlessly and discarded.
+</p>
+<SectionHead>The cost of running in Chrome</SectionHead>
+  <p>
+    Although this project is written for &lsquo;spec-compliant CSS&rsquo;, we need to actually <i>test</i> the CSS works. For this, we use Chrome. Therefore, Chrome&rsquo;s foibles shaped the CPU&rsquo;s anatomy: some ways of nesting one <code>@function</code> call inside another work in Chrome, and others fail, in patterns the spec doesn&rsquo;t predict and had to be mapped by experiment.
+  </p>
+  <p>
+    Kiln flattens defensively. Where a register row wants <code>--bit()</code> nested inside something else, the bit gets hoisted out into its own named property &mdash; the carry flag exists as a standing per-tick property (<code>--_cf</code>) for exactly this reason. And a hoisted property is paid for every tick, repeatedly, whether this tick&rsquo;s instruction wants a carry flag or not.
+  </p>
+  <p>
+    There&rsquo;s a counter-trick, and it explains some of the ugliest code in Kiln. The maths functions &mdash; <code>mod()</code>, <code>round()</code>, <code>min()</code>, <code>calc()</code> &mdash; are built into CSS and nest freely; it&rsquo;s only the user-defined <code>@function</code>s that are delicate. So when an expression should only be paid for when its instruction actually runs, Kiln builds it out of nothing but raw arithmetic and buries it inside that opcode&rsquo;s branch, where <code>if()</code> evaluates it lazily. The DAA expression seen elsewhere on this page is written entirely in <code>mod</code> and <code>round</code> so it can live inside opcode 39&rsquo;s row, the one place where only DAA pays for it very occasionally. (And it&rsquo;s pasted out twice &mdash; once in AX&rsquo;s table, once in flags&rsquo; &mdash; because the fourteen tables evaluate in parallel and cannot share intermediate results.)
+  </p>
+  <p>
+    We can either have elegant DRY code that costs every tick, or scoped ugliness and duplication. Kiln haggles instruction by instruction.
+  </p>
 
 <SectionHead>REP &mdash; faking hardware micro-loops</SectionHead>
 <p>

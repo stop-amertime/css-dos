@@ -1,20 +1,19 @@
 {
   "schema": "cart@1",
-  "name": "Windows 1.01",
+  "name": "0Windows 1.01",
   "description": "Microsoft Windows 1.01 (1985) on real MS-DOS 4.00, CGA 640x200. Boots to the MS-DOS Executive with the original desktop applets on the floppy.",
   "display": {
     "cover": "windows101-79.jpg",
     "playTips": [
-      "Use the arrow keys to pick a file in the MS-DOS Executive, then press Enter to run it. CLOCK.EXE is a good first click.",
-      "Boot takes a little while - Windows loads about 400 KB from a very honest floppy drive. The Microsoft logo means it's working.",
-      "Yes, the mouse works: click a file to select it, double-click to open. CLOCK.EXE is a good first double-click.",
-      "Menus in Windows 1.01 only stay open while the button is held (1985 rules!). Turn on Hold Mode, click a menu title, click the item you want, then turn Hold Mode off to release the click there. Same trick drags windows around."
+      "In MS-DOS Executive (the file manager), use keyboard arrows/Enter or double-click to run a file. CLOCK.EXE is recommended.",
+      "TO CLICK AND DRAG: turn on Hold Mode, then click to start dragging.",
+      "IMPORTANT: Drop-down menus in Windows 1.01 only stay open while the mouse is held down - use Hold Mode when using drop-down menus, or to drag windows around."
     ]
   },
   "preset": "dos-corduroy",
   "memory": {
     "conventional": "640K",
-    "gfx": false,
+    "gfx": true,
     "textVga": true,
     "cgaGfx": true
   },

@@ -17,7 +17,7 @@
         It&rsquo;s a morbidly obese <b>300+&nbsp;MB</b> of spec-compliant <Term t="css">CSS</Term>, abused beyond recognition &mdash; some of the most delightfully painful and wasteful code ever cursed to exist.
       </p>
       <p class="lede">
-        It boots <b>MS-DOS</b> (the precursor to Microsoft Windows) and runs real &rsquo;80s software.
+        It boots <b>Microsoft Windows 1.0</b> and its namesake MS-DOS, and runs real &rsquo;80s software.
       </p>
       <p class="lede">Yes, it runs <b>DOOM</b><span class="flair-star">*</span></p>
       <div class="flair-burst">

@@ -93,6 +93,3 @@ max(0, sign(3409 - mod(var(--cycleCount-prev), 68182)))`;
   We fake its position from a number the CPU already tracks &mdash; the running count of cycles each instruction would have cost on the real 4.77&nbsp;MHz chip. One seventieth of a second is 68,182 cycles, and the beam spends about 5% of each frame flying back &mdash; 5% of 68,182 is 3,409 cycles &mdash; so:
 </p>
 <CodeCss code={RETRACE} />
-<p>
-  The electron beam of a CRT monitor, mimicked with a <code>mod()</code> and a <code>sign()</code> so that games can synchronise to it.
-</p>
