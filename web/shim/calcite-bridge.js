@@ -130,19 +130,30 @@ let currentActiveSelector = ''; // non-empty while pulsing a pseudo-class edge
 let mousePacing = false;        // current pulse is a mouse cell (mc-N)
 const KEY_HOLD_BATCHES = 8;
 const KEY_GAP_BATCHES = 2;
-// Mouse cells (mc-N pulses) need DETERMINISTIC sim-time pacing: the
-// guest's double-click detector measures the gap between two taps in
-// ITS OWN time (Windows 1.01's 500ms window ≈ 186K ticks), and the
-// adaptive batch below can stretch to 200K ticks under host load — two
-// batch-paced taps could land seconds apart in sim time and never
-// register as a double-click. While a mouse pulse is in flight the
-// batch size is clamped to MOUSE_BATCH_TICKS and the hold/gap count
-// those fixed batches, so tap timing is a property of the machine, not
-// the host frame rate: hold 2×20K, gap 1×20K → consecutive queued taps
-// press ~60-100K ticks apart, well inside the double-click window.
-const MOUSE_BATCH_TICKS = 20_000;
-const MOUSE_HOLD_BATCHES = 2;
-const MOUSE_GAP_BATCHES = 1;
+// Mouse cells (mc-N pulses) need DETERMINISTIC pacing in GUEST TIME —
+// i.e. in CYCLES, not ticks: the guest's double-click detector
+// measures the gap between taps on its own clock (Windows 1.01's
+// 500ms window ≈ 2.4M cycles), and one idle tick costs hundreds of
+// cycles (HLT), so tick-counted holds stretch to guest-seconds while
+// Windows idles. While a mouse pulse is in flight the batch size is
+// clamped small and the press/gap run until cycleCount passes the
+// stamps below: press ~52ms guest, gap ~31ms → consecutive queued
+// taps' button-downs land well inside the double-click window (the
+// cabinet's own packet pacing, MOUSE_PACKET_GAP_CYCLES, adds ~25ms
+// per packet on top).
+const MOUSE_HOLD_CYCLES = 250_000;
+const MOUSE_GAP_CYCLES = 150_000;
+const MOUSE_PACE_BATCH_TICKS = 1_000;
+// Afterglow: keep the batch clamp on for a beat after a tap finishes.
+// A human double-click's second tap arrives ~250-500ms of WALL time
+// later — with full-size batches the engine free-runs millions of
+// guest cycles in that span and the two button-downs land far outside
+// Windows' double-click window. While throttled, guest time crawls,
+// so the second tap still lands close in guest time.
+const MOUSE_AFTERGLOW_MS = 800;
+let mouseHoldUntil = 0;         // cycleCount stamps while pacing a tap
+let mouseGapUntil = 0;
+let mouseAfterglowUntil = 0;    // performance.now() stamp
 // Hold mode — owned HERE, not by the page. The player's hold key is a
 // plain submit button (key=kb-hold); each press toggles this flag,
 // queues the wire flip, and re-broadcasts the lamp. The script-free
@@ -196,7 +207,7 @@ function setPseudoActive(pseudo, selector, value) {
 // Cache-busting canary — bump this when you change this file so you can
 // confirm the browser is serving the new version (it appears in the
 // status line and the bridge-info reply).
-const BRIDGE_VERSION = 'bridge-3';
+const BRIDGE_VERSION = 'bridge-4';
 
 async function boot() {
   postStatus(`bridge boot ${BRIDGE_VERSION}`);
@@ -408,19 +419,39 @@ function tickLoop() {
   // The trailing gap guarantees the next queued press, even if it's
   // the same key, produces a fresh 0→N edge that the CSS edge detector
   // can fire `_kbdPress` for.
-  if (currentHoldBatches > 0) {
+  if (mousePacing) {
+    // Cycle-paced mouse tap: release when the press has covered
+    // MOUSE_HOLD_CYCLES of guest time, then hold the queue until the
+    // trailing gap has passed too.
+    const cyc = (engine.get_state_var ? engine.get_state_var('cycleCount') : 0) >>> 0;
+    if (currentActiveSelector) {
+      if (cyc >= mouseHoldUntil) {
+        setPseudoActive('active', currentActiveSelector, false);
+        currentActiveSelector = '';
+        mouseGapUntil = cyc + MOUSE_GAP_CYCLES;
+        if (kbdTraceEnabled) kbdTrace(`[kbd-trace] release wallMs=${performance.now().toFixed(1)} cycle=${cyc}`);
+      }
+    } else if (cyc >= mouseGapUntil) {
+      // Gap over — fall through to the queue drain THIS pass: waiting
+      // one more pass would run a full-size adaptive batch (millions
+      // of cycles) between two queued taps and blow the guest's
+      // double-click window.
+      mousePacing = false;
+      mouseAfterglowUntil = performance.now() + MOUSE_AFTERGLOW_MS;
+    }
+  }
+  if (!mousePacing) if (currentHoldBatches > 0) {
     currentHoldBatches--;
     if (currentHoldBatches === 0) {
       if (currentActiveSelector) {
         setPseudoActive('active', currentActiveSelector, false);
         currentActiveSelector = '';
       }
-      currentGapBatches = mousePacing ? MOUSE_GAP_BATCHES : KEY_GAP_BATCHES;
+      currentGapBatches = KEY_GAP_BATCHES;
       if (kbdTraceEnabled) kbdTrace(`[kbd-trace] release wallMs=${performance.now().toFixed(1)}`);
     }
   } else if (currentGapBatches > 0) {
     currentGapBatches--;
-    if (currentGapBatches === 0) mousePacing = false;
   } else if (keyQueue.length > 0) {
     const { op, sel, v } = keyQueue.shift();
     if (op === 'holdwire') {
@@ -434,7 +465,13 @@ function tickLoop() {
       setPseudoActive('active', sel, true);
       currentActiveSelector = sel;
       mousePacing = sel.startsWith('mc-');
-      currentHoldBatches = mousePacing ? MOUSE_HOLD_BATCHES : KEY_HOLD_BATCHES;
+      if (mousePacing) {
+        const cyc = (engine.get_state_var ? engine.get_state_var('cycleCount') : 0) >>> 0;
+        mouseHoldUntil = cyc + MOUSE_HOLD_CYCLES;
+        mouseGapUntil = 0;
+      } else {
+        currentHoldBatches = KEY_HOLD_BATCHES;
+      }
       if (kbdTraceEnabled) {
         const cyc = (engine.get_state_var ? engine.get_state_var('cycleCount') : 0) >>> 0;
         const tickN = (engine.get_tick ? engine.get_tick() : 0) >>> 0;
@@ -449,10 +486,12 @@ function tickLoop() {
     // JSON; we observe state via direct get_state_var / read_*
     // calls below.
     // Deterministic mouse pacing: while an mc- pulse (or its trailing
-    // gap) is in flight, clamp the batch so hold/gap durations are
-    // fixed tick counts — see MOUSE_BATCH_TICKS above.
-    const runCount = (mousePacing && (currentHoldBatches > 0 || currentGapBatches > 0))
-      ? Math.min(batchCount, MOUSE_BATCH_TICKS)
+    // gap or afterglow) is in flight, clamp the batch small so the
+    // cycle stamps above are checked with fine resolution and guest
+    // time crawls between a double-click's taps — see
+    // MOUSE_HOLD_CYCLES / MOUSE_AFTERGLOW_MS.
+    const runCount = (mousePacing || performance.now() < mouseAfterglowUntil)
+      ? Math.min(batchCount, MOUSE_PACE_BATCH_TICKS)
       : batchCount;
     if (watchChunkTicks > 0 && engine.run_batch_watched) {
       // Bench-harness path: watch registry polls every watchChunkTicks

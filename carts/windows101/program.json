@@ -7,7 +7,8 @@
     "playTips": [
       "Use the arrow keys to pick a file in the MS-DOS Executive, then press Enter to run it. CLOCK.EXE is a good first click.",
       "Boot takes a little while - Windows loads about 400 KB from a very honest floppy drive. The Microsoft logo means it's working.",
-      "Yes, the mouse works: click a file to select it, double-click to open. CLOCK.EXE is a good first double-click."
+      "Yes, the mouse works: click a file to select it, double-click to open. CLOCK.EXE is a good first double-click.",
+      "Menus in Windows 1.01 only stay open while the button is held (1985 rules!). Turn on Hold Mode, click a menu title, click the item you want, then turn Hold Mode off to release the click there. Same trick drags windows around."
     ]
   },
   "preset": "dos-corduroy",

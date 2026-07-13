@@ -662,6 +662,16 @@ ${top}
  * button being down — so a tap is a move + click + release, and a
  * double-tap is a double-click.
  *
+ * The hold wire (--msHold, raised by the player's shared hold switch
+ * #kb-holdmode) turns taps into press-drag-release: the first cell
+ * press while the wire is up latches the button down (--msHeldBtn),
+ * further taps move the cursor with the button still held, and the
+ * button releases at the final position when the wire drops. Windows
+ * 1.x menus need this — they only stay open while the button is held
+ * (press the title, drag to the item, release). Toggling hold on/off
+ * without tapping a cell presses nothing (the latch arms on the first
+ * press, not on the wire edge).
+ *
  * Output side: whenever the guest's estimated cursor (msCurX/msCurY —
  * integrated deltas clamped to 640×200, mirroring what the guest
  * driver itself computes) differs from the target, or the button state
@@ -681,7 +691,16 @@ ${top}
  * identification byte, which the driver polls for via LSR).
  *
  * Wire glossary (all standalone lines on .motherboard):
- *   --_msRawBtn      1 while any cell is pressed (left button state)
+ *   --_msHeldNext    hold-latch next value (arms on press, clears with
+ *                    the wire) — also --msHeldBtn's register default
+ *   --_msRawBtn      1 while any cell is pressed OR the hold latch is
+ *                    up (left button state)
+ *   --msQuietUntil   inter-packet pacing stamp (see uartStart) — set to
+ *                    cycleCount + PACKET_GAP_CYCLES on every byte load
+ *   --_msRawEdge     1 on a raw button transition this tick
+ *   --_msPendCur     unsent button transitions incl. this tick's
+ *                    (--msPendEdges' next value is --_msPendNext)
+ *   --msRawPrev      previous tick's raw button (edge detection)
  *   --_msTgt         latched target ((x<<8|y)+1; 0 until first touch)
  *   --_msTgtX/Y      decoded target position (0 when never touched)
  *   --_msDx/Dy       this packet's clamped deltas
@@ -698,6 +717,27 @@ ${top}
  *   --_uartRtsEdge   MCR write is raising RTS (bit 1) this tick — the
  *                    reset that makes a real MS mouse send 'M'
  */
+// Minimum idle CYCLES between serial-mouse packets — the 1200-baud
+// line rate: a real MS mouse packet is 3×11 bits at 1200 baud ≈ 27 ms
+// ≈ 120K cycles at 4.77 MHz. Counted in CYCLES (guest time), not
+// ticks: an idle guest sits in HLT where one tick burns hundreds of
+// cycles, so a tick-based gap would stretch to guest-seconds and blow
+// the double-click window. Must comfortably exceed the guest's
+// per-delivery work (ISR + USER MouseEvent + cursor redraw, tens of
+// thousands of cycles) — without the gap the next packet's IRQ nests
+// inside the still-running handler and Windows 1.x queues button
+// events at the stale pre-move position.
+export const MOUSE_PACKET_GAP_CYCLES = 120000;
+
+// --msQuietUntil: cycleCount stamp before which no new packet may
+// start. Re-armed on every byte load.
+export function msQuietUntilDefaultExpr() {
+  return `if(
+    style(--_uartLoad: 1): calc(var(--__1cycleCount) + ${MOUSE_PACKET_GAP_CYCLES});
+    else: var(--__1msQuietUntil)
+  )`;
+}
+
 export function emitMouseWires() {
   const msTgt = `if(
     style(--mouseTgt: 0): var(--__1msTgtLatch);
@@ -714,9 +754,21 @@ export function emitMouseWires() {
     * min(1, var(--_msTgt))
     * --bit(var(--__1uartIer), 0)
   )`;
+  // Inter-packet pacing: a real MS mouse on a 1200-baud line cannot
+  // start a new packet until ~25 ms after the last byte — and Windows
+  // 1.x USER depends on that: its MouseEvent handler enqueues button
+  // events BEFORE applying the same delivery's movement, and our
+  // back-to-back packets made the next packet's IRQ nest inside the
+  // still-running handler, so button events were enqueued at the STALE
+  // pre-move position (verified 2026-07-13 by dumping USER's hardware
+  // event queue: WM_LBUTTONDOWN queued at the previous gesture's
+  // coordinates). A new packet may only start once cycleCount passes
+  // --msQuietUntil (re-armed on every byte load) — see
+  // MOUSE_PACKET_GAP_CYCLES for why the gap is counted in cycles.
+  const quietOk = `min(1, max(0, sign(calc(var(--__1cycleCount) - var(--__1msQuietUntil) + 1))))`;
   const uartStart = `if(
     style(--__1uartDr: 1): 0;
-    style(--__1uartPhase: 0): var(--_msDiff);
+    style(--__1uartPhase: 0): calc(var(--_msDiff) * ${quietOk});
     else: 0
   )`;
   const uartNext = `if(
@@ -743,7 +795,8 @@ export function emitMouseWires() {
   )`;
   return [
     `  /* --- pointing surface → packet need --- */`,
-    `  --_msRawBtn: min(1, var(--mouseTgt));`,
+    `  --_msHeldNext: calc(var(--msHold) * max(var(--__1msHeldBtn), min(1, var(--mouseTgt))));`,
+    `  --_msRawBtn: max(min(1, var(--mouseTgt)), var(--_msHeldNext));`,
     `  --_msTgt: ${msTgt};`,
     `  /* Both axes are tracked in MICKEYS (half-pixels): Windows 1.01's
      CGA mouse mapping applies deltas 2:1 in X AND Y (measured
@@ -757,9 +810,18 @@ export function emitMouseWires() {
     `  --_msMove: min(1, calc(max(var(--_msDx), -1 * var(--_msDx)) + max(var(--_msDy), -1 * var(--_msDy))));`,
     `  /* Button state rides the packet only once the cursor is AT the
      target — while still travelling, packets repeat the previous
-     button so a tap clicks at the destination, not mid-flight. */`,
-    `  --_msBtnRep: calc(var(--_msRawBtn) * (1 - var(--_msMove)) + var(--__1msSentBtn) * var(--_msMove));`,
-    `  --_msBtnD: calc(var(--_msRawBtn) - var(--__1msSentBtn));`,
+     button so a tap clicks at the destination, not mid-flight.
+     Raw button EDGES are queued (--msPendEdges counts unsent
+     transitions, --msRawPrev detects them) and drained one per paced
+     packet, so presses shorter than the packet gap — even whole
+     press/release/press trains — still reach the guest as their full
+     transition sequence, in order. */`,
+    `  --_msRawEdge: max(calc(var(--_msRawBtn) - var(--__1msRawPrev)), calc(var(--__1msRawPrev) - var(--_msRawBtn)));`,
+    `  --_msPendCur: min(15, calc(var(--__1msPendEdges) + var(--_msRawEdge)));`,
+    `  /* at rest: toggle sent state while edges are owed; mid-move: repeat */`,
+    `  --_msBtnRep: calc(var(--__1msSentBtn) * var(--_msMove) + (var(--__1msSentBtn) + (1 - 2 * var(--__1msSentBtn)) * min(1, var(--_msPendCur))) * (1 - var(--_msMove)));`,
+    `  --_msBtnD: calc(var(--_msBtnRep) - var(--__1msSentBtn));`,
+    `  --_msPendNext: max(0, calc(var(--_msPendCur) - var(--_uartStart) * max(var(--_msBtnD), -1 * var(--_msBtnD))));`,
     `  --_msDiff: ${msDiff};`,
     `  /* --- packet sequencing --- */`,
     `  --_uartStart: ${uartStart};`,

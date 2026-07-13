@@ -116,6 +116,25 @@ export const MOUSE_STATE_VARS = [
   { name: 'msCurY', init: 50 },
   { name: 'msSentBtn', init: 0 },
   { name: 'msTgtLatch', init: 0 },
+  // Hold-mode button latch: 1 once a cell has been pressed while the
+  // hold wire (--msHold) is up; cleared the moment the wire drops. The
+  // player's hold switch turns taps into press-drag-release — required
+  // for Windows 1.x menus, which only stay open while the button is
+  // held. See emitMouseWires.
+  { name: 'msHeldBtn', init: 0 },
+  // Inter-packet pacing stamp (the 1200-baud line rate, in CYCLES —
+  // guest time): a new packet may only start once cycleCount passes
+  // this. Without the gap the next packet's IRQ nests inside the
+  // guest's still-running mouse event handler and Windows 1.x
+  // enqueues button events at the stale pre-move position. See
+  // emitMouseWires / MOUSE_PACKET_GAP_CYCLES.
+  { name: 'msQuietUntil', init: 0 },
+  // Unsent raw-button transitions (edge queue) + previous raw state
+  // for edge detection: presses shorter than the packet gap still
+  // deliver their full down→up train, one transition per paced
+  // packet. See emitMouseWires.
+  { name: 'msPendEdges', init: 0 },
+  { name: 'msRawPrev', init: 0 },
   { name: 'msDxL', init: 0 },
   { name: 'msDyL', init: 0 },
   { name: 'uartIer', init: 0 },
@@ -150,6 +169,7 @@ const STATE_VAR_GROUP = {
   dacWriteIndex: 'dac', dacSubIndex: 'dac',
   dacReadIndex: 'dac', dacReadSubIndex: 'dac',
   msCurX: 'mouse', msCurY: 'mouse', msSentBtn: 'mouse', msTgtLatch: 'mouse',
+  msHeldBtn: 'mouse', msQuietUntil: 'mouse', msPendEdges: 'mouse', msRawPrev: 'mouse',
   msDxL: 'mouse', msDyL: 'mouse',
   uartIer: 'mouse', uartMcr: 'mouse', uartRbr: 'mouse', uartDr: 'mouse',
   uartPhase: 'mouse',
@@ -178,7 +198,7 @@ export function emitKeyboardWireProperties() {
   return `${propertyBlock('keyboard', 0)}\n\n${propertyBlock('kbdHold', 0)}`;
 }
 export function emitMouseWireProperty() {
-  return propertyBlock('mouseTgt', 0);
+  return `${propertyBlock('mouseTgt', 0)}\n\n${propertyBlock('msHold', 0)}`;
 }
 
 // The per-cell memory @property array is emitted directly by
@@ -420,6 +440,13 @@ export function emitKeyboardRules() {
 // means "no cell pressed". The serial-mouse machine (patterns/misc.mjs
 // emitMouseWires) latches the last nonzero value as the movement target
 // and treats nonzero as button-down.
+//
+// The player's hold switch (#kb-holdmode, the same control that latches
+// keyboard keys) also raises the mouse hold wire --msHold: while it is
+// up, a tap latches the button DOWN and later taps drag with it held;
+// dropping the switch releases at the last position. This is how taps
+// express press-drag-release — which Windows 1.x menus require (they
+// only stay open while the button is held).
 export const MOUSE_GRID = { cols: 80, rows: 25, cellW: 8, cellH: 8 };
 
 export function emitMouseCellRules() {
@@ -433,6 +460,7 @@ export function emitMouseCellRules() {
       lines.push(`  &:has(#mc-${n}:active) { --mouseTgt: ${((x << 8) | y) + 1}; }`);
     }
   }
+  lines.push(`  &:has(#kb-holdmode:checked) { --msHold: 1; } /* hold wire — the shared hold switch */`);
   lines.push('}');
   return lines.join('\n');
 }
