@@ -23,21 +23,14 @@
     </Foldable>
 
     <Foldable>
-      {#snippet summary()}How can there be a clock? Nothing in CSS moves.{/snippet}
-      <p>
-        One thing in CSS moves by itself: animations. At the very bottom of the file a tiny animation ticks a counter &mdash; 0, 1, 2, 3, forever &mdash; and each lap the machine advances by one instruction. The <a href="#about/file/clock">clock section</a> has the real keyframes, and the trick that lets 368,256 memory cells change at once.
-      </p>
-    </Foldable>
-
-    <Foldable>
       {#snippet summary()}How does it draw video?{/snippet}
       <p>
-        The screen is 64,000 boxes, 320 wide by 200 tall, each with a rule that turns its own byte of video memory into a background colour. The <a href="#about/file/screen">screen section</a> has the rules, the palette, and the faked electron beam.
+        In theory, the screen is 64,000 boxes, 320 wide by 200 tall, each with a rule that turns its own byte of video memory into a background colour. The <a href="#about/file/screen">screen section</a> has the rules, the palette, and the faked electron beam. In practise, <a href="#about/calcite">Calcite</a> streams the image into the page instead. 
       </p>
     </Foldable>
 
     <Foldable>
-      {#snippet summary()}How do you control it? CSS can&rsquo;t see a keyboard.{/snippet}
+      {#snippet summary()}How do you control it? CSS can&rsquo;t see a keyboard/mouse.{/snippet}
       <p>
         It can&rsquo;t. What it can see is whether an element is currently being pressed &mdash; the <code>:active</code> selector &mdash; so the machine has an on-screen keyboard whose keys are real buttons. The <a href="#about/file/keys">keyboard section</a> shows the actual rules, live. The mouse plays the same trick in reverse: every screen pixel is itself clickable, and a click feeds an emulated serial mouse with the cursor&rsquo;s position.
       </p>
@@ -63,13 +56,6 @@
     </Foldable>
 
     <Foldable>
-      {#snippet summary()}Is Doom actually playable?{/snippet}
-      <p>
-        Barely &mdash; the asterisk on the intro page is honest. Through Calcite it manages a frame or two per second: enough to walk, open doors and shoot, a long way from comfortable.
-      </p>
-    </Foldable>
-
-    <Foldable>
       {#snippet summary()}Can CSS-DOS run any DOS program?{/snippet}
       <p>
         Yes &mdash; visit the Build page and hand the builder any DOS program (.com/.exe) or folder. Two conditions: it has to fit on a floppy, and it has to stick to 8086 instructions (no Intel 286 or 386 opcodes). The builder bakes it into a <Term t="cabinet">cabinet</Term> for you &mdash; every preset here was made exactly that way. One more limit: the finished file must stay under ~536&nbsp;MB, or you hit V8&rsquo;s string size limit and the file simply won&rsquo;t load in a browser. If that happens, try reducing the machine&rsquo;s RAM.
@@ -79,7 +65,7 @@
     <Foldable>
       {#snippet summary()}How long did this take?{/snippet}
       <p>
-        About six months of on-and-off hobbyist work. I have no idea how many AI tokens I used on the project, but it&rsquo;s easily in the hundreds of millions, probably thousands of pounds of API-equivalent usage.
+        About six months of on-and-off hobbyist work. I have no idea how many AI tokens I used on the project, but it&rsquo;s easily in the hundreds of millions, probably thousands of pounds of API-equivalent usage. Worth it? Hopefully - if you enjoyed it, drop me a line at hello {at sign} ahmedamer.co.uk to make me feel better about that. 
       </p>
     </Foldable>
 
@@ -122,16 +108,6 @@
     </Foldable>
 
     <Foldable>
-      {#snippet summary()}Can I contribute/donate?{/snippet}
-      <p>
-        <b>Code</b>: both projects (CSS-DOS and Calcite) are open-source, and I&rsquo;d welcome code contributions. Huge performance gains are on the table for Calcite, which is currently written in a sub-optimal way and needs a ground-up refactor. Not for the faint of heart. Interested contributors could also fix bugs that prevent other DOS games&rsquo; compatibility &mdash; many programs still crash, hang or run too slowly to be playable.
-      </p>
-      <p>
-        <b>Cash</b>: I earn enough from my day job &mdash; if you like this work, please direct any cash you can spare to <a href="https://adhduk.co.uk/donate-to-adhd-uk/" class="ext-link" target="_blank" rel="noopener">ADHD UK</a> instead of to me.
-      </p>
-    </Foldable>
-
-    <Foldable>
       {#snippet summary()}I have a question that isn&rsquo;t answered here.{/snippet}
       <p>
         Email me &mdash; <b>ahmed.elhadi.amer&nbsp;[at]&nbsp;gmail&nbsp;(dot)&nbsp;com</b>. I&rsquo;d love to hear from interested people.
@@ -144,6 +120,17 @@
         Email me &mdash; <b>ahmed.elhadi.amer&nbsp;[at]&nbsp;gmail&nbsp;(dot)&nbsp;com</b>. I&rsquo;d be happy to contribute to press, YouTube videos, and whatever else.
       </p>
     </Foldable>
+    
+    <Foldable>
+      {#snippet summary()}Can I contribute/donate?{/snippet}
+      <p>
+        <b>Code</b>: both projects (CSS-DOS and Calcite) are open-source, and I&rsquo;d welcome code contributions. Huge performance gains are on the table for Calcite, which is currently written in a sub-optimal way and needs a ground-up refactor. Not for the faint of heart. Interested contributors could also fix bugs that prevent other DOS games&rsquo; compatibility &mdash; many programs still crash, hang or run too slowly to be playable.
+      </p>
+      <p>
+        <b>Cash</b>: I earn enough from my day job &mdash; if you like this work, please direct any cash you can spare to <a href="https://adhduk.co.uk/donate-to-adhd-uk/" class="ext-link" target="_blank" rel="noopener">ADHD UK</a> instead of to me.
+      </p>
+    </Foldable>
+
   </div>
 </div>
 
