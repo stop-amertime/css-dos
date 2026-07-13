@@ -188,6 +188,7 @@ export function emitDecodeProperties() {
      Value is the segment register * 16, or 0 for "no override".
      Check raw0 first, then raw1 (later prefix wins, matching 8086 behavior). */
   --segOverride: if(
+    style(--prefixLen: 0): 0;
     style(--isPrefix1: 1) and style(--raw1: 38): calc(var(--__1ES) * 16);
     style(--isPrefix1: 1) and style(--raw1: 46): calc(var(--__1CS) * 16);
     style(--isPrefix1: 1) and style(--raw1: 54): calc(var(--__1SS) * 16);
@@ -199,6 +200,7 @@ export function emitDecodeProperties() {
   else: 0);
   /* Flag: 1 if a segment override prefix is active */
   --hasSegOverride: if(
+    style(--prefixLen: 0): 0;
     style(--isPrefix0: 1) and style(--raw0: 38): 1;
     style(--isPrefix0: 1) and style(--raw0: 46): 1;
     style(--isPrefix0: 1) and style(--raw0: 54): 1;
@@ -212,6 +214,7 @@ export function emitDecodeProperties() {
   /* REP prefix: 0=none, 1=REP/REPE (0xF3), 2=REPNE (0xF2).
      Check raw0 first, then raw1 (later wins). */
   --repType: if(
+    style(--prefixLen: 0): 0;
     style(--isPrefix1: 1) and style(--raw1: 243): 1;
     style(--isPrefix1: 1) and style(--raw1: 242): 2;
     style(--isPrefix0: 1) and style(--raw0: 243): 1;
@@ -247,7 +250,6 @@ export function emitDecodeProperties() {
   --modrmExtra: --modrmLen(var(--mod), var(--rm));
 
   /* Displacement values for EA computation */
-  --dispByte: var(--q2);
   --disp8: --u2s1(var(--q2));
   --disp16: calc(var(--q2) + var(--q3) * 256);
 
@@ -385,9 +387,6 @@ export function emitPrecomputedState() {
   /* pow2(width - CL) for rotates: pow2(16 - cl) and pow2(8 - cl) */
   --_pow2inv16: --pow2(calc(16 - var(--_clMasked)));
   --_pow2inv8: --pow2(calc(8 - var(--_clMasked)));
-  /* CF bit index for SHL: bit (width - CL) of original value */
-  --_shlCFidx16: max(0, calc(16 - var(--_clMasked)));
-  --_shlCFidx8: max(0, calc(8 - var(--_clMasked)));
 
   /* --- trap flag (single-step) --- */
 

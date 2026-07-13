@@ -12,32 +12,6 @@ export function emitCSSLib() {
   result: round(down, var(--a) / pow(2, var(--b)));
 }
 
-@function --leftShift(--a <integer>, --b <integer>) returns <integer> {
-  --shift: if(
-    style(--b:0):1;
-    style(--b:1):2;
-    style(--b:2):4;
-    style(--b:3):8;
-    style(--b:4):16;
-    style(--b:5):32;
-    style(--b:6):64;
-    style(--b:7):128;
-    style(--b:8):256;
-    style(--b:9):512;
-    style(--b:10):1024;
-    style(--b:11):2048;
-    style(--b:12):4096;
-    style(--b:13):8192;
-    style(--b:14):16384;
-    style(--b:15):32768;
-  else:calc(var(--a) * pow(2, var(--b))));
-  result: calc(var(--a) * var(--shift));
-}
-
-@function --int(--i <integer>) returns <integer> {
-  result: var(--i);
-}
-
 @function --u2s1(--u <integer>) returns <integer> {
   result: calc(var(--u) - round(down, var(--u) / 128) * 256);
 }
