@@ -160,9 +160,13 @@ if (!before) { log('FAIL: could not peek CGA framebuffer'); process.exit(1); }
 // emitMouseWires). Hold on → tap "View" (cell mc-88: the menu bar is
 // the SECOND text row, y 9-17 — row 0 is the caption with the
 // system-menu and zoom boxes; the menu drops and STAYS because the
-// button never releases) → assert the framebuffer changed → hold off
-// (release over the title; menu closes, screen returns to the
-// Executive). Regression for the 2026-07-13 hold + packet-pacing fix.
+// button never releases) → assert the framebuffer changed → tap View
+// AGAIN: since 2026-07-13 the NEXT tap completes the drag (the press
+// edge clears the hold latch and that tap's release delivers button-up
+// at its position) — releasing over the title closes the menu with
+// hold mode still on. Then hold off (wire down, button already up)
+// before the Clock phase, which needs plain taps. Regression for the
+// 2026-07-13 hold + packet-pacing fix AND the tap-pair drag semantics.
 const VIEW_CELL = 'mc-88';
 const fbDiff = async (ref) => {
   const now = await peekCga();
@@ -185,18 +189,21 @@ await player.click(`#${VIEW_CELL}`);
 // Thresholds: the dropped menu repaints ~1.2K bytes; the relocated
 // cursor arrow alone accounts for ~50-150.
 const menuOpen = await waitFor('View menu open (held)', async () => (await fbDiff(before)) > 800, 30000, 2000);
-log('menu phase: hold off (release over the title closes the menu)');
-await player.click('#kb-hold');
-const menuClosed = await waitFor('menu closed after hold off', async () => {
+log('menu phase: tap View again (second tap completes the drag — release over the title closes the menu)');
+await player.click(`#${VIEW_CELL}`);
+const menuClosed = await waitFor('menu closed after second tap (hold mode still on)', async () => {
   const d = await fbDiff(before);
   return d >= 0 && d < 250;
 }, 30000, 2000);
+log('menu phase: hold off (wire down; button is already up)');
+await player.click('#kb-hold');
+await new Promise(r => setTimeout(r, 2000));
 if (!menuOpen || !menuClosed) {
   log(`FAIL: menu-via-hold (open=${menuOpen} closed=${menuClosed})`);
   await browser.close();
   process.exit(1);
 }
-log('menu-via-hold OK — menu stayed open while held, closed on release');
+log('menu-via-hold OK — menu stayed open while held, closed on the second tap');
 
 // Select CLOCK.EXE, then double-click it (the Executive launches on a
 // double-click over the already-selected item, as on real hardware).

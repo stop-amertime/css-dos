@@ -567,22 +567,49 @@ export function emitKeyboardWires() {
     style(--keyboard: 0): 1;
     else: 0
   )`;
+  const SLOTS = 8;
+  // Per-key un-hold (owner request 2026-07-13): a release whose scancode
+  // is ALREADY in the held set — i.e. tapping a held key again — delivers
+  // its break code and clears the matching slot(s) instead of latching a
+  // duplicate. Tap holds, tap again releases, hold mode stays on. Slot
+  // equality is arithmetic (1 - min(1, abs(a - b))) because style() can't
+  // compare two variables; empty slots hold 0 and real scancodes are >= 1,
+  // so an empty slot never matches. These wires are style()-TESTED, and
+  // they are unregistered — raw min()/calc() tokens in an unregistered
+  // property never compare equal to a literal 1 — so the value must pass
+  // through a typed @function (--or, returns <integer>), whose result IS
+  // a computed number: the --_kbdAnyHeld convention.
+  const slotEq = (i) =>
+    `calc(1 - min(1, abs(var(--__1kbdHeld${i}) - var(--_kbdLatchSc))))`;
+  const eqPair = (a, b) => `--or(${a}, ${b})`;
+  const anyEq = eqPair(
+    eqPair(eqPair(slotEq(0), slotEq(1)), eqPair(slotEq(2), slotEq(3))),
+    eqPair(eqPair(slotEq(4), slotEq(5)), eqPair(slotEq(6), slotEq(7))));
+  const kbdUnhold = `if(
+    style(--_kbdRawRelease: 0): 0;
+    style(--kbdHold: 0): 0;
+    else: ${anyEq}
+  )`;
   const kbdRelease = `if(
     style(--_kbdRawRelease: 0): 0;
+    style(--_kbdUnhold: 1): 1;
     style(--kbdHold: 1): 0;
     else: 1
   )`;
   const kbdLatch = `if(
     style(--_kbdRawRelease: 0): 0;
+    style(--_kbdUnhold: 1): 0;
     style(--kbdHold: 1): 1;
     else: 0
   )`;
   // Held-set slot flags. Append (on a latch tick) into the lowest empty
-  // slot; drain (one per drain tick) from the highest occupied slot.
-  // Duplicates are allowed (re-pressing a held key latches it twice; the
-  // extra break on drain is harmless) — they just spend slots.
-  const SLOTS = 8;
+  // slot; clear (on an un-hold tick) every slot matching the released
+  // scancode — clearing all matches also retires any duplicate latched
+  // before un-hold existed; drain (one per drain tick) from the highest
+  // occupied slot. Holes are fine: append fills the lowest EMPTY slot and
+  // drain pops the highest OCCUPIED one, neither needs compaction.
   const appFlags = [];
+  const clrFlags = [];
   const popFlags = [];
   for (let i = 0; i < SLOTS; i++) {
     const lowerFull = Array.from({ length: i }, (_, j) =>
@@ -591,6 +618,10 @@ export function emitKeyboardWires() {
     style(--_kbdLatch: 0): 0;
 ${lowerFull ? lowerFull + '\n' : ''}    style(--__1kbdHeld${i}: 0): 1;
     else: 0
+  );`);
+    clrFlags.push(`  --_kbdClr${i}: if(
+    style(--_kbdUnhold: 0): 0;
+    else: --or(${slotEq(i)}, 0)
   );`);
     const top = i < SLOTS - 1
       ? `    style(--__1kbdHeld${i + 1}: 0): 1;\n    else: 0`
@@ -637,10 +668,12 @@ ${top}
     `  /* press/release edge wires, the hold-wire held set, and port 0x60's latch input */`,
     `  --_kbdPress: ${kbdPress};`,
     `  --_kbdRawRelease: ${kbdRawRelease};`,
+    `  --_kbdUnhold: ${kbdUnhold};`,
     `  --_kbdRelease: ${kbdRelease};`,
     `  --_kbdLatch: ${kbdLatch};`,
     `  --_kbdLatchSc: --rightShift(var(--__1prevKeyboard), 8);`,
     ...appFlags,
+    ...clrFlags,
     `  --_kbdAnyHeld: ${anyHeld};`,
     `  --_kbdPicKbdBit: --bit(var(--__1picPending), 1);`,
     `  --_kbdDrain: ${kbdDrain};`,
@@ -663,14 +696,18 @@ ${top}
  * double-tap is a double-click.
  *
  * The hold wire (--msHold, raised by the player's shared hold switch
- * #kb-holdmode) turns taps into press-drag-release: the first cell
- * press while the wire is up latches the button down (--msHeldBtn),
- * further taps move the cursor with the button still held, and the
- * button releases at the final position when the wire drops. Windows
- * 1.x menus need this — they only stay open while the button is held
- * (press the title, drag to the item, release). Toggling hold on/off
- * without tapping a cell presses nothing (the latch arms on the first
- * press, not on the wire edge).
+ * #kb-holdmode) turns tap pairs into press-drag-release: the first
+ * cell press while the wire is up latches the button down at that
+ * position (--msHeldBtn), and the NEXT tap completes the drag — the
+ * cursor travels there with the button still held and releases on
+ * arrival (owner call 2026-07-13; release-at-target falls out of the
+ * pending-edge queue, which only lets button changes ride packets
+ * once the cursor is AT the target). Windows 1.x menus are the
+ * canonical use — press the title, tap the item, the menu selects.
+ * Dropping the wire mid-drag still releases immediately at the
+ * current position. Toggling hold on/off without tapping a cell
+ * presses nothing (the latch arms on the first press, not on the
+ * wire edge).
  *
  * Output side: whenever the guest's estimated cursor (msCurX/msCurY —
  * integrated deltas clamped to 640×200, mirroring what the guest
@@ -691,8 +728,12 @@ ${top}
  * identification byte, which the driver polls for via LSR).
  *
  * Wire glossary (all standalone lines on .motherboard):
- *   --_msHeldNext    hold-latch next value (arms on press, clears with
- *                    the wire) — also --msHeldBtn's register default
+ *   --_msTouch       1 while any cell is pressed (level)
+ *   --_msTouchEdge   1 on a cell press edge (0 → pressed this tick;
+ *                    prev level in --msTouchPrev)
+ *   --_msHeldNext    hold-latch next value (arms on the first press,
+ *                    cleared by the NEXT press edge or the wire
+ *                    dropping) — also --msHeldBtn's register default
  *   --_msRawBtn      1 while any cell is pressed OR the hold latch is
  *                    up (left button state)
  *   --msQuietUntil   inter-packet pacing stamp (see uartStart) — set to
@@ -795,8 +836,17 @@ export function emitMouseWires() {
   )`;
   return [
     `  /* --- pointing surface → packet need --- */`,
-    `  --_msHeldNext: calc(var(--msHold) * max(var(--__1msHeldBtn), min(1, var(--mouseTgt))));`,
-    `  --_msRawBtn: max(min(1, var(--mouseTgt)), var(--_msHeldNext));`,
+    `  --_msTouch: min(1, var(--mouseTgt));`,
+    `  --_msTouchEdge: max(0, calc(var(--_msTouch) - var(--__1msTouchPrev)));`,
+    `  /* hold latch: each cell PRESS EDGE toggles it (XOR, as abs(a - b)
+     on two 0/1s) — first tap arms, the next tap's press clears, and
+     that tap's own release then completes the drag at its position.
+     Edge (not level) on both sides: level-arming would re-arm during
+     the clearing tap's remaining pressed ticks. The cell being pressed
+     keeps --_msRawBtn up through the clearing tap, so no spurious
+     mid-tap release edge. */`,
+    `  --_msHeldNext: calc(var(--msHold) * abs(var(--__1msHeldBtn) - var(--_msTouchEdge)));`,
+    `  --_msRawBtn: max(var(--_msTouch), var(--_msHeldNext));`,
     `  --_msTgt: ${msTgt};`,
     `  /* Both axes are tracked in MICKEYS (half-pixels): Windows 1.01's
      CGA mouse mapping applies deltas 2:1 in X AND Y (measured

@@ -107,8 +107,8 @@ html = html.replace('</head>', `${gridStyle}</head>`);
   const btnRe = /<!-- Hold-mode toggle:[\s\S]*?<button id="kb-hold"[\s\S]*?<\/button>/;
   if (!btnRe.test(html)) throw new Error('raw-regen: calcite #kb-hold button not found');
   html = html.replace(btnRe,
-    `<input type="checkbox" id="kb-holdmode" class="kb-state" aria-label="Hold Mode: while on, pressed keys stay held (chords) and screen taps keep the mouse button down (drags, Windows menus); toggle off to release everything">`
-    + `<label id="kb-hold" class="kb-key kb-mod" for="kb-holdmode" title="Hold Mode: while on, pressed keys stay held (chords) and screen taps keep the mouse button down (drags, Windows menus); tap again to turn off and release everything"></label>`);
+    `<input type="checkbox" id="kb-holdmode" class="kb-state" aria-label="Hold Mode: while on, pressed keys stay held (chords) — tap a held key again to release just that key; toggle off to release everything">`
+    + `<label id="kb-hold" class="kb-key kb-mod" for="kb-holdmode" title="Hold Mode: while on, pressed keys stay held (chords) — tap a held key again to release just that key; tap again to turn off and release everything"></label>`);
 }
 // (7) Drop the SW-heartbeat iframe: the raw player uses no service
 //     worker streams, and without a dev server the refresh loop would

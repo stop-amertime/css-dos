@@ -210,11 +210,20 @@ if (ingame) {
   const alt = await waitFor('kbdHeld2=56 (ALT latched)', async () => (await peekVar('kbdHeld2')) === 56, 20000);
   const wireIdle = (await peekVar('keyboard')) === 0; // pulses pass through 0; the HOLD is in the slots
   log(`chord latched: LEFT=${left} CTRL=${ctrl} ALT=${alt} keyboard idle=${wireIdle}`);
+  // Per-key un-hold (2026-07-13): tapping a HELD key again, with the
+  // wire still up, delivers its break code and clears just that slot —
+  // the other held keys stay latched. Tap CTRL again: slot 1 clears,
+  // LEFT (slot 0) and ALT (slot 2) survive.
+  await player.click('#kb-ctrl');
+  const unheld = await waitFor('kbdHeld1=0 (CTRL un-held by second tap)', async () =>
+    (await peekVar('kbdHeld1')) === 0, 20000);
+  const othersKept = (await peekVar('kbdHeld0')) === 75 && (await peekVar('kbdHeld2')) === 56;
+  log(`per-key un-hold: CTRL cleared=${unheld} LEFT+ALT kept=${othersKept}`);
   await player.click('#kb-hold');       // hold mode off — must drain with NO further key press
   const drained = await waitFor('kbdHeld slots drained (no follow-up key)', async () =>
     (await peekVar('kbdHeld0')) === 0 && (await peekVar('kbdHeld1')) === 0 && (await peekVar('kbdHeld2')) === 0, 20000);
   const lampOff = await waitFor('hold lamp back off (black on display)', lampDark, 15000);
-  holdOk = left && ctrl && alt && wireIdle && drained && lampOn && lampOff;
+  holdOk = left && ctrl && alt && wireIdle && unheld && othersKept && drained && lampOn && lampOff;
   log(`lamp: on=${lampOn} off=${lampOff}`);
 }
 
@@ -224,6 +233,6 @@ console.log('keyboard-broken status present:', (await buildPage.evaluate(() => w
 await browser.close();
 const pass = ingame && holdOk;
 log(pass
-  ? 'PASS: full flow build→title→menu→ingame + hold-wire chord via on-screen keyboard'
+  ? 'PASS: full flow build→title→menu→ingame + hold-wire chord + per-key un-hold via on-screen keyboard'
   : `FAIL: ingame=${ingame} holdOk=${holdOk}`);
 process.exit(pass ? 0 : 1);

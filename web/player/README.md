@@ -56,10 +56,13 @@ keyboard wire, and while it is up the machine *suppresses key release
 edges* — each released key's scancode is latched into one of eight
 `kbdHeld*` state-var slots instead of delivering a break code. The
 guest therefore sees makes without breaks: press LEFT then CTRL in
-hold mode and the game sees both held at once — chords. The moment
-the wire drops, the machine drains the slots back out as break
-codes, one per keyboard-IRQ-idle tick (so the guest ISR keeps up),
-releasing everything — no further input needed.
+hold mode and the game sees both held at once — chords. Tapping a
+HELD key again releases just that key (2026-07-13): the release whose
+scancode is already in a slot delivers its break code and clears the
+matching slot(s), hold mode staying on — per-key toggle. The moment
+the wire drops, the machine drains the remaining slots back out as
+break codes, one per keyboard-IRQ-idle tick (so the guest ISR keeps
+up), releasing everything — no further input needed.
 
 The page side differs per player (raw-regen swaps the control):
 
@@ -79,25 +82,31 @@ The page side differs per player (raw-regen swaps the control):
 
 Details: `--keyboard` is still a single cascade-resolved value (one
 key *transitions* at a time — fine, since holding is what the slots
-are for); the slots cap at 8 held keys, duplicates allowed;
+are for); the slots cap at 8 held keys;
 Shift/Ctrl/Alt stay usable as ordinary tap keys outside hold mode.
-Emit side: `kiln/patterns/misc.mjs` `emitKeyboardWires()` (latch/drain)
-+ `kiln/template.mjs` (wire + slots). Regression:
-`web/tests/kbd-e2e.playwright.mjs` chords LEFT+CTRL+ALT in-game and
-asserts the mode-off drain needs no follow-up key press.
+Emit side: `kiln/patterns/misc.mjs` `emitKeyboardWires()`
+(latch/un-hold/drain) + `kiln/template.mjs` (wire + slots). Regression:
+`web/tests/kbd-e2e.playwright.mjs` chords LEFT+CTRL+ALT in-game,
+un-holds CTRL with a second tap (others stay held), and asserts the
+mode-off drain needs no follow-up key press.
 
 ### Hold the mouse button (drags, Windows 1.x menus)
 
 On mouse cabinets (`input.mouse`) the SAME hold switch also raises the
 mouse hold wire (`&:has(#kb-holdmode:checked) { --msHold: 1 }`): the
-first cell tap while it is up presses the left button and keeps it
-down, further taps drag with the button held, and toggling hold off
-releases at the last position. Taps thus express press-drag-release —
-which Windows 1.x menus require (they only stay open while the button
-is held): Hold Mode on → tap the menu title → tap the item → Hold Mode
-off. Same gesture drags windows and scrollbars. Emit side:
-`kiln/patterns/misc.mjs` `emitMouseWires()` (`--msHeldBtn` latch);
-regression: `web/tests/mouse-e2e.playwright.mjs` (menu-via-hold step).
+first cell tap while it is up presses the left button where you
+tapped and keeps it down; the NEXT tap completes the drag — the
+cursor travels there with the button held and releases on arrival
+(2026-07-13; release-at-target falls out of the pending-edge queue,
+which only lets button changes ride packets once the cursor is at
+the target). A tap pair is thus one press-drag-release — which
+Windows 1.x menus require (they only stay open while the button is
+held): Hold Mode on → tap the menu title → tap the item, done. Same
+gesture drags windows and scrollbars. Toggling hold off mid-drag
+still releases immediately at the current position. Emit side:
+`kiln/patterns/misc.mjs` `emitMouseWires()` (`--msHeldBtn` tap-edge
+toggle); regression: `web/tests/mouse-e2e.playwright.mjs`
+(menu-via-hold step — opens with one tap, closes with the second).
 
 ## Not to be confused with
 

@@ -59,8 +59,10 @@ export const STATE_VARS = [
   // Hold-wire held set — scancodes whose release was latched while
   // --kbdHold was 1 (0 = empty slot). Filled lowest-slot-first; drained
   // highest-slot-first as synthesized break codes once --kbdHold drops.
-  // 8 slots; presses beyond that still deliver their make code but the
-  // break is lost (stuck key until re-press) — see emitKeyboardWires.
+  // Tapping a held key again while the wire is up delivers its break and
+  // clears its slot(s) — per-key un-hold, holes are fine. 8 slots;
+  // presses beyond that still deliver their make code but the break is
+  // lost (stuck key until re-press) — see emitKeyboardWires.
   { name: 'kbdHeld0', init: 0 },
   { name: 'kbdHeld1', init: 0 },
   { name: 'kbdHeld2', init: 0 },
@@ -116,11 +118,11 @@ export const MOUSE_STATE_VARS = [
   { name: 'msCurY', init: 50 },
   { name: 'msSentBtn', init: 0 },
   { name: 'msTgtLatch', init: 0 },
-  // Hold-mode button latch: 1 once a cell has been pressed while the
-  // hold wire (--msHold) is up; cleared the moment the wire drops. The
-  // player's hold switch turns taps into press-drag-release — required
-  // for Windows 1.x menus, which only stay open while the button is
-  // held. See emitMouseWires.
+  // Hold-mode button latch: toggled by cell press edges while the hold
+  // wire (--msHold) is up — first tap arms it (button down there), the
+  // next tap completes the drag (release at that tap's position) — and
+  // cleared the moment the wire drops. Required for Windows 1.x menus,
+  // which only stay open while the button is held. See emitMouseWires.
   { name: 'msHeldBtn', init: 0 },
   // Inter-packet pacing stamp (the 1200-baud line rate, in CYCLES —
   // guest time): a new packet may only start once cycleCount passes
@@ -135,6 +137,9 @@ export const MOUSE_STATE_VARS = [
   // packet. See emitMouseWires.
   { name: 'msPendEdges', init: 0 },
   { name: 'msRawPrev', init: 0 },
+  // Previous tick's cell-pressed level — press-edge detection for the
+  // hold latch's tap toggle (see emitMouseWires --_msTouchEdge).
+  { name: 'msTouchPrev', init: 0 },
   { name: 'msDxL', init: 0 },
   { name: 'msDyL', init: 0 },
   { name: 'uartIer', init: 0 },
@@ -170,7 +175,7 @@ const STATE_VAR_GROUP = {
   dacReadIndex: 'dac', dacReadSubIndex: 'dac',
   msCurX: 'mouse', msCurY: 'mouse', msSentBtn: 'mouse', msTgtLatch: 'mouse',
   msHeldBtn: 'mouse', msQuietUntil: 'mouse', msPendEdges: 'mouse', msRawPrev: 'mouse',
-  msDxL: 'mouse', msDyL: 'mouse',
+  msTouchPrev: 'mouse', msDxL: 'mouse', msDyL: 'mouse',
   uartIer: 'mouse', uartMcr: 'mouse', uartRbr: 'mouse', uartDr: 'mouse',
   uartPhase: 'mouse',
 };

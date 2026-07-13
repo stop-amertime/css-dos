@@ -926,8 +926,10 @@ export function emitCSS(opts, writeStream) {
   // code is only readable on the single tick _kbdRelease fires, and if
   // the IRQ-09h ISR runs even one tick later it reads scancode 0 and
   // DOOM's key-held state sticks); kbdHeld0-7 is the hold-wire held set
-  // (scancodes latched while --kbdHold was up, drained as break codes
-  // when it drops — see kiln/patterns/misc.mjs emitKeyboardWires).
+  // (scancodes latched while --kbdHold was up; a slot clears early if
+  // its key is tapped again — per-key un-hold — and the rest drain as
+  // break codes when the wire drops — see kiln/patterns/misc.mjs
+  // emitKeyboardWires).
   const KBD_REGS = ['prevKeyboard', 'kbdScancodeLatch',
                     'kbdHeld0', 'kbdHeld1', 'kbdHeld2', 'kbdHeld3',
                     'kbdHeld4', 'kbdHeld5', 'kbdHeld6', 'kbdHeld7'];
@@ -955,11 +957,14 @@ export function emitCSS(opts, writeStream) {
     )`,
   };
   // Hold-wire held set: append the latched scancode into this slot when
-  // its --_kbdApp flag fires, clear it when its --_kbdPop flag fires
-  // (drain), otherwise carry. Flags come from emitKeyboardWires.
+  // its --_kbdApp flag fires, clear it when its --_kbdClr flag fires
+  // (per-key un-hold: the held key was tapped again) or its --_kbdPop
+  // flag fires (drain), otherwise carry. Flags come from
+  // emitKeyboardWires.
   for (let i = 0; i < 8; i++) {
     customDefaults[`kbdHeld${i}`] = `if(
       style(--_kbdApp${i}: 1): var(--_kbdLatchSc);
+      style(--_kbdClr${i}: 1): 0;
       style(--_kbdPop${i}: 1): 0;
       else: var(--__1kbdHeld${i})
     )`;
@@ -969,7 +974,8 @@ export function emitCSS(opts, writeStream) {
   // emitMouseWires; the IN/OUT side effects layer on via dispatch
   // entries added in emitIO. See patterns/misc.mjs for the machine.
   const MOUSE_REGS = ['msCurX', 'msCurY', 'msSentBtn', 'msTgtLatch',
-                      'msHeldBtn', 'msQuietUntil', 'msPendEdges', 'msRawPrev', 'msDxL', 'msDyL',
+                      'msHeldBtn', 'msQuietUntil', 'msPendEdges', 'msRawPrev',
+                      'msTouchPrev', 'msDxL', 'msDyL',
                       'uartIer', 'uartMcr', 'uartRbr', 'uartDr', 'uartPhase'];
   if (mouse) {
     dispatch.picPendingLatchExpr = picPendingDefaultExpr(true);
@@ -987,6 +993,7 @@ export function emitCSS(opts, writeStream) {
       msQuietUntil: msQuietUntilDefaultExpr(),
       msPendEdges: 'var(--_msPendNext)',
       msRawPrev: 'var(--_msRawBtn)',
+      msTouchPrev: 'var(--_msTouch)',
       msDxL: `if(
       style(--_uartStart: 1): var(--_msDx8);
       else: var(--__1msDxL)
