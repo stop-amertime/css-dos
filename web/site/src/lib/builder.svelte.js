@@ -73,8 +73,8 @@ class Build {
   // Landing grid: a cart opts in by declaring display.cover (boxart) OR
   // display.bullets (cover-less text card) in its program.json.
   // name/description come from the same program.json — no second frontend
-  // manifest. The synthetic "custom" upload card is appended (rendered by
-  // CartGrid as the wide "load your own" box, not a grid cell).
+  // manifest. The synthetic "custom" upload card is appended and renders
+  // as an ordinary grid cell (CartCard's cart.custom branch).
   get featuredCarts() {
     const carts = this.serverCarts
       .filter((c) => c.program?.display?.cover || c.program?.display?.bullets)
