@@ -231,7 +231,7 @@ button is held (Hold Mode on → tap the menu title → tap the item →
 Hold Mode off).
 
 Guest software needs its own MS-serial-mouse driver — e.g. Windows
-1.x MOUSE.DRV, which is what `carts/windows101` bakes in. The
+1.x MOUSE.DRV, which is what `carts/0windows101` bakes in. The
 Corduroy BIOS advertises COM1 in the BDA (base word `0x400`,
 equipment bits) so drivers can find it. Costs ~2000 input rules +
 the UART/packet state machine per cabinet; carts without a mouse

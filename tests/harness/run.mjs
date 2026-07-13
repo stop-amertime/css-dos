@@ -48,7 +48,7 @@ Presets:
                 and assert its batch-written file TYPEs back on screen.
   msdos         Build carts/msdos4 (real MS-DOS 4.00 via INT 19h boot),
                 boot it, and assert the version banner reaches the screen.
-  windows       Build carts/windows101 (Windows 1.01 on MS-DOS 4.00), boot
+  windows       Build carts/0windows101 (Windows 1.01 on MS-DOS 4.00), boot
                 to the MS-DOS Executive (CGA mode 6), and assert both
                 injected keys (Down x6 + Enter) and injected mouse clicks
                 (select + double-click on the mc- cell grid) launch
@@ -307,13 +307,13 @@ async function runMsdos() {
 
 // --- windows preset ------------------------------------------------------
 
-// Windows 1.01 boot + app-launch check. carts/windows101 boots MS-DOS
+// Windows 1.01 boot + app-launch check. carts/0windows101 boots MS-DOS
 // 4.00; AUTOEXEC loads SETVER3 (Win 1.01's app loader gates on a 2.x/3.x
 // DOS version) and runs WIN, which sets CGA mode 6 and draws the MS-DOS
 // Executive. Two fast-shoots at the same tick: one idle (Executive), one
 // with injected keys (6x Down + Enter = launch CLOCK.EXE). Pass = both in
 // mode 6 and the screens differ — Windows drew, and Enter spawned an app.
-const WINDOWS_CART = 'carts/windows101';
+const WINDOWS_CART = 'carts/0windows101';
 // Executive lands ~9M, CLOCK is drawn by ~11M. Keep the shot tick tight:
 // this cabinet runs ~150K ticks/s under calcite-cli, so every extra 1M
 // ticks costs ~7s per shot against the wall budget below.

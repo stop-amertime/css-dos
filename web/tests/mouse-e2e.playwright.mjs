@@ -6,7 +6,7 @@
 //
 // Sibling of kbd-e2e.playwright.mjs (same dev-server + build.html
 // harness — see that file's header for why the bench can't cover real
-// input). Builds carts/windows101 in-browser, boots to the MS-DOS
+// input). Builds carts/0windows101 in-browser, boots to the MS-DOS
 // Executive (CGA mode 6), then (1) opens the View menu via Hold Mode —
 // Windows 1.x menus only stay open while the button is held, and the
 // hold switch latches the mouse button to express that from taps —
@@ -69,9 +69,9 @@ buildPage.on('console', (msg) => {
 
 log('opening build.html');
 await buildPage.goto(`${BASE}/build.html`, { waitUntil: 'load' });
-await buildPage.waitForSelector('input[name="cart"][value="windows101"]', { timeout: 20000 });
+await buildPage.waitForSelector('input[name="cart"][value="0windows101"]', { timeout: 20000 });
 await buildPage.evaluate(() => {
-  const el = document.querySelector('input[name="cart"][value="windows101"]');
+  const el = document.querySelector('input[name="cart"][value="0windows101"]');
   el.checked = true;
   el.dispatchEvent(new Event('change', { bubbles: true }));
 });
