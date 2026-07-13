@@ -195,8 +195,8 @@ PACING in CYCLES (120K ≈ the real 1200-baud 25 ms): without the gap
 the guest's mouse IRQ nests inside USER's MouseEvent and every click
 lands at the PREVIOUS gesture's position; the bridge paces taps in
 cycles too so double-clicks fit Windows' window. LOGBOOK
-2026-07-13-mouse-hold-windows-menus (BRANCH
-`claude/windows-cart-menu-clicks-4idkvx` until merged).
+2026-07-13-mouse-hold-windows-menus (LANDED on master
+2026-07-13).
 
 **Regression gate:** `node tests/harness/run.mjs smoke` (6 carts) +
 `node tests/harness/run.mjs writable` (writable-disk e2e) +
