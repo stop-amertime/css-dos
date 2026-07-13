@@ -109,12 +109,17 @@ inside the ±1% gate).
    WRITE.EXE via injected keys; `writeLoadMs` is the headline).
    3-run baseline medians (`docs/benches/windows-all-2026-07-13-
    baseline-run{1,2,3}.json`): writeLoad **36.8 s**, toExecutive
-   49.9 s, **89K t/s** — vs doom-all's 478K on the same web bench;
-   run-to-run t/s spread was wide that day (80K/89K/117K), ticks
-   deterministic (writeLoad 2.96M). The ~4-6× per-tick gap, uniform
-   across boot/gfx phases, is the optimisation target; profiling in
-   progress. Enabler: calcite `fa1dc81` (`at` watches now fire on
-   wasm). LOGBOOK 2026-07-13-windows-all-bench.
+   49.9 s, 89K t/s — **captured on a 2-3× DEGRADED host** (the
+   documented flapping state; don't compare these walls cross-day —
+   ticks are the durable part: writeLoad 2.96M, toExecutive 4.79M).
+   Profiling (op counts, host-independent): windows-sans-mouse =
+   doom exactly at 1,755 ops/tick; **the serial-mouse machine adds
+   +463 ops/tick (+26%) always-on** — mouse measured ≈1.8× on
+   writeLoad in a same-day A/B; painters only +90 ops/tick. Next:
+   quiescence-guard the mouse wires (kiln restructure) + healthy-
+   host re-baseline. Enabler: calcite `fa1dc81` (`at` watches now
+   fire on wasm). LOGBOOK 2026-07-13-windows-all-bench +
+   2026-07-13-windows-perf-profiling.
 5. **Per-dispatch-key specialisation** — structurally upstream of
    all perf work; probed on the branch 2026-05-12 (not on `main`).
    Plan: `../plans/2026-05-12-per-dispatch-key-specialisation.md`.
