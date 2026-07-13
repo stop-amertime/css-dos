@@ -48,6 +48,9 @@ Presets:
                 and assert its batch-written file TYPEs back on screen.
   msdos         Build carts/msdos4 (real MS-DOS 4.00 via INT 19h boot),
                 boot it, and assert the version banner reaches the screen.
+  windows       Build carts/windows101 (Windows 1.01 on MS-DOS 4.00), boot
+                to the MS-DOS Executive (CGA mode 6), and assert injected
+                keys (Down x6 + Enter) launch CLOCK.EXE.
   websmoke      Boot hello-text + dos-writable + msdos4 through the REAL
                 web path (headless Chromium, bridge worker, the VENDORED
                 wasm bundle). The only gate that runs the engine the site
@@ -300,6 +303,49 @@ async function runMsdos() {
   };
 }
 
+// --- windows preset ------------------------------------------------------
+
+// Windows 1.01 boot + app-launch check. carts/windows101 boots MS-DOS
+// 4.00; AUTOEXEC loads SETVER3 (Win 1.01's app loader gates on a 2.x/3.x
+// DOS version) and runs WIN, which sets CGA mode 6 and draws the MS-DOS
+// Executive. Two fast-shoots at the same tick: one idle (Executive), one
+// with injected keys (6x Down + Enter = launch CLOCK.EXE). Pass = both in
+// mode 6 and the screens differ — Windows drew, and Enter spawned an app.
+const WINDOWS_CART = 'carts/windows101';
+const WINDOWS_SHOT_TICK = 15_000_000; // Executive lands ~8.5M; margin
+const WINDOWS_KEYS = '8600000:kb-down,8605000:-kb-down,8660000:kb-down,8665000:-kb-down,'
+  + '8720000:kb-down,8725000:-kb-down,8780000:kb-down,8785000:-kb-down,'
+  + '8840000:kb-down,8845000:-kb-down,8900000:kb-down,8905000:-kb-down,'
+  + '8960000:kb-enter,8965000:-kb-enter';
+
+async function runWindows() {
+  log(`windows: ${WINDOWS_CART}`);
+  const cabinet = join(HARNESS_ROOT, 'cache', 'windows101.css');
+  const build = await runPipeline('build', resolve(REPO_ROOT, WINDOWS_CART), `--out=${cabinet}`);
+  if (!build.result.ok) {
+    return { preset: 'windows', ok: false, allOk: false, stage: 'build', error: build.result.error };
+  }
+  const exec = await runPipeline('fast-shoot', cabinet, `--tick=${WINDOWS_SHOT_TICK}`,
+    `--out=${join(HARNESS_ROOT, 'cache', 'windows101-exec.png')}`);
+  const clock = await runPipeline('fast-shoot', cabinet, `--tick=${WINDOWS_SHOT_TICK}`,
+    `--press-events=${WINDOWS_KEYS}`,
+    `--out=${join(HARNESS_ROOT, 'cache', 'windows101-clock.png')}`);
+  const execShot = exec.result?.shot ?? {};
+  const clockShot = clock.result?.shot ?? {};
+  const okExec = execShot.mode === 6;
+  const okLaunch = clockShot.mode === 6 && !!clockShot.phash && clockShot.phash !== execShot.phash;
+  return {
+    preset: 'windows',
+    ok: okExec && okLaunch,
+    allOk: okExec && okLaunch,
+    buildMs: build.result.buildMs,
+    execMode: execShot.mode,
+    execPhash: execShot.phash,
+    clockPhash: clockShot.phash,
+    launchChangedScreen: okLaunch,
+  };
+}
+
 // --- websmoke preset ----------------------------------------------------
 
 // Boot cabinets through the REAL web path — dev server, Cache Storage,
@@ -414,6 +460,7 @@ async function main() {
       case 'conformance':  report = await runConformance();  break;
       case 'writable':     report = await runWritable();     break;
       case 'msdos':        report = await runMsdos();        break;
+      case 'windows':      report = await runWindows();      break;
       case 'websmoke':     report = await runWebsmoke();     break;
       case 'visual':       report = await runVisual();       break;
       case 'full':         report = await runFull();         break;

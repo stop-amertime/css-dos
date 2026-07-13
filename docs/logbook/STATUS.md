@@ -180,11 +180,15 @@ per-read syscall overhead.)
 **Working carts:** in flux — the 2026-06-12 licensing re-cut is
 removing/replacing several (see Active work #1). Doom8088 in-game on
 web + cli; zork-big (2.88 MB), command-bare, shelltest, smoke set
-unaffected.
+unaffected. **windows101** (2026-07-13): real Windows 1.01 on msdos4
+boot, CGA mode 6 — Executive + app launch verified native and web;
+needs `SETVER3.COM` (in-cart TSR: Win 1.01's app loader gates on DOS
+2.x/3.x version report). LOGBOOK 2026-07-13.
 
 **Regression gate:** `node tests/harness/run.mjs smoke` (6 carts) +
 `node tests/harness/run.mjs writable` (writable-disk e2e) +
 `node tests/harness/run.mjs msdos` (MS-DOS 4.00 boot e2e) +
+`node tests/harness/run.mjs windows` (Windows 1.01 boot + key-launch) +
 `node tests/harness/run.mjs websmoke` (same boots through the real
 web path against the **vendored** wasm — the only gate that runs the
 engine the site ships; mandatory after re-vendoring or landing

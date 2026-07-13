@@ -42,6 +42,13 @@ node tests/harness/pipeline.mjs fulldiff <cabinet>.css --max-ticks=10000
 # ticks) inside a 2-minute budget.
 node tests/harness/pipeline.mjs fast-shoot <cabinet>.css --tick=3000000 --out=shot.png
 
+# fast-shoot can also press keys first (forwarded to calcite-cli):
+# TICK:SELECTOR presses, TICK:-SELECTOR releases; selectors are the
+# player key ids (kb-a, kb-down, kb-enter, ...). The windows gate uses
+# this to launch CLOCK.EXE from the MS-DOS Executive before shooting.
+node tests/harness/pipeline.mjs fast-shoot <cabinet>.css --tick=15000000 \
+  "--press-events=8600000:kb-down,8605000:-kb-down,8960000:kb-enter,8965000:-kb-enter"
+
 # Slow-path screenshot (early ticks only, or when sharing a daemon).
 node tests/harness/pipeline.mjs shoot <cabinet>.css --tick=100000 --out=shot.png
 

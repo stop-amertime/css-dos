@@ -12,6 +12,11 @@
 // Usage:
 //   node tests/harness/web-boot.playwright.mjs --cabinet=PATH \
 //     --sentinel=TEXT [--cap-ms=180000] [--port=5461] [--engine=vendored]
+//   node tests/harness/web-boot.playwright.mjs --cabinet=PATH \
+//     --gfx-sentinel=MODE [--cap-ms=...]   # graphics cabinets: pass when
+//     the BDA mode byte (0x449) equals MODE and the CGA framebuffer at
+//     0xB8000 has >512 non-zero bytes (i.e. the program actually drew).
+//     For carts that leave text mode (e.g. windows101, mode 6).
 //
 // --engine=vendored (default): force the vendored web/vendor/calcite-pkg
 //   bundle — the artifact the site ships — even if a built sibling
@@ -56,11 +61,12 @@ for (const a of process.argv.slice(2)) {
 }
 const cabinet = flags.cabinet && resolve(flags.cabinet);
 const sentinel = flags.sentinel;
+const gfxSentinel = flags['gfx-sentinel'] != null ? Number(flags['gfx-sentinel']) : null;
 const capMs = Number(flags['cap-ms'] ?? 180_000);
 const port = Number(flags.port ?? 5461);
 const engine = flags.engine ?? 'vendored';
-if (!cabinet || !existsSync(cabinet) || !sentinel) {
-  console.log(JSON.stringify({ ok: false, error: 'need --cabinet=<existing path> and --sentinel=TEXT' }));
+if (!cabinet || !existsSync(cabinet) || (!sentinel && gfxSentinel == null)) {
+  console.log(JSON.stringify({ ok: false, error: 'need --cabinet=<existing path> and --sentinel=TEXT or --gfx-sentinel=MODE' }));
   process.exit(1);
 }
 
@@ -170,7 +176,7 @@ try {
       await page.evaluate(() => window.__bridge.postMessage({ type: 'bench-run' }));
     }
 
-    if (started) {
+    if (started && sentinel) {
       const text = await page.evaluate(async () => {
         const ch = new MessageChannel();
         const p = new Promise((res) => { ch.port1.onmessage = (e) => res(e.data); });
@@ -186,6 +192,30 @@ try {
       });
       if (text && text.includes(sentinel)) {
         emit({ ok: true, cabinetMB, compileMs });
+        await cleanup();
+        process.exit(0);
+      }
+    }
+
+    // Graphics sentinel: BDA mode byte matches AND the CGA framebuffer
+    // has real ink — proves the program switched mode and drew.
+    if (started && gfxSentinel != null) {
+      const gfx = await page.evaluate(async () => {
+        const peek = (addr, len) => new Promise((res) => {
+          const ch = new MessageChannel();
+          ch.port1.onmessage = (e) => res(e.data);
+          window.__bridge.postMessage({ type: 'peek-mem', addr, len }, [ch.port2]);
+        });
+        const m = await peek(0x449, 1);
+        if (!m.ok) return null;
+        const fb = await peek(0xB8000, 0x4000);
+        if (!fb.ok) return null;
+        let ink = 0;
+        for (const b of fb.bytes) if (b !== 0) ink++;
+        return { mode: m.bytes[0], ink };
+      });
+      if (gfx && gfx.mode === gfxSentinel && gfx.ink > 512) {
+        emit({ ok: true, cabinetMB, compileMs, gfx });
         await cleanup();
         process.exit(0);
       }
