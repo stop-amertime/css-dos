@@ -2,6 +2,20 @@
   "schema": "cart@1",
   "name": "Windows 1.01",
   "description": "Microsoft Windows 1.01 (1985) on real MS-DOS 4.00, CGA 640x200. Boots to the MS-DOS Executive with the original desktop applets on the floppy.",
+  "display": {
+    "accent": "#1030A0",
+    "bullets": [
+      "The real 1985 release, installed from retail floppies",
+      "Boots to the MS-DOS Executive in CGA 640x200",
+      "NOTEPAD / CALC / CLOCK / REVERSI / PAINT / WRITE",
+      "Runs on real MS-DOS 4.00 (plus a 51-byte SETVER shim)",
+      "Windows, five years before anyone cared"
+    ],
+    "playTips": [
+      "Use the arrow keys to pick a file in the MS-DOS Executive, then press Enter to run it. CLOCK.EXE is a good first click.",
+      "Boot takes a little while - Windows loads about 400 KB from a very honest floppy drive. The Microsoft logo means it's working."
+    ]
+  },
   "preset": "dos-corduroy",
   "memory": {
     "conventional": "640K",
