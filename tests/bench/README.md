@@ -64,6 +64,7 @@ methodology has to be consistent or those comparisons are noise.
 | `doom-ingame-fps`  | Steady-state in-game FPS while holding Left | "How does it feel mid-gameplay?" 8 s warmup (menu slide-off, view fade-in, cache warmup) → 20 s measurement. Hashes the full 320×200 framebuffer; each distinct hash is one user-visible frame. ~107 s. |
 | `doom-all`         | doom-loading **and** doom-ingame-fps in one boot | **The default for any non-trivial perf measurement.** Same wall as `doom-ingame-fps` alone (both share the boot). Reports phase substeps (compile / dosBoot / doomTitle / doomMenuDelay / doomLoad / warmup / measure). |
 | `msdos-boot`       | MS-DOS 4.00 (carts/msdos4) boot to the VER banner | "Why is the writable cabinet slow to load?" Reports the compile-vs-run split: `compileMs`/`fetchMs`/`saveMs` (page envelope) vs `runMsToPrompt`/`ticksToPrompt`, plus `phaseReport` (per-phase wasm compile breakdown from `engine.compile_phase_report()`). ~40 s. |
+| `windows-all`      | Windows 1.01 (carts/0windows101) boot to the MS-DOS Executive, then open README.DOC in Write via injected keys | **The default for Windows perf measurement.** The doom-all analogue: phases `dosBoot` / `winBoot` / `executive` / `writeLoad`. `writeLoadMs` (Enter → README.DOC drawn by WRITE.EXE, the heaviest app on the floppy) is the doomLoad analogue — watch this number. Key injection is tick-scheduled (`at` watches: R type-selects README.DOC, Enter launches); if a kiln/builder change shifts boot ticks the bench fails loudly — re-derive the tick constants in the profile with fast-shoot. |
 
 ### What "doom-all" reports (read this so you know what to cite)
 
@@ -158,6 +159,8 @@ tests/bench/
     doom-loading.mjs    — doom8088 boot through six stages to in-game
     doom-ingame-fps.mjs — doom8088 steady-state FPS while holding Left
     doom-all.mjs        — doom-loading + doom-ingame-fps in one boot
+    msdos-boot.mjs      — MS-DOS 4.00 boot to the VER banner
+    windows-all.mjs     — Windows 1.01 boot + open README.DOC in Write
   lib/
     artifacts.mjs       — declarative manifest of every built artifact
     ensure-fresh.mjs    — staleness primitive (mtime + transitive rebuild)
