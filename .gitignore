@@ -90,3 +90,9 @@ entry.err
 # Raw benchmark JSON dumps — machine output kept only as local provenance
 # while iterating on perf. Headline numbers live in docs/logbook/STATUS.md.
 docs/benches/
+
+# Cart contents are source, never build output — nothing under carts/ may
+# be ignored. (Last-match wins: this beats *.bin/*.img/*.zip above. The
+# *.bin rule silently swallowed carts/0windows101/WIN100.BIN and the live
+# site's Windows build failed for the lack of it, 2026-07-13.)
+!carts/**
