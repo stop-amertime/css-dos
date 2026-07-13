@@ -104,14 +104,24 @@ inside the ±1% gate).
    a concurrent session). Escape hatch if compile time regresses: a
    build flag gating `emitPixelPaintRules()` (~5 lines). See LOGBOOK
    2026-06-30.
-4. **Per-dispatch-key specialisation** — structurally upstream of
+4. **Windows 1.01 perf (2026-07-13, in progress).** New canonical
+   bench `windows-all` (boot → Executive → open README.DOC in
+   WRITE.EXE via injected keys; `writeLoadMs` is the headline).
+   3-run baseline medians (`docs/benches/windows-all-2026-07-13-
+   baseline-run{1,2,3}.json`): writeLoad **36.8 s**, toExecutive
+   49.9 s, **89K t/s** — vs doom-all's 478K on the same web bench;
+   run-to-run t/s spread was wide that day (80K/89K/117K), ticks
+   deterministic (writeLoad 2.96M). The ~4-6× per-tick gap, uniform
+   across boot/gfx phases, is the optimisation target; profiling in
+   progress. Enabler: calcite `fa1dc81` (`at` watches now fire on
+   wasm). LOGBOOK 2026-07-13-windows-all-bench.
+5. **Per-dispatch-key specialisation** — structurally upstream of
    all perf work; probed on the branch 2026-05-12 (not on `main`).
    Plan: `../plans/2026-05-12-per-dispatch-key-specialisation.md`.
-5. **`__I4D` routine substitution** — DEPRIORITISED 2026-06-09: the
-   46% figure was guest-cycle-weighted; by ticks (= calcite wall)
-   `__I4D` is ~22% and the **EDR-DOS kernel is ~49% of doomLoad**.
-   Plan (correction note added):
-   `../plans/2026-05-12-routine-semantic-substitution.md`.
+   (Also parked: **`__I4D` routine substitution** — DEPRIORITISED
+   2026-06-09: the 46% figure was guest-cycle-weighted; by ticks
+   `__I4D` is ~22% and the EDR-DOS kernel is ~49% of doomLoad. Plan:
+   `../plans/2026-05-12-routine-semantic-substitution.md`.)
 (doomLoad kernel-side fix RESOLVED 2026-06-11 via
 `disk.sectorsPerCluster` — moved to LOGBOOK 2026-06-11; open
 follow-ups there: apply SPC to zork-big / prince-of-persia,
