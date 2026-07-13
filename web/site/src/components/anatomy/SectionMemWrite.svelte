@@ -4,7 +4,10 @@
   // ABOUT-SCRIPT.md register (the owner's canonical x = y example);
   // facts from CABINET-ANATOMY.md §6, §13. The assembled-cell
   // extract mirrors kiln/emit-css.mjs (slot cascade, slot 0
-  // outermost; names tidied per the CPU section's NOTE).
+  // outermost; names tidied per the CPU section's NOTE). Multi-tick
+  // subsection: owner experiment (5-10× slower); the ">100 MB" is
+  // the 2-of-3 applySlot layers summed over 368,256 cells = 105.6 MB
+  // (model sanity: all 3 layers = 169.6 MB vs the measured 171 MB).
   import Foldable from '../Foldable.svelte';
   import RamWrite from '../RamWrite.svelte';
   import SectionHead from '../SectionHead.svelte';
@@ -53,6 +56,14 @@
   More than half the file (171&nbsp;MB) is this single formula, written out once per memory cell.
 </p>
 
+<SectionHead>Does <i>every</i> byte really need this?</SectionHead>
+<p>
+  Most of RAM is the program&rsquo;s own instructions, and instructions don&rsquo;t change while they run &mdash; so couldn&rsquo;t the code be baked in as literals, the way the <a href="#about/file/memr">read section</a> bakes in the BIOS?
+</p>
+<p>
+  The problem is that at build time, almost nothing is <i>knowably</i> code. The program ships on the floppy, and its bytes only become RAM when DOS loads them &mdash; to an address DOS picks, at runtime. Games decompress themselves. Code of this era overwrites its own instructions as a matter of course. The BIOS is the one thing whose bytes are pinned down before power-on &mdash; which is why it&rsquo;s exactly the thing that got the literal treatment.
+</p>
+
 <SectionHead>How a write actually lands</SectionHead>
 <p>
   One complication we&rsquo;ve been skating over: cells hold two bytes each, so &ldquo;write this byte here&rdquo; actually means <i>splicing</i> a value into half of a cell without disturbing the other half. One function does the splicing, and every cell&rsquo;s formula calls it once per write slot &mdash; verbatim:
@@ -78,6 +89,17 @@
     Each slot also carries a <b>live gate</b> &mdash; a 0/1 saying whether it fires this tick. Most instructions don&rsquo;t write memory at all, and the gate lets all 650,000 write formulas short-circuit at once: &ldquo;no slot is live, nothing changes&rdquo; &mdash; without checking a million addresses one by one.
   </p>
 </Foldable>
+
+<SectionHead>Couldn&rsquo;t big instructions just take several ticks?</SectionHead>
+<p>
+  Real CPUs work this way &mdash; a hard instruction takes more cycles. If INT were given three ticks for its three pushes, one write slot would cover the whole instruction set, and every one of those 650,000 formulas would shed two thirds of its nesting. That&rsquo;s over 100&nbsp;MB &mdash; a third of the entire file, gone.
+</p>
+<p>
+  It was tried. It ran 5&ndash;10&times; slower. The catch: a tick is not a cheap unit &mdash; <i>everything</i> re-evaluates every tick, written or not, so an instruction that takes three ticks pays for three full sweeps of the machine to do one instruction&rsquo;s work. What the file saved in size, it lost several times over in re-evaluation.
+</p>
+<p>
+  This tradeoff haunted the whole project: filesize and speed are usually in tension, and the per-tick sweep is so expensive that speed nearly always wins. The three write slots are the price of finishing everything in one.
+</p>
 
 <style>
   .punchline {

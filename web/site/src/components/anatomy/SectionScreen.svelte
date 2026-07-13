@@ -47,6 +47,14 @@ max(0, sign(3409 - mod(var(--cycleCount-prev), 68182)))`;
   <code>mod()</code> digs the pixel&rsquo;s byte out of its packed memory cell, and <code>--screenPx()</code> &mdash; the mode dispatcher &mdash; decides what the bytes mean. <code>--vidMode</code> is the machine&rsquo;s current video mode: in the 256-colour game mode it hands <code>--ci</code> to the palette function below; in text mode it reads the character cell instead and looks the glyph row up in the ROM font; in CGA it unpacks two-bit pixels. One rule, every screen the machine can show.
 </p>
 
+<SectionHead>64,000 divs? Pixel artists manage with one</SectionHead>
+<p>
+  True &mdash; the classic trick gives a single element thousands of <code>box-shadow</code>s, one per pixel. Could the screen be one div?
+</p>
+<p>
+  Possibly! But the grid isn&rsquo;t the hot path &mdash; Calcite paints straight from video memory and never evaluates these rules &mdash; so it was never tested or optimised after scaling up from small experiments. There isn&rsquo;t even a way to paint all 64,000 at full speed to compare.
+</p>
+
 <SectionHead>The palette &mdash; how 256 colours get chosen</SectionHead>
 <p>
   Older programs were limited to 256 colours at once, which isn&rsquo;t very many. They could at least choose WHICH 256 colours they wanted to use. That list of colours is the &lsquo;palette&rsquo;, and the pixel&rsquo;s byte references a colour from that list (0&ndash;255). To set one colour, the program writes three bytes &mdash; red, green, blue &mdash; to a single port, while a small counter steps 0, 1, 2 and rolls over to the next colour slot. When a game fades to black, it is re-streaming the whole table a little darker, over and over.

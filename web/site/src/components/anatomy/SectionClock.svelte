@@ -5,6 +5,9 @@
   // in a fold). Facts from CABINET-ANATOMY.md §4, §12, §14–16;
   // keyframe extracts verbatim from sokoban.css (names tidied to
   // flow order: --__0/--__2/--__1mc5000 → --mc5000_1/_2/-prev).
+  // "Faster clock" numbers: logbook entry 2026-07-09 (Chrome recalc
+  // ~6 s/tick at 8.9 MB, ~310 s first resolution on doom8088, live
+  // clock = unbounded recalc backlog) + docs/web.md (2.5 instr/s).
   import Callout from '../Callout.svelte';
   import CodeCss from '../CodeCss.svelte';
   import CycleDiagrams from './CycleDiagrams.svelte';
@@ -44,6 +47,17 @@
 <CodeCss code={CLOCK_ANIM} />
 <p>
   A counter ticking 0,&nbsp;1,&nbsp;2,&nbsp;3, forever. Each lap, every formula in the file re-evaluates once and the machine advances by one CPU instruction. These few lines are the smallest section of the <Term t="cabinet">cabinet</Term> and its only moving part.
+</p>
+
+<SectionHead>Why not just make the clock faster?</SectionHead>
+<p>
+  It&rsquo;s the obvious knob. 400&nbsp;ms per instruction is 2.5 instructions per second &mdash; at that rate DOS takes the best part of two weeks to boot. And the fix is sitting right there in the code above: write <code>4ms</code> instead, and the machine is 100&times; faster, free?
+</p>
+<p>
+  Sadly, the clock was never the throttle. Each tick asks the browser to re-settle the whole 300&nbsp;MB dependency graph, and that takes Chrome seconds on a small cabinet &mdash; minutes on a Doom-sized one. The browser already can&rsquo;t finish one lap before the next is due; ticks just queue up behind a recalculation that never ends. Speeding up the clock deepens the queue and changes nothing.
+</p>
+<p>
+  So the 400&nbsp;ms is aspirational &mdash; written for a browser that could keep up, which doesn&rsquo;t exist. That gap is exactly what <a href="#about/calcite">Calcite</a> fills: it ignores the wall-clock number entirely and runs laps as fast as it can compute them, hundreds of thousands per second.
 </p>
 
 <SectionHead>Why does every value need four variables?</SectionHead>
