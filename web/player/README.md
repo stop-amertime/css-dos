@@ -86,6 +86,19 @@ Emit side: `kiln/patterns/misc.mjs` `emitKeyboardWires()` (latch/drain)
 `web/tests/kbd-e2e.playwright.mjs` chords LEFT+CTRL+ALT in-game and
 asserts the mode-off drain needs no follow-up key press.
 
+### Hold the mouse button (drags, Windows 1.x menus)
+
+On mouse cabinets (`input.mouse`) the SAME hold switch also raises the
+mouse hold wire (`&:has(#kb-holdmode:checked) { --msHold: 1 }`): the
+first cell tap while it is up presses the left button and keeps it
+down, further taps drag with the button held, and toggling hold off
+releases at the last position. Taps thus express press-drag-release —
+which Windows 1.x menus require (they only stay open while the button
+is held): Hold Mode on → tap the menu title → tap the item → Hold Mode
+off. Same gesture drags windows and scrollbars. Emit side:
+`kiln/patterns/misc.mjs` `emitMouseWires()` (`--msHeldBtn` latch);
+regression: `web/tests/mouse-e2e.playwright.mjs` (menu-via-hold step).
+
 ## Not to be confused with
 
 Calcite's own browser frontend at `../calcite/web/` — that ships with

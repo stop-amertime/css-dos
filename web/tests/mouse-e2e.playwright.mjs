@@ -7,9 +7,12 @@
 // Sibling of kbd-e2e.playwright.mjs (same dev-server + build.html
 // harness — see that file's header for why the bench can't cover real
 // input). Builds carts/windows101 in-browser, boots to the MS-DOS
-// Executive (CGA mode 6), then clicks CLOCK.EXE's overlay cell —
-// select, then double-click — and asserts the CGA framebuffer changed
-// substantially (the Clock app took the screen over).
+// Executive (CGA mode 6), then (1) opens the View menu via Hold Mode —
+// Windows 1.x menus only stay open while the button is held, and the
+// hold switch latches the mouse button to express that from taps —
+// and (2) clicks CLOCK.EXE's overlay cell — select, then double-click
+// — and asserts the CGA framebuffer changed substantially (the Clock
+// app took the screen over).
 //
 //   node web/tests/mouse-e2e.playwright.mjs
 //
@@ -36,8 +39,10 @@ const CHROME_CANDIDATES = [
 const SYS_CHROME = CHROME_CANDIDATES.find((p) => existsSync(p));
 const BASE = process.env.BASE || 'http://localhost:5173';
 
-// CLOCK.EXE sits on row 11 / col 5 of the 80×25 cell grid when the
-// windows101 floppy's Executive listing is up (guest pixel ~(44,92)).
+// CLOCK.EXE's click target is cell mc-885 (row 11 col 5, pixel
+// (44,92)): the Executive's listbox hit zones sit ~a line below the
+// drawn text (empirical — clicking the text row itself selects the
+// item above), so aim one row under CLOCK.EXE's name.
 const CLOCK_CELL = 'mc-885';
 
 const t0 = Date.now();
@@ -119,10 +124,20 @@ const mode6 = await waitFor('mode 6 (Windows gfx)', async () => (await peekByte(
 if (!mode6) { console.log('statuses:', await buildPage.evaluate(() => window.__bridgeStatuses)); process.exit(1); }
 
 // Mode 6 arrives at the Microsoft LOGO; the Executive is a couple of
-// million ticks later. Wait until the framebuffer stops changing (the
-// Executive is static; the logo/loading phases are not) before
-// snapshotting the "before" state.
+// million ticks later. Wait until the framebuffer stops changing AND
+// the top 16 scanlines carry real ink (the Executive's caption bar —
+// the logo is black up there, and the Executive draw has >5s pauses
+// that fool a plain stability check into a mid-draw baseline).
 let before = await peekCga();
+const topInk = (fb) => {
+  let ink = 0;
+  for (let r = 0; r < 8; r++) {
+    for (let b = 0; b < 80; b++) {
+      ink += (fb[r * 80 + b] ? 1 : 0) + (fb[0x2000 + r * 80 + b] ? 1 : 0);
+    }
+  }
+  return ink;
+};
 {
   let stable = 0;
   const ok = await waitFor('framebuffer stable (Executive drawn)', async () => {
@@ -131,12 +146,57 @@ let before = await peekCga();
     let diff = 0;
     for (let i = 0; i < now.length; i++) if (now[i] !== before[i]) diff++;
     before = now;
-    stable = diff < 100 ? stable + 1 : 0;
-    return stable >= 2;
+    stable = (diff < 100 && topInk(now) > 400) ? stable + 1 : 0;
+    return stable >= 3;
   }, 240000, 5000);
   if (!ok) { log('FAIL: Executive never stabilised'); process.exit(1); }
 }
 if (!before) { log('FAIL: could not peek CGA framebuffer'); process.exit(1); }
+
+// Menu-via-hold phase. Windows 1.x menus only stay open while the
+// button is HELD (press title → drag to item → release), so a plain
+// tap flashes and closes them — the hold switch latches the mouse
+// button instead (--msHold wire + --msHeldBtn latch, see kiln
+// emitMouseWires). Hold on → tap "View" (cell mc-88: the menu bar is
+// the SECOND text row, y 9-17 — row 0 is the caption with the
+// system-menu and zoom boxes; the menu drops and STAYS because the
+// button never releases) → assert the framebuffer changed → hold off
+// (release over the title; menu closes, screen returns to the
+// Executive). Regression for the 2026-07-13 hold + packet-pacing fix.
+const VIEW_CELL = 'mc-88';
+const fbDiff = async (ref) => {
+  const now = await peekCga();
+  if (!now) return -1;
+  let d = 0;
+  for (let i = 0; i < now.length; i++) if (now[i] !== ref[i]) d++;
+  return d;
+};
+// Input phases run with the PLAYER in front — that's how a real user
+// clicks, and a backgrounded page throttles the keyboard form's
+// hidden-iframe navigations by whole seconds, which would stretch the
+// double-click taps far apart in wall (and thus guest) time. The
+// bridge worker in build.html keeps ticking regardless (MessageChannel
+// pump, see calcite-bridge.js).
+await player.bringToFront();
+log('menu phase: hold on, tap View');
+await player.click('#kb-hold');
+await new Promise(r => setTimeout(r, 2000));
+await player.click(`#${VIEW_CELL}`);
+// Thresholds: the dropped menu repaints ~1.2K bytes; the relocated
+// cursor arrow alone accounts for ~50-150.
+const menuOpen = await waitFor('View menu open (held)', async () => (await fbDiff(before)) > 800, 30000, 2000);
+log('menu phase: hold off (release over the title closes the menu)');
+await player.click('#kb-hold');
+const menuClosed = await waitFor('menu closed after hold off', async () => {
+  const d = await fbDiff(before);
+  return d >= 0 && d < 250;
+}, 30000, 2000);
+if (!menuOpen || !menuClosed) {
+  log(`FAIL: menu-via-hold (open=${menuOpen} closed=${menuClosed})`);
+  await browser.close();
+  process.exit(1);
+}
+log('menu-via-hold OK — menu stayed open while held, closed on release');
 
 // Select CLOCK.EXE, then double-click it (the Executive launches on a
 // double-click over the already-selected item, as on real hardware).

@@ -248,6 +248,10 @@ function runKilnHack({ bios, manifest, programBytes, output, header }) {
     memoryZones,
     embeddedData,
     programOffset,
+    // Serial-mouse hardware — same opt-in as the DOS path. Useful for
+    // probing the packet machine in isolation (a COM program that
+    // polls the UART boots in seconds; Windows takes minutes).
+    mouse:         manifest.input?.mouse === true,
     header,
   }, output);
 }

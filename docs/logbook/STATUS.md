@@ -187,6 +187,16 @@ needs `SETVER3.COM` (in-cart TSR: Win 1.01's app loader gates on DOS
 mouse** (`input.mouse` — 8250 UART @ COM1 in emitted CSS + `#mc-N`
 tap grid in both players; e2e
 `node web/tests/mouse-e2e.playwright.mjs`). LOGBOOK 2026-07-13.
+Windows menus need Hold Mode — Win 1.x menus only stay open while
+the button is held, so the hold switch also latches the mouse button
+(hold on → tap title → tap item → hold off; menu bar = the SECOND
+text row, row 0 is the caption). Same fix landed serial packet
+PACING in CYCLES (120K ≈ the real 1200-baud 25 ms): without the gap
+the guest's mouse IRQ nests inside USER's MouseEvent and every click
+lands at the PREVIOUS gesture's position; the bridge paces taps in
+cycles too so double-clicks fit Windows' window. LOGBOOK
+2026-07-13-mouse-hold-windows-menus (BRANCH
+`claude/windows-cart-menu-clicks-4idkvx` until merged).
 
 **Regression gate:** `node tests/harness/run.mjs smoke` (6 carts) +
 `node tests/harness/run.mjs writable` (writable-disk e2e) +

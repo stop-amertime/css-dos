@@ -207,7 +207,7 @@ Include the VGA text buffer at `0xB8000–0xB8FA0` (4000 bytes). Default
 On hack carts the field is accepted; hack carts always get the text
 buffer today, regardless of the value. Follow-up.
 
-### `input.mouse` · implemented (DOS)
+### `input.mouse` · implemented (DOS + hack)
 
 Default `false`. When `true`, the cabinet gains a Microsoft serial
 mouse on COM1: an 8250 UART at `0x3F8` (IRQ 4) implemented in the
@@ -221,6 +221,15 @@ player as invisible overlay buttons over the screen (taps ride the
 same `/_kbd` → bridge pulse path as keys), the raw player as real
 buttons whose `:active` Chrome evaluates natively.
 
+The player's hold switch (`#kb-holdmode`, the same control that
+latches keyboard keys) also raises the mouse hold wire `--msHold`:
+the first tap while it's up presses the button and KEEPS it down,
+further taps drag with the button held, and toggling hold off
+releases at the last position. That's press-drag-release from taps —
+required for Windows 1.x menus, which only stay open while the
+button is held (Hold Mode on → tap the menu title → tap the item →
+Hold Mode off).
+
 Guest software needs its own MS-serial-mouse driver — e.g. Windows
 1.x MOUSE.DRV, which is what `carts/windows101` bakes in. The
 Corduroy BIOS advertises COM1 in the BDA (base word `0x400`,
@@ -233,6 +242,20 @@ both axes and starts its cursor at pixel (320,100) — the packet
 machine tracks position in half-pixel "mickeys" and dead-reckons
 from that measured start, so cell taps land pixel-exact without any
 recalibration.
+
+Pacing note: packets are spaced ≥120K CPU cycles apart
+(`--msQuietUntil`, the genuine 1200-baud line rate ≈ 25 ms of guest
+time — cycles, not ticks, because an idle guest's ticks are cheap
+and a tick-counted gap would stretch to guest-seconds). Back-to-back
+packets make the next packet's IRQ nest inside the guest driver's
+still-running event handler, and Windows 1.x then queues button
+events at the stale pre-move position (every click lands where the
+PREVIOUS gesture pointed). Raw button transitions are queued
+(`--msPendEdges`) and drained one per paced packet, so presses
+shorter than the gap still deliver their full down→up train in
+order. The calcite player's bridge paces tap hold/gap in cycles too
+(~52 ms + ~31 ms guest) so double-click taps land inside Windows'
+double-click window.
 
 ### `disk` · implemented
 

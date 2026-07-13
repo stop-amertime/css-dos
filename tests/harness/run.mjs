@@ -323,10 +323,12 @@ const WINDOWS_KEYS = '9600000:kb-down,9605000:-kb-down,9660000:kb-down,9665000:-
   + '9720000:kb-down,9725000:-kb-down,9780000:kb-down,9785000:-kb-down,'
   + '9840000:kb-down,9845000:-kb-down,9900000:kb-down,9905000:-kb-down,'
   + '9960000:kb-enter,9965000:-kb-enter';
-// Mouse path: cell mc-885 sits on CLOCK.EXE in the Executive listing.
-// Click to select, then a double-click over the selected item launches
-// (Executive semantics). Exercises the whole serial-mouse machine:
-// cell grid → --mouseTgt → packet generator → UART → IRQ 4 → MOUSE.DRV.
+// Mouse path: cell mc-885 targets CLOCK.EXE in the Executive listing
+// (row 11 col 5, pixel (44,92) — the listbox hit zones sit ~a line
+// below the drawn text, so aim one row under the name). Click to
+// select, then a double-click launches. Exercises the whole
+// serial-mouse machine: cell grid → --mouseTgt → packet generator →
+// UART → IRQ 4 → MOUSE.DRV.
 const WINDOWS_MOUSE = '9700000:mc-885,9730000:-mc-885,'
   + '10000000:mc-885,10030000:-mc-885,10060000:mc-885,10090000:-mc-885';
 

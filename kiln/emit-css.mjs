@@ -22,7 +22,7 @@ import { emitMOV_RegImm16, emitMOV_RegImm8, emitMOV_RegRM, emitMOV_SegRM, emitMO
 import { emitAllALU } from './patterns/alu.mjs';
 import { emitAllControl } from './patterns/control.mjs';
 import { emitAllStack } from './patterns/stack.mjs';
-import { emitAllMisc, emitPitDerivation, emitKeyboardWires, emitMouseWires, emitIRQArbitration, pitCounterDefaultExpr, picPendingDefaultExpr } from './patterns/misc.mjs';
+import { emitAllMisc, emitPitDerivation, emitKeyboardWires, emitMouseWires, msQuietUntilDefaultExpr, emitIRQArbitration, pitCounterDefaultExpr, picPendingDefaultExpr } from './patterns/misc.mjs';
 import { emitAllGroups } from './patterns/group.mjs';
 import { emitAllShifts, emitShiftFlagFunctions, emitShiftByNFlagFunctions } from './patterns/shift.mjs';
 import { emitAll186 } from './patterns/extended186.mjs';
@@ -969,7 +969,7 @@ export function emitCSS(opts, writeStream) {
   // emitMouseWires; the IN/OUT side effects layer on via dispatch
   // entries added in emitIO. See patterns/misc.mjs for the machine.
   const MOUSE_REGS = ['msCurX', 'msCurY', 'msSentBtn', 'msTgtLatch',
-                      'msDxL', 'msDyL',
+                      'msHeldBtn', 'msQuietUntil', 'msPendEdges', 'msRawPrev', 'msDxL', 'msDyL',
                       'uartIer', 'uartMcr', 'uartRbr', 'uartDr', 'uartPhase'];
   if (mouse) {
     dispatch.picPendingLatchExpr = picPendingDefaultExpr(true);
@@ -983,6 +983,10 @@ export function emitCSS(opts, writeStream) {
       else: var(--__1msSentBtn)
     )`,
       msTgtLatch: 'var(--_msTgt)',
+      msHeldBtn: 'var(--_msHeldNext)',
+      msQuietUntil: msQuietUntilDefaultExpr(),
+      msPendEdges: 'var(--_msPendNext)',
+      msRawPrev: 'var(--_msRawBtn)',
       msDxL: `if(
       style(--_uartStart: 1): var(--_msDx8);
       else: var(--__1msDxL)
