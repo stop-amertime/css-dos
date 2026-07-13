@@ -3,17 +3,11 @@
   "name": "Windows 1.01",
   "description": "Microsoft Windows 1.01 (1985) on real MS-DOS 4.00, CGA 640x200. Boots to the MS-DOS Executive with the original desktop applets on the floppy.",
   "display": {
-    "accent": "#1030A0",
-    "bullets": [
-      "The real 1985 release, installed from retail floppies",
-      "Boots to the MS-DOS Executive in CGA 640x200",
-      "NOTEPAD / CALC / CLOCK / REVERSI / PAINT / WRITE",
-      "Runs on real MS-DOS 4.00 (plus a 51-byte SETVER shim)",
-      "Windows, five years before anyone cared"
-    ],
+    "cover": "windows101-79.jpg",
     "playTips": [
       "Use the arrow keys to pick a file in the MS-DOS Executive, then press Enter to run it. CLOCK.EXE is a good first click.",
-      "Boot takes a little while - Windows loads about 400 KB from a very honest floppy drive. The Microsoft logo means it's working."
+      "Boot takes a little while - Windows loads about 400 KB from a very honest floppy drive. The Microsoft logo means it's working.",
+      "Yes, the mouse works: click a file to select it, double-click to open. CLOCK.EXE is a good first double-click."
     ]
   },
   "preset": "dos-corduroy",
@@ -29,38 +23,134 @@
   "disk": {
     "size": "autofit",
     "files": [
-      { "name": "STARTWIN.BAT", "source": "STARTWIN.BAT" },
-      { "name": "SETVER3.COM", "source": "SETVER3.COM" },
-      { "name": "WIN.COM", "source": "WIN.COM" },
-      { "name": "WIN.INI", "source": "WIN.INI" },
-      { "name": "WIN100.BIN", "source": "WIN100.BIN" },
-      { "name": "WIN100.OVL", "source": "WIN100.OVL" },
-      { "name": "MSDOS.EXE", "source": "MSDOS.EXE" },
-      { "name": "MSDOSD.EXE", "source": "MSDOSD.EXE" },
-      { "name": "WINOLDAP.MOD", "source": "WINOLDAP.MOD" },
-      { "name": "WINOLDAP.GRB", "source": "WINOLDAP.GRB" },
-      { "name": "COURA.FON", "source": "COURA.FON" },
-      { "name": "HELVA.FON", "source": "HELVA.FON" },
-      { "name": "TMSRA.FON", "source": "TMSRA.FON" },
-      { "name": "LOFONTS.FON", "source": "LOFONTS.FON" },
-      { "name": "ROMAN.FON", "source": "ROMAN.FON" },
-      { "name": "SCRIPT.FON", "source": "SCRIPT.FON" },
-      { "name": "MODERN.FON", "source": "MODERN.FON" },
-      { "name": "CLOCK.EXE", "source": "CLOCK.EXE" },
-      { "name": "CALC.EXE", "source": "CALC.EXE" },
-      { "name": "REVERSI.EXE", "source": "REVERSI.EXE" },
-      { "name": "NOTEPAD.EXE", "source": "NOTEPAD.EXE" },
-      { "name": "CARDFILE.EXE", "source": "CARDFILE.EXE" },
-      { "name": "CALENDAR.EXE", "source": "CALENDAR.EXE" },
-      { "name": "CONTROL.EXE", "source": "CONTROL.EXE" },
-      { "name": "CLIPBRD.EXE", "source": "CLIPBRD.EXE" },
-      { "name": "TERMINAL.EXE", "source": "TERMINAL.EXE" },
-      { "name": "PAINT.EXE", "source": "PAINT.EXE" },
-      { "name": "WRITE.EXE", "source": "WRITE.EXE" },
-      { "name": "ABC.TXT", "source": "ABC.TXT" },
-      { "name": "DOTHIS.TXT", "source": "DOTHIS.TXT" },
-      { "name": "PRACTICE.DOC", "source": "PRACTICE.DOC" },
-      { "name": "README.DOC", "source": "README.DOC" }
+      {
+        "name": "STARTWIN.BAT",
+        "source": "STARTWIN.BAT"
+      },
+      {
+        "name": "SETVER3.COM",
+        "source": "SETVER3.COM"
+      },
+      {
+        "name": "WIN.COM",
+        "source": "WIN.COM"
+      },
+      {
+        "name": "WIN.INI",
+        "source": "WIN.INI"
+      },
+      {
+        "name": "WIN100.BIN",
+        "source": "WIN100.BIN"
+      },
+      {
+        "name": "WIN100.OVL",
+        "source": "WIN100.OVL"
+      },
+      {
+        "name": "MSDOS.EXE",
+        "source": "MSDOS.EXE"
+      },
+      {
+        "name": "MSDOSD.EXE",
+        "source": "MSDOSD.EXE"
+      },
+      {
+        "name": "WINOLDAP.MOD",
+        "source": "WINOLDAP.MOD"
+      },
+      {
+        "name": "WINOLDAP.GRB",
+        "source": "WINOLDAP.GRB"
+      },
+      {
+        "name": "COURA.FON",
+        "source": "COURA.FON"
+      },
+      {
+        "name": "HELVA.FON",
+        "source": "HELVA.FON"
+      },
+      {
+        "name": "TMSRA.FON",
+        "source": "TMSRA.FON"
+      },
+      {
+        "name": "LOFONTS.FON",
+        "source": "LOFONTS.FON"
+      },
+      {
+        "name": "ROMAN.FON",
+        "source": "ROMAN.FON"
+      },
+      {
+        "name": "SCRIPT.FON",
+        "source": "SCRIPT.FON"
+      },
+      {
+        "name": "MODERN.FON",
+        "source": "MODERN.FON"
+      },
+      {
+        "name": "CLOCK.EXE",
+        "source": "CLOCK.EXE"
+      },
+      {
+        "name": "CALC.EXE",
+        "source": "CALC.EXE"
+      },
+      {
+        "name": "REVERSI.EXE",
+        "source": "REVERSI.EXE"
+      },
+      {
+        "name": "NOTEPAD.EXE",
+        "source": "NOTEPAD.EXE"
+      },
+      {
+        "name": "CARDFILE.EXE",
+        "source": "CARDFILE.EXE"
+      },
+      {
+        "name": "CALENDAR.EXE",
+        "source": "CALENDAR.EXE"
+      },
+      {
+        "name": "CONTROL.EXE",
+        "source": "CONTROL.EXE"
+      },
+      {
+        "name": "CLIPBRD.EXE",
+        "source": "CLIPBRD.EXE"
+      },
+      {
+        "name": "TERMINAL.EXE",
+        "source": "TERMINAL.EXE"
+      },
+      {
+        "name": "PAINT.EXE",
+        "source": "PAINT.EXE"
+      },
+      {
+        "name": "WRITE.EXE",
+        "source": "WRITE.EXE"
+      },
+      {
+        "name": "ABC.TXT",
+        "source": "ABC.TXT"
+      },
+      {
+        "name": "DOTHIS.TXT",
+        "source": "DOTHIS.TXT"
+      },
+      {
+        "name": "PRACTICE.DOC",
+        "source": "PRACTICE.DOC"
+      },
+      {
+        "name": "README.DOC",
+        "source": "README.DOC"
+      }
     ]
   },
   "boot": {
