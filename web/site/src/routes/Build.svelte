@@ -63,17 +63,7 @@
     <EnvNotice />
     <div class="build-intro">
       <h1>Build the <code>.css</code> file</h1>
-      <p>
-        CSS can&rsquo;t read files, so the entire computer &mdash; and your
-        program &mdash; has to be baked into one stylesheet. This page builds
-        that file for you, because:
-      </p>
-      <ol class="build-why">
-        <li>Downloading 300&nbsp;MB of CSS text for every program would be annoying.</li>
-        <li>It lets you build a cabinet from your <b>own</b> program.
-          <span class="dim small">(Any DOS program should at least run &mdash; but
-          no guarantees on compatibility.)</span></li>
-      </ol>
+      <p>The entire computer &mdash; and your program &mdash; has to be baked into one stylesheet. This page builds it. Pick a program to put on the floppy, or upload  your own: 
     </div>
     <CartGrid />
     {#if customSelected}<CustomPanel />{/if}
