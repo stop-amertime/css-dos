@@ -62,7 +62,7 @@
     <Foldable>
       {#snippet summary()}How long did this take?{/snippet}
       <p>
-        About six months of on-and-off hobbyist work. I have no idea how many AI tokens I used on the project, but it&rsquo;s easily in the hundreds of millions, probably thousands of pounds of API-equivalent usage. Worth it? Hopefully - if you enjoyed it, drop me a line at hello [at sign] ahmedamer.co.uk to help me feel better about that. 
+        About six months of hobbyist work - a lot of evenings and weekends and probably thousands of pounds of API-equivalent LLM usage. Worth it? Hopefully - if you enjoyed it, drop me a line at hello [at sign] ahmedamer.co.uk. 
       </p>
     </Foldable>
 
@@ -79,10 +79,13 @@
     <Foldable>
       {#snippet summary()}Did you use AI?{/snippet}
       <p>
-        Yes, I did. I code in my day job too, and I haven&rsquo;t typed a line of code in earnest in around a year now. Claude &lsquo;wrote&rsquo; 100% of this project&rsquo;s code, except for some minor tweaks and fixes by me.
+        Yes, I did. A lot, actually. Claude churned out much of the mechanical work, helped me keep track, write good docs and commits which would otherwise fall by the wayside due to my ADHD. It feels relevant to mention that I'm a published AI safety researcher and red-teamer, and am very aware that LLMs are not a tool one can just point at a problem and press 'Go'. I'd label myself more an 'LLM-assisted' but not 'vibe coded' - I have <i>stared</i> at this code. 
       </p>
       <p>
-        Claude could never have figured the project out on its own, but it was immensely helpful. Claude lacked the intuition to contribute reliably on a conceptual level, although it had its moments &mdash; the writable shadow-disk, and <code>&lt;img&gt;</code> tag hack in Calcite, among others were Claude&rsquo;s idea. However, this project is an unusual one, taking Claude well out of distribution, and it often took a laughably inept path through some implementations. But what it lacked in smarts, it made up for in being able to spew out code to a spec while I did other things.
+        I also find AI <i>writing</i> to be cringeworthy and generic in tone and lacking in substance - I'm typing this right now myself, and the copy on this website is edited by me personally with a real keyboard word-by-word, with proofreading and mistake-fixing by Claude.
+      </p>
+      <p>
+        Claude could never have figured the project out on its own, but it was immensely helpful. Claude lacked the intuition to contribute reliably on a conceptual level, although it had its moments &mdash; the writable shadow-disk, and <code>&lt;img&gt;</code> tag hack in Calcite, among others were Claude&rsquo;s idea. However, this project is an unusual one, taking Claude well out of distribution, and it often took a laughably inept path through implementations and needed constant shepherding. But what it lacked in smarts, it made up for in being able to spew out menial code at a rate that far surpasses mine, like a slightly dim intern with the speed of the Flash. 
       </p>
       <p>
         As a long-time tinkerer and coder, I do miss the romantic thrill of cobbling code together by hand, rolling the dice on it, and feeling that pay-off (or letdown). Perhaps this is the mindset of an old fogey, but there&rsquo;s something about creating with your own two hands that&rsquo;s lost when you order a minion to do it for you, no matter how beautiful the end product. The ideas are mostly mine, but I didn&rsquo;t execute them.
