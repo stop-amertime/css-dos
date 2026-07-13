@@ -807,9 +807,15 @@ export function emitMouseWires() {
   // --msQuietUntil (re-armed on every byte load) — see
   // MOUSE_PACKET_GAP_CYCLES for why the gap is counted in cycles.
   const quietOk = `min(1, max(0, sign(calc(var(--__1cycleCount) - var(--__1msQuietUntil) + 1))))`;
+  // The --_msDiff: 0 arm short-circuits before the pacing math — the
+  // phase-0 branch's product is 0 whenever --_msDiff is 0, so the value
+  // is identical; on idle ticks it skips the quietOk sign/calc chain
+  // AND drops the per-tick dependency on --cycleCount (which changes
+  // every tick) from the idle mouse graph.
   const uartStart = `if(
     style(--__1uartDr: 1): 0;
-    style(--__1uartPhase: 0): calc(var(--_msDiff) * ${quietOk});
+    style(--_msDiff: 0): 0;
+    style(--__1uartPhase: 0): ${quietOk};
     else: 0
   )`;
   const uartNext = `if(
@@ -845,7 +851,7 @@ export function emitMouseWires() {
      the clearing tap's remaining pressed ticks. The cell being pressed
      keeps --_msRawBtn up through the clearing tap, so no spurious
      mid-tap release edge. */`,
-    `  --_msHeldNext: calc(var(--msHold) * abs(var(--__1msHeldBtn) - var(--_msTouchEdge)));`,
+    `  --_msHeldNext: if(style(--msHold: 0): 0; else: calc(abs(var(--__1msHeldBtn) - var(--_msTouchEdge))));`,
     `  --_msRawBtn: max(var(--_msTouch), var(--_msHeldNext));`,
     `  --_msTgt: ${msTgt};`,
     `  /* Both axes are tracked in MICKEYS (half-pixels): Windows 1.01's
@@ -869,7 +875,9 @@ export function emitMouseWires() {
     `  --_msRawEdge: max(calc(var(--_msRawBtn) - var(--__1msRawPrev)), calc(var(--__1msRawPrev) - var(--_msRawBtn)));`,
     `  --_msPendCur: min(15, calc(var(--__1msPendEdges) + var(--_msRawEdge)));`,
     `  /* at rest: toggle sent state while edges are owed; mid-move: repeat */`,
-    `  --_msBtnRep: calc(var(--__1msSentBtn) * var(--_msMove) + (var(--__1msSentBtn) + (1 - 2 * var(--__1msSentBtn)) * min(1, var(--_msPendCur))) * (1 - var(--_msMove)));`,
+    `  /* pendCur = 0 collapses the polynomial to sentBtn for either
+     value of --_msMove: sent*m + (sent + (1-2sent)*0)*(1-m) = sent. */`,
+    `  --_msBtnRep: if(style(--_msPendCur: 0): var(--__1msSentBtn); else: calc(var(--__1msSentBtn) * var(--_msMove) + (var(--__1msSentBtn) + (1 - 2 * var(--__1msSentBtn)) * min(1, var(--_msPendCur))) * (1 - var(--_msMove))));`,
     `  --_msBtnD: calc(var(--_msBtnRep) - var(--__1msSentBtn));`,
     `  --_msPendNext: max(0, calc(var(--_msPendCur) - var(--_uartStart) * max(var(--_msBtnD), -1 * var(--_msBtnD))));`,
     `  --_msDiff: ${msDiff};`,
@@ -879,9 +887,14 @@ export function emitMouseWires() {
     `  --_uartDone: ${uartDone};`,
     `  --_uartLoad: --or(var(--_uartStart), var(--_uartNext));`,
     `  /* --- Microsoft-protocol packet bytes --- */`,
-    `  --_msDx8: calc(mod(var(--_msDx) + 256, 256));`,
-    `  --_msDy8: calc(mod(var(--_msDy) + 256, 256));`,
-    `  --_msB1: calc(64 + var(--_msBtnRep) * 32 + --rightShift(var(--_msDy8), 6) * 4 + --rightShift(var(--_msDx8), 6));`,
+    `  /* Dx8/Dy8/B1 are consumed only on --_uartStart ticks (B1 by
+     --_uartRbrNext's phase-0 arm, Dx8/Dy8 by B1 and the msDxL/msDyL
+     register captures, all gated on start) — dead on other ticks, so
+     the guard's 0 is never observed. Chrome computes the same CSS, so
+     cabinet-internal consistency is unchanged. */`,
+    `  --_msDx8: if(style(--_uartStart: 0): 0; else: calc(mod(var(--_msDx) + 256, 256)));`,
+    `  --_msDy8: if(style(--_uartStart: 0): 0; else: calc(mod(var(--_msDy) + 256, 256)));`,
+    `  --_msB1: if(style(--_uartStart: 0): 0; else: calc(64 + var(--_msBtnRep) * 32 + --rightShift(var(--_msDy8), 6) * 4 + --rightShift(var(--_msDx8), 6)));`,
     `  --_msB2: --and(var(--__1msDxL), 63);`,
     `  --_msB3: --and(var(--__1msDyL), 63);`,
     `  /* --- register next-values (shared with the IN/OUT dispatch arms) --- */`,

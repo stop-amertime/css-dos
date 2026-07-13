@@ -115,11 +115,14 @@ inside the ±1% gate).
    Profiling (op counts, host-independent): windows-sans-mouse =
    doom exactly at 1,755 ops/tick; **the serial-mouse machine adds
    +463 ops/tick (+26%) always-on** — mouse measured ≈1.8× on
-   writeLoad in a same-day A/B; painters only +90 ops/tick. Next:
-   quiescence-guard the mouse wires (kiln restructure) + healthy-
-   host re-baseline. Enabler: calcite `fa1dc81` (`at` watches now
-   fire on wasm). LOGBOOK 2026-07-13-windows-all-bench +
-   2026-07-13-windows-perf-profiling.
+   writeLoad in a same-day A/B; painters only +90 ops/tick.
+   Identity guards on the mouse wires LANDED (−50 ops/tick, ticks
+   byte-identical, gates PASS — LOGBOOK
+   2026-07-13-mouse-wire-guards); remaining work (healthy-host
+   re-baseline, wasm wall attribution, full quiescence restructure)
+   → `../plans/2026-07-13-windows-mouse-perf.md`. Enabler: calcite
+   `fa1dc81` (`at` watches now fire on wasm). LOGBOOK
+   2026-07-13-windows-all-bench + 2026-07-13-windows-perf-profiling.
 5. **Per-dispatch-key specialisation** — structurally upstream of
    all perf work; probed on the branch 2026-05-12 (not on `main`).
    Plan: `../plans/2026-05-12-per-dispatch-key-specialisation.md`.
