@@ -91,6 +91,40 @@ export const STATE_VARS = [
   { name: 'haltCode', init: 0 },
 ];
 
+// Serial-mouse state (8250 UART @ COM1 + Microsoft-protocol packet
+// generator) — only included when the cart opts in via `input.mouse`.
+// See kiln/patterns/misc.mjs emitMouseWires() for the machine.
+//
+// msCurX/msCurY: our estimate of where the guest driver's integrated
+//   cursor sits (Windows-style: deltas accumulated, clamped to the
+//   640×200 CGA screen). Init = the guest's power-on cursor (centre).
+// msSentBtn: last button state reported in a packet.
+// msTgtLatch: latched target cell value ((x<<8|y)+1; 0 = never touched).
+// msDxL/msDyL: the packet-in-flight's dx/dy as mod-256 bytes, captured
+//   at packet start so bytes 2/3 match byte 1.
+// uartIer/uartMcr: 8250 interrupt-enable and modem-control latches.
+// uartRbr/uartDr: receive byte + data-ready bit (LSR bit 0).
+// uartPhase: packet sequencing (0 idle; N = byte N of 3 loaded).
+export const MOUSE_STATE_VARS = [
+  // msCurX/msCurY are in MICKEYS (half-pixels): Windows 1.01's CGA
+  // mapping applies mouse deltas 2:1 on both axes (see emitMouseWires).
+  // Init = the guest's power-on cursor, measured empirically at pixel
+  // (320, 100) = mickey (160, 50). Dead reckoning from here is exact —
+  // targets are always in-bounds so neither side ever clamps, and the
+  // guest coalescing deltas (summing) changes nothing.
+  { name: 'msCurX', init: 160 },
+  { name: 'msCurY', init: 50 },
+  { name: 'msSentBtn', init: 0 },
+  { name: 'msTgtLatch', init: 0 },
+  { name: 'msDxL', init: 0 },
+  { name: 'msDyL', init: 0 },
+  { name: 'uartIer', init: 0 },
+  { name: 'uartMcr', init: 0 },
+  { name: 'uartRbr', init: 0 },
+  { name: 'uartDr', init: 0 },
+  { name: 'uartPhase', init: 0 },
+];
+
 // One @property registration block for a double-buffered <integer> variable.
 function propertyBlock(name, init) {
   return `@property --${name} {
@@ -115,6 +149,10 @@ const STATE_VAR_GROUP = {
   kbdHeld4: 'kbd', kbdHeld5: 'kbd', kbdHeld6: 'kbd', kbdHeld7: 'kbd',
   dacWriteIndex: 'dac', dacSubIndex: 'dac',
   dacReadIndex: 'dac', dacReadSubIndex: 'dac',
+  msCurX: 'mouse', msCurY: 'mouse', msSentBtn: 'mouse', msTgtLatch: 'mouse',
+  msDxL: 'mouse', msDyL: 'mouse',
+  uartIer: 'mouse', uartMcr: 'mouse', uartRbr: 'mouse', uartDr: 'mouse',
+  uartPhase: 'mouse',
 };
 
 // Emit the @property registrations for one subsystem group ('cpu' | 'pit' |
@@ -138,6 +176,9 @@ export function emitClockWireProperty() {
 }
 export function emitKeyboardWireProperties() {
   return `${propertyBlock('keyboard', 0)}\n\n${propertyBlock('kbdHold', 0)}`;
+}
+export function emitMouseWireProperty() {
+  return propertyBlock('mouseTgt', 0);
 }
 
 // The per-cell memory @property array is emitted directly by
@@ -250,6 +291,7 @@ export function emitClockPlumbingOpen() {
 
 function getAllVars(opts) {
   const regs = REGISTERS.map(r => ({ ...r }));
+  const stateVars = opts.mouse ? [...STATE_VARS, ...MOUSE_STATE_VARS] : STATE_VARS;
   // Set SP initial value based on memory size (must match reference emulator)
   const spReg = regs.find(r => r.name === 'SP');
   spReg.init = ((opts.memSize || 0x600) - 0x8) & 0xFFFF;
@@ -266,7 +308,7 @@ function getAllVars(opts) {
       if (reg) reg.init = val;
     }
   }
-  return [...regs, ...STATE_VARS];
+  return [...regs, ...stateVars];
 }
 
 // --- Keyboard key definitions ---
@@ -366,6 +408,31 @@ export function emitKeyboardRules() {
     lines.push(`  &:has(#${key.id}:active) { --keyboard: ${value}; } /* ${key.label} */`);
   }
   lines.push(`  &:has(#kb-holdmode:checked) { --kbdHold: 1; } /* hold wire */`);
+  lines.push('}');
+  return lines.join('\n');
+}
+
+// --- Mouse cell grid ---
+// The pointing surface: an 80×25 grid of 8×8-pixel cells over the CGA
+// 640×200 screen. Pressing cell N (`#mc-N:active` — a real click in the
+// raw player, set_pseudo_class_active from the calcite player) drives
+// --mouseTgt to that cell's centre, encoded (x << 8 | y) + 1 so that 0
+// means "no cell pressed". The serial-mouse machine (patterns/misc.mjs
+// emitMouseWires) latches the last nonzero value as the movement target
+// and treats nonzero as button-down.
+export const MOUSE_GRID = { cols: 80, rows: 25, cellW: 8, cellH: 8 };
+
+export function emitMouseCellRules() {
+  const { cols, rows, cellW, cellH } = MOUSE_GRID;
+  const lines = ['.motherboard {'];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const n = r * cols + c;
+      const x = c * cellW + (cellW >> 1);
+      const y = r * cellH + (cellH >> 1);
+      lines.push(`  &:has(#mc-${n}:active) { --mouseTgt: ${((x << 8) | y) + 1}; }`);
+    }
+  }
   lines.push('}');
   return lines.join('\n');
 }

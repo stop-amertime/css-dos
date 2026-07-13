@@ -81,6 +81,16 @@
         }
       }
     },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mouse": {
+          "type": "boolean",
+          "description": "Emit the serial-mouse hardware: an 8250 UART at COM1 (0x3F8, IRQ 4) fed by an 80×25 grid of #mc-N cell selectors — a tap/click on a cell drives a Microsoft-protocol 3-byte packet stream toward that screen position. Opt-in: adds ~2000 input rules plus the UART/packet state machine to the cabinet. Guest software needs its own MS-serial-mouse driver (e.g. Windows 1.x MOUSE.DRV)."
+        }
+      }
+    },
     "disk": {
       "oneOf": [
         {

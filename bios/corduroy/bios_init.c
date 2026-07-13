@@ -7,6 +7,7 @@ extern void out_byte(unsigned int port, unsigned char val);
 #pragma aux out_byte = "out dx, al" parm [dx] [al] modify exact []
 
 /* BDA offsets -- mirror css-emu-bios.asm:40-72 exactly. */
+#define BDA_COM1_BASE         0x00
 #define BDA_EQUIPMENT_LIST    0x10
 #define BDA_MEMORY_SIZE       0x13
 #define BDA_KBD_FLAGS_1       0x17
@@ -128,7 +129,13 @@ static void install_ivt(void) {
 static volatile unsigned int conventional_mem_kb = 0xBEEF;
 
 static void install_bda(void) {
-    poke_w(BDA_SEG, BDA_EQUIPMENT_LIST, 0x0021);
+    /* COM1 base + one serial port in the equipment word (bits 9-11).
+       Serial-mouse drivers (e.g. Windows 1.x MOUSE.DRV) find the UART
+       via this BDA word; the kiln-side UART emulation lives at 0x3F8.
+       Safe to write: the init stack tops out at linear 0x400, so pushes
+       land below this word, never on it. */
+    poke_w(BDA_SEG, BDA_COM1_BASE, 0x03F8);
+    poke_w(BDA_SEG, BDA_EQUIPMENT_LIST, 0x0221);
     poke_w(BDA_SEG, BDA_MEMORY_SIZE, conventional_mem_kb);
 
     poke_w(BDA_SEG, BDA_KBD_BUFFER_HEAD, BDA_KBD_BUFFER);

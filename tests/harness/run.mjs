@@ -49,8 +49,10 @@ Presets:
   msdos         Build carts/msdos4 (real MS-DOS 4.00 via INT 19h boot),
                 boot it, and assert the version banner reaches the screen.
   windows       Build carts/windows101 (Windows 1.01 on MS-DOS 4.00), boot
-                to the MS-DOS Executive (CGA mode 6), and assert injected
-                keys (Down x6 + Enter) launch CLOCK.EXE.
+                to the MS-DOS Executive (CGA mode 6), and assert both
+                injected keys (Down x6 + Enter) and injected mouse clicks
+                (select + double-click on the mc- cell grid) launch
+                CLOCK.EXE.
   websmoke      Boot hello-text + dos-writable + msdos4 through the REAL
                 web path (headless Chromium, bridge worker, the VENDORED
                 wasm bundle). The only gate that runs the engine the site
@@ -321,6 +323,12 @@ const WINDOWS_KEYS = '9600000:kb-down,9605000:-kb-down,9660000:kb-down,9665000:-
   + '9720000:kb-down,9725000:-kb-down,9780000:kb-down,9785000:-kb-down,'
   + '9840000:kb-down,9845000:-kb-down,9900000:kb-down,9905000:-kb-down,'
   + '9960000:kb-enter,9965000:-kb-enter';
+// Mouse path: cell mc-885 sits on CLOCK.EXE in the Executive listing.
+// Click to select, then a double-click over the selected item launches
+// (Executive semantics). Exercises the whole serial-mouse machine:
+// cell grid → --mouseTgt → packet generator → UART → IRQ 4 → MOUSE.DRV.
+const WINDOWS_MOUSE = '9700000:mc-885,9730000:-mc-885,'
+  + '10000000:mc-885,10030000:-mc-885,10060000:mc-885,10090000:-mc-885';
 
 async function runWindows() {
   log(`windows: ${WINDOWS_CART}`);
@@ -335,19 +343,27 @@ async function runWindows() {
   const clock = await runPipeline('fast-shoot', cabinet, `--tick=${WINDOWS_SHOT_TICK}`,
     `--wall-ms=${WINDOWS_WALL_MS}`, `--press-events=${WINDOWS_KEYS}`,
     `--out=${join(HARNESS_ROOT, 'cache', 'windows101-clock.png')}`);
+  // Shot 3: same boot + mouse clicks that select then launch CLOCK.EXE.
+  const mouse = await runPipeline('fast-shoot', cabinet, `--tick=${WINDOWS_SHOT_TICK}`,
+    `--wall-ms=${WINDOWS_WALL_MS}`, `--press-events=${WINDOWS_MOUSE}`,
+    `--out=${join(HARNESS_ROOT, 'cache', 'windows101-mouse.png')}`);
   const execShot = exec.result?.shot ?? {};
   const clockShot = clock.result?.shot ?? {};
+  const mouseShot = mouse.result?.shot ?? {};
   const okExec = execShot.mode === 6;
   const okLaunch = clockShot.mode === 6 && !!clockShot.phash && clockShot.phash !== execShot.phash;
+  const okMouse = mouseShot.mode === 6 && !!mouseShot.phash && mouseShot.phash !== execShot.phash;
   return {
     preset: 'windows',
-    ok: okExec && okLaunch,
-    allOk: okExec && okLaunch,
+    ok: okExec && okLaunch && okMouse,
+    allOk: okExec && okLaunch && okMouse,
     buildMs: build.result.buildMs,
     execMode: execShot.mode,
     execPhash: execShot.phash,
     clockPhash: clockShot.phash,
+    mousePhash: mouseShot.phash,
     launchChangedScreen: okLaunch,
+    mouseLaunchChangedScreen: okMouse,
   };
 }
 

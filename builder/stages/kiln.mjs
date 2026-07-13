@@ -220,6 +220,9 @@ function runKilnDos({ bios, floppy, manifest, kernelBytes, output, header }) {
     initialCS:     bios.entrySegment,
     initialIP:     bios.entryOffset,
     initialRegs:   { SP: 0 },
+    // Serial-mouse hardware (8250 UART @ COM1 + #mc-N cell grid) — opt-in
+    // via program.json `input.mouse` (see program.schema.json).
+    mouse:         manifest.input?.mouse === true,
     header,
   }, output);
 }

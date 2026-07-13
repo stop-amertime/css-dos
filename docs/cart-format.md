@@ -207,6 +207,33 @@ Include the VGA text buffer at `0xB8000–0xB8FA0` (4000 bytes). Default
 On hack carts the field is accepted; hack carts always get the text
 buffer today, regardless of the value. Follow-up.
 
+### `input.mouse` · implemented (DOS)
+
+Default `false`. When `true`, the cabinet gains a Microsoft serial
+mouse on COM1: an 8250 UART at `0x3F8` (IRQ 4) implemented in the
+emitted CSS, answering the standard probe (RTS toggle → `'M'`) and
+streaming 3-byte Microsoft-protocol packets, plus an 80×25 grid of
+`#mc-N` cell selectors — the pointing surface. Pressing cell N
+(`:active`, exactly like the `#kb-X` keys) drives the cursor to that
+cell's centre and clicks there; a tap is move+click+release, a
+double-tap a double-click. Both players supply the cells: the calcite
+player as invisible overlay buttons over the screen (taps ride the
+same `/_kbd` → bridge pulse path as keys), the raw player as real
+buttons whose `:active` Chrome evaluates natively.
+
+Guest software needs its own MS-serial-mouse driver — e.g. Windows
+1.x MOUSE.DRV, which is what `carts/windows101` bakes in. The
+Corduroy BIOS advertises COM1 in the BDA (base word `0x400`,
+equipment bits) so drivers can find it. Costs ~2000 input rules +
+the UART/packet state machine per cabinet; carts without a mouse
+consumer should leave it off.
+
+Positioning note: Windows 1.01's CGA driver maps mouse deltas 2:1 on
+both axes and starts its cursor at pixel (320,100) — the packet
+machine tracks position in half-pixel "mickeys" and dead-reckons
+from that measured start, so cell taps land pixel-exact without any
+recalibration.
+
 ### `disk` · implemented
 
 DOS carts have a `disk` object. Hack carts must set `disk: null` or omit

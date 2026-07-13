@@ -183,7 +183,10 @@ web + cli; zork-big (2.88 MB), command-bare, shelltest, smoke set
 unaffected. **windows101** (2026-07-13): real Windows 1.01 on msdos4
 boot, CGA mode 6 — Executive + app launch verified native and web;
 needs `SETVER3.COM` (in-cart TSR: Win 1.01's app loader gates on DOS
-2.x/3.x version report). LOGBOOK 2026-07-13.
+2.x/3.x version report). Same day: **clickable via the new serial
+mouse** (`input.mouse` — 8250 UART @ COM1 in emitted CSS + `#mc-N`
+tap grid in both players; e2e
+`node web/tests/mouse-e2e.playwright.mjs`). LOGBOOK 2026-07-13.
 
 **Regression gate:** `node tests/harness/run.mjs smoke` (6 carts) +
 `node tests/harness/run.mjs writable` (writable-disk e2e) +
@@ -305,4 +308,6 @@ shift with anything that moves data.
   (`npm run dev`; Vite serves the legacy `build.html` the test
   drives — the separate legacy server was retired 2026-07-12). If
   :5173 is busy: `PORT=5273 npm run dev` and
-  `BASE=http://localhost:5273` the test.
+  `BASE=http://localhost:5273` the test. Same story for the mouse:
+  `node web/tests/mouse-e2e.playwright.mjs` covers the real click
+  path (overlay cell → SW → bridge pulse → serial-mouse machine).

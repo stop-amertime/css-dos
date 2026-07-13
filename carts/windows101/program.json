@@ -23,6 +23,9 @@
     "textVga": true,
     "cgaGfx": true
   },
+  "input": {
+    "mouse": true
+  },
   "disk": {
     "size": "autofit",
     "files": [

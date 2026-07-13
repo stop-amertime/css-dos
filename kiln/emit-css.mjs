@@ -9,7 +9,7 @@ import {
   emitBufferReads, emitRegisterAliases,
   emitStoreKeyframe, emitExecuteKeyframe, emitClockKeyframes,
   emitClockRule, emitClockPlumbingOpen,
-  emitKeyboardRules,
+  emitKeyboardRules, emitMouseWireProperty, emitMouseCellRules,
 } from './template.mjs';
 import { emitPixelPaintRules } from './pixels.mjs';
 import { emitWriteSlotProperties, emitDiskAddrProperties, buildInitialMemory, buildAddressSet,
@@ -22,7 +22,7 @@ import { emitMOV_RegImm16, emitMOV_RegImm8, emitMOV_RegRM, emitMOV_SegRM, emitMO
 import { emitAllALU } from './patterns/alu.mjs';
 import { emitAllControl } from './patterns/control.mjs';
 import { emitAllStack } from './patterns/stack.mjs';
-import { emitAllMisc, emitPitDerivation, emitKeyboardWires, emitIRQArbitration, pitCounterDefaultExpr, picPendingDefaultExpr } from './patterns/misc.mjs';
+import { emitAllMisc, emitPitDerivation, emitKeyboardWires, emitMouseWires, emitIRQArbitration, pitCounterDefaultExpr, picPendingDefaultExpr } from './patterns/misc.mjs';
 import { emitAllGroups } from './patterns/group.mjs';
 import { emitAllShifts, emitShiftFlagFunctions, emitShiftByNFlagFunctions } from './patterns/shift.mjs';
 import { emitAll186 } from './patterns/extended186.mjs';
@@ -102,6 +102,10 @@ class DispatchTable {
     // memWrites: [{opcode, addrExpr, valExpr, comment}]
     // Each opcode can contribute to up to 3 write slots.
     this.memWritesByOpcode = new Map(); // opcode → [{addrExpr, valExpr, comment}]
+    // The edge-latch half of picPending's IRQ-acknowledge override —
+    // set by emitCSS to picPendingDefaultExpr(mouse) so cabinets with
+    // extra IRQ sources keep the ack path in sync with the default path.
+    this.picPendingLatchExpr = null;
   }
 
   addEntry(reg, opcode, expr, comment = '') {
@@ -244,7 +248,11 @@ class DispatchTable {
       'CS':       '--read2(calc(var(--picVector) * 4 + 2))',
       'flags':    '--and(var(--__1flags), 64767)',
       'cycleCount': 'calc(var(--__1cycleCount) + 61)',
-      'picPending': `--and(${/* edge-OR applied so concurrent edges don't get dropped */''}--or(--or(var(--__1picPending), var(--_pitFired)), calc(var(--_kbdEdge) * 2)), --not(var(--_irqBit)))`,
+      // Edge-OR applied so concurrent edges don't get dropped. The latch
+      // expression is settable (this.picPendingLatchExpr) because mouse
+      // cabinets have a third edge source (the UART, IRQ 4) — it must
+      // match picPendingDefaultExpr(mouse) from patterns/misc.mjs.
+      'picPending': `--and(${this.picPendingLatchExpr ?? '--or(--or(var(--__1picPending), var(--_pitFired)), calc(var(--_kbdEdge) * 2))'}, --not(var(--_irqBit)))`,
       'picInService': '--or(var(--__1picInService), var(--_irqBit))',
     };
 
@@ -785,7 +793,8 @@ function isAddrPlusOneAtomic(loAddr, hiAddr) {
  */
 export function emitCSS(opts, writeStream) {
   const { programBytes, biosBytes, memoryZones, embeddedData, programOffset,
-          initialCS, initialIP, diskBytes, writableDisk, header } = opts;
+          initialCS, initialIP, diskBytes, writableDisk, header,
+          mouse = false } = opts;
 
   // Build sorted address array from zones (or fall back to legacy contiguous range)
   let addresses;
@@ -801,7 +810,7 @@ export function emitCSS(opts, writeStream) {
   // templateOpts.memSize is used for SP init — derive from the top of the lowest zone
   // (conventional memory area, which is always zones[0] by convention)
   const convEnd = memoryZones ? memoryZones[0][1] : (opts.memSize || 0x10000);
-  const templateOpts = { memSize: convEnd, programOffset, initialCS, initialIP };
+  const templateOpts = { memSize: convEnd, programOffset, initialCS, initialIP, mouse };
 
   // Build dispatch table
   const dispatch = new DispatchTable();
@@ -818,7 +827,7 @@ export function emitCSS(opts, writeStream) {
   emitAllALU(dispatch);       // ADD/SUB/CMP/AND/OR/XOR/ADC/SBB/TEST/INC/DEC
   emitAllControl(dispatch);   // JMP/Jcc/CALL/RET/INT/IRET/LOOP
   emitAllStack(dispatch);     // PUSH/POP/PUSHF/POPF
-  emitAllMisc(dispatch);      // HLT/NOP/LODSB/STOSB/MOV r/m imm/flag manip/CBW/CWD/XCHG
+  emitAllMisc(dispatch, { mouse }); // HLT/NOP/LODSB/STOSB/MOV r/m imm/flag manip/CBW/CWD/XCHG/IO
   emitAllGroups(dispatch);    // Group FE/F7/F6/80-83
   emitAllShifts(dispatch);    // SHL/SHR/SAR/ROL/ROR (D0-D1)
   emitAll186(dispatch);       // 80186+: PUSH imm, IMUL imm
@@ -932,7 +941,7 @@ export function emitCSS(opts, writeStream) {
   // just holds its __1 value.
   const customDefaults = {
     pitCounter: pitCounterDefaultExpr(),
-    picPending: picPendingDefaultExpr(),
+    picPending: picPendingDefaultExpr(mouse),
     prevKeyboard: 'var(--keyboard)',
     // On a press tick: latch the new scancode. On a release tick: latch the
     // break code (prev scancode | 0x80). Otherwise: hold. The expression
@@ -954,6 +963,38 @@ export function emitCSS(opts, writeStream) {
       style(--_kbdPop${i}: 1): 0;
       else: var(--__1kbdHeld${i})
     )`;
+  }
+  // Serial-mouse chipset (8250 UART + packet generator) — registers'
+  // per-tick defaults are the --_uart*Next / mouse wires from
+  // emitMouseWires; the IN/OUT side effects layer on via dispatch
+  // entries added in emitIO. See patterns/misc.mjs for the machine.
+  const MOUSE_REGS = ['msCurX', 'msCurY', 'msSentBtn', 'msTgtLatch',
+                      'msDxL', 'msDyL',
+                      'uartIer', 'uartMcr', 'uartRbr', 'uartDr', 'uartPhase'];
+  if (mouse) {
+    dispatch.picPendingLatchExpr = picPendingDefaultExpr(true);
+    Object.assign(customDefaults, {
+      // Both axes in mickeys (half-pixels) — see the 2:1 note in
+      // emitMouseWires.
+      msCurX: 'clamp(0, calc(var(--__1msCurX) + var(--_msDx) * var(--_uartStart)), 319)',
+      msCurY: 'clamp(0, calc(var(--__1msCurY) + var(--_msDy) * var(--_uartStart)), 99)',
+      msSentBtn: `if(
+      style(--_uartStart: 1): var(--_msBtnRep);
+      else: var(--__1msSentBtn)
+    )`,
+      msTgtLatch: 'var(--_msTgt)',
+      msDxL: `if(
+      style(--_uartStart: 1): var(--_msDx8);
+      else: var(--__1msDxL)
+    )`,
+      msDyL: `if(
+      style(--_uartStart: 1): var(--_msDy8);
+      else: var(--__1msDyL)
+    )`,
+      uartRbr: 'var(--_uartRbrNext)',
+      uartDr: 'var(--_uartDrNext)',
+      uartPhase: 'var(--_uartPhaseNext)',
+    });
   }
   const emitDispatchFor = (regs) => {
     for (const reg of regs) {
@@ -1040,11 +1081,22 @@ export function emitCSS(opts, writeStream) {
   emitDispatchFor(KBD_REGS);
   w('}');
 
+  if (mouse) {
+    writeStream.write('/* ===== SERIAL MOUSE (8250 UART @ COM1) ===== */\n\n');
+    w(emitStatePropertiesFor('mouse', templateOpts));
+    writeStream.write('.motherboard {\n');
+    writeStream.write('  /* --- pointing surface, packet generator, UART --- */\n');
+    w(emitMouseWires());
+    writeStream.write('  /* --- registers --- */\n');
+    emitDispatchFor(MOUSE_REGS);
+    w('}');
+  }
+
   writeStream.write('/* ===== PIC INTERRUPT CONTROLLER (8259) ===== */\n\n');
   w(emitStatePropertiesFor('pic', templateOpts));
   writeStream.write('.motherboard {\n');
   writeStream.write('  /* --- IRQ arbitration --- */\n');
-  w(emitIRQArbitration());
+  w(emitIRQArbitration(mouse));
   writeStream.write('  /* --- registers --- */\n');
   emitDispatchFor(PIC_REGS);
   w('}');
@@ -1064,6 +1116,15 @@ export function emitCSS(opts, writeStream) {
   w('/* ===== KEYBOARD SELECTORS ===== */');
   w(emitKeyboardWireProperties());
   w(emitKeyboardRules());
+
+  // Mouse selectors — the 80×25 #mc-N cell grid that drives --mouseTgt.
+  // The mouse CONTROLLER (packet generator + UART) lives in the chipset
+  // above; this section is the pointing surface.
+  if (mouse) {
+    w('/* ===== MOUSE SELECTORS ===== */');
+    w(emitMouseWireProperty());
+    w(emitMouseCellRules());
+  }
 
   // 5. Display — the pixel painter. Emits its own DISPLAY banner.
   w(emitPixelPaintRules());

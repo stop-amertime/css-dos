@@ -127,8 +127,22 @@ const keyQueue = [];
 let currentHoldBatches = 0;     // > 0 while a press is being held
 let currentGapBatches = 0;      // > 0 during the trailing 0-tick gap
 let currentActiveSelector = ''; // non-empty while pulsing a pseudo-class edge
+let mousePacing = false;        // current pulse is a mouse cell (mc-N)
 const KEY_HOLD_BATCHES = 8;
 const KEY_GAP_BATCHES = 2;
+// Mouse cells (mc-N pulses) need DETERMINISTIC sim-time pacing: the
+// guest's double-click detector measures the gap between two taps in
+// ITS OWN time (Windows 1.01's 500ms window ≈ 186K ticks), and the
+// adaptive batch below can stretch to 200K ticks under host load — two
+// batch-paced taps could land seconds apart in sim time and never
+// register as a double-click. While a mouse pulse is in flight the
+// batch size is clamped to MOUSE_BATCH_TICKS and the hold/gap count
+// those fixed batches, so tap timing is a property of the machine, not
+// the host frame rate: hold 2×20K, gap 1×20K → consecutive queued taps
+// press ~60-100K ticks apart, well inside the double-click window.
+const MOUSE_BATCH_TICKS = 20_000;
+const MOUSE_HOLD_BATCHES = 2;
+const MOUSE_GAP_BATCHES = 1;
 // Hold mode — owned HERE, not by the page. The player's hold key is a
 // plain submit button (key=kb-hold); each press toggles this flag,
 // queues the wire flip, and re-broadcasts the lamp. The script-free
@@ -401,11 +415,12 @@ function tickLoop() {
         setPseudoActive('active', currentActiveSelector, false);
         currentActiveSelector = '';
       }
-      currentGapBatches = KEY_GAP_BATCHES;
+      currentGapBatches = mousePacing ? MOUSE_GAP_BATCHES : KEY_GAP_BATCHES;
       if (kbdTraceEnabled) kbdTrace(`[kbd-trace] release wallMs=${performance.now().toFixed(1)}`);
     }
   } else if (currentGapBatches > 0) {
     currentGapBatches--;
+    if (currentGapBatches === 0) mousePacing = false;
   } else if (keyQueue.length > 0) {
     const { op, sel, v } = keyQueue.shift();
     if (op === 'holdwire') {
@@ -418,7 +433,8 @@ function tickLoop() {
     } else {
       setPseudoActive('active', sel, true);
       currentActiveSelector = sel;
-      currentHoldBatches = KEY_HOLD_BATCHES;
+      mousePacing = sel.startsWith('mc-');
+      currentHoldBatches = mousePacing ? MOUSE_HOLD_BATCHES : KEY_HOLD_BATCHES;
       if (kbdTraceEnabled) {
         const cyc = (engine.get_state_var ? engine.get_state_var('cycleCount') : 0) >>> 0;
         const tickN = (engine.get_tick ? engine.get_tick() : 0) >>> 0;
@@ -432,21 +448,27 @@ function tickLoop() {
     // serialization that tick_batch does. The bridge doesn't read the
     // JSON; we observe state via direct get_state_var / read_*
     // calls below.
+    // Deterministic mouse pacing: while an mc- pulse (or its trailing
+    // gap) is in flight, clamp the batch so hold/gap durations are
+    // fixed tick counts — see MOUSE_BATCH_TICKS above.
+    const runCount = (mousePacing && (currentHoldBatches > 0 || currentGapBatches > 0))
+      ? Math.min(batchCount, MOUSE_BATCH_TICKS)
+      : batchCount;
     if (watchChunkTicks > 0 && engine.run_batch_watched) {
       // Bench-harness path: watch registry polls every watchChunkTicks
       // engine ticks. Halts the loop if a watch's halt action fires.
       // The wasm impl uses an internal monotonic watch_clock starting
       // at 0 (not state.frame_counter) so Stride{every} watches fire
       // at clean boundaries regardless of when watches got registered.
-      const halted = engine.run_batch_watched(batchCount, watchChunkTicks);
+      const halted = engine.run_batch_watched(runCount, watchChunkTicks);
       if (halted) {
         running = false;
         postStatus('watch-halted');
       }
     } else if (engine.run_batch_silent) {
-      engine.run_batch_silent(batchCount);
+      engine.run_batch_silent(runCount);
     } else {
-      engine.tick_batch(batchCount);
+      engine.tick_batch(runCount);
     }
   } catch (e) {
     postStatus('engine error: ' + (e.message || String(e)));

@@ -514,11 +514,15 @@ export function pitCounterDefaultExpr() {
  * register-level IRQ_OVERRIDES in emit-css.mjs, not here — the override
  * takes priority over this default when --_irqActive fires.
  */
-export function picPendingDefaultExpr() {
-  return `--or(
+export function picPendingDefaultExpr(mouse = false) {
+  const base = `--or(
     --or(var(--__1picPending), var(--_pitFired)),
     calc(var(--_kbdEdge) * 2)
   )`;
+  if (!mouse) return base;
+  // Serial-mouse cabinets also latch IRQ 4 (bit 4) whenever the UART
+  // loads a fresh RX byte (--_uartLoad is already gated on IER bit 0).
+  return `--or(${base}, calc(var(--_uartLoad) * 16))`;
 }
 
 /**
@@ -648,24 +652,171 @@ ${top}
 }
 
 /**
+ * Serial mouse — a Microsoft serial mouse on an 8250 UART at COM1
+ * (0x3F8, IRQ 4). Opt-in per cart (`input.mouse`).
+ *
+ * Input side: the #mc-N cell grid (template.mjs emitMouseCellRules)
+ * drives --mouseTgt with (x<<8|y)+1 while a cell is pressed, 0 when
+ * released. The machine latches the last nonzero value as the target
+ * position, and treats "a cell is currently pressed" as the left
+ * button being down — so a tap is a move + click + release, and a
+ * double-tap is a double-click.
+ *
+ * Output side: whenever the guest's estimated cursor (msCurX/msCurY —
+ * integrated deltas clamped to 640×200, mirroring what the guest
+ * driver itself computes) differs from the target, or the button state
+ * changed, a 3-byte Microsoft-protocol packet is generated:
+ *
+ *   byte 1: 0x40 | LB<<5 | RB<<4 | (dy76 << 2) | dx76
+ *   byte 2: dx & 0x3F        (dx/dy are 8-bit two's complement)
+ *   byte 3: dy & 0x3F
+ *
+ * Bytes are shifted into the UART's RBR one per tick as the guest
+ * consumes them (reading 0x3F8 clears data-ready; the next byte loads
+ * on the following tick and re-raises IRQ 4). Deltas are clamped to
+ * ±127, so a full-screen jump takes a handful of packets. Everything
+ * is gated on IER bit 0 — until the guest driver enables RX
+ * interrupts, no packets flow (the probe handshake is handled in the
+ * OUT dispatch: an MCR write with RTS rising loads the 'M'
+ * identification byte, which the driver polls for via LSR).
+ *
+ * Wire glossary (all standalone lines on .motherboard):
+ *   --_msRawBtn      1 while any cell is pressed (left button state)
+ *   --_msTgt         latched target ((x<<8|y)+1; 0 until first touch)
+ *   --_msTgtX/Y      decoded target position (0 when never touched)
+ *   --_msDx/Dy       this packet's clamped deltas
+ *   --_msDx8/Dy8     the same as mod-256 bytes (two's complement)
+ *   --_msDiff        1 if a packet is needed (move or button change)
+ *   --_uartStart     packet begins this tick (captures deltas, byte 1)
+ *   --_uartNext      bytes 2/3 load this tick
+ *   --_uartDone      packet finished (phase returns to idle)
+ *   --_uartLoad      any byte loaded this tick (raises IRQ 4)
+ *   --_msB1/B2/B3    the packet bytes
+ *   --_uartRbrNext / --_uartDrNext / --_uartPhaseNext
+ *                    the registers' default next values (also reused as
+ *                    the fall-through inside the IN/OUT dispatch arms)
+ *   --_uartRtsEdge   MCR write is raising RTS (bit 1) this tick — the
+ *                    reset that makes a real MS mouse send 'M'
+ */
+export function emitMouseWires() {
+  const msTgt = `if(
+    style(--mouseTgt: 0): var(--__1msTgtLatch);
+    else: var(--mouseTgt)
+  )`;
+  // A packet is needed when position or button differ — but only after
+  // the surface has been touched at least once (msHave) and only once
+  // the guest has enabled RX interrupts (IER bit 0).
+  const msDiff = `calc(
+    min(1,
+      max(var(--_msDx), -1 * var(--_msDx))
+      + max(var(--_msDy), -1 * var(--_msDy))
+      + max(var(--_msBtnD), -1 * var(--_msBtnD)))
+    * min(1, var(--_msTgt))
+    * --bit(var(--__1uartIer), 0)
+  )`;
+  const uartStart = `if(
+    style(--__1uartDr: 1): 0;
+    style(--__1uartPhase: 0): var(--_msDiff);
+    else: 0
+  )`;
+  const uartNext = `if(
+    style(--__1uartDr: 1): 0;
+    style(--__1uartPhase: 1): 1;
+    style(--__1uartPhase: 2): 1;
+    else: 0
+  )`;
+  const uartDone = `if(
+    style(--__1uartDr: 1): 0;
+    style(--__1uartPhase: 3): 1;
+    else: 0
+  )`;
+  const rbrNext = `if(
+    style(--_uartLoad: 0): var(--__1uartRbr);
+    style(--__1uartPhase: 0): var(--_msB1);
+    style(--__1uartPhase: 1): var(--_msB2);
+    else: var(--_msB3)
+  )`;
+  const phaseNext = `if(
+    style(--_uartLoad: 1): calc(var(--__1uartPhase) + 1);
+    style(--_uartDone: 1): 0;
+    else: var(--__1uartPhase)
+  )`;
+  return [
+    `  /* --- pointing surface → packet need --- */`,
+    `  --_msRawBtn: min(1, var(--mouseTgt));`,
+    `  --_msTgt: ${msTgt};`,
+    `  /* Both axes are tracked in MICKEYS (half-pixels): Windows 1.01's
+     CGA mouse mapping applies deltas 2:1 in X AND Y (measured
+     empirically 2026-07-13 by clicking known targets and diffing the
+     drawn arrow / selection bands). Targets' pixel coordinates are
+     halved here; cell centres are even pixels, so nothing is lost. */`,
+    `  --_msTgtX: --rightShift(calc(var(--_msTgt) - min(1, var(--_msTgt))), 9);`,
+    `  --_msTgtY: --rightShift(--and(calc(var(--_msTgt) - min(1, var(--_msTgt))), 255), 1);`,
+    `  --_msDx: clamp(-127, calc(var(--_msTgtX) - var(--__1msCurX)), 127);`,
+    `  --_msDy: clamp(-127, calc(var(--_msTgtY) - var(--__1msCurY)), 127);`,
+    `  --_msMove: min(1, calc(max(var(--_msDx), -1 * var(--_msDx)) + max(var(--_msDy), -1 * var(--_msDy))));`,
+    `  /* Button state rides the packet only once the cursor is AT the
+     target — while still travelling, packets repeat the previous
+     button so a tap clicks at the destination, not mid-flight. */`,
+    `  --_msBtnRep: calc(var(--_msRawBtn) * (1 - var(--_msMove)) + var(--__1msSentBtn) * var(--_msMove));`,
+    `  --_msBtnD: calc(var(--_msRawBtn) - var(--__1msSentBtn));`,
+    `  --_msDiff: ${msDiff};`,
+    `  /* --- packet sequencing --- */`,
+    `  --_uartStart: ${uartStart};`,
+    `  --_uartNext: ${uartNext};`,
+    `  --_uartDone: ${uartDone};`,
+    `  --_uartLoad: --or(var(--_uartStart), var(--_uartNext));`,
+    `  /* --- Microsoft-protocol packet bytes --- */`,
+    `  --_msDx8: calc(mod(var(--_msDx) + 256, 256));`,
+    `  --_msDy8: calc(mod(var(--_msDy) + 256, 256));`,
+    `  --_msB1: calc(64 + var(--_msBtnRep) * 32 + --rightShift(var(--_msDy8), 6) * 4 + --rightShift(var(--_msDx8), 6));`,
+    `  --_msB2: --and(var(--__1msDxL), 63);`,
+    `  --_msB3: --and(var(--__1msDyL), 63);`,
+    `  /* --- register next-values (shared with the IN/OUT dispatch arms) --- */`,
+    `  --_uartRbrNext: ${rbrNext};`,
+    `  --_uartDrNext: --or(var(--__1uartDr), var(--_uartLoad));`,
+    `  --_uartPhaseNext: ${phaseNext};`,
+    `  --_uartRtsEdge: calc(min(1, --and(--lowerBytes(var(--__1AX), 8), 2)) * (1 - --bit(var(--__1uartMcr), 1)));`,
+  ].join('\n');
+}
+
+/**
  * PIC arbitration: which IRQ (if any) fires this tick. Consumed by the
  * CPU rule's register overrides (see DispatchTable.emitRegisterDispatch)
  * — when --_irqActive is 1 the fetched instruction is refused and the
  * FLAGS/CS/IP frame is pushed instead.
  */
-export function emitIRQArbitration() {
+export function emitIRQArbitration(mouse = false) {
   const picEffective = `if(
     style(--__1picInService: 0): --and(var(--__1picPending), --not(var(--__1picMask)));
     else: 0
   )`;
+  if (!mouse) {
+    return [
+      `  /* which unmasked pending IRQ wins this tick (IRQ 0 outranks IRQ 1) */`,
+      `  --_picEffective: ${picEffective};`,
+      `  --_ifFlag: --bit(var(--__1flags), 9);`,
+      `  --_irqActive: if(style(--_ifFlag: 0): 0; style(--_picEffective: 0): 0; else: 1);`,
+      `  --_irq0Pending: --and(var(--_picEffective), 1);`,
+      `  --picVector: if(style(--_irq0Pending: 1): 8; else: 9);`,
+      `  --_irqBit: if(style(--_irq0Pending: 1): 1; else: 2);`,
+    ].join('\n');
+  }
+  // Serial-mouse cabinets have a third IRQ source (IRQ 4, the COM1
+  // UART), so the acknowledge mux picks the lowest set bit of the
+  // effective set — the real 8259 priority order — over the bits that
+  // can actually be pending here (0 = PIT, 1 = keyboard, 4 = UART).
+  // Non-mouse cabinets keep the two-way mux above: same semantics for
+  // their two sources, fewer per-tick wires on the hot path.
   return [
-    `  /* which unmasked pending IRQ wins this tick (IRQ 0 outranks IRQ 1) */`,
+    `  /* which unmasked pending IRQ wins this tick (lowest bit = highest priority) */`,
     `  --_picEffective: ${picEffective};`,
     `  --_ifFlag: --bit(var(--__1flags), 9);`,
     `  --_irqActive: if(style(--_ifFlag: 0): 0; style(--_picEffective: 0): 0; else: 1);`,
     `  --_irq0Pending: --and(var(--_picEffective), 1);`,
-    `  --picVector: if(style(--_irq0Pending: 1): 8; else: 9);`,
-    `  --_irqBit: if(style(--_irq0Pending: 1): 1; else: 2);`,
+    `  --_irq1Pending: --bit(var(--_picEffective), 1);`,
+    `  --picVector: if(style(--_irq0Pending: 1): 8; style(--_irq1Pending: 1): 9; else: 12);`,
+    `  --_irqBit: if(style(--_irq0Pending: 1): 1; style(--_irq1Pending: 1): 2; else: 16);`,
   ].join('\n');
 }
 
@@ -713,7 +864,7 @@ export function emitIRQArbitration() {
  *   OUT DX, AL  (0xEE): 1-byte, port in --__1DX.
  *   OUT DX, AX  (0xEF): 1-byte, port in --__1DX, no PIC/PIT effect.
  */
-export function emitIO(dispatch) {
+export function emitIO(dispatch, { mouse = false } = {}) {
   // --- VGA input status 1 (port 0x3DA = 986) ---
   //
   // Bit 3: vertical retrace (1 while beam is retracing top, 0 while drawing).
@@ -759,6 +910,26 @@ export function emitIO(dispatch) {
   // ports other than 0x3C9 never trigger the memory read.
   const dacReadByte = `--readMem(calc(${DAC_LINEAR} + var(--__1dacReadIndex) * 3 + var(--__1dacReadSubIndex)))`;
 
+  // 8250 UART at COM1 (serial-mouse cabinets only). Ports, decimal:
+  //   0x3F8=1016 RBR (rx byte)      0x3F9=1017 IER
+  //   0x3FA=1018 IIR                0x3FB=1019 LCR (ignored; reads 0)
+  //   0x3FC=1020 MCR                0x3FD=1021 LSR (0x60 | data-ready)
+  //   0x3FE=1022 MSR (CTS|DSR)
+  // DLAB is ignored: the one guest this serves (Windows 1.x MOUSE.DRV)
+  // writes the divisor before enabling IER, so the stray DLL/DLM writes
+  // land harmlessly on RBR-write (dropped) and IER (overwritten by the
+  // real IER write that follows).
+  // Ports above 0xFF are unreachable via IN/OUT imm8, so only the DX
+  // forms carry UART arms.
+  const uartInDx = (dxVar) => mouse
+    ? `style(${dxVar}: 1016): var(--__1uartRbr); ` +
+      `style(${dxVar}: 1017): var(--__1uartIer); ` +
+      `style(${dxVar}: 1018): calc(1 + var(--__1uartDr) * 3); ` +
+      `style(${dxVar}: 1020): var(--__1uartMcr); ` +
+      `style(${dxVar}: 1021): calc(96 + var(--__1uartDr)); ` +
+      `style(${dxVar}: 1022): 48; `
+    : '';
+
   dispatch.addEntry('AX', 0xE4,
     `--mergelow(var(--__1AX), if(style(--q1: 33): var(--__1picMask); style(--q1: 96): var(--_kbdPort60); style(--q1: 986): ${VGA_STATUS1}; style(--q1: 967): 0; style(--q1: 968): var(--__1dacWriteIndex); style(--q1: 969): ${dacReadByte}; else: 0))`,
     `IN AL, imm8 (0x21=picMask, 0x60=kbdPort60, 0x3DA=vgaStatus1, 0x3C7/8/9=DAC)`);
@@ -784,8 +955,8 @@ export function emitIO(dispatch) {
   //   DX=0x3C8 → current write index
   //   DX=0x3C9 → DAC byte at [readIndex*3 + readSubIndex]
   dispatch.addEntry('AX', 0xEC,
-    `--mergelow(var(--__1AX), if(style(--__1DX: 33): var(--__1picMask); style(--__1DX: 96): var(--_kbdPort60); style(--__1DX: 986): ${VGA_STATUS1}; style(--__1DX: 967): 0; style(--__1DX: 968): var(--__1dacWriteIndex); style(--__1DX: 969): ${dacReadByte}; else: 0))`,
-    `IN AL, DX (0x21=picMask, 0x60=kbdPort60, 0x3DA=vgaStatus1, 0x3C7/8/9=DAC)`);
+    `--mergelow(var(--__1AX), if(style(--__1DX: 33): var(--__1picMask); style(--__1DX: 96): var(--_kbdPort60); style(--__1DX: 986): ${VGA_STATUS1}; style(--__1DX: 967): 0; style(--__1DX: 968): var(--__1dacWriteIndex); style(--__1DX: 969): ${dacReadByte}; ${uartInDx('--__1DX')}else: 0))`,
+    `IN AL, DX (0x21=picMask, 0x60=kbdPort60, 0x3DA=vgaStatus1, 0x3C7/8/9=DAC${mouse ? ', 0x3F8-0x3FE=UART' : ''})`);
   dispatch.addEntry('IP', 0xEC, `calc(var(--__1IP) + 1)`, `IN AL, DX`);
 
   // IN AX, DX (0xED):
@@ -794,8 +965,8 @@ export function emitIO(dispatch) {
   //   DX=0x3DA → VGA input status 1
   //   DX=0x3C7 → 0; DX=0x3C8 → write index; DX=0x3C9 → DAC byte (low)
   dispatch.addEntry('AX', 0xED,
-    `if(style(--__1DX: 33): var(--__1picMask); style(--__1DX: 96): var(--__1keyboard); style(--__1DX: 986): ${VGA_STATUS1}; style(--__1DX: 967): 0; style(--__1DX: 968): var(--__1dacWriteIndex); style(--__1DX: 969): ${dacReadByte}; else: 0)`,
-    `IN AX, DX (0x21=picMask, 0x60=keyboard, 0x3DA=vgaStatus1, 0x3C7/8/9=DAC)`);
+    `if(style(--__1DX: 33): var(--__1picMask); style(--__1DX: 96): var(--__1keyboard); style(--__1DX: 986): ${VGA_STATUS1}; style(--__1DX: 967): 0; style(--__1DX: 968): var(--__1dacWriteIndex); style(--__1DX: 969): ${dacReadByte}; ${uartInDx('--__1DX')}else: 0)`,
+    `IN AX, DX (0x21=picMask, 0x60=keyboard, 0x3DA=vgaStatus1, 0x3C7/8/9=DAC${mouse ? ', 0x3F8-0x3FE=UART' : ''})`);
   dispatch.addEntry('IP', 0xED, `calc(var(--__1IP) + 1)`, `IN AX, DX`);
 
   // --- Writes ---
@@ -1016,6 +1187,49 @@ export function emitIO(dispatch) {
   const cgaPalAddrDx  = `if(style(--__1DX: 985): ${CGA_PALETTE_REG_ADDR}; else: -1)`;
   dispatch.addMemWrite(0xE6, cgaPalAddrImm, al, `OUT 0x3D9: CGA palette mode register`);
   dispatch.addMemWrite(0xEE, cgaPalAddrDx,  al, `OUT DX=0x3D9: CGA palette mode register`);
+
+  // --- 8250 UART register effects (serial-mouse cabinets only) ---
+  //
+  // The UART registers' per-tick defaults are the --_uart*Next wires
+  // (see emitMouseWires + the customDefaults wiring in emit-css.mjs);
+  // these dispatch entries layer the guest-visible side effects on top.
+  // Every entry's else-arm repeats the default so a load can still land
+  // on a tick whose instruction happens to be an unrelated IN/OUT.
+  //
+  //   OUT DX=0x3F9 (1017): AL → IER. (DLAB ignored — see the UART note
+  //     above; the mouse driver's divisor write lands here harmlessly
+  //     before the real IER write.)
+  //   OUT DX=0x3FC (1020): AL → MCR. An RTS rising edge (bit 1, 0→1) is
+  //     the mouse-reset handshake: load the 'M' (0x4D=77) identification
+  //     byte, raise data-ready, reset the packet phase — exactly what a
+  //     real Microsoft serial mouse answers, and what MOUSE.DRV polls
+  //     LSR for during its probe.
+  //   IN  DX=0x3F8 (1016): reading RBR clears data-ready; the next
+  //     packet byte (if any) loads on a following tick and re-raises
+  //     IRQ 4.
+  if (mouse) {
+    dispatch.addEntry('uartIer', 0xEE,
+      `if(style(--__1DX: 1017): ${al}; else: var(--__1uartIer))`,
+      `OUT DX=0x3F9: UART IER`);
+    dispatch.addEntry('uartMcr', 0xEE,
+      `if(style(--__1DX: 1020): ${al}; else: var(--__1uartMcr))`,
+      `OUT DX=0x3FC: UART MCR`);
+    dispatch.addEntry('uartRbr', 0xEE,
+      `if(style(--__1DX: 1020): calc(var(--_uartRbrNext) * (1 - var(--_uartRtsEdge)) + 77 * var(--_uartRtsEdge)); else: var(--_uartRbrNext))`,
+      `OUT DX=0x3FC RTS rising: mouse reset answers 'M'`);
+    dispatch.addEntry('uartDr', 0xEE,
+      `if(style(--__1DX: 1020): max(var(--_uartDrNext), var(--_uartRtsEdge)); else: var(--_uartDrNext))`,
+      `OUT DX=0x3FC RTS rising: 'M' is ready`);
+    dispatch.addEntry('uartPhase', 0xEE,
+      `if(style(--__1DX: 1020): calc(var(--_uartPhaseNext) * (1 - var(--_uartRtsEdge))); else: var(--_uartPhaseNext))`,
+      `OUT DX=0x3FC RTS rising: reset packet phase`);
+    dispatch.addEntry('uartDr', 0xEC,
+      `if(style(--__1DX: 1016): 0; else: var(--_uartDrNext))`,
+      `IN AL, DX=0x3F8: reading RBR clears data-ready`);
+    dispatch.addEntry('uartDr', 0xED,
+      `if(style(--__1DX: 1016): 0; else: var(--_uartDrNext))`,
+      `IN AX, DX=0x3F8: reading RBR clears data-ready`);
+  }
 }
 
 /**
@@ -1340,7 +1554,7 @@ export function emitNopStubs(dispatch) {
 /**
  * Register all misc opcodes.
  */
-export function emitAllMisc(dispatch) {
+export function emitAllMisc(dispatch, opts = {}) {
   emitHLT(dispatch);
   emitNOP(dispatch);
   emitLODS(dispatch);
@@ -1355,7 +1569,7 @@ export function emitAllMisc(dispatch) {
   emitXCHG_RM(dispatch);
   emitPOP_RM(dispatch);
   emitLAHF_SAHF(dispatch);
-  emitIO(dispatch);
+  emitIO(dispatch, opts);
   emitXLAT(dispatch);
   emitINT3(dispatch);
   emitINTO(dispatch);
