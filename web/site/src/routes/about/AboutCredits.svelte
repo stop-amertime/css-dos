@@ -32,6 +32,16 @@
     </li>
   </ul>
 
+  <SectionHead>Software on the shelf</SectionHead>
+  <ul class="credits-list">
+    <li>
+      <b>DOOM</b> runs via <a href="https://github.com/FrenkelS/Doom8088" class="ext-link" target="_blank" rel="noopener">Doom8088</a> by Frenkel Smeijers &mdash; the port of id Software&rsquo;s DOOM to the 16-bit 8088/8086, with the shareware episode&rsquo;s data.
+    </li>
+    <li>
+      <b>Microsoft Windows 1.01</b> (1985) boots on the MS-DOS 4.00 floppy above, unmodified. &copy;&nbsp;Microsoft.
+    </li>
+  </ul>
+
   <SectionHead>Assets</SectionHead>
   <ul class="credits-list">
     <li>

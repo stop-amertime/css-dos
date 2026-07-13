@@ -39,7 +39,7 @@
     <Foldable>
       {#snippet summary()}How do you control it? CSS can&rsquo;t see a keyboard.{/snippet}
       <p>
-        It can&rsquo;t. What it can see is whether an element is currently being pressed &mdash; the <code>:active</code> selector &mdash; so the machine has an on-screen keyboard whose keys are real buttons. The <a href="#about/file/keys">keyboard section</a> shows the actual rules, live.
+        It can&rsquo;t. What it can see is whether an element is currently being pressed &mdash; the <code>:active</code> selector &mdash; so the machine has an on-screen keyboard whose keys are real buttons. The <a href="#about/file/keys">keyboard section</a> shows the actual rules, live. The mouse plays the same trick in reverse: every screen pixel is itself clickable, and a click feeds an emulated serial mouse with the cursor&rsquo;s position.
       </p>
     </Foldable>
 
@@ -55,7 +55,7 @@
         <b>Any more complex OS than MS-DOS</b> would be a real pain in the arse, perhaps even impossible. Anything using protected mode, or 286/386 instructions is a significant step up in complexity. There&rsquo;s a solid barrier in the way: V8&rsquo;s string size limit, which carts are already pushing up against. On the other hand, emulating <i>this</i> was already a huge pain in the arse that seems like it might actually be impossible, so never say never.
       </p>
       <p>
-        However, <b>Windows 1.0 is surprisingly possible.</b> It is just a GUI layer over DOS 16-bit real-mode; the main barrier is the required mouse support. And more Calcite performance work. Conceptually, we could allow the screen <code>&lt;div&gt;</code> pixels themselves to be hoverable and clickable, feeding that information to position and click the cursor on the screen. But I&rsquo;m releasing this first &mdash; the scope creep would be too egregious.
+        <b>Windows 1.01, famously&hellip; actually, it runs now.</b> An earlier draft of this answer listed it here: &ldquo;surprisingly possible &mdash; just a GUI layer over 16-bit real-mode DOS, the main barrier is mouse support &mdash; but I&rsquo;m releasing this first, the scope creep would be too egregious.&rdquo; The scope crept. The screen&rsquo;s pixels are themselves clickable now, feeding an emulated serial mouse, and Windows 1.01 is the first preset on the Build page. (Windows 1.x menus only stay open while the button is held down, so the player grew a Hold Mode switch that latches the mouse button for you.)
       </p>
       <p class="dim small">
         A minor note: I like the name CSS-DOS, but lack a catchy name for a CSS Windows. CSSWin and WinCSS are uncomfortably close to Tailwind CSS and Windsurf. I&rsquo;d probably go for Windows.css &mdash; nobody take that name, please.

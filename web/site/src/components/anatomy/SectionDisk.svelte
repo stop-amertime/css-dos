@@ -19,7 +19,7 @@
 </script>
 
 <p>
-  CSS can&rsquo;t open anything at runtime &mdash; no files, no requests, no loading &mdash; so whatever the machine will ever need has to be in the stylesheet before it starts: the <Term t="bios">BIOS</Term>, <Term t="dos">DOS</Term> itself, and the entire <Term t="floppy">floppy disk</Term>, baked in byte by byte. The concept here is relatively simple &mdash; we just give each byte in the floppy disk one variable each, and a function reads them back:
+  CSS can&rsquo;t open anything at runtime &mdash; no files, no requests, no loading &mdash; so whatever the machine will ever need has to be in the stylesheet before it starts: the <Term t="bios">BIOS</Term>, <Term t="dos">DOS</Term> itself, and the entire <Term t="floppy">floppy disk</Term>, baked in byte by byte. The concept here is relatively simple &mdash; every byte of the floppy gets its own arm in one giant <code>if()</code>, and a function reads them back:
 </p>
 <CodeCss code={DISK_FN} />
 <p>

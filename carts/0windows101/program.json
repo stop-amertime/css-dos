@@ -1,6 +1,6 @@
 {
   "schema": "cart@1",
-  "name": "0Windows 1.01",
+  "name": "Windows 1.01",
   "description": "Microsoft Windows 1.01 (1985) on real MS-DOS 4.00, CGA 640x200. Boots to the MS-DOS Executive with the original desktop applets on the floppy.",
   "display": {
     "cover": "windows101-79.jpg",

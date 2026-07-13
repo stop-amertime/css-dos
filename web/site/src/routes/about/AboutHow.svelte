@@ -157,13 +157,13 @@
     </div>
   </div>
   <p>
-    This is all assuming your browser doesn&rsquo;t crash from trying to load a 300+&nbsp;MB .css file, which it absolutely will (at time of writing).
+    This is all assuming your browser survives 300+&nbsp;MB of stylesheet at all &mdash; in practice Chrome freezes solid the moment it tries to evaluate it (at time of writing).
   </p>
   <p>
     The solution is to do what every other programming language does (including JavaScript in Chrome etc.), and compile the code into something faster before it runs.
   </p>
   <p>
-    This site runs the same file through <b>Calcite</b>, a compiler that evaluates the same CSS over 100,000&times; faster; <a href="#about/calcite">its own page</a> explains how it works, and why it isn&rsquo;t cheating.
+    This site runs the same file through <b>Calcite</b>, a compiler that evaluates the same CSS over 200,000&times; faster; <a href="#about/calcite">its own page</a> explains how it works, and why it isn&rsquo;t cheating.
   </p>
 </div>
 
