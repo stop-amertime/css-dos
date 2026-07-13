@@ -1,0 +1,18 @@
+TO DO                PRIORITY
+Shop for new suit        B
+Phone dentist            C
+Take car in for tuneup   A
+Make plane reservation   B
+Pick up theater tickets  B
+   How much?
+Contact realtor          B
+Clean garage             C
+Mow lawn                 B
+Plan spring garden       B
+Schedule vacation        A
+Read "War and Peace"     C
+Write Grandma            C
+Buy present for Martha   B
+Talk to Fred             B
+Take out garbage         B
+Call piano tuner         C

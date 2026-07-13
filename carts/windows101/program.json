@@ -1,0 +1,52 @@
+{
+  "schema": "cart@1",
+  "name": "Windows 1.01",
+  "description": "Microsoft Windows 1.01 (1985) on real MS-DOS 4.00, CGA 640x200. Boots to the MS-DOS Executive with the original desktop applets on the floppy.",
+  "preset": "dos-corduroy",
+  "memory": {
+    "conventional": "640K",
+    "gfx": false,
+    "textVga": true,
+    "cgaGfx": true
+  },
+  "disk": {
+    "size": "autofit",
+    "files": [
+      { "name": "AUTOEXEC.BAT", "source": "AUTOEXEC.BAT" },
+      { "name": "SETVER3.COM", "source": "SETVER3.COM" },
+      { "name": "WIN.COM", "source": "WIN.COM" },
+      { "name": "WIN.INI", "source": "WIN.INI" },
+      { "name": "WIN100.BIN", "source": "WIN100.BIN" },
+      { "name": "WIN100.OVL", "source": "WIN100.OVL" },
+      { "name": "MSDOS.EXE", "source": "MSDOS.EXE" },
+      { "name": "MSDOSD.EXE", "source": "MSDOSD.EXE" },
+      { "name": "WINOLDAP.MOD", "source": "WINOLDAP.MOD" },
+      { "name": "WINOLDAP.GRB", "source": "WINOLDAP.GRB" },
+      { "name": "COURA.FON", "source": "COURA.FON" },
+      { "name": "HELVA.FON", "source": "HELVA.FON" },
+      { "name": "TMSRA.FON", "source": "TMSRA.FON" },
+      { "name": "LOFONTS.FON", "source": "LOFONTS.FON" },
+      { "name": "ROMAN.FON", "source": "ROMAN.FON" },
+      { "name": "SCRIPT.FON", "source": "SCRIPT.FON" },
+      { "name": "MODERN.FON", "source": "MODERN.FON" },
+      { "name": "CLOCK.EXE", "source": "CLOCK.EXE" },
+      { "name": "CALC.EXE", "source": "CALC.EXE" },
+      { "name": "REVERSI.EXE", "source": "REVERSI.EXE" },
+      { "name": "NOTEPAD.EXE", "source": "NOTEPAD.EXE" },
+      { "name": "CARDFILE.EXE", "source": "CARDFILE.EXE" },
+      { "name": "CALENDAR.EXE", "source": "CALENDAR.EXE" },
+      { "name": "CONTROL.EXE", "source": "CONTROL.EXE" },
+      { "name": "CLIPBRD.EXE", "source": "CLIPBRD.EXE" },
+      { "name": "TERMINAL.EXE", "source": "TERMINAL.EXE" },
+      { "name": "PAINT.EXE", "source": "PAINT.EXE" },
+      { "name": "WRITE.EXE", "source": "WRITE.EXE" },
+      { "name": "ABC.TXT", "source": "ABC.TXT" },
+      { "name": "DOTHIS.TXT", "source": "DOTHIS.TXT" },
+      { "name": "PRACTICE.DOC", "source": "PRACTICE.DOC" },
+      { "name": "README.DOC", "source": "README.DOC" }
+    ]
+  },
+  "boot": {
+    "os": "msdos4"
+  }
+}

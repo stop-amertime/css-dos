@@ -72,9 +72,12 @@ function loadFont() {
  * @param {number} opts.tick — target tick for the screenshot
  * @param {number} [opts.wallMs=120_000] — kill calcite-cli after this many ms
  * @param {string} [opts.calciteCliBin] — override the calcite-cli binary path
+ * @param {string} [opts.pressEvents] — forwarded to calcite-cli
+ *   `--press-events=TICK:[+|-][PSEUDO@]SELECTOR,...` (press/release keyboard
+ *   wires at scheduled ticks, e.g. `8300000:kb-down,8303000:-kb-down`)
  * @returns {Promise<{mode, kind, width, height, text?, rgba, png, phash}>}
  */
-export async function fastShoot({ cabinetPath, tick, wallMs = 120_000, calciteCliBin } = {}) {
+export async function fastShoot({ cabinetPath, tick, wallMs = 120_000, calciteCliBin, pressEvents } = {}) {
   if (!cabinetPath) throw new Error('fastShoot: cabinetPath required');
   if (typeof tick !== 'number' || tick < 0) throw new Error('fastShoot: tick must be a non-negative number');
 
@@ -107,6 +110,7 @@ export async function fastShoot({ cabinetPath, tick, wallMs = 120_000, calciteCl
     // but giving it `--sample-cells=0` is harmless and keeps stdout small.
     '--sample-cells', '0',
   ];
+  if (pressEvents) args.push(`--press-events=${pressEvents}`);
 
   await runCalciteCli(bin, args, { wallMs });
 

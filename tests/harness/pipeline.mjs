@@ -306,8 +306,11 @@ async function cmdFastShoot({ args, flags }) {
   if (flags.tick == null) fail('fast-shoot: --tick=N required (the screenshot is taken at this tick)');
   const tick = flagInt(flags, 'tick');
   const wallMs = flagInt(flags, 'wall-ms', 120_000);
+  // Optional keyboard injection, forwarded verbatim to calcite-cli:
+  // --press-events=TICK:[+|-][PSEUDO@]SELECTOR,... (see calcite-cli)
+  const pressEvents = flags['press-events'];
 
-  const shot = await fastShoot({ cabinetPath: resolve(cssPath), tick, wallMs });
+  const shot = await fastShoot({ cabinetPath: resolve(cssPath), tick, wallMs, pressEvents });
 
   const outPath = flags.out ?? join(HARNESS_ROOT, 'results', `fast-shot-${Date.now()}.png`);
   if (shot.png) {

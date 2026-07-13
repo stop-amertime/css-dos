@@ -1,0 +1,73 @@
+The following information should be noted for this release
+of Microsoft Windows.  Also consult your Windows User's
+Guide and the Addendum enclosed in the package for further
+information.
+
+
+PRINTING WITHOUT THE SPOOLER
+It is possible to print from an application without using
+the Spooler.  This may be preferable when running in a two
+floppy drive configuration as it conserves disk space.
+To use this feature change the "Spooler=yes" in the
+[windows] section of the WIN.INI file to read "Spooler=no".
+
+Note:  Setting Spooler=no will disable printing from Windows
+Terminal
+
+
+RUNNING BATCH (.BAT) FILES FROM WINDOWS
+If you run a standard application from a batch file you
+should create a PIF file for the batch file.  The PIF file
+should have the same PIF options set as the application.
+The Memory Required and Memory Desired options for the
+batch PIF file should always be set to 32K. This is
+independent of the memory requirements for the application.
+
+Batch files should be run from the MS-DOS Executive.
+
+
+RUNNING WINDOWS WRITE ON A TWO FLOPPY SYSTEM
+Several precautions should be observed when using Windows
+Write on a two floppy system.  As described in your manual,
+you should have WRITE.EXE on all of your document disks.
+In order to print large documents, you may find it necessary
+to print without the spooler, as described above.
+
+
+RUNNING BASIC AND BASICA WITH WINDOWS
+As the Addendum indicates, the COM options in the PIF files
+for BASIC and BASICA are set.  This prevents conflicts when
+running with communications programs.  If you do not have a
+COM port installed in your system, you will get a message
+indicating that the COM ports are unavailable when you
+attempt to run BASIC or BASICA.  To avoid this, edit the
+BASIC or BASICA PIF file with the PIF Editor and deselect
+the COM options.
+
+
+DRIVE B ON A SINGLE FLOPPY SYSTEM
+On a single floppy drive systems, the virtual drive B option
+is disabled.  On these systems, references to drive B will be
+interpreted as drive A.
+
+
+TEMPORARY FILES
+Some applications that run under Windows will create temporary
+files.  The filename generally begins with a tilde character (~)
+and end with the extension .TMP.  You should never delete these
+files while running Windows as they may be in use by an application.
+If after quitting Windows you find temporary files of this format,
+they may be deleted.
+
+
+PRINTING WITH THE TI850 AND 855 PRINTERS
+The TI 850 and 855 mode switch should be set for draft quality text.
+The driver for the TI 855 printer supports the default character set.
+Font cartridges are not supported.
+
+
+RUNNING THE DOS CHKDSK UTILITY
+Never run CHKDSK with the /f parameter while Windows is running.
+Running CHKDSK without the /f parameter may incorrectly indicate
+lost clusters since open files are interpreted as being lost.
+Generally CHKDSK should be run outside of Windows.
