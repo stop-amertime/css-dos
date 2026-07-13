@@ -26,7 +26,7 @@
   "disk": {
     "size": "autofit",
     "files": [
-      { "name": "AUTOEXEC.BAT", "source": "AUTOEXEC.BAT" },
+      { "name": "STARTWIN.BAT", "source": "STARTWIN.BAT" },
       { "name": "SETVER3.COM", "source": "SETVER3.COM" },
       { "name": "WIN.COM", "source": "WIN.COM" },
       { "name": "WIN.INI", "source": "WIN.INI" },
@@ -61,6 +61,7 @@
     ]
   },
   "boot": {
-    "os": "msdos4"
+    "os": "msdos4",
+    "runCommand": "STARTWIN"
   }
 }

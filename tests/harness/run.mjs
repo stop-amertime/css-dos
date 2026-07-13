@@ -312,11 +312,15 @@ async function runMsdos() {
 // with injected keys (6x Down + Enter = launch CLOCK.EXE). Pass = both in
 // mode 6 and the screens differ — Windows drew, and Enter spawned an app.
 const WINDOWS_CART = 'carts/windows101';
-const WINDOWS_SHOT_TICK = 15_000_000; // Executive lands ~8.5M; margin
-const WINDOWS_KEYS = '8600000:kb-down,8605000:-kb-down,8660000:kb-down,8665000:-kb-down,'
-  + '8720000:kb-down,8725000:-kb-down,8780000:kb-down,8785000:-kb-down,'
-  + '8840000:kb-down,8845000:-kb-down,8900000:kb-down,8905000:-kb-down,'
-  + '8960000:kb-enter,8965000:-kb-enter';
+// Executive lands ~9M, CLOCK is drawn by ~11M. Keep the shot tick tight:
+// this cabinet runs ~150K ticks/s under calcite-cli, so every extra 1M
+// ticks costs ~7s per shot against the wall budget below.
+const WINDOWS_SHOT_TICK = 12_500_000;
+const WINDOWS_WALL_MS = 240_000;
+const WINDOWS_KEYS = '9600000:kb-down,9605000:-kb-down,9660000:kb-down,9665000:-kb-down,'
+  + '9720000:kb-down,9725000:-kb-down,9780000:kb-down,9785000:-kb-down,'
+  + '9840000:kb-down,9845000:-kb-down,9900000:kb-down,9905000:-kb-down,'
+  + '9960000:kb-enter,9965000:-kb-enter';
 
 async function runWindows() {
   log(`windows: ${WINDOWS_CART}`);
@@ -326,9 +330,10 @@ async function runWindows() {
     return { preset: 'windows', ok: false, allOk: false, stage: 'build', error: build.result.error };
   }
   const exec = await runPipeline('fast-shoot', cabinet, `--tick=${WINDOWS_SHOT_TICK}`,
+    `--wall-ms=${WINDOWS_WALL_MS}`,
     `--out=${join(HARNESS_ROOT, 'cache', 'windows101-exec.png')}`);
   const clock = await runPipeline('fast-shoot', cabinet, `--tick=${WINDOWS_SHOT_TICK}`,
-    `--press-events=${WINDOWS_KEYS}`,
+    `--wall-ms=${WINDOWS_WALL_MS}`, `--press-events=${WINDOWS_KEYS}`,
     `--out=${join(HARNESS_ROOT, 'cache', 'windows101-clock.png')}`);
   const execShot = exec.result?.shot ?? {};
   const clockShot = clock.result?.shot ?? {};
