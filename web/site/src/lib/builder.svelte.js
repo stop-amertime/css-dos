@@ -59,6 +59,8 @@ class Build {
   status = $state('Ready.');
   busy = $state(false);
   done = $state(false);
+  failed = $state(false);   // last build threw — keeps the progress panel up
+  buildError = $state('');  // the message shown next to the failed bar
   restored = $state(false); // a cabinet from a previous page lifetime is playable
   progressLog = $state('');
   progressStages = $state(0);
@@ -255,6 +257,8 @@ class Build {
       this.done = false;
       this.cabinetBlob = null;
     }
+    this.failed = false;
+    this.buildError = '';
   }
 
   async runBuild() {
@@ -280,6 +284,8 @@ class Build {
 
     this.busy = true;
     this.done = false;
+    this.failed = false;
+    this.buildError = '';
     this.restored = false; // the purge below evicts any previous cabinet
     this.status = 'Building…';
     this.progressLog = '';
@@ -323,6 +329,8 @@ class Build {
       diskBytes = built.diskBytes;
     } catch (err) {
       this.progressLog += 'Error: ' + err.message + '\n';
+      this.failed = true;
+      this.buildError = err.message;
       this.status = 'Build failed.';
       this.busy = false;
       return;

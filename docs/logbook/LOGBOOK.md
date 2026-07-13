@@ -22,6 +22,7 @@ See [`PROTOCOL.md`](PROTOCOL.md).
 
 | Date | Tag | Entry |
 |------|-----|-------|
+| 2026-07-13 | LANDED | [Build page failure UX: a thrown build no longer silently resets the form — new `build.failed` state keeps the progress panel mounted with a red bar + error box showing the message (was: panel unmounted because it rendered only on `busy \|\| done`). Verified e2e with a 404-stubbed msdos4 fetch](entries/2026-07-13-build-failure-ui.md) |
 | 2026-07-13 | LANDED | [Pre-launch sweep: live-site Windows build was broken — `.gitignore`'s `*.bin` had silently swallowed `carts/0windows101/WIN100.BIN` (and sokoban's ELEV.BIN); `!carts/**` + files committed, Windows build+boot verified on production. Copy fixes: stale "Windows is future work" FAQ, "0Windows" name leak, 100k→200k× consistency, Doom8088/Windows credits](entries/2026-07-13-launch-sweep-win100bin.md) |
 | 2026-07-13 | LANDED | [Build pick page polish: custom "load your own" is a grid cell again (wide bar deleted, CartCard `cart.custom` branch), cart grid 540→680px (still 3 abreast), `.build-intro` centred on the same column (text hugged the left edge)](entries/2026-07-13-build-cart-grid-polish.md) |
 | 2026-07-13 | DEAD | [Tree-shaped `--readMem` dispatch not worth it: calcite already compiles the flat read to O(1) packed-byte array (a tree can't beat it and would regress it — recogniser doesn't recurse nested `if()`); file-size win only ~3-5% of the readMem block. Killed at design stage, no code. Owner call](entries/2026-07-13-readmem-tree-dispatch-dead.md) |

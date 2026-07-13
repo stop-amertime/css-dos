@@ -38,6 +38,7 @@
   let hint = $derived(
     build.busy ? 'Building…'
     : build.done ? 'Done. Next: choose how to play.'
+    : build.failed ? 'Build failed — details below.'
     : build.hasSource ? 'Ready to build.'
     : 'Pick a program first.'
   );
@@ -146,7 +147,7 @@
           <span class="dim small">{hint}</span>
         </div>
 
-        {#if build.busy || build.done}<BuildProgress />{/if}
+        {#if build.busy || build.done || build.failed}<BuildProgress />{/if}
       </div>
     </div>
   </div>

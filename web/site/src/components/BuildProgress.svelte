@@ -9,12 +9,15 @@
 </script>
 
 <div class="build-progress">
-  <div class="bar"><div class="bar-fill" style:width="{pct}%"></div></div>
+  <div class="bar"><div class="bar-fill" class:failed={build.failed} style:width="{pct}%"></div></div>
   <div class="build-progress-meta">
     <span>{Math.floor(pct)}%</span>
     <span class="dim">{build.done ? build.sizeLabel.replace(/^Cabinet:\s*/, '') : ''}</span>
   </div>
 </div>
+{#if build.failed}
+  <div class="build-error">Build failed: {build.buildError}</div>
+{/if}
 <pre class="build-log">{build.progressLog}</pre>
 
 <style>
@@ -32,6 +35,22 @@
       90deg, var(--edit-blue) 0 6px, #0000ff 6px 8px
     );
     transition: width 240ms ease-out;
+  }
+  .build-progress .bar .bar-fill.failed {
+    background: repeating-linear-gradient(
+      90deg, #aa0000 0 6px, #ff0000 6px 8px
+    );
+  }
+
+  .build-error {
+    margin-top: 8px;
+    border: 1px solid #aa0000;
+    background: var(--edit-white);
+    color: #aa0000;
+    padding: 4px 8px;
+    font-size: 15px;
+    line-height: 16px;
+    white-space: pre-wrap;
   }
   .build-progress-meta {
     display: flex; gap: 12px;
