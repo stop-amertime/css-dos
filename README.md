@@ -3,7 +3,7 @@
 **An entire ’80s PC in a stylesheet.**
 
 An 8086 CPU, chipset, 640 KB RAM, floppy drive, keyboard, mouse and
-screen — in one `.css` file. It’s a morbidly obese 300+ MB of
+screen - in one `.css` file. It’s a morbidly obese 300+ MB of
 spec-compliant CSS, abused beyond recognition: some of the most
 delightfully painful and wasteful code ever cursed to exist.
 
@@ -15,8 +15,8 @@ runs real ’80s software. Yes, it runs **DOOM**.\*
 ### ▶ [Play it in your browser — css-dos.ahmedamer.co.uk](https://css-dos.ahmedamer.co.uk)
 
 The site builds a cabinet from a boxed program (Windows 1.01, DOOM,
-Rogue, Zork…) or from any DOS program you hand it, then boots it —
-and explains, section by scale-drawn section, how 300 MB of stylesheet
+Rogue, Zork…) or from any DOS program you hand it, then boots it
+and explains, section by section, how 300 MB of stylesheet
 becomes a working computer.
 
 ## How is that possible?
