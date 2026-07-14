@@ -12,34 +12,15 @@ runs real ’80s software. Yes, it runs **DOOM**.\*
 
 <sub>\* barely.</sub>
 
-### ▶ [Play it in your browser — css-dos.ahmedamer.co.uk](https://css-dos.ahmedamer.co.uk)
-
-The site builds a cabinet from a boxed program (Windows 1.01, DOOM,
-Rogue, Zork…) or from any DOS program you hand it, then boots it
-and explains, section by section, how 300 MB of stylesheet
-becomes a working computer.
+### ▶ [Try it in your browser — css-dos.ahmedamer.co.uk](https://css-dos.ahmedamer.co.uk)
 
 ## How is that possible?
+This question is tackled in depth [here](the https://css-dos.ahmedamer.co.uk/#about/how)
 
-CSS has no lists of instructions, no way to change a variable later,
-and no way for a variable to reference itself. So instead of writing
-*programs* in CSS, CSS-DOS emulates an entire *computer* — a CPU is a
-fixed circuit whose outputs are a function of its inputs, and circuits
-turn out to be a surprisingly natural fit:
+## How does it work? 
+Here is a ✨🌟[full interactive walkthrough](https://css-dos.ahmedamer.co.uk/#about/file/map)✨
 
-- **The clock** is a tiny CSS animation ticking a counter; every
-  formula in the file re-evaluates every tick, one instruction per tick.
-- **Every register and byte of RAM** is a custom property recomputed
-  by one all-encompassing `calc()` formula, every tick, forever.
-- **Reading one byte of memory** means traversing an `if()` with
-  743,948 arms — one per address. That single function is the length
-  of nine complete works of Shakespeare.
-- **The floppy disk** is baked into the stylesheet byte by byte —
-  CSS can’t open files, so the entire disk ships inside the `.css`.
-- **The screen** is 64,000 `<div>`s, each colouring itself from its
-  own byte of video RAM. **The keyboard** is real buttons wired
-  through `:active`. **The mouse** is the screen’s own pixels being
-  clickable, feeding an emulated serial mouse.
+## How is performance?
 
 A browser evaluates all of this at roughly **two instructions per
 second** — three weeks to boot DOS, if it didn’t freeze first. So the
