@@ -63,11 +63,6 @@ produce exactly what a spec-compliant browser would, byte for byte.
 [Why that isn’t cheating →](https://css-dos.ahmedamer.co.uk/#about/calcite)
 
 
-### How / how much was AI used in this project? 
-
-See [here](https://css-dos.ahmedamer.co.uk/#about/faqs/ai) for more info on how much I used AI in the project. 
-
-
 ## The 30-second version (for developers)
 
 A **cart** (folder or zip) contains a DOS program. The **builder** takes
