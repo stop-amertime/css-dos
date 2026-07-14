@@ -15,7 +15,7 @@ runs real ’80s software. Yes, it runs **DOOM**.\*
 ### ▶ [Try it in your browser — css-dos.ahmedamer.co.uk](https://css-dos.ahmedamer.co.uk)
 
 ## How is that possible?
-This question is tackled in depth [here](the https://css-dos.ahmedamer.co.uk/#about/how)
+This question is tackled in depth [here]( https://css-dos.ahmedamer.co.uk/#about/how)
 
 ## How does it work? 
 Here is a ✨🌟[full interactive walkthrough](https://css-dos.ahmedamer.co.uk/#about/file/map)✨
