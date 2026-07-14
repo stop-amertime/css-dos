@@ -39,6 +39,8 @@
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><circle cx="8" cy="8" r="6.6"/><ellipse cx="8" cy="8" rx="3" ry="6.6"/><path d="M1.6 8h12.8M2.5 4.6h11M2.5 11.4h11"/></svg>My site</a>
         <a href="https://ahmedamer.co.uk/#contact" target="_blank" rel="noopener">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="1.4" y="3.2" width="13.2" height="9.6"/><path d="M1.8 3.8 8 8.8l6.2-5"/></svg>Contact me</a>
+        <a href="/about/faqs/ai">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M8 2.6C7.5 1.8 6.4 1.5 5.5 2 4.4 2.1 3.5 3 3.5 4.1c0 .3.06.6.18.85C2.7 5.3 2 6.2 2 7.3c0 .9.5 1.7 1.2 2.1-.13.3-.2.63-.2.95C3 11.6 4 12.6 5.2 12.6c.16 0 .3-.02.46-.05C5.9 13.4 6.7 14 7.6 14H8M8 2.6c.5-.8 1.6-1.1 2.5-.6 1.1.1 2 1 2 2.1 0 .3-.06.6-.18.85C13.3 5.3 14 6.2 14 7.3c0 .9-.5 1.7-1.2 2.1.13.3.2.63.2.95 0 1.25-1 2.25-2.2 2.25-.16 0-.3-.02-.46-.05-.24.85-1.04 1.45-1.94 1.45M8 2.6V14"/></svg>Is this AI?</a>
       </div>
     </div>
   </div>
