@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// run.mjs — agent-facing preset test runner.
+// run.mjs - agent-facing preset test runner.
 //
 // Every preset is a short spec of "what to run, what to compare, what
 // passes." The runner prints a compact summary to stderr and writes a
@@ -17,9 +17,9 @@
 //   full        smoke + conformance + visual in sequence.
 //
 // Exit codes:
-//   0 — all tests passed
-//   1 — harness error (daemon wouldn't start, cabinet missing)
-//   2 — test failures (divergence / baseline mismatch)
+//   0 - all tests passed
+//   1 - harness error (daemon wouldn't start, cabinet missing)
+//   2 - test failures (divergence / baseline mismatch)
 //
 // Agents: parse the JSON report at tests/harness/results/latest.json to
 // see what passed/failed. Grep exit code for quick yes/no.
@@ -34,7 +34,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const HARNESS_ROOT = resolve(__dirname);
 const REPO_ROOT = resolve(__dirname, '..', '..');
 
-const USAGE = `run.mjs — CSS-DOS test preset runner
+const USAGE = `run.mjs - CSS-DOS test preset runner
 
 Usage:
   node tests/harness/run.mjs <preset> [flags...]
@@ -56,7 +56,7 @@ Presets:
   websmoke      Boot hello-text + dos-writable + msdos4 through the REAL
                 web path (headless Chromium, bridge worker, the VENDORED
                 wasm bundle). The only gate that runs the engine the site
-                ships — run after re-vendoring web/vendor/calcite-pkg/.
+                ships - run after re-vendoring web/vendor/calcite-pkg/.
   visual        --mode=verify: check each cart's screenshots against a
                 recorded baseline. --mode=record: create new baselines.
   full          smoke + conformance + visual(verify), in sequence.
@@ -92,7 +92,7 @@ if (!preset || preset === '--help' || preset === '-h') {
 function log(msg) { process.stderr.write(`[run] ${msg}\n`); }
 
 // Spawn a child and collect its single-line JSON result from stdout.
-// Rejects on exit code ≠ 0 AND no valid JSON — accepts the "ok:false"
+// Rejects on exit code ≠ 0 AND no valid JSON - accepts the "ok:false"
 // JSON result (exit code 3 from pipeline) as a normal test-failure.
 function runPipeline(subcommand, ...rest) {
   return new Promise((resolvePromise, reject) => {
@@ -105,7 +105,7 @@ function runPipeline(subcommand, ...rest) {
     child.stdout.on('data', d => { out += d.toString(); });
     child.stderr.on('data', d => { err += d.toString(); });
     child.on('close', code => {
-      // Pick the last JSON line from stdout — pipeline.mjs is supposed
+      // Pick the last JSON line from stdout - pipeline.mjs is supposed
       // to emit exactly one but be defensive.
       const lines = out.trim().split('\n').filter(Boolean);
       const last = lines.at(-1) ?? '';
@@ -312,7 +312,7 @@ async function runMsdos() {
 // DOS version) and runs WIN, which sets CGA mode 6 and draws the MS-DOS
 // Executive. Two fast-shoots at the same tick: one idle (Executive), one
 // with injected keys (6x Down + Enter = launch CLOCK.EXE). Pass = both in
-// mode 6 and the screens differ — Windows drew, and Enter spawned an app.
+// mode 6 and the screens differ - Windows drew, and Enter spawned an app.
 const WINDOWS_CART = 'carts/0windows101';
 // Executive lands ~9M, CLOCK is drawn by ~11M. Keep the shot tick tight:
 // this cabinet runs ~150K ticks/s under calcite-cli, so every extra 1M
@@ -324,7 +324,7 @@ const WINDOWS_KEYS = '9600000:kb-down,9605000:-kb-down,9660000:kb-down,9665000:-
   + '9840000:kb-down,9845000:-kb-down,9900000:kb-down,9905000:-kb-down,'
   + '9960000:kb-enter,9965000:-kb-enter';
 // Mouse path: cell mc-885 targets CLOCK.EXE in the Executive listing
-// (row 11 col 5, pixel (44,92) — the listbox hit zones sit ~a line
+// (row 11 col 5, pixel (44,92) - the listbox hit zones sit ~a line
 // below the drawn text, so aim one row under the name). Click to
 // select, then a double-click launches. Exercises the whole
 // serial-mouse machine: cell grid → --mouseTgt → packet generator →
@@ -371,8 +371,8 @@ async function runWindows() {
 
 // --- websmoke preset ----------------------------------------------------
 
-// Boot cabinets through the REAL web path — dev server, Cache Storage,
-// bridge worker, the *vendored* calcite-wasm bundle — and assert a
+// Boot cabinets through the REAL web path - dev server, Cache Storage,
+// bridge worker, the *vendored* calcite-wasm bundle - and assert a
 // screen sentinel. This is the only gate that executes the engine the
 // site ships: smoke/writable/msdos all drive calcite-cli and stay green
 // when web/vendor/calcite-pkg/ is stale (the exact failure of LOGBOOK
@@ -465,7 +465,7 @@ function writeReport(report) {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   const path = join(resultsDir, `${report.preset}-${stamp}.json`);
   writeFileSync(path, JSON.stringify(report, null, 2));
-  // "latest" is a copy not a symlink — Windows often forbids symlinks
+  // "latest" is a copy not a symlink - Windows often forbids symlinks
   // without admin privileges, and agents need predictable read.
   const latest = join(resultsDir, 'latest.json');
   try { copyFileSync(path, latest); } catch { /* non-fatal */ }

@@ -52,7 +52,7 @@ emitCSS({
 }, writeStream);
 ```
 
-`emitCSS` streams directly to the output — cabinets are too big to build
+`emitCSS` streams directly to the output - cabinets are too big to build
 as a single string.
 
 ## The transpilation strategy
@@ -60,7 +60,7 @@ as a single string.
 Hand-written emitters, not mechanical AST-to-CSS translation. Each
 `patterns/*.mjs` file registers opcode entries with a `DispatchTable`.
 The central `emit-css.mjs` assembles those entries into a per-register
-`if(style(--opcode: N): ...)` dispatch — one for each of
+`if(style(--opcode: N): ...)` dispatch - one for each of
 AX/CX/DX/BX/SP/BP/SI/DI/CS/DS/ES/SS/IP/flags/halt/cycleCount.
 
 Memory writes live in 3 parallel slots (`--memAddr0`/`--memVal0` …
@@ -75,7 +75,7 @@ Slot gating: each slot is fronted by a per-tick `--_slotNLive`
 property that is 1 only when the current opcode uses slot N (or a TF
 trap / hardware IRQ is pushing the 6-byte frame). The per-byte write
 rule nests all six slot checks behind these gates, so non-writing
-instructions — NOP, MOV reg,reg, jumps, most ALU reg-reg, flag ops —
+instructions - NOP, MOV reg,reg, jumps, most ALU reg-reg, flag ops -
 short-circuit at slot 0 and evaluate zero `style(--memAddrN: addr)`
 branches. Calcite's broadcast-write recogniser
 (`crates/calcite-core/src/pattern/broadcast_write.rs`) peels each gate

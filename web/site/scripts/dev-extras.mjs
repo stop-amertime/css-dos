@@ -1,12 +1,12 @@
 // Dev-ONLY server surface for the Vite dev server (vite.config.js wires it
 // into the css-dos-dev-runtime middleware). Two things live here:
 //
-// 1. DEV_ALIASES — URL prefixes served off disk in dev but NEVER copied into
+// 1. DEV_ALIASES - URL prefixes served off disk in dev but NEVER copied into
 //    the prod dist/ (unlike RUNTIME_COPIES in runtime-assets.mjs, which
 //    drives both). These are the developer/test surfaces: the perf bench
 //    page, the calcite dev pages, the web test harnesses, tmp cabinets.
 //
-// 2. The dev endpoints /_status, /_reset, /_clear, /_carts.json — the
+// 2. The dev endpoints /_status, /_reset, /_clear, /_carts.json - the
 //    cache-layer killers (see docs/rebuild-when.md). Ported verbatim in
 //    spirit from the retired web/scripts/dev.mjs (deleted 2026-07-12 when
 //    Vite became the single dev server):
@@ -117,7 +117,7 @@ function runStep(label, cmd, args, opts = {}) {
   };
 }
 
-// Wipe WASM + prebake, rebuild both from HEAD. A calcite-hacker action —
+// Wipe WASM + prebake, rebuild both from HEAD. A calcite-hacker action -
 // the wasm-pack step only means anything with the sibling repo present.
 export function resetEverything(servedPkgDir) {
   const steps = [];

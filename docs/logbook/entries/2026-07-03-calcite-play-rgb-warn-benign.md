@@ -1,4 +1,4 @@
-# 2026-07-03 — play-page calcite "unknown function: rgb" is benign; flow works
+# 2026-07-03 - play-page calcite "unknown function: rgb" is benign; flow works
 
 Tag: FINDING
 
@@ -16,7 +16,7 @@ adds ~0.3 s / ~30 MB (3.3→3.6 s parse-only on doom).
 Real traps found: (1) compile gives NO player-side feedback for
 10–25 s and its console messages appear only in the *builder tab*;
 (2) reloading/navigating the builder tab (incl. Vite HMR full-reload
-from editing site files) silently kills the bridge worker + cabinet —
+from editing site files) silently kills the bridge worker + cabinet -
 player then waits forever ("opening the player does nothing");
 (3) committed debug debris in calcite `compile.rs` (~2044, `[linear
 branch]` op dumps, "opcode 214" comment) floods DevTools during

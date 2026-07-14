@@ -1,9 +1,9 @@
-# 2026-07-13 — Pre-launch sweep: live Windows build was broken (gitignored WIN100.BIN)
+# 2026-07-13 - Pre-launch sweep: live Windows build was broken (gitignored WIN100.BIN)
 
 **LANDED** (`128487f`, `e2e1d9a`, `920e9e6`)
 
 End-user pass over css-dos.ahmedamer.co.uk before the HN/Reddit launch.
-Blocker found: the live site's Windows 1.01 build failed instantly —
+Blocker found: the live site's Windows 1.01 build failed instantly -
 `.gitignore`'s `*.bin` rule had silently swallowed
 `carts/0windows101/WIN100.BIN` (never committed), so the deploy lacked
 the core Windows binary. Local web verifications passed because dev

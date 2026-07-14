@@ -1,5 +1,5 @@
 <script>
-  // CssTimeline — thirty years of computational tools arriving in CSS,
+  // CssTimeline - thirty years of computational tools arriving in CSS,
   // as a clickable dotted timeline. Left: the moments. Right: the CSS
   // each one unlocked, with a live proof box under it. The calc()/
   // mod()/if()/@function boxes are computed by REAL CSS (in the style
@@ -116,7 +116,7 @@
     margin: 12px 0 28px;
   }
 
-  /* — the dotted rail: white pane, no separator line — */
+  /* - the dotted rail: white pane, no separator line - */
   .tl-rail {
     flex: 1 1 0;
     min-width: 0;
@@ -146,7 +146,7 @@
     cursor: pointer;
     color: var(--edit-black);
   }
-  /* selection = the DOS menu highlight — but it starts right of the
+  /* selection = the DOS menu highlight - but it starts right of the
      dot column, so the timeline line and its circles stay visible */
   .tl-item.current {
     background: linear-gradient(90deg, transparent 30px, var(--edit-cyan) 30px);
@@ -179,13 +179,13 @@
   }
   .tl-item.current .tl-label { color: var(--edit-black); }
 
-  /* — the code + proof pane — */
+  /* - the code + proof pane - */
   .tl-pane {
     flex: 1 1 0;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    background: #ececec; /* a shade off the rail's white — the split, without a separator line */
+    background: #ececec; /* a shade off the rail's white - the split, without a separator line */
   }
   .tl-body {
     flex: 1;
@@ -225,7 +225,7 @@
     font-size: 16px;
   }
 
-  /* The proof boxes below really are computed by the CSS shown — the
+  /* The proof boxes below really are computed by the CSS shown - the
      same calc()/mod()/if()/@function constructs CSS-DOS is built from.
      Each carries a plain fallback for browsers without the feature. */
   .tl-result .demo-box-calc {

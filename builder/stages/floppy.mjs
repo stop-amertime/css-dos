@@ -1,4 +1,4 @@
-// Stage 2 — build the floppy image from the cart's resolved manifest.
+// Stage 2 - build the floppy image from the cart's resolved manifest.
 //
 // Input:  { cart, manifest, cacheDir }
 // Output: { bytes, layout: [{name, size, source}] }
@@ -41,20 +41,20 @@ export function buildFloppy({ cart, manifest, cacheDir }) {
   // Synthesize CONFIG.SYS. Every DOS cabinet boots COMMAND.COM as the
   // shell; the cart's program (if any) runs as a /K argument so the
   // shell stays alive after it exits. The cart never runs as the shell
-  // directly — that path used to exist (SHELL=\GAME.EXE) but stripped
+  // directly - that path used to exist (SHELL=\GAME.EXE) but stripped
   // the program of COMSPEC, the environment block, and a re-entry point,
   // so it was deleted on 2026-04-27.
   const runCommand = (manifest.boot?.runCommand ?? '').trim();
-  // SWITCHES=/F skips the ~2s F5/F8 startup delay — we don't need it in the emulator.
+  // SWITCHES=/F skips the ~2s F5/F8 startup delay - we don't need it in the emulator.
   // DEVICE=\ANSI.SYS loads NANSI (a GPLv2 DOS ANSI driver shipped in dos/bin/).
   // Programs that emit terminal escapes (Zork via FROTZ, SVARCOM's colored prompt,
   // any BBS-era software) rely on an ANSI driver being present. Without it the
-  // escape bytes go straight to VRAM as literal text. NANSI is ~5 KB resident —
+  // escape bytes go straight to VRAM as literal text. NANSI is ~5 KB resident -
   // negligible given our default memory sizing.
   // DEVICE=\EMSDRV.SYS registers a fake EMMXXXX0 character device so EMS-gated
   // programs (DOOM8088, anything that does open("EMMXXXX0",...)) detect EMS
   // and proceed past their initial check. The driver doesn't actually back EMS
-  // pages — it's enough for detection but not for real expanded-memory use.
+  // pages - it's enough for detection but not for real expanded-memory use.
   // Opt-in via `boot.ems = true` in program.json.
   const wantsEms = manifest.boot?.ems === true;
   const emsLine = wantsEms ? `DEVICE=\\EMSDRV.SYS\n` : '';
@@ -70,7 +70,7 @@ export function buildFloppy({ cart, manifest, cacheDir }) {
   // Assemble the file list: KERNEL.SYS + ANSI.SYS + CONFIG.SYS + cart files
   // + COMMAND.COM (unless the cart already supplied one). ANSI.SYS must be
   // on the disk before CONFIG.SYS loads it, but file order within the FAT
-  // image doesn't matter — files are located by name, not position.
+  // image doesn't matter - files are located by name, not position.
   //
   // COMMAND.COM is included so:
   //   - the synthesized SHELL=\COMMAND.COM /P /K line targets it
@@ -81,7 +81,7 @@ export function buildFloppy({ cart, manifest, cacheDir }) {
   //
   // If the cart itself ships a COMMAND.COM (e.g. you're testing your own
   // shell, or running the bare `dos/bin/command.com` as a cart), skip the
-  // bundled one — duplicate root-dir entries break the FAT12 lookup and
+  // bundled one - duplicate root-dir entries break the FAT12 lookup and
   // surface as "Bad or missing command interpreter" because DOS finds the
   // bundled (potentially packed) COMMAND.COM ahead of the user's copy.
   const layout = [
@@ -110,7 +110,7 @@ export function buildFloppy({ cart, manifest, cacheDir }) {
   // geometry first: autofit picks a standard floppy if content fits,
   // fabricates a bigger geometry otherwise. The BIOS reads this geometry
   // at runtime (patched in by the kiln stage), so the BPB and BIOS stay
-  // in lockstep — programs that call INT 13h AH=08h get the same CHS
+  // in lockstep - programs that call INT 13h AH=08h get the same CHS
   // the disk is actually laid out with.
   const fatFiles = layout.map(f => ({
     name: f.name,
@@ -123,7 +123,7 @@ export function buildFloppy({ cart, manifest, cacheDir }) {
   );
   const totalSectors = diskBytes / 512;
   // disk.sectorsPerCluster (optional) raises the minimum cluster size.
-  // DOS walks a file's FAT chain per seek/read — programs that seek a lot
+  // DOS walks a file's FAT chain per seek/read - programs that seek a lot
   // in a large file (Doom8088's lump loads) burn most of their I/O time
   // stepping 1 KB clusters. Bigger clusters shorten the chain linearly.
   const sectorsPerCluster = manifest.disk?.sectorsPerCluster;
@@ -139,12 +139,12 @@ export function buildFloppy({ cart, manifest, cacheDir }) {
   return { bytes, layout, geometry: { ...geometry, totalSectors } };
 }
 
-// boot.os "msdos4" — a real MS-DOS 4.00 floppy that boots via its own
+// boot.os "msdos4" - a real MS-DOS 4.00 floppy that boots via its own
 // boot sector (dos/msdos4/, MIT-licensed). Differences from the EDR-DOS
 // path above:
 //   - IO.SYS + MSDOS.SYS must be the FIRST TWO root directory entries
 //     with IO.SYS's first sectors contiguous at the start of the data
-//     area — MSBOOT.ASM's hard layout assumptions. mkfat12 writes files
+//     area - MSBOOT.ASM's hard layout assumptions. mkfat12 writes files
 //     in layout order, contiguously, so list order is the guarantee.
 //   - No KERNEL.SYS / ANSI.SYS / CONFIG.SYS synthesis. IO.SYS loads
 //     \COMMAND.COM by default; carts can supply their own CONFIG.SYS
@@ -186,7 +186,7 @@ function buildMsdos4Floppy({ cart, manifest, cacheDir }) {
       path: autoexecPath,
     });
   } else if (runCommand) {
-    throw new Error('boot.runCommand and a cart-supplied AUTOEXEC.BAT are mutually exclusive under boot.os "msdos4" — put the command in your AUTOEXEC.BAT.');
+    throw new Error('boot.runCommand and a cart-supplied AUTOEXEC.BAT are mutually exclusive under boot.os "msdos4" - put the command in your AUTOEXEC.BAT.');
   }
 
   const fatFiles = layout.map(f => ({

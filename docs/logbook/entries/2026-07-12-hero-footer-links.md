@@ -1,4 +1,4 @@
-# 2026-07-12 — hero footer links: Source / My site / Contact me
+# 2026-07-12 - hero footer links: Source / My site / Contact me
 
 **LANDED.** Owner ask: the About home hero's single "★ View the
 source on GitHub" line is now three side-by-side icon+word links

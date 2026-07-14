@@ -1,4 +1,4 @@
-// tests/bench/profiles/doom-ingame-fps.mjs — Doom8088 in-game FPS measurement.
+// tests/bench/profiles/doom-ingame-fps.mjs - Doom8088 in-game FPS measurement.
 //
 // Steady-state FPS is the number the user actually feels. The
 // doom-loading profile measures wall-time-to-in-game (a one-shot
@@ -8,7 +8,7 @@
 // Method:
 //   1. Boot Doom to the in-game state (gamestate=0 = GS_LEVEL).
 //      Use the same stage-detection watches as doom-loading.
-//   2. Hold Left Arrow continuously so the world animates — each
+//   2. Hold Left Arrow continuously so the world animates - each
 //      frame is a real new frame, not a static title screen the
 //      hash-dedup-style optimisations would skip.
 //   3. WARMUP_SECONDS warmup (no measurement). Right after gamestate
@@ -16,7 +16,7 @@
 //      fades in, sprite/sector caches populate. None of that
 //      reflects steady-state framerate.
 //   4. MEASURE_SECONDS measurement. Sample the framebuffer every
-//      ~16ms, hash the ENTIRE rgba (not a sparse sub-sample —
+//      ~16ms, hash the ENTIRE rgba (not a sparse sub-sample -
 //      that was unsound), compare to last hash. Each change is one
 //      user-visible new frame.
 //   5. Report fps = frames-changed / measure_seconds, plus a 1Hz
@@ -44,7 +44,7 @@ const MEASURE_SECONDS = 20;
 // off the bottom of the screen (animation, ~3-4s on the web), the
 // player view fades in, sprite/sector/wall caches populate, and the
 // renderer warms up. None of that reflects the steady-state framerate
-// the user feels while playing — measuring through it inflates the
+// the user feels while playing - measuring through it inflates the
 // number with one-shot animation frames.
 //
 // Hold Left through the warmup (so the world is already rotating
@@ -68,7 +68,7 @@ const WATCH_SPECS = [
   `menu:cond:${ADDR_MENUACTIVE}=1:gate=poll:then=emit`,
   `menu_tap:cond:${ADDR_MENUACTIVE}=1,repeat:gate=poll:then=setvar_pulse=keyboard,${ENTER},${TAP_HOLD}`,
   `loading:cond:${ADDR_USERGAME}=1,${ADDR_GAMESTATE}=3:gate=poll:then=emit`,
-  // ingame: usergame=1 AND gamestate=0. We DO NOT halt here — the
+  // ingame: usergame=1 AND gamestate=0. We DO NOT halt here - the
   // FPS measurement runs while the game is in-game. The profile JS
   // detects the ingame stage event and switches to FPS-sampling.
   `ingame:cond:${ADDR_USERGAME}=1,${ADDR_GAMESTATE}=0:gate=poll:then=emit`,
@@ -110,7 +110,7 @@ function bridgeRequest(bridge, msg, transfer = []) {
 }
 
 // FNV-1a over the full byte array. Hot-loop one allocation, no
-// sub-sampling — we want to detect any pixel change.
+// sub-sampling - we want to detect any pixel change.
 function hashFull(bytes) {
   let h = 0x811c9dc5 | 0;
   for (let i = 0; i < bytes.length; i++) {
@@ -157,7 +157,7 @@ export async function run(host) {
   }
 
   // Phase 2: warmup. Walk_left is firing every poll, but the engine
-  // is still doing first-frame work — menu slide-off animation
+  // is still doing first-frame work - menu slide-off animation
   // (~3-4s on web), view fade-in, sprite/sector cache population.
   // Hold through it without measuring; the steady-state FPS is what
   // we want.

@@ -1,9 +1,9 @@
-; bios/handlers.asm — Interrupt handlers extracted from css-emu-bios.asm
-; Linked with C BIOS init (not a standalone flat binary — no [org 0]).
+; bios/handlers.asm - Interrupt handlers extracted from css-emu-bios.asm
+; Linked with C BIOS init (not a standalone flat binary - no [org 0]).
 ; All handler labels are exported as globals so C code can reference them.
 
 [bits 16]
-[cpu 8086]      ; refuse to emit 186+ instructions — this BIOS runs on a pure 8086 core
+[cpu 8086]      ; refuse to emit 186+ instructions - this BIOS runs on a pure 8086 core
 
 global int01h_handler
 global int08h_handler
@@ -44,7 +44,7 @@ KERNEL_SEG  equ 0x0060          ; DOS kernel load segment
 SECTOR_SIZE equ 512
 HALT_ADDR   equ 0x0504          ; Halt flag address (seg 0)
 
-; Disk geometry — patched at build time by patchBiosDiskGeometry() in
+; Disk geometry - patched at build time by patchBiosDiskGeometry() in
 ; builder/stages/kiln.mjs. The init values below are sentinels the patcher
 ; scans for: the patcher writes the real geometry (derived from the
 ; resolved floppy size) into these bytes before the BIOS is baked into
@@ -92,7 +92,7 @@ video_rows          equ 0x84    ; byte - text rows minus 1
 video_char_height   equ 0x85    ; word - character height (points)
 
 ; ============================================================
-; INT 10h — Video Services
+; INT 10h - Video Services
 ; ============================================================
 int10h_handler:
     push ds
@@ -131,7 +131,7 @@ int10h_handler:
     ; Dispatch on video mode. Graphics modes (04/05) use the CGA 8x8 font
     ; rasteriser; text modes use the char+attr pair path. Mode 06 is
     ; graphics-mode too but with a different pixel layout (1 bpp, 640
-    ; wide) — we don't have a 1bpp teletype path yet, so consume the
+    ; wide) - we don't have a 1bpp teletype path yet, so consume the
     ; character and advance the cursor without rasterising. Most mode-6
     ; software writes pixels directly rather than via INT 10h AH=0Eh.
     push ax
@@ -196,7 +196,7 @@ int10h_handler:
     ;   - DL = column (text cell, 0..39), DH = row (0..24).
     ;
     ; We'll render a glyph cell at pixel origin (col*8, row*8) into the CGA
-    ; aperture. Layout: 320x200 2bpp, planes interleaved — even scanlines
+    ; aperture. Layout: 320x200 2bpp, planes interleaved - even scanlines
     ; at B800:0000, odd at B800:2000, each scanline 80 bytes. A text cell
     ; is 8px wide = 2 bytes at 2 bpp.
     pop ax                   ; discard the mode-branch save
@@ -246,7 +246,7 @@ int10h_handler:
     mov bx, 0xB800
     mov ds, bx
 
-    ; Recover row/col — DX is the 6th-from-top push (deep). Simpler: peek
+    ; Recover row/col - DX is the 6th-from-top push (deep). Simpler: peek
     ; past the 5 font words = 10 bytes, then DX at [sp+10].
     mov bp, sp
     mov dx, [bp+10]          ; DL=col, DH=row (saved near top)
@@ -290,14 +290,14 @@ int10h_handler:
 
     ; Fetch the font byte for this row from our stack cache.
     ; Stack layout (from BP=sp): [bp+0]=word(f7 in low), [bp+2]=word(f6:f5)  ← f5 low, f6 high,
-    ; [bp+4]=word(f4:f3), [bp+6]=word(f2:f1), [bp+8]=word(-:f0) wait — push order:
+    ; [bp+4]=word(f4:f3), [bp+6]=word(f2:f1), [bp+8]=word(-:f0) wait - push order:
     ;   push f0 first (top of pushes is last push = f7). So:
     ;   [bp+0] = f7 (in low byte of word)
     ;   [bp+2] = f5 low, f6 high
     ;   [bp+4] = f3 low, f4 high
     ;   [bp+6] = f1 low, f2 high
     ;   [bp+8] = f0 (in low byte of word)
-    ; Recompute bp each iteration to accommodate pushes — we don't push inside the loop.
+    ; Recompute bp each iteration to accommodate pushes - we don't push inside the loop.
     mov bp, sp
     ; Map CL (0..7) to a byte in that layout.
     cmp cl, 0
@@ -543,15 +543,15 @@ int10h_handler:
     ; Only store modes we actually support; map anything else to 0x03.
     cmp al, 0x13
     je .set_mode_store
-    cmp al, 0x04           ; CGA 320x200x4 — 2bpp packed scanline-interleaved
+    cmp al, 0x04           ; CGA 320x200x4 - 2bpp packed scanline-interleaved
     je .set_mode_store     ; framebuffer at B8000 (16 KB aperture).
-    cmp al, 0x05           ; CGA 320x200x4 mono — same layout as 0x04 but
+    cmp al, 0x05           ; CGA 320x200x4 mono - same layout as 0x04 but
     je .set_mode_store     ; rendered with a forced grey palette.
-    cmp al, 0x06           ; CGA 640x200x2 hires mono — 1 bpp at B8000,
+    cmp al, 0x06           ; CGA 640x200x2 hires mono - 1 bpp at B8000,
     je .set_mode_store     ; same 16 KB aperture, MSB-first bit packing.
-    cmp al, 0x01           ; CGA 40x25 color text — same buffer at B8000,
+    cmp al, 0x01           ; CGA 40x25 color text - same buffer at B8000,
     je .set_mode_store     ; just a different column stride.
-    cmp al, 0x00           ; CGA 40x25 mono text — same layout as 0x01;
+    cmp al, 0x00           ; CGA 40x25 mono text - same layout as 0x01;
     jne .set_mode_force03  ; mono vs colour is an attribute-byte distinction
     mov al, 0x01           ; we ignore, so normalise to 0x01.
     jmp short .set_mode_store
@@ -890,7 +890,7 @@ int10h_handler:
 
 .get_display_combo:
     ; AH=1Ah: Get/Set Display Combination Code
-    ; Return VGA color (0x08) — programs use this to detect VGA.
+    ; Return VGA color (0x08) - programs use this to detect VGA.
     ; AL selects get (00h) vs set (01h); BL is an output, callers
     ; leave it undefined (PoP 1.4 probes with AX=1A00h, BL=junk).
     cmp al, 0
@@ -904,7 +904,7 @@ int10h_handler:
     mov al, 0x1A            ; confirm function supported
     iret
 .dcc_set:
-    ; BL!=0: Set DCC — ignore but confirm
+    ; BL!=0: Set DCC - ignore but confirm
     pop bp
     pop es
     pop ds
@@ -912,7 +912,7 @@ int10h_handler:
     iret
 
 ; ============================================================
-; scroll_up_one — scroll VGA text up by one line
+; scroll_up_one - scroll VGA text up by one line
 ; ============================================================
 scroll_up_one:
     push ds
@@ -947,7 +947,7 @@ scroll_up_one:
     ret
 
 ; ============================================================
-; INT 11h — Equipment List (read from BDA, like reference BIOS)
+; INT 11h - Equipment List (read from BDA, like reference BIOS)
 ; ============================================================
 int11h_handler:
     sti
@@ -959,7 +959,7 @@ int11h_handler:
     iret
 
 ; ============================================================
-; INT 12h — Memory Size (read from BDA, like reference BIOS)
+; INT 12h - Memory Size (read from BDA, like reference BIOS)
 ; ============================================================
 int12h_handler:
     sti
@@ -971,14 +971,14 @@ int12h_handler:
     iret
 
 ; ============================================================
-; INT 13h — Disk Services (memory-resident disk image)
+; INT 13h - Disk Services (memory-resident disk image)
 ; ============================================================
 int13h_handler:
     ; Register contract (matches ROM BIOS, which MS-DOS's MSBOOT/MSLOAD/
     ; MSDISK rely on): every function returns status in AH + stacked CF;
     ; all other registers are preserved except each function's documented
     ; outputs (AH=08h returns geometry in BL/CX/DX/ES:DI). CF must be
-    ; edited in the STACKED FLAGS — a bare clc/stc before IRET is dead,
+    ; edited in the STACKED FLAGS - a bare clc/stc before IRET is dead,
     ; IRET restores the caller's FLAGS image.
     push bp
     mov bp, sp             ; [bp+2]=IP, [bp+4]=CS, [bp+6]=FLAGS
@@ -995,7 +995,7 @@ int13h_handler:
     je .disk_params
     cmp ah, 0x15
     je .disk_type
-    ; Unknown function — return error
+    ; Unknown function - return error
     mov ah, 0x01           ; invalid function
     or byte [bp+6], 0x01   ; CF set in stacked FLAGS
     pop bp
@@ -1007,7 +1007,7 @@ int13h_handler:
     iret
 
 .disk_verify:
-    ; AH=04h: Verify sectors. The disk is CSS properties — there is no
+    ; AH=04h: Verify sectors. The disk is CSS properties - there is no
     ; medium to develop errors. Report success, AL = sectors verified
     ; (unchanged from input).
     mov ah, 0
@@ -1015,10 +1015,10 @@ int13h_handler:
     iret
 
 .disk_params:
-    ; Return drive parameters. Geometry is patched in at build time — see
+    ; Return drive parameters. Geometry is patched in at build time - see
     ; disk_geometry_* words below. BL/CX/DX/ES:DI are documented outputs.
     ;
-    ; Only drive 0 (floppy A:) exists — any other DL must FAIL. This is
+    ; Only drive 0 (floppy A:) exists - any other DL must FAIL. This is
     ; load-bearing: MS-DOS's MSINIT counts hard disks by calling AH=08h
     ; with DL=80h and, unless CF is set, believes DL on return. Answering
     ; success here conjures a phantom hard disk whose BDS setup (SETHARD)
@@ -1098,7 +1098,7 @@ int13h_handler:
     dec cl                 ; sector is 1-based
     add si, cx             ; SI = LBA (starting)
 
-    mov ax, [bp-14]        ; saved AX — AL = sector count
+    mov ax, [bp-14]        ; saved AX - AL = sector count
     xor ah, ah
     mov cx, ax             ; CX = sector count
     mov di, [bp-8]         ; caller BX = destination offset (segment in ES)
@@ -1135,7 +1135,7 @@ int13h_handler:
     jnz .read_sector_loop
 
     ; Success: AH=0, AL = sectors read; everything else restored.
-    pop ax                 ; saved AX — AL = original count
+    pop ax                 ; saved AX - AL = original count
     xor ah, ah
     pop dx
     pop cx
@@ -1156,7 +1156,7 @@ int13h_handler:
     ; the CSS routes window writes into shadow-disk cells keyed by that LBA;
     ; on rom cabinets the window has no backing cells and the bytes vanish
     ; (same as writing adapter ROM on real hardware). We report success
-    ; either way — the BIOS can't tell the flavors apart, and DOS re-reads
+    ; either way - the BIOS can't tell the flavors apart, and DOS re-reads
     ; what it wrote rather than checking.
     ;
     ; BP was pushed by the dispatcher; frame slots below are BP-relative.
@@ -1237,7 +1237,7 @@ int13h_handler:
     iret
 
 ; ============================================================
-; INT 16h — Keyboard Services (matches reference BIOS contracts)
+; INT 16h - Keyboard Services (matches reference BIOS contracts)
 ; ============================================================
 int16h_handler:
     sti
@@ -1268,7 +1268,7 @@ int16h_handler:
 .key_wait:
     mov bx, [kbd_buffer_head]
     cmp bx, [kbd_buffer_tail]
-    je .key_wait                ; buffer empty — spin
+    je .key_wait                ; buffer empty - spin
     mov ax, [bx]                ; read (scancode<<8 | ascii) word
     add bx, 2
     cmp bx, [kbd_buffer_end]    ; wrap around ring buffer
@@ -1291,7 +1291,7 @@ int16h_handler:
     pop bx
     push bp
     mov bp, sp
-    and word [bp+6], 0xFFBF     ; clear ZF — key available
+    and word [bp+6], 0xFFBF     ; clear ZF - key available
     pop bp
     iret
 .ck_empty:
@@ -1299,7 +1299,7 @@ int16h_handler:
     pop bx
     push bp
     mov bp, sp
-    or word [bp+6], 0x0040      ; set ZF — no key
+    or word [bp+6], 0x0040      ; set ZF - no key
     pop bp
     iret
 
@@ -1319,7 +1319,7 @@ int16h_handler:
     iret
 
 ; ============================================================
-; INT 1Ah — Timer Services (matches reference BIOS contract)
+; INT 1Ah - Timer Services (matches reference BIOS contract)
 ; ============================================================
 int1ah_handler:
     sti
@@ -1361,7 +1361,7 @@ int1ah_handler:
     iret
 
 ; ============================================================
-; INT 08h — Timer Tick (IRQ0)
+; INT 08h - Timer Tick (IRQ0)
 ; Increments BDA tick count, checks for midnight, calls INT 1Ch.
 ; We don't have a real PIT, so this won't fire automatically,
 ; but having the handler means any code that triggers INT 08h
@@ -1388,7 +1388,7 @@ int08h_handler:
     mov byte [new_day], 1
 .no_midnight:
     int 0x1C               ; User timer tick hook
-    ; EOI to PIC (IRQ 0) — must be last so a nested exception during INT 1Ch
+    ; EOI to PIC (IRQ 0) - must be last so a nested exception during INT 1Ch
     ; still sees picInService set and clears its own bit cleanly.
     mov al, 0x20
     out 0x20, al
@@ -1398,7 +1398,7 @@ int08h_handler:
     iret
 
 ; ============================================================
-; INT 09h — Keyboard IRQ (IRQ1)
+; INT 09h - Keyboard IRQ (IRQ1)
 ; Reads scancode from port 0x60, pushes (scancode<<8 | ascii) into the BDA
 ; ring buffer so INT 16h works, toggles port 0x61 bit 7 to ack the keyboard
 ; controller, then EOIs the PIC. The --keyboard CSS property already packs
@@ -1414,7 +1414,7 @@ int08h_handler:
 ; with the scancode preserved. Break codes of normal keys are dropped
 ; (only the flags byte cares about releases). The on-screen keyboard
 ; can't physically chord, so combos arrive via the hold wire (held
-; modifier make, no break until hold-off) or multitouch — both just
+; modifier make, no break until hold-off) or multitouch - both just
 ; look like "flag set while another key's make arrives" here.
 ; ============================================================
 int09h_handler:
@@ -1445,7 +1445,7 @@ int09h_handler:
     je .modifier
 
     test al, 0x80
-    jnz .ack               ; break of a normal key — nothing to buffer
+    jnz .ack               ; break of a normal key - nothing to buffer
 
     ; Make of a normal key: translate via the modifier-selected table.
     mov ah, al             ; AH = scancode (high byte of the key word)
@@ -1479,7 +1479,7 @@ int09h_handler:
     mov cx, [kbd_buffer_start]
 .no_wrap:
     cmp cx, [kbd_buffer_head]
-    je .ack                ; buffer full — drop the key
+    je .ack                ; buffer full - drop the key
     mov [bx], ax
     mov [kbd_buffer_tail], cx
     jmp .ack
@@ -1503,7 +1503,7 @@ int09h_handler:
     mov al, ah
     out 0x61, al
 
-    ; EOI to PIC (IRQ 1) — last, as with INT 08h.
+    ; EOI to PIC (IRQ 1) - last, as with INT 08h.
     mov al, 0x20
     out 0x20, al
 
@@ -1514,7 +1514,7 @@ int09h_handler:
     iret
 
 ; ============================================================
-; INT 15h — Miscellaneous System Services (matches reference)
+; INT 15h - Miscellaneous System Services (matches reference)
 ; ============================================================
 int15h_handler:
     sti
@@ -1524,12 +1524,12 @@ int15h_handler:
     je .sys_config
     cmp ah, 0x88
     je .ext_mem_size
-    ; AH=90h/91h: OS hooks — return success
+    ; AH=90h/91h: OS hooks - return success
     cmp ah, 0x90
     je .os_hook
     cmp ah, 0x91
     je .os_hook
-    ; Unknown function — CF set, AH=86h (like reference)
+    ; Unknown function - CF set, AH=86h (like reference)
     mov ah, 0x86
     push bp
     mov bp, sp
@@ -1538,16 +1538,16 @@ int15h_handler:
     iret
 
 .kbd_intercept:
-    ; AH=4Fh: Keyboard intercept — just IRET (pass through)
+    ; AH=4Fh: Keyboard intercept - just IRET (pass through)
     iret
 
 .os_hook:
-    ; AH=90h/91h: Device busy/interrupt complete — AH=0, IRET
+    ; AH=90h/91h: Device busy/interrupt complete - AH=0, IRET
     mov ah, 0x00
     iret
 
 .ext_mem_size:
-    ; AH=88h: Extended memory size (above 1MB) — none
+    ; AH=88h: Extended memory size (above 1MB) - none
     xor ax, ax
     push bp
     mov bp, sp
@@ -1568,11 +1568,11 @@ int15h_handler:
     iret
 
 ; ============================================================
-; INT 19h — Bootstrap: read the boot sector (LBA 0) to 0000:7C00
+; INT 19h - Bootstrap: read the boot sector (LBA 0) to 0000:7C00
 ; and jump to it, DL = boot drive. Never returns. Reached from
 ; entry.asm when boot_mode=1, and re-entered by loaders themselves
 ; on "insert another disk" error paths (e.g. MSBOOT.ASM's CKERR).
-; A missing/invalid boot sector halts — same end state as the old
+; A missing/invalid boot sector halts - same end state as the old
 ; halt-only handler, which EDR-DOS builds (boot_mode=0) never reach
 ; anyway because their floppies carry a stub boot sector.
 ; ============================================================
@@ -1598,7 +1598,7 @@ int19h_handler:
     jmp .halt
 
 ; ============================================================
-; INT 20h — Program Terminate (halt)
+; INT 20h - Program Terminate (halt)
 ; ============================================================
 int20h_handler:
     push ds
@@ -1609,7 +1609,7 @@ int20h_handler:
     jmp int20h_handler
 
 ; ============================================================
-; INT 2Fh — DOS Multiplex Interrupt (XMS detection only).
+; INT 2Fh - DOS Multiplex Interrupt (XMS detection only).
 ; ============================================================
 ; AX=4300h: detect HIMEM. We respond with AL=0x80 (installed) so
 ; programs like DOOM8088 think XMS is available.
@@ -1619,7 +1619,7 @@ int20h_handler:
 ; All other AX values fall through to default behavior (CF set =
 ; not handled), since CSS-DOS doesn't ship a TSR multiplex registry.
 ;
-; This is a *fake* XMS implementation — see xms_driver_entry for the
+; This is a *fake* XMS implementation - see xms_driver_entry for the
 ; minimum-viable behavior. Real moves don't happen; allocations always
 ; return success. Without this, DOOM8088 hard-aborts at "Not enough
 ; XMS available" and never reaches the title screen.
@@ -1628,7 +1628,7 @@ int2fh_handler:
     je .install_check
     cmp ax, 0x4310
     je .get_entry
-    ; Unhandled multiplex sub-function — set CF and return.
+    ; Unhandled multiplex sub-function - set CF and return.
     push bp
     mov bp, sp
     or word [bp+6], 0x0001
@@ -1650,7 +1650,7 @@ int2fh_handler:
 ; ============================================================
 ; Called via FAR CALL with AH = function number. Each function returns
 ; AX=1 on success, AX=0 + BL=error on failure. We return success for
-; everything DOOM8088 cares about. Memory moves are no-ops — DOOM
+; everything DOOM8088 cares about. Memory moves are no-ops - DOOM
 ; thinks the WAD is loaded but it actually isn't. Lump cache reads
 ; will return zeros, so visuals will be wrong, but execution proceeds
 ; far enough to leave the W_GetNumForName error path and reach mode
@@ -1679,7 +1679,7 @@ xms_driver_entry:
     je .handle_info
     cmp ah, 0x0F            ; Realloc block
     je .ok
-    ; Unknown — claim success anyway.
+    ; Unknown - claim success anyway.
     mov ax, 1
     mov bl, 0
     retf
@@ -1695,7 +1695,7 @@ xms_driver_entry:
     mov dx, 65535
     retf
 .alloc:
-    ; DX = handle (just return 1 — DOOM doesn't care about the value)
+    ; DX = handle (just return 1 - DOOM doesn't care about the value)
     mov ax, 1
     mov dx, 1
     retf
@@ -1719,7 +1719,7 @@ xms_driver_entry:
     retf
 
 ; ============================================================
-; INT 67h — Expanded Memory Specification (EMS) handler.
+; INT 67h - Expanded Memory Specification (EMS) handler.
 ; ============================================================
 ; Faked just enough for DOOM8088. The detection magic "EMMXXXX0" lives
 ; at offset 0x0A of BIOS_SEG (see entry.asm ems_magic_block). When DOOM
@@ -1727,7 +1727,7 @@ xms_driver_entry:
 ; installed and proceeds.
 ;
 ; Function dispatch via AH. We respond success for the calls DOOM uses
-; during init — get status, get version, get page count, allocate
+; during init - get status, get version, get page count, allocate
 ; pages, map handle to physical page. Real backing storage is not
 ; provided; reads from "EMS pages" return whatever happens to be in
 ; the conventional memory page that was last mapped, which is enough
@@ -1752,7 +1752,7 @@ int67h_handler:
     je .ok
     cmp ah, 0x48            ; Restore mapping context
     je .ok
-    ; Unknown EMS function — return error code 0x80 ("internal error").
+    ; Unknown EMS function - return error code 0x80 ("internal error").
     mov ah, 0x80
     iret
 .ok:
@@ -1764,17 +1764,17 @@ int67h_handler:
     iret
 .pageframe:
     ; BX = page frame segment. EMS page frame is conventionally at
-    ; 0xE000 — a 64 KB window split into four 16 KB pages. We claim
+    ; 0xE000 - a 64 KB window split into four 16 KB pages. We claim
     ; 0xE000 even though we don't actually back it; DOOM may try to
     ; map and write there. Conventional memory at 0xE000 isn't
-    ; declared in our memory zones today, so writes go nowhere — DOOM
+    ; declared in our memory zones today, so writes go nowhere - DOOM
     ; will see whatever zeros come back.
     mov ah, 0
     mov bx, 0xE000
     iret
 .pages:
     ; BX = unallocated pages (16 KB each), DX = total pages.
-    ; 128 * 16 KB = 2 MB — generous, well above what DOOM asks for.
+    ; 128 * 16 KB = 2 MB - generous, well above what DOOM asks for.
     mov ah, 0
     mov bx, 128
     mov dx, 128
@@ -1789,7 +1789,7 @@ int67h_handler:
     iret
 
 ; ============================================================
-; INT 01h — Single-step trap handler.
+; INT 01h - Single-step trap handler.
 ; Clears TF from stacked FLAGS so execution resumes normally.
 ; ============================================================
 int01h_handler:
@@ -1800,14 +1800,14 @@ int01h_handler:
     iret
 
 ; ============================================================
-; int_dummy — Dummy interrupt handler (IRET only)
+; int_dummy - Dummy interrupt handler (IRET only)
 ; Matches reference BIOS int_dummy at FF53h.
 ; ============================================================
 int_dummy:
     iret
 
 ; ============================================================
-; default_handler — For unimplemented INTs
+; default_handler - For unimplemented INTs
 ; Returns with CF set to signal "not supported".
 ; ============================================================
 default_handler:
@@ -1818,7 +1818,7 @@ default_handler:
     iret
 
 ; ============================================================
-; Interrupt vector table — offsets only (segment always F000h)
+; Interrupt vector table - offsets only (segment always F000h)
 ; Matches reference 8088_bios interrupt_table layout exactly.
 ; 32 entries: INT 00h through INT 1Fh.
 ; ============================================================
@@ -1892,7 +1892,7 @@ disk_param_table:
     db 0x25                ; motor off delay (ticks)
     db 0x02                ; bytes per sector (2 = 512)
 disk_param_spt:
-    db 0xD4                ; sectors per track — patched at build time
+    db 0xD4                ; sectors per track - patched at build time
                            ; (sentinel 0xD4; paired with disk_geometry_spt)
     db 0x1B                ; gap length
     db 0xFF                ; data length
@@ -1902,7 +1902,7 @@ disk_param_spt:
     db 0x08                ; motor start time (1/8 sec units)
 
 ; ============================================================
-; Disk geometry — patched at build time. Each field is preceded by a
+; Disk geometry - patched at build time. Each field is preceded by a
 ; 4-byte anchor (distinct per field) followed by a 16-bit data word with
 ; a 0x0000 placeholder. The patcher in builder/stages/kiln.mjs finds
 ; the anchor and writes the real value into the word immediately after.
@@ -1914,29 +1914,29 @@ disk_param_spt:
 ; accepts them as data and no instruction decode ever lands on them
 ; (the handler never executes this region).
 ; ============================================================
-    db 'DGSP'              ; anchor — disk_geometry_spt
+    db 'DGSP'              ; anchor - disk_geometry_spt
 disk_geometry_spt:
     dw 0x0000
-    db 'DGHD'              ; anchor — disk_geometry_heads
+    db 'DGHD'              ; anchor - disk_geometry_heads
 disk_geometry_heads:
     dw 0x0000
-    db 'DGCY'              ; anchor — disk_geometry_cyls
+    db 'DGCY'              ; anchor - disk_geometry_cyls
 disk_geometry_cyls:
     dw 0x0000
 
-; Boot handoff mode — patched at build time by patchBiosBootMode() in
+; Boot handoff mode - patched at build time by patchBiosBootMode() in
 ; builder/stages/kiln.mjs (anchor 'BTMD'). 0 = direct jump to the
 ; kernel the transpiler preloaded at 0060:0000 (EDR-DOS, the default);
-; 1 = real INT 19h bootstrap: read LBA 0 to 0000:7C00 and jump — for
+; 1 = real INT 19h bootstrap: read LBA 0 to 0000:7C00 and jump - for
 ; carts whose floppy carries a real boot sector (boot.os "msdos4").
-    db 'BTMD'              ; anchor — boot_mode
+    db 'BTMD'              ; anchor - boot_mode
 boot_mode:
     db 0
 
 ; ============================================================
 ; Scancode → ASCII lookup for INT 09h.
 ; 128 entries, indexed by make-code (0x00-0x7F). Unassigned = 0.
-; Matches the (scancode, ascii) pairs in kiln/template.mjs KEYBOARD_KEYS —
+; Matches the (scancode, ascii) pairs in kiln/template.mjs KEYBOARD_KEYS -
 ; only keys the CSS :active keyboard can produce are mapped; everything
 ; else is 0 (a non-character scancode that INT 16h callers treat as "no
 ; ASCII", e.g. arrow keys).
@@ -1957,7 +1957,7 @@ scancode2ascii:
 
 ; Shift-selected variant (kbd_flags_1 & 0x03): uppercase letters, US
 ; digit-row symbols, < > ? on comma/period/slash. Shift+Tab is 0x00
-; (back-tab: scancode 0x0F, no ASCII — matches real BIOS). Same
+; (back-tab: scancode 0x0F, no ASCII - matches real BIOS). Same
 ; scancodes; only the ASCII byte changes.
 scancode2ascii_shift:
     db 0x00, 0x1B, 0x21, 0x40, 0x23, 0x24, 0x25, 0x5E   ; 01 Esc, 02-07 !@#$%^
@@ -1971,7 +1971,7 @@ scancode2ascii_shift:
     times 0x80 - ($ - scancode2ascii_shift) db 0x00
 
 ; Ctrl-selected variant (kbd_flags_1 & 0x04): letters become control
-; codes (ASCII & 0x1F — Ctrl+C = 0x03 so DOS break works), Ctrl+Enter
+; codes (ASCII & 0x1F - Ctrl+C = 0x03 so DOS break works), Ctrl+Enter
 ; = LF, Ctrl+Bksp = DEL, Ctrl+6 = RS (0x1E, the one digit real BIOS
 ; maps). Keys with no control meaning report ASCII 0 (scancode still
 ; buffered, like arrow keys).
@@ -1991,7 +1991,7 @@ scancode2ascii_ctrl:
 ; 256 glyphs × 8 bytes, MSB = leftmost pixel. Matches IBM VGA BIOS
 ; 8×8 font (a superset of the original CGA ROM font, same glyph shapes
 ; for codepoints 0x00-0xFF).
-; Referenced by .tty_gfx via `lea bp, [cga_font_8x8]` — BP is relative
+; Referenced by .tty_gfx via `lea bp, [cga_font_8x8]` - BP is relative
 ; to BIOS segment (CS=0xF000) at handler entry.
 ; ============================================================
 cga_font_8x8:

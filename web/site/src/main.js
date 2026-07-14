@@ -5,7 +5,7 @@ import { inject } from '@vercel/analytics';
 
 // The service worker (owns /_screen/framebuffer and cached cabinet bytes
 // for the player tab) is registered by /shim/calcite-bridge-boot.js, loaded
-// from index.html — it also spawns the bridge worker and sets
+// from index.html - it also spawns the bridge worker and sets
 // window.__calciteBridge.
 
 // Initialize Vercel Web Analytics

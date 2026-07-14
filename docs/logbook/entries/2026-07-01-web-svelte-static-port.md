@@ -8,7 +8,7 @@ Node dev server. 1:1 port of look/behaviour, DRY'd into components.
 
 - **Svelte 5 (runes) under `web/site/src/`.** `Build`/`Nav` classes with
   `$state` fields (`lib/builder.svelte.js`, `lib/router.svelte.js`) back
-  the reactive UI directly — no MutationObserver/hidden-DOM signalling.
+  the reactive UI directly - no MutationObserver/hidden-DOM signalling.
   Routes (`About`/`Build`/`Play`) + components (StepDots, RadioGroup,
   CartCard/Grid, SpecTable, BuildProgress, SourceViewer, …). Hash routing
   keeps deep-links/refresh working (`#about`/`#build`/`#play`).
@@ -16,7 +16,7 @@ Node dev server. 1:1 port of look/behaviour, DRY'd into components.
   by declaring `display.cover`; name/description come from the same
   program.json (no second frontend manifest). `carts.js` deleted.
   Documented in `docs/cart-format.md`.
-- **Static hosting — dev == prod, one source of truth.**
+- **Static hosting - dev == prod, one source of truth.**
   `web/site/scripts/runtime-assets.mjs` holds a single `RUNTIME_COPIES`
   table (`[urlPath, srcDir]`) for every root-absolute runtime file the
   site fetches but Vite doesn't bundle: the browser-builder ESM graph +
@@ -24,10 +24,10 @@ Node dev server. 1:1 port of look/behaviour, DRY'd into components.
   dos/bin, prebake, shim, player, calcite/pkg (vendored WASM), carts.
   Dev middleware serves that table off disk; build `closeBundle` copies
   it into `dist/`, emits `carts/index.json` (the directory listing a
-  static host won't give the browser — same `[{name,files,program}]`
+  static host won't give the browser - same `[{name,files,program}]`
   shape the app consumes) and `vercel.json` + `_headers` (COOP/COEP for
   SharedArrayBuffer). The browser-builder import is marked Rollup-external
-  so it's copied, not bundled — no shebang/Node-ism problems; the one CLI
+  so it's copied, not bundled - no shebang/Node-ism problems; the one CLI
   shebang (`tools/mkfat12.mjs`) is stripped on serve+copy.
 - **Deleted:** the old externalize hack + the 210-line dev-middleware
   (`/_status`, `/_reset`, `/_clear` all gone). Root `npm run dev` now runs
@@ -44,7 +44,7 @@ the same way as the old build.js). `vite build` clean.
 **Not done (owner-visible follow-ups):** legacy site files
 (`assets/{build,wizard,learn,carts}.js`, `{site,wizard}.css`,
 `build.html`, `split.html`, `index.old.html`, `web/scripts/split-regen.mjs`)
-and the old `web/scripts/dev.mjs` still exist — deleting them breaks
+and the old `web/scripts/dev.mjs` still exist - deleting them breaks
 `web/tests/kbd-e2e.playwright.mjs` (STATUS's only real-path keyboard
 coverage) and `compile-phase-capture.playwright.mjs`, which drive the old
 DOM. Migrating those two harnesses to the Svelte `/build` route is the

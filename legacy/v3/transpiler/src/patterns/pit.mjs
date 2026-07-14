@@ -30,7 +30,7 @@ export function emitPitProperties() {
   //        = (pitReload > 0) * max(0, sign(1 - newCounter))
   // But sign() with CSS... let's use: if newCounter <= 0 then 1 else 0.
   // Since we can't easily do <= with style(), use: max(0, 1 - max(0, newCounter))
-  // When newCounter > 0: max(0, 1 - newCounter) — if newCounter >= 1, this is <= 0, clamp to 0
+  // When newCounter > 0: max(0, 1 - newCounter) - if newCounter >= 1, this is <= 0, clamp to 0
   // When newCounter <= 0: max(0, 1 - 0) = 1 (or more, but we just need > 0)
   // Actually simpler: just compute the counter with modular reload.
 

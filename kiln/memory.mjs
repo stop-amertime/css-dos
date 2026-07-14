@@ -49,9 +49,9 @@ export const DISK_SHADOW_LINEAR = 0x200000;
 // writes 1 byte; etc.), so a global width fits.
 export const NUM_WRITE_SLOTS = 3;
 
-// Packed memory cells — pack PACK_SIZE bytes into a single @property.
+// Packed memory cells - pack PACK_SIZE bytes into a single @property.
 // 1 = unpacked (one byte per property, the legacy shape).
-// 2 = two bytes per cell (cell = b0 | b1<<8).  Max value 65535 — fits in i32
+// 2 = two bytes per cell (cell = b0 | b1<<8).  Max value 65535 - fits in i32
 //     (and in CSS's ~30-bit <integer> safe range with lots of headroom).
 // 4 = four bytes per cell is NOT safe: values with byte3 >= 0x80 exceed i32
 //     max, which calcite truncates to a negative number, corrupting
@@ -80,7 +80,7 @@ export function cellBase(cellIdx) { return cellIdx * PACK_SIZE; }
 // Gossamer publishes its handler offsets as data behind an 'IVTG'
 // anchor (see gossamer.asm ivt_gossamer_table): 5 words for INT 10h,
 // 16h, 1Ah, 20h, 21h in that order. Read them from the assembled
-// image instead of hardcoding — a hardcoded copy went stale once
+// image instead of hardcoding - a hardcoded copy went stale once
 // (2026-06 CGA/DAC work shifted every handler by +0x7B and INT 16h
 // pointed into the middle of set-mode for a week).
 const IVT_ANCHOR = [0x49, 0x56, 0x54, 0x47]; // 'IVTG'
@@ -98,7 +98,7 @@ export function readGossamerVectors(biosBytes) {
     });
     return vectors;
   }
-  throw new Error("gossamer BIOS image has no 'IVTG' vector table anchor — rebuild bios/gossamer");
+  throw new Error("gossamer BIOS image has no 'IVTG' vector table anchor - rebuild bios/gossamer");
 }
 
 /**
@@ -136,7 +136,7 @@ export function buildAddressSet(zones) {
  * Standard memory zones for .COM programs.
  * --mem controls the conventional memory size (program + stack area).
  */
-export function comMemoryZones(programBytes, programOffset, memBytes, prune = {}) {
+export function comMemoryZones(memBytes, prune = {}) {
   // memBytes = size of conventional memory area starting at 0
   // (includes IVT + BDA + program + stack).
   //
@@ -170,7 +170,7 @@ export function comMemoryZones(programBytes, programOffset, memBytes, prune = {}
  * The EDRDOS kernel always relocates its code and data structures to the
  * top ~160KB of conventional memory, regardless of what program runs.
  * The middle area (between the kernel image and DOS high area) is where
- * user programs load — its size depends on the program.
+ * user programs load - its size depends on the program.
  *
  * Layout (640KB):
  *   0x00000-0x00600  IVT + BDA + free area (always needed)
@@ -183,7 +183,7 @@ export function comMemoryZones(programBytes, programOffset, memBytes, prune = {}
  * To reduce CSS size for small programs, pass a smaller --mem value.
  * The kernel high area (top 104KB) is always included regardless of --mem.
  */
-export function dosMemoryZones(programBytes, programOffset, memBytes, embeddedData, prune = {}) {
+export function dosMemoryZones(memBytes, embeddedData, prune = {}) {
   // Use one contiguous block for all conventional memory. The kernel
   // relocates itself to high memory and its code segment can span a wide
   // range of addresses, so splitting into low/high zones with a gap causes
@@ -191,7 +191,7 @@ export function dosMemoryZones(programBytes, programOffset, memBytes, embeddedDa
   //
   // Note: the LBA register at linear 0x4F0-0x4F1 (BDA intra-app area) is
   // naturally inside [0x0000, memBytes] and therefore normal writable
-  // memory — no special handling needed.
+  // memory - no special handling needed.
   // EDR-DOS's biosinit relocates itself to `mem_size - biosinit_paragraphs`
   // and copies `biosinit_end` bytes there. The copy's last byte lands at
   // roughly linear `mem_size * 1024 + (biosinit_end mod 16)`, i.e. a few
@@ -201,7 +201,7 @@ export function dosMemoryZones(programBytes, programOffset, memBytes, embeddedDa
   // gap between the conventional zone and the framebuffer, the far-return
   // into the copy jumps into dead memory, and boot dies silently. Pad the
   // zone with 4 KB to absorb that overspill without growing the cabinet
-  // noticeably. 4 KB is more than enough — biosinit is under 16 KB total,
+  // noticeably. 4 KB is more than enough - biosinit is under 16 KB total,
   // so the overspill past mem_size*1024 is at most ~16 bytes.
   const DOS_BIOSINIT_PAD = 0x1000;
   const convEnd = Math.min(0xA0000, memBytes + DOS_BIOSINIT_PAD);
@@ -218,13 +218,13 @@ export function dosMemoryZones(programBytes, programOffset, memBytes, embeddedDa
     // CGA graphics aperture: 16 KB at 0xB8000-0xBC000. Covers modes 0x04
     // (320x200x4, 2 bpp, even/odd scanline interleave) and 0x06 (640x200x2).
     // Overlaps the 4 KB text buffer above; buildAddressSet dedupes so
-    // enabling both is free — the bytes literally share storage, which is
+    // enabling both is free - the bytes literally share storage, which is
     // also how real CGA hardware behaves.
     zones.push([0xB8000, 0xBC000]);
   }
 
   // Include embedded data regions (non-disk: e.g. data files placed in memory).
-  // The rom-disk window at 0xD0000-0xD01FF is NOT a normal memory zone — it
+  // The rom-disk window at 0xD0000-0xD01FF is NOT a normal memory zone - it
   // is dispatched in emitReadMemStreaming to --readDiskByte keyed on the
   // current LBA. Disk bytes live outside the 8086 address space and must be
   // passed into emitCSS via opts.diskBytes, not embeddedData.
@@ -281,8 +281,8 @@ export function buildInitialMemory(opts) {
     }
   }
 
-  // BIOS at F000:0000 — only if those addresses are in the writable set
-  // (usually they're not — BIOS is read-only constants in readMem)
+  // BIOS at F000:0000 - only if those addresses are in the writable set
+  // (usually they're not - BIOS is read-only constants in readMem)
   for (let i = 0; i < biosBytes.length; i++) {
     const addr = BIOS_LINEAR + i;
     if (addrSet.has(addr) && biosBytes[i] !== 0) {
@@ -306,26 +306,32 @@ export function buildInitialMemory(opts) {
 /**
  * Emit @property declarations for memory write slots.
  * Three properties per slot: address, value, width (1 or 2).
- * --_slotNLive shares semantics with --memAddrN/--memValN — set together by
+ * --_slotNLive shares semantics with --memAddrN/--memValN - set together by
  * emitMemoryWriteSlots / emitSlotLiveGates. The global --_writeWidth is
  * emitted by emitWriteWidthGate (one per tick, not per slot).
  */
-export function emitWriteSlotProperties() {
-  const lines = [];
-  for (let i = 0; i < NUM_WRITE_SLOTS; i++) {
-    lines.push(`@property --memAddr${i} {
+// One double-buffered <integer> @property registration block.
+function slotProperty(name, init) {
+  return `@property --${name} {
   syntax: '<integer>';
   inherits: true;
-  initial-value: -1;
+  initial-value: ${init};
+}`;
 }
 
-@property --memVal${i} {
-  syntax: '<integer>';
-  inherits: true;
-  initial-value: 0;
-}`);
+// Emit two @property blocks per write slot: `(prefixA + i, initA)` and
+// `(prefixB + i, initB)`, all blocks blank-line separated.
+function emitPerSlotProperties(prefixA, initA, prefixB, initB) {
+  const blocks = [];
+  for (let i = 0; i < NUM_WRITE_SLOTS; i++) {
+    blocks.push(slotProperty(`${prefixA}${i}`, initA));
+    blocks.push(slotProperty(`${prefixB}${i}`, initB));
   }
-  return lines.join('\n\n');
+  return blocks.join('\n\n');
+}
+
+export function emitWriteSlotProperties() {
+  return emitPerSlotProperties('memAddr', -1, 'memVal', 0);
 }
 
 /**
@@ -333,23 +339,9 @@ export function emitWriteSlotProperties() {
  * (--_dskInN / --_dskOffN, see emit-css.mjs emitDiskWriteRemap).
  * Registration makes the calc() values compute to real <integer>s so
  * style() equality queries and --applySlot arguments both see a number,
- * exactly like --memAddrN. Values stay < 1e6 (disk-local byte offsets) —
+ * exactly like --memAddrN. Values stay < 1e6 (disk-local byte offsets) -
  * Chrome's computed numeric properties only carry ~6 significant digits.
  */
 export function emitDiskAddrProperties() {
-  const lines = [];
-  for (let i = 0; i < NUM_WRITE_SLOTS; i++) {
-    lines.push(`@property --_dskIn${i} {
-  syntax: '<integer>';
-  inherits: true;
-  initial-value: 0;
-}
-
-@property --_dskOff${i} {
-  syntax: '<integer>';
-  inherits: true;
-  initial-value: -1;
-}`);
-  }
-  return lines.join('\n\n');
+  return emitPerSlotProperties('_dskIn', 0, '_dskOff', -1);
 }

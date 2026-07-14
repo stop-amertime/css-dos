@@ -8,7 +8,7 @@
 `generate-dos.mjs` skips the kernel's BIOS init layer (drbio). It loads
 kernel.sys at 0060:0000, pre-populates the IVT/BDA/disk image in memory,
 and jumps straight to the kernel entry point. But kernel.sys is a
-single-file kernel that includes drbio — the hardware abstraction layer
+single-file kernel that includes drbio - the hardware abstraction layer
 that sits on top of our BIOS. drbio:
 
 - Decompresses the kernel (it's RLE-compressed in the binary)
@@ -31,7 +31,7 @@ EDR-DOS fdos (file system, process management)
         | INT 13h, INT 10h, etc.
 EDR-DOS drbio (device drivers, hardware abstraction)
         | INT 13h, INT 10h, etc.
-CSS-BIOS (our microcode handlers — keyboard, VGA, disk, timer)
+CSS-BIOS (our microcode handlers - keyboard, VGA, disk, timer)
         |
 CSS custom properties ("hardware")
 ```
@@ -39,7 +39,7 @@ CSS custom properties ("hardware")
 drbio is a client of our BIOS. It calls INT 12h to get memory size, INT 13h
 to read disk sectors, INT 10h to print characters. Our BIOS handlers answer
 these calls. We were skipping drbio entirely and trying to pre-populate the
-structures it would have built — getting it wrong.
+structures it would have built - getting it wrong.
 
 ## Design
 
@@ -86,7 +86,7 @@ D6 stub bytes from `buildBiosRom()` to form the complete BIOS ROM.
 - Set initialCS=0xF000, initialIP=0x0000 (execution starts at init stub)
 
 **Change:**
-- initialRegs becomes minimal (hardware reset state — the stub sets
+- initialRegs becomes minimal (hardware reset state - the stub sets
   up everything else)
 
 ### 3. Changes to `ref-emu-dos.mjs`
@@ -107,7 +107,7 @@ D6 stub bytes from `buildBiosRom()` to form the complete BIOS ROM.
 
 Tick-accurate conformance testing between CSS and JS is not viable for the
 DOS boot path. The D6 microcode system means the two sides have
-fundamentally different execution traces — CSS does BIOS calls in 1-3
+fundamentally different execution traces - CSS does BIOS calls in 1-3
 microcode ticks, JS does them instantly via the `int_handler` hook.
 
 Additionally, the kernel's drbio saves IVT vectors and later calls through

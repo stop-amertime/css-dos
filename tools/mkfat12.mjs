@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// mkfat12.mjs — Create a minimal FAT12 floppy disk image
+// mkfat12.mjs - Create a minimal FAT12 floppy disk image
 //
 // Usage: node mkfat12.mjs -o disk.img [--file NAME LOCAL_PATH] ...
 //
@@ -17,7 +17,7 @@
 //     --file DATA\GAME.DAT examples/game.dat
 
 // ============================================================
-// Pure function — no fs I/O
+// Pure function - no fs I/O
 // ============================================================
 
 /**
@@ -35,16 +35,16 @@
  *   content and uses a generic 1.44 MB-style 2/18 geometry.
  *   `sectorsPerCluster` sets a minimum cluster size (power of 2, max 128);
  *   it is still doubled as needed to respect the FAT12 cluster-count cap.
- *   Bigger clusters mean shorter FAT chains — DOS walks the chain per
+ *   Bigger clusters mean shorter FAT chains - DOS walks the chain per
  *   seek/read, so cluster size directly scales file-I/O overhead.
- *   `bootSector` (512 bytes) supplies a real boot loader — its code,
+ *   `bootSector` (512 bytes) supplies a real boot loader - its code,
  *   OEM name, messages and 55AA signature are kept verbatim; only the
  *   BPB (offsets 11–35) is overwritten with this image's geometry so
  *   loader and layout can't drift. `mediaByte` (default 0xF0) goes in
  *   the BPB media descriptor and FAT[0].
  *
  *   Files may carry an `attr` byte (FAT attribute; default 0x20
- *   archive) — e.g. 0x07 hidden+system+readonly for OS system files.
+ *   archive) - e.g. 0x07 hidden+system+readonly for OS system files.
  * @returns {Uint8Array} Raw FAT12 disk image.
  */
 export function buildFat12Image(files, geometry) {
@@ -65,7 +65,7 @@ export function buildFat12Image(files, geometry) {
     attr: f.attr ?? 0x20,
   }));
 
-  // --- FAT12 geometry — auto-sized to fit content ---
+  // --- FAT12 geometry - auto-sized to fit content ---
   const SECTOR_SIZE = 512;
   const RESERVED_SECTORS = 1;    // boot sector
   const NUM_FATS = 2;
@@ -112,7 +112,7 @@ export function buildFat12Image(files, geometry) {
   //
   // The problem: DOS re-computes dataClusters = (TOTAL_SECTORS - dataStart) / SPC
   // when it mounts the filesystem, and if dataClusters > 4085 it switches to
-  // FAT16 interpretation — reading our 12-bit entries as 16-bit, walking the
+  // FAT16 interpretation - reading our 12-bit entries as 16-bit, walking the
   // wrong FAT chain, and failing any read past the first sector of a
   // multi-cluster file. We must keep dataClusters <= 4084 for *every* total
   // sector count, not just "clusters our content actually occupies".
@@ -132,11 +132,11 @@ export function buildFat12Image(files, geometry) {
     // dataClusters that DOS will compute on mount = floor((TOTAL - dataStart) / SPC).
     // We need to keep this <= FAT12_MAX_CLUSTERS. Compute it iteratively
     // because FAT_SECTORS depends on dataClusters and dataStart depends on
-    // FAT_SECTORS — converges in one or two passes.
+    // FAT_SECTORS - converges in one or two passes.
     //
     // FAT_SECTORS is content-based, not whole-disk-based: only the clusters
     // we actually allocate (content + 2 reserved entries) need FAT entries.
-    // The unused tail of each FAT is zero bytes, which is "free cluster" —
+    // The unused tail of each FAT is zero bytes, which is "free cluster" -
     // legal FAT12 even though we'd never write there. This keeps the layout
     // identical to the historical (working) shape for zork1 and doom.
     const clustersNeededForContent = Math.ceil(contentSectorsNeeded / SECTORS_PER_CLUSTER);
@@ -196,12 +196,12 @@ export function buildFat12Image(files, geometry) {
     writeString(disk, 43, 'CSS-DOS    ');
     writeString(disk, 54, 'FAT12   ');
 
-    // Boot code (halt stub — nothing boots from this sector)
+    // Boot code (halt stub - nothing boots from this sector)
     disk[0x3E] = 0xFA; disk[0x3F] = 0xEB; disk[0x40] = 0xFE;
     disk[510] = 0x55; disk[511] = 0xAA;
   }
 
-  // BIOS Parameter Block (BPB) — always this image's real geometry, even
+  // BIOS Parameter Block (BPB) - always this image's real geometry, even
   // over a supplied bootSector, so the loader's CHS math matches the layout.
   writeWord(disk, 11, SECTOR_SIZE);
   disk[13] = SECTORS_PER_CLUSTER;             // sectors per cluster
@@ -304,13 +304,13 @@ export function buildFat12Image(files, geometry) {
       disk[dirDataOffset + i] = 0;
     }
 
-    // Write "." entry — points to self
+    // Write "." entry - points to self
     const dotOff = dirDataOffset;
     writeString(disk, dotOff, '.          '); // padded to 11
     disk[dotOff + 11] = 0x10; // directory attribute
     writeWord(disk, dotOff + 26, dirCluster);
 
-    // Write ".." entry — points to root (cluster 0 for root)
+    // Write ".." entry - points to root (cluster 0 for root)
     const dotdotOff = dirDataOffset + 32;
     writeString(disk, dotdotOff, '..         '); // padded to 11
     disk[dotdotOff + 11] = 0x10;
@@ -333,7 +333,7 @@ export function buildFat12Image(files, geometry) {
 
   function writeFileToDir(name, data, dir, attr = 0x20) {
     const fileSize = data.length;
-    // Cluster is the allocation unit, not sector — at SPC>1 a one-sector
+    // Cluster is the allocation unit, not sector - at SPC>1 a one-sector
     // file still occupies a full cluster.
     const clustersNeeded = Math.ceil(fileSize / CLUSTER_BYTES) || 1;
     const { name83 } = parse83Name(name);
@@ -444,7 +444,7 @@ function writeFAT12Entry(buf, fatStart, cluster, value) {
 }
 
 // ============================================================
-// CLI entry point — only runs when invoked directly
+// CLI entry point - only runs when invoked directly
 // ============================================================
 
 // Detect whether this module is the entry point (works for both CJS and ESM).
@@ -481,7 +481,7 @@ if (isMain) {
       // Print layout info (mirrors the old per-file log output)
       for (const f of cliFiles) {
         const name = f.name.toUpperCase().replace(/\//g, '\\');
-        console.log(`  ${name} — ${f.bytes.length} bytes`);
+        console.log(`  ${name} - ${f.bytes.length} bytes`);
       }
 
       writeFileSync(resolve(outputFile), disk);

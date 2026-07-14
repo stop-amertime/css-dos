@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// build.mjs — CSS-DOS build script
+// build.mjs - CSS-DOS build script
 //
 // Takes a .COM program and produces a single CSS file that IS a running PC:
 //   BIOS (x86 assembly) + DOS kernel + program + disk image → one .css file
@@ -46,9 +46,9 @@ const MKFAT12 = resolve(projectRoot, 'tools', 'mkfat12.mjs');
 const CONFIG_SYS = resolve(projectRoot, 'dos', 'config.sys');
 
 // --- Memory layout ---
-const KERNEL_LINEAR = 0x600;     // 0060:0000 — DOS kernel load address
-const DISK_LINEAR = 0xD0000;     // D000:0000 — memory-resident FAT12 disk image
-const BIOS_LINEAR = 0xF0000;     // F000:0000 — BIOS ROM
+const KERNEL_LINEAR = 0x600;     // 0060:0000 - DOS kernel load address
+const DISK_LINEAR = 0xD0000;     // D000:0000 - memory-resident FAT12 disk image
+const BIOS_LINEAR = 0xF0000;     // F000:0000 - BIOS ROM
 
 // --- CLI ---
 const args = process.argv.slice(2);
@@ -185,8 +185,8 @@ emitCSS({
   programOffset: KERNEL_LINEAR,
   initialCS: 0xF000,
   initialIP: biosInitOffset,
-  initialRegs: { SP: 0 },  // hardware reset — BIOS init sets SS:SP
-  skipMicrocodeBios: true, // assembly BIOS handles INTs — no D6 microcode
+  initialRegs: { SP: 0 },  // hardware reset - BIOS init sets SS:SP
+  skipMicrocodeBios: true, // assembly BIOS handles INTs - no D6 microcode
 }, ws);
 
 ws.end(() => {

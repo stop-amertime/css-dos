@@ -37,7 +37,7 @@ export function resolveMemorySize(value, { autofitBytes } = {}) {
   throw new Error(`memory.conventional: unknown value ${JSON.stringify(value)}`);
 }
 
-// DOS autofit constants — shared by build.mjs (for harness-header memory
+// DOS autofit constants - shared by build.mjs (for harness-header memory
 // resolution) and stages/kiln.mjs (the canonical consumer). Kept here so
 // the two paths can't drift.
 //
@@ -67,12 +67,12 @@ export function autofitHackMem(programSize) {
 // Resolve a disk size request into { bytes, geometry }.
 //
 // Value forms:
-//   'autofit'  — if autofitBytes fits in a standard preset, use that preset
+//   'autofit'  - if autofitBytes fits in a standard preset, use that preset
 //                (preserves the look of a real period-accurate floppy). If
 //                it doesn't, size exactly to content (sector-aligned, small
-//                headroom) and fabricate a geometry — "big floppy" mode.
-//   'NNNNK'    — named preset (360K/720K/1200K/1440K/2880K). Canonical CHS.
-//   number     — exact bytes. Fabricated geometry.
+//                headroom) and fabricate a geometry - "big floppy" mode.
+//   'NNNNK'    - named preset (360K/720K/1200K/1440K/2880K). Canonical CHS.
+//   number     - exact bytes. Fabricated geometry.
 //
 // Geometry: {cyls, heads, spt}. Matches real hardware for standard sizes;
 // for fabricated sizes we keep heads=2/spt=18 (1.44 MB floppy style) and
@@ -111,7 +111,7 @@ export function resolveFloppySize(value, { autofitBytes } = {}) {
 // Pick a geometry for an arbitrary disk size. For known preset sizes, use
 // the canonical CHS. Otherwise keep heads=2/spt=18 and scale cyls so
 // cyls*heads*spt >= totalSectors. Max addressable is LBA_MAX_SECTORS
-// (16-bit LBA in the rom-disk window), which is ~32 MB — a hard cap we
+// (16-bit LBA in the rom-disk window), which is ~32 MB - a hard cap we
 // enforce here rather than letting silent truncation bite later.
 export function pickFloppyGeometry(sizeBytes) {
   const totalSectors = Math.ceil(sizeBytes / SECTOR_SIZE);

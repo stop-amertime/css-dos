@@ -58,7 +58,7 @@
     color: var(--edit-black);
   }
 
-  /* Raw log — collapsed to a scrolling pane under the progress bar. */
+  /* Raw log - collapsed to a scrolling pane under the progress bar. */
   .build-log {
     margin-top: 8px;
     max-height: 96px;

@@ -1,5 +1,5 @@
 <script>
-  // Why? — the epigraph, the cave-painting bit, and the fork:
+  // Why? - the epigraph, the cave-painting bit, and the fork:
   // skip straight to Build, or read on.
   import { nav, BUILD } from '../../lib/router.svelte.js';
 </script>

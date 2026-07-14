@@ -1,11 +1,11 @@
-## 2026-05-11 — release-oriented landing page (`/index.html`)
+## 2026-05-11 - release-oriented landing page (`/index.html`)
 
-**What.** New `web/site/index.html` — a 4-step DOS-EDIT-styled wizard
+**What.** New `web/site/index.html` - a 4-step DOS-EDIT-styled wizard
 (Welcome → How it works → Build → Play) that wraps the existing
 `build.js` pipeline. Started from a Claude Design mockup
 (`https://api.anthropic.com/v1/design/h/sRty-DSKgcWv-J_BVFVWMQ`,
 extracted from the gzipped tarball it returns). Build wiring, SW
-registration, and calcite-bridge boot are identical to `build.html` —
+registration, and calcite-bridge boot are identical to `build.html` -
 no changes to `build.js`, `sw.js`, or `calcite-bridge-boot.js`.
 
 **Architecture.** `wizard.js` is pure visual chrome on top of `build.js`:
@@ -27,7 +27,7 @@ no changes to `build.js`, `sw.js`, or `calcite-bridge-boot.js`.
 
 **Carts.** Visible carts come from `web/site/assets/carts.js`
 (cosmetic manifest with cover art / palette). `wizard.js` intersects
-that with `/_carts.json` from the dev server — carts in `carts/` but
+that with `/_carts.json` from the dev server - carts in `carts/` but
 NOT in `window.CARTS` (variants: `doom8088-cga4`, dev fixtures:
 `test-carts`, `vsync-poll`, `rogue36`) are intentionally hidden from
 the release landing page. They remain available via `/build.html`,

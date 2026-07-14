@@ -38,7 +38,7 @@
   let hint = $derived(
     build.busy ? 'Building…'
     : build.done ? 'Done. Next: choose how to play.'
-    : build.failed ? 'Build failed — details below.'
+    : build.failed ? 'Build failed - details below.'
     : build.hasSource ? 'Ready to build.'
     : 'Pick a program first.'
   );
@@ -104,7 +104,7 @@
                 <CheckRow
                   bind:checked={build.options.writable}
                   label="Writable (saves last until you close the tab)"
-                  title="When on, programs can write to the floppy — saved files last until the tab closes; reloading resets to the factory disk."
+                  title="When on, programs can write to the floppy - saved files last until the tab closes; reloading resets to the factory disk."
                 />
               </div>
               <p class="opt-warn dim small">

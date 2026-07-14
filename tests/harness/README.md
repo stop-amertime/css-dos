@@ -1,7 +1,7 @@
-# tests/harness — correctness testing for CSS-DOS + Calcite
+# tests/harness - correctness testing for CSS-DOS + Calcite
 
 If you're an agent trying to "run the tests" or "figure out why the
-game doesn't work" — you're in the right place. **Start with
+game doesn't work" - you're in the right place. **Start with
 `node tests/harness/run.mjs smoke`** for a quick sanity check, then
 read below for the specific tool that matches your question.
 
@@ -13,13 +13,13 @@ correctness here, perf there. See [`docs/TESTING.md`](../../docs/TESTING.md).
 
 Every cabinet this repo produces can be driven through a JS + Rust pipeline
 that runs it, screenshots it, compares it against a reference 8086 emulator,
-and compares it against its own prior build — all from one CLI entrypoint,
+and compares it against its own prior build - all from one CLI entrypoint,
 all with time budgets that actually terminate.
 
 ## Two commands that cover 80% of tasks
 
 ```sh
-# Full smoke test — build every reference cart, run 15s each, check it's alive.
+# Full smoke test - build every reference cart, run 15s each, check it's alive.
 node tests/harness/run.mjs smoke
 
 # Is calcite correctly emulating x86? First-divergence finder vs JS reference.
@@ -44,12 +44,12 @@ node tests/harness/pipeline.mjs cabinet-diff \
 ### I want to see what's on screen at tick N
 
 ```sh
-# Fast path — runs cabinet → tick N → PNG, ~10s for 3M-tick boot screens.
+# Fast path - runs cabinet → tick N → PNG, ~10s for 3M-tick boot screens.
 # Use this for any tick past ~200K; the slow path can't reach further inside
 # a 2-minute budget. No daemon, fresh compile each call.
 node tests/harness/pipeline.mjs fast-shoot cabinet.css --tick=3000000 --out=shot.png
 
-# Slow path — drives calcite-debugger, ~1500 ticks/s. Worth it only when you
+# Slow path - drives calcite-debugger, ~1500 ticks/s. Worth it only when you
 # already have a daemon attached and want to take many shots from the same
 # session, or when you need late screenshots after interactive input.
 node tests/harness/pipeline.mjs shoot cabinet.css --tick=100000 --out=shot.png
@@ -58,14 +58,14 @@ node tests/harness/pipeline.mjs shoot cabinet.css --tick=100000 --out=shot.png
 ### The game says it's running but the video is garbled
 
 ```sh
-# Triage — runs the full diff vs JS reference and points you at the
+# Triage - runs the full diff vs JS reference and points you at the
 # first diverging tick with actionable next steps.
 node tests/harness/pipeline.mjs triage cabinet.css --max-ticks=20000
 ```
 
 ### I want to know when a specific BDA byte changes
 
-Use the debugger's `watchpoint` tool directly — the harness doesn't add a
+Use the debugger's `watchpoint` tool directly - the harness doesn't add a
 wrapper because the debugger's native version is already good.
 
 ### I need to wait for the program to actually start running
@@ -84,12 +84,12 @@ node tests/harness/pipeline.mjs run cabinet.css \
 node tests/harness/pipeline.mjs baseline-record cabinet.css \
     --ticks=0,10000,50000,100000,500000
 
-# Later, verify — exit code 0 = all ticks match, 3 = mismatch
+# Later, verify - exit code 0 = all ticks match, 3 = mismatch
 node tests/harness/pipeline.mjs baseline-verify cabinet.css
 ```
 
 Baselines live in `tests/harness/baselines/<cart>/` and include PNGs,
-register hashes, and text-buffer hashes per-tick. Check in the PNGs —
+register hashes, and text-buffer hashes per-tick. Check in the PNGs -
 they're the visual oracle for future agents.
 
 ## What each tool does
@@ -99,19 +99,19 @@ they're the visual oracle for future agents.
 | `pipeline.mjs build <cart>` | "Can this cart build?" Prints timings + meta. |
 | `pipeline.mjs inspect <cabinet>` | "What's inside this cabinet?" No daemon needed. |
 | `pipeline.mjs run <cabinet>` | "Can it run N seconds without hanging?" Wall-clock + stall-rate budgets. |
-| `pipeline.mjs shoot <cabinet>` | "What's on screen at tick X?" Slow path via daemon — ~1500 ticks/s. |
-| `pipeline.mjs fast-shoot <cabinet>` | Same, but via calcite-cli — ~375K ticks/s. The right tool for late ticks. |
+| `pipeline.mjs shoot <cabinet>` | "What's on screen at tick X?" Slow path via daemon - ~1500 ticks/s. |
+| `pipeline.mjs fast-shoot <cabinet>` | Same, but via calcite-cli - ~375K ticks/s. The right tool for late ticks. |
 | `pipeline.mjs full <cart>` | build → load → run → shoot, all in one. |
 | `pipeline.mjs fulldiff <cabinet>` | "Where does calcite first disagree with the JS reference emulator?" |
 | `pipeline.mjs triage <cabinet>` | Same as fulldiff but wraps the result with "what to do next." |
 | `pipeline.mjs cabinet-diff A B` | "Do these two cabinets behave identically at the sample ticks?" |
 | `pipeline.mjs baseline-record` | Freeze a cart's current state at chosen ticks. |
 | `pipeline.mjs baseline-verify` | Compare current cart state to its frozen baseline. |
-| `pipeline.mjs consistency <cabinet> --tick=N` | Run compare-paths (compiled vs interpreter) at a tick. *Note: limited after seek — see "compare_paths caveat" below.* |
+| `pipeline.mjs consistency <cabinet> --tick=N` | Run compare-paths (compiled vs interpreter) at a tick. *Note: limited after seek - see "compare_paths caveat" below.* |
 | `run.mjs <preset>` | Run one of smoke/conformance/writable/msdos/websmoke/visual/full. Report at `tests/harness/results/latest.json`. |
 | `web-boot.playwright.mjs` | Boot one cabinet through the real web path (headless Chromium, bridge worker, **vendored** wasm) and assert a screen sentinel. The `websmoke` preset drives it; the only coverage of the engine bundle the site ships. |
 
-## Budgets, not hopes — every command needs an explicit ≤2-minute cap
+## Budgets, not hopes - every command needs an explicit ≤2-minute cap
 
 Every long-running subcommand accepts `--wall-ms=N` (wall-clock ceiling),
 `--max-ticks=N` (tick count), and `--stall-rate=F --stall-seconds=N` (ticks/s
@@ -120,7 +120,7 @@ get killed with a `reason` field on the JSON result so you know why.
 
 Boot reaches `A:\>` at tick 2-4M. The `shoot` path advances the daemon at
 ~1500 ticks/s, which means it will *not* terminate inside two minutes for any
-late-tick screenshot — use `fast-shoot` (~375K ticks/s via `calcite-cli`)
+late-tick screenshot - use `fast-shoot` (~375K ticks/s via `calcite-cli`)
 instead. If no path fits the budget, build a faster one rather than firing
 and hoping; the right answer for the slow-shoot case was building
 `fast-shoot` + the `--dump-mem-range` flag on `calcite-cli` it depends on.
@@ -174,7 +174,7 @@ ceiling and no stall detection**. If you find yourself reaching for
 ### Why spawn a fresh debugger per command?
 
 The user's MCP client keeps one daemon resident across Claude Code
-sessions. The harness doesn't touch that daemon — it spawns its own
+sessions. The harness doesn't touch that daemon - it spawns its own
 child, does its work, and exits. Side effects on the user's daemon
 would leak test state into interactive sessions. Use `--daemon
 --port=PORT` when you explicitly want to share state.
@@ -183,14 +183,14 @@ would leak test state into interactive sessions. Use `--daemon
 
 Old conformance tools imported `../CSS-DOS/transpiler/` to rebuild the
 memory map. That directory was deleted. The sidecars (`.bios.bin`,
-`.disk.bin`, `.kernel.bin`, `.meta.json`) are a simpler contract — the
+`.disk.bin`, `.kernel.bin`, `.meta.json`) are a simpler contract - the
 ref emulator opens them, no symbolic knowledge of CSS-DOS internals
 required.
 
 ### Why `seek` instead of `tick` for bulk advancement?
 
 The debugger's `tick` tool returns a per-tick change log, which the
-MCP transport caps around ~500 ticks per call. `seek` has no log — it
+MCP transport caps around ~500 ticks per call. `seek` has no log - it
 replays forward from the nearest checkpoint. Use `seek` for "land at
 tick N"; use `tick` for "take one step and tell me what changed."
 
@@ -202,7 +202,7 @@ the snapshot's intermediate-state properties (like `--_sAX`) reflect
 the compiled path's history but the interp path derives them fresh,
 so `property_diffs` produces architectural noise, not bugs. For a
 clean compiled-vs-interp test, only trust differences in canonical
-state-vars (AX, BX, IP, flags) — see `lib/oracles.mjs` filter.
+state-vars (AX, BX, IP, flags) - see `lib/oracles.mjs` filter.
 
 ### Font for text-mode screenshots
 
@@ -213,37 +213,37 @@ hashes and human sanity-checks.
 
 ## If something's broken
 
-- **`pipeline.mjs build` fails** — usually a NASM/wlink problem. Check
+- **`pipeline.mjs build` fails** - usually a NASM/wlink problem. Check
   `NASM` env var and WATCOM toolchain env.
-- **`pipeline.mjs full` hits wall-ms** — the cart isn't reaching program
+- **`pipeline.mjs full` hits wall-ms** - the cart isn't reaching program
   entry in the budget. Either the budget is too short for the cart
   (Montezuma + Doom need longer), or the cart is genuinely broken.
   Combine with `shoot` at various ticks to eyeball.
-- **`fulldiff` shows divergence at tick 0** — register-alignment issue;
+- **`fulldiff` shows divergence at tick 0** - register-alignment issue;
   ensure the cabinet was built with the current builder (it writes the
   harness header with the initial CS/IP values the ref emulator needs).
   Rebuild if uncertain.
-- **`fulldiff` diverges within ~10 ticks** — often a kiln emit bug
+- **`fulldiff` diverges within ~10 ticks** - often a kiln emit bug
   for a BIOS-init opcode. Binary-search the divergence with
   `pipeline.mjs shoot --tick=N` for visual sanity.
 
 ## Files
 
-- `pipeline.mjs` — single-command entrypoint with subcommands
-- `run.mjs` — preset-level runner (`smoke`, `conformance`, `writable`, `msdos`, `websmoke`, `visual`, `full`)
-- `web-boot.playwright.mjs` — web-path boot check against the vendored wasm (used by `websmoke`)
-- `fulldiff.mjs` — streaming calcite-vs-ref divergence finder
-- `lib/debugger-client.mjs` — harness-facing wrapper around the MCP debugger. See [Agent-oriented tooling](../../../calcite/docs/debugger.md#agent-oriented-tooling) in the calcite docs for the full tool surface (`inspect_packed_cell`, `compare_paths`, `watchpoint`, async `run_until`, multi-session diffs, `trace_property`, `execution_summary`, etc.).
-- `lib/mcp-client.mjs` — raw MCP over child-stdio or TCP
-- `lib/ref-machine.mjs` — JS reference 8086 set up from cabinet sidecars
-- `lib/cabinet-header.mjs` — builder emits a `/*!HARNESS v1 ...!*/` JSON block; this reads it
-- `lib/timed-run.mjs` — wall-clock + tick-count + stall-rate budgets
-- `lib/shoot.mjs` — framebuffer → PNG for all video modes (slow path, via debugger)
-- `lib/fast-shoot.mjs` — framebuffer → PNG via `calcite-cli --dump-mem-range`. ~250x faster than `shoot` for late-tick screenshots; the only path that reaches boot completion (2-4M ticks) inside a 2-minute budget. Pays a fresh ~2s parse+compile per call (no compile cache yet — would be a meaningful follow-up if you're taking many shots from the same cabinet).
-- `lib/png.mjs` — pure-JS PNG encoder + perceptual hash
-- `lib/baseline.mjs` — record + verify golden baselines
-- `lib/cabinet-diff.mjs` — diff two cabinets at sample ticks
-- `lib/oracles.mjs` — multi-backend register-snapshot interface
-- `cache/` — intermediate cabinets (.gitignored)
-- `baselines/` — per-cart frozen state (check in the PNGs)
-- `results/` — JSON report output, includes `latest.json`
+- `pipeline.mjs` - single-command entrypoint with subcommands
+- `run.mjs` - preset-level runner (`smoke`, `conformance`, `writable`, `msdos`, `websmoke`, `visual`, `full`)
+- `web-boot.playwright.mjs` - web-path boot check against the vendored wasm (used by `websmoke`)
+- `fulldiff.mjs` - streaming calcite-vs-ref divergence finder
+- `lib/debugger-client.mjs` - harness-facing wrapper around the MCP debugger. See [Agent-oriented tooling](../../../calcite/docs/debugger.md#agent-oriented-tooling) in the calcite docs for the full tool surface (`inspect_packed_cell`, `compare_paths`, `watchpoint`, async `run_until`, multi-session diffs, `trace_property`, `execution_summary`, etc.).
+- `lib/mcp-client.mjs` - raw MCP over child-stdio or TCP
+- `lib/ref-machine.mjs` - JS reference 8086 set up from cabinet sidecars
+- `lib/cabinet-header.mjs` - builder emits a `/*!HARNESS v1 ...!*/` JSON block; this reads it
+- `lib/timed-run.mjs` - wall-clock + tick-count + stall-rate budgets
+- `lib/shoot.mjs` - framebuffer → PNG for all video modes (slow path, via debugger)
+- `lib/fast-shoot.mjs` - framebuffer → PNG via `calcite-cli --dump-mem-range`. ~250x faster than `shoot` for late-tick screenshots; the only path that reaches boot completion (2-4M ticks) inside a 2-minute budget. Pays a fresh ~2s parse+compile per call (no compile cache yet - would be a meaningful follow-up if you're taking many shots from the same cabinet).
+- `lib/png.mjs` - pure-JS PNG encoder + perceptual hash
+- `lib/baseline.mjs` - record + verify golden baselines
+- `lib/cabinet-diff.mjs` - diff two cabinets at sample ticks
+- `lib/oracles.mjs` - multi-backend register-snapshot interface
+- `cache/` - intermediate cabinets (.gitignored)
+- `baselines/` - per-cart frozen state (check in the PNGs)
+- `results/` - JSON report output, includes `latest.json`

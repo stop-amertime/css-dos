@@ -6,13 +6,13 @@ mov ax, 0x1234
 mov bx, 0x5678
 mov cx, 0xABCD
 
-; WAIT — should be a no-op (1 byte)
+; WAIT - should be a no-op (1 byte)
 db 0x9B            ; WAIT
 
 ; Verify AX preserved
 nop
 
-; LOCK — should be a no-op (1 byte)
+; LOCK - should be a no-op (1 byte)
 db 0xF0            ; LOCK
 nop                ; (LOCK as standalone no-op, not prefix)
 

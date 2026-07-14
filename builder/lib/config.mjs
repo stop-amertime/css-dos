@@ -110,7 +110,7 @@ export function resolveManifest(manifest, files, presets = {}) {
     errors.push(`disk.sectorsPerCluster: must be a power of 2 between 1 and 128; got ${JSON.stringify(spc)}`);
   }
 
-  // Source-escapes-cart check — caller (floppy stage) also validates,
+  // Source-escapes-cart check - caller (floppy stage) also validates,
   // but a shape check here is cheap.
   if (merged.disk?.files) {
     for (const f of merged.disk.files) {

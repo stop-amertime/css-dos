@@ -1,4 +1,4 @@
-## 2026-05-08 — BIF2 fusion isolated: +4.5 % throughput, +8 % in-game FPS
+## 2026-05-08 - BIF2 fusion isolated: +4.5 % throughput, +8 % in-game FPS
 
 Hardcoded BIF2 (BIfNEL2 pair fusion) OFF in calcite (`ef44f20`,
 const `BIF2_FUSE_ENABLED=false` in `compile.rs`), reran the canonical
@@ -16,15 +16,15 @@ landed earlier today.
 | doomMenuDelay   | 2,139 | 2,608 | +21.9 % (small abs) |
 
 So on the post-keyboard-revert old-kbd web baseline, BIF2 is worth
-roughly **+4.5 % throughput / +8 % in-game FPS** — modest but real.
+roughly **+4.5 % throughput / +8 % in-game FPS** - modest but real.
 
 The 2026-05-07 calcite log entry that claimed +47 % throughput /
 −32 % wall (calcite `8e592b0`/`f014d35`) measured BIF2 on the **CLI**
 bench (`run.mjs doom-loading --target=cli`), with a baseline of
 142 K ticks/sec (the engine was bottlenecked by the not-yet-fixed
-`apply_input_edges` regression at that point — the same-day fix in
+`apply_input_edges` regression at that point - the same-day fix in
 calcite `6d9e80a` recovered most of the throughput). On the CLI
-runtime — no SW, no frame consumer, native rather than wasm — the
+runtime - no SW, no frame consumer, native rather than wasm - the
 relative weight of dispatch overhead vs other engine work is
 different too. The +47 % isn't wrong; it just doesn't generalise
 across runtimes or across baselines. The web is the canonical

@@ -96,7 +96,7 @@ for (const tick of samples) {
     continue;
   }
   const diffs = [];
-  // ref uses FLAGS (uppercase), calcite uses flags (lowercase) — normalise.
+  // ref uses FLAGS (uppercase), calcite uses flags (lowercase) - normalise.
   const refNorm = { ...r, flags: r.FLAGS };
   for (const k of ['AX','CX','DX','BX','SP','BP','SI','DI','IP','CS','DS','ES','SS','flags']) {
     if ((refNorm[k] & 0xFFFF) !== (c[k] & 0xFFFF)) diffs.push(k);

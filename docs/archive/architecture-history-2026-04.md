@@ -3,7 +3,7 @@
 ## v1: JSON instruction database (legacy/)
 
 A JSON database of all 8086 instructions drove code generation. Each instruction
-was decomposed into ~10 parallel dispatch tables. **Retired** — subtle bugs
+was decomposed into ~10 parallel dispatch tables. **Retired** - subtle bugs
 from table disagreements. See `legacy/README.md`.
 
 ## v2: JS->CSS transpiler (transpiler/)

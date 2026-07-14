@@ -1,9 +1,9 @@
-; gossamer.asm — Gossamer BIOS for CSS-DOS
+; gossamer.asm - Gossamer BIOS for CSS-DOS
 ; Loaded at F000:0000 (linear 0xF0000)
 ;
 ; CONSTRAINTS:
-; - No 0x0F-prefixed opcodes (near Jcc) — CSS emulator doesn't support them
-; - No segment override prefixes (0x26 ES:, 0x2E CS:, etc.) — treated as no-ops
+; - No 0x0F-prefixed opcodes (near Jcc) - CSS emulator doesn't support them
+; - No segment override prefixes (0x26 ES:, 0x2E CS:, etc.) - treated as no-ops
 ; - All memory access uses DS segment (the default)
 ; - For VGA access: set DS=0xB800, use [DI] addressing
 
@@ -11,7 +11,7 @@
 [org 0]
 
 ; ============================================================
-; INT 10h — Video Services  (offset 0)
+; INT 10h - Video Services  (offset 0)
 ; ============================================================
 int10h_handler:
     cmp ah, 0x0E
@@ -170,11 +170,11 @@ int10h_handler:
     ; Only store modes we support; map anything else to 0x03.
     cmp al, 0x13
     je .store_mode
-    cmp al, 0x04           ; CGA 320x200x4 — 16 KB aperture at B8000
+    cmp al, 0x04           ; CGA 320x200x4 - 16 KB aperture at B8000
     je .store_mode
-    cmp al, 0x05           ; CGA 320x200x4 mono — same aperture, grey palette
+    cmp al, 0x05           ; CGA 320x200x4 mono - same aperture, grey palette
     je .store_mode
-    cmp al, 0x06           ; CGA 640x200x2 hires mono — 1 bpp, same 16 KB aperture
+    cmp al, 0x06           ; CGA 640x200x2 hires mono - 1 bpp, same 16 KB aperture
     je .store_mode
     mov al, 0x03
 .store_mode:
@@ -284,7 +284,7 @@ int10h_handler:
     iret
 
 ; ============================================================
-; scroll_up_one — all VGA access via DS=0xB800
+; scroll_up_one - all VGA access via DS=0xB800
 ; ============================================================
 scroll_up_one:
     push ds
@@ -321,7 +321,7 @@ scroll_up_one:
     ret
 
 ; ============================================================
-; INT 16h — Keyboard
+; INT 16h - Keyboard
 ; ============================================================
 int16h_handler:
     cmp ah, 0x00
@@ -365,7 +365,7 @@ int16h_handler:
     iret
 
 ; ============================================================
-; INT 1Ah — Timer
+; INT 1Ah - Timer
 ; ============================================================
 int1ah_handler:
     cmp ah, 0x00
@@ -385,7 +385,7 @@ int1ah_handler:
     iret
 
 ; ============================================================
-; INT 21h — DOS
+; INT 21h - DOS
 ; ============================================================
 int21h_handler:
     cmp ah, 0x02
@@ -493,7 +493,7 @@ int21h_handler:
     iret
 
 ; ============================================================
-; INT 20h — Halt
+; INT 20h - Halt
 ; ============================================================
 int20h_handler:
     ; Signal halt: write 1 to halt flag at DS:0x2110
@@ -511,8 +511,8 @@ int20h_handler:
 ; never go stale when code above them grows. (They DID go stale once:
 ; the hardcoded tables in kiln/memory.mjs + ref-machine.mjs pointed
 ; INT 16h into the middle of set-mode after the 2026-06 CGA/DAC work
-; shifted every handler by +0x7B — INT 16h "hung" in the DAC loop.)
-; Data only — never executed.
+; shifted every handler by +0x7B - INT 16h "hung" in the DAC loop.)
+; Data only - never executed.
 ; ============================================================
 ivt_gossamer_table:
     db 'IVTG'

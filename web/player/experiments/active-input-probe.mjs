@@ -24,7 +24,7 @@ try {
   // doesn't resolve from node_modules (e.g. an npx cache entry).
   const fallback = process.env.PLAYWRIGHT_DIR || null;
   if (!fallback) {
-    console.error('playwright not found — install it or set PLAYWRIGHT_DIR');
+    console.error('playwright not found - install it or set PLAYWRIGHT_DIR');
     process.exit(2);
   }
   ({ chromium } = require(fallback));

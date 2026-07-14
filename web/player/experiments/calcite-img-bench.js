@@ -1,6 +1,6 @@
 // player/calcite-img-bench.js
 // Mirrors calcite-worker.js's shape exactly: classic worker (no module
-// type — but we use dynamic import inside for the WASM), init via
+// type - but we use dynamic import inside for the WASM), init via
 // postMessage({type:'init', css}), tick via postMessage({type:'tick',
 // count}), one tick per event-loop turn. No tight for-loop.
 

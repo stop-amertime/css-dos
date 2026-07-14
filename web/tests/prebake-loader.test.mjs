@@ -24,7 +24,7 @@ globalThis.fetch = async (url) => {
 
 test('loadPrebakedBios returns bytes + entry info for muslin', async () => {
   const bios = await loadPrebakedBios('muslin');
-  // bios.bytes is whatever Kiln accepts — number[] or Uint8Array. Task 3 confirmed Kiln takes a passthrough shape; match whatever buildBios (builder/stages/bios.mjs) returns today so the two are interchangeable.
+  // bios.bytes is whatever Kiln accepts - number[] or Uint8Array. Task 3 confirmed Kiln takes a passthrough shape; match whatever buildBios (builder/stages/bios.mjs) returns today so the two are interchangeable.
   assert.ok(Array.isArray(bios.bytes) || bios.bytes instanceof Uint8Array);
   assert.ok(bios.bytes.length > 0);
   assert.equal(bios.entrySegment, 0xF000);

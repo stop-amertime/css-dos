@@ -5,13 +5,13 @@
 //   machine → 8250 UART → IRQ 4 → Windows 1.01 MOUSE.DRV.
 //
 // Sibling of kbd-e2e.playwright.mjs (same dev-server + build.html
-// harness — see that file's header for why the bench can't cover real
+// harness - see that file's header for why the bench can't cover real
 // input). Builds carts/0windows101 in-browser, boots to the MS-DOS
-// Executive (CGA mode 6), then (1) opens the View menu via Hold Mode —
+// Executive (CGA mode 6), then (1) opens the View menu via Hold Mode -
 // Windows 1.x menus only stay open while the button is held, and the
-// hold switch latches the mouse button to express that from taps —
-// and (2) clicks CLOCK.EXE's overlay cell — select, then double-click
-// — and asserts the CGA framebuffer changed substantially (the Clock
+// hold switch latches the mouse button to express that from taps -
+// and (2) clicks CLOCK.EXE's overlay cell - select, then double-click
+// - and asserts the CGA framebuffer changed substantially (the Clock
 // app took the screen over).
 //
 //   node web/tests/mouse-e2e.playwright.mjs
@@ -24,7 +24,7 @@ try {
   pw = await import('playwright');
 } catch {
   const dir = process.env.PLAYWRIGHT_DIR;
-  if (!dir) throw new Error('playwright not found — install it or set PLAYWRIGHT_DIR');
+  if (!dir) throw new Error('playwright not found - install it or set PLAYWRIGHT_DIR');
   const fallback = new URL('index.js', `file:///${dir.replace(/\\/g, '/')}/`).href;
   pw = (await import(fallback)).default ?? (await import(fallback));
 }
@@ -41,7 +41,7 @@ const BASE = process.env.BASE || 'http://localhost:5173';
 
 // CLOCK.EXE's click target is cell mc-885 (row 11 col 5, pixel
 // (44,92)): the Executive's listbox hit zones sit ~a line below the
-// drawn text (empirical — clicking the text row itself selects the
+// drawn text (empirical - clicking the text row itself selects the
 // item above), so aim one row under CLOCK.EXE's name.
 const CLOCK_CELL = 'mc-885';
 
@@ -125,7 +125,7 @@ if (!mode6) { console.log('statuses:', await buildPage.evaluate(() => window.__b
 
 // Mode 6 arrives at the Microsoft LOGO; the Executive is a couple of
 // million ticks later. Wait until the framebuffer stops changing AND
-// the top 16 scanlines carry real ink (the Executive's caption bar —
+// the top 16 scanlines carry real ink (the Executive's caption bar -
 // the logo is black up there, and the Executive draw has >5s pauses
 // that fool a plain stability check into a mid-draw baseline).
 let before = await peekCga();
@@ -155,15 +155,15 @@ if (!before) { log('FAIL: could not peek CGA framebuffer'); process.exit(1); }
 
 // Menu-via-hold phase. Windows 1.x menus only stay open while the
 // button is HELD (press title → drag to item → release), so a plain
-// tap flashes and closes them — the hold switch latches the mouse
+// tap flashes and closes them - the hold switch latches the mouse
 // button instead (--msHold wire + --msHeldBtn latch, see kiln
 // emitMouseWires). Hold on → tap "View" (cell mc-88: the menu bar is
-// the SECOND text row, y 9-17 — row 0 is the caption with the
+// the SECOND text row, y 9-17 - row 0 is the caption with the
 // system-menu and zoom boxes; the menu drops and STAYS because the
 // button never releases) → assert the framebuffer changed → tap View
 // AGAIN: since 2026-07-13 the NEXT tap completes the drag (the press
 // edge clears the hold latch and that tap's release delivers button-up
-// at its position) — releasing over the title closes the menu with
+// at its position) - releasing over the title closes the menu with
 // hold mode still on. Then hold off (wire down, button already up)
 // before the Clock phase, which needs plain taps. Regression for the
 // 2026-07-13 hold + packet-pacing fix AND the tap-pair drag semantics.
@@ -175,7 +175,7 @@ const fbDiff = async (ref) => {
   for (let i = 0; i < now.length; i++) if (now[i] !== ref[i]) d++;
   return d;
 };
-// Input phases run with the PLAYER in front — that's how a real user
+// Input phases run with the PLAYER in front - that's how a real user
 // clicks, and a backgrounded page throttles the keyboard form's
 // hidden-iframe navigations by whole seconds, which would stretch the
 // double-click taps far apart in wall (and thus guest) time. The
@@ -189,7 +189,7 @@ await player.click(`#${VIEW_CELL}`);
 // Thresholds: the dropped menu repaints ~1.2K bytes; the relocated
 // cursor arrow alone accounts for ~50-150.
 const menuOpen = await waitFor('View menu open (held)', async () => (await fbDiff(before)) > 800, 30000, 2000);
-log('menu phase: tap View again (second tap completes the drag — release over the title closes the menu)');
+log('menu phase: tap View again (second tap completes the drag - release over the title closes the menu)');
 await player.click(`#${VIEW_CELL}`);
 const menuClosed = await waitFor('menu closed after second tap (hold mode still on)', async () => {
   const d = await fbDiff(before);
@@ -203,7 +203,7 @@ if (!menuOpen || !menuClosed) {
   await browser.close();
   process.exit(1);
 }
-log('menu-via-hold OK — menu stayed open while held, closed on the second tap');
+log('menu-via-hold OK - menu stayed open while held, closed on the second tap');
 
 // Select CLOCK.EXE, then double-click it (the Executive launches on a
 // double-click over the already-selected item, as on real hardware).
@@ -229,6 +229,6 @@ if (!launched) {
   await browser.close();
   process.exit(1);
 }
-log('PASS: real click path drove Windows 1.01 — CLOCK.EXE launched by mouse');
+log('PASS: real click path drove Windows 1.01 - CLOCK.EXE launched by mouse');
 await browser.close();
 process.exit(0);

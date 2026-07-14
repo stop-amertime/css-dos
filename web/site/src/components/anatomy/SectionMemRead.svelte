@@ -1,5 +1,5 @@
 <script>
-  // Memory — read formulas: one colossal function, three kinds of
+  // Memory - read formulas: one colossal function, three kinds of
   // arm, each with its own section. All arms and counts measured
   // from sokoban.css (736,510 RAM + 6,924 ROM + 512 window + 2
   // keyboard = 743,948).

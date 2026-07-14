@@ -1,5 +1,5 @@
 <script>
-  // Memory — write formulas: the 171 MB write rules, the biggest
+  // Memory - write formulas: the 171 MB write rules, the biggest
   // thing in the file. Main flow rewritten 2026-07-04 to the
   // ABOUT-SCRIPT.md register (the owner's canonical x = y example);
   // facts from CABINET-ANATOMY.md §6, §13. The assembled-cell
@@ -16,7 +16,7 @@
 
   const APPLY_SLOT = `@function --applySlot(--cell, --live, --loOff, --hiOff, --val, --width) returns <integer> {
   result: if(
-    style(--live: 0): var(--cell);                /* slot idle — pass through */
+    style(--live: 0): var(--cell);                /* slot idle - pass through */
     style(--width: 2) and style(--loOff: 0) and style(--hiOff: 1):
       --lowerBytes(var(--val), 16);              /* whole word, aligned */
     style(--width: 2) and style(--loOff: 1):

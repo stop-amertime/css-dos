@@ -16,4 +16,4 @@ All in `kiln/emit-css.mjs`; the tree mirrors it for free.
 - cpu-tree.js regenerated (round-trip OK; slots = 4 sub-sections). Verified:
   websmoke PASS + site build. Landed to master 2026-07-11 at owner request
   for live testing; the env had no calcite sibling, so the native
-  smoke/writable/msdos gates are still owed — run them next calcite session.
+  smoke/writable/msdos gates are still owed - run them next calcite session.

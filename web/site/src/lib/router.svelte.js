@@ -1,9 +1,9 @@
 // Wizard navigation as reactive state. Three steps (About / Build /
 // Play); About has 7 sub-pages (Home hero, Why?, then the info
-// pages), Build has 3. The URL path addresses the exact page —
+// pages), Build has 3. The URL path addresses the exact page -
 // `/step/subpage[/section]`, names not numbers, so deep links survive
 // reordering and a refresh keeps your spot. Legacy one-word hashes
-// (#home, #about, #build, #play, #how — from before the switch to
+// (#home, #about, #build, #play, #how - from before the switch to
 // real paths) still land on the right step, translated to a path on
 // first load. Play is gated behind a finished build; a locked Play
 // link redirects to Build, not the start.
@@ -45,7 +45,7 @@ class Nav {
   sectionDir = $state(1);    // slide direction of the last section change
   // One-shot deep-link target for the FAQs page: '/about/faqs/<id>' sets
   // this, AboutFaqs.svelte opens+scrolls to the matching Foldable and
-  // clears it. Not kept in sync on manual toggling (unlike `section`) —
+  // clears it. Not kept in sync on manual toggling (unlike `section`) -
   // it's a landing instruction, not persistent state.
   faqAnchor = $state(null);
   // The carousel's "this bar is a map" hint: shows on every page of
@@ -85,7 +85,7 @@ class Nav {
     scrollTop();
   }
 
-  // Play unlocks once a cabinet exists — built this session, or restored
+  // Play unlocks once a cabinet exists - built this session, or restored
   // from Cache Storage after a reload.
   get canPlay() { return build.done || build.restored; }
 
@@ -95,7 +95,7 @@ class Nav {
 
   // A cart id from a /build/pick?cart=<id> deep link, held until
   // build.serverCarts has loaded (selectCart() needs that list).
-  // Replayed by loadServerCarts()'s caller — see replayWantedCart().
+  // Replayed by loadServerCarts()'s caller - see replayWantedCart().
   #wantedCart = null;
 
   // One-shot: the next URL write should carry ?skipped=true, then
@@ -296,7 +296,7 @@ class Nav {
       if (want === 3 && !build.done) want = build.hasSource ? 2 : 1;
       if (want === 2 && !build.hasSource) want = 1;
       this.buildSub = want;
-      // ?cart=<id> on any Build sub-page — stash for replayWantedCart()
+      // ?cart=<id> on any Build sub-page - stash for replayWantedCart()
       // once build.serverCarts has loaded (selectCart() needs that
       // list). Deep-linking straight to Configure/Result with a cart
       // still lands on Pick above (no source yet); replayWantedCart()
@@ -310,14 +310,14 @@ class Nav {
 function scrollTop() {
   if (typeof window === 'undefined') return;
   window.scrollTo({ top: 0, behavior: 'instant' });
-  // The page itself can't scroll — the wizard's middle band is the
+  // The page itself can't scroll - the wizard's middle band is the
   // real scroller, so a page turn has to reset it too.
   document.querySelector('.wiz-scroll')?.scrollTo({ top: 0, behavior: 'instant' });
 }
 
 export const nav = new Nav();
 
-// A legacy bookmark/shared link arrives as '#about/why' etc. — translate
+// A legacy bookmark/shared link arrives as '#about/why' etc. - translate
 // it to the equivalent path once, then drop the hash. Bare '#' (no path
 // segments) means "just the old homepage hash", same as visiting '/'.
 function migrateLegacyHash() {
@@ -348,7 +348,7 @@ if (typeof window !== 'undefined') {
   });
   nav.applyPath();
 
-  // Any navigation state change writes the canonical path — including
+  // Any navigation state change writes the canonical path - including
   // canonicalising a legacy hash on first load.
   $effect.root(() => {
     $effect(() => {
@@ -359,7 +359,7 @@ if (typeof window !== 'undefined') {
       history.pushState(null, '', want);
       guard = false;
       // The ?skipped=true tag is a one-shot label for this single landing
-      // pageview — strip it right after so it doesn't linger through
+      // pageview - strip it right after so it doesn't linger through
       // subsequent navigation (replaceState adds no history entry).
       if (nav._consumeTagSkipped()) {
         history.replaceState(null, '', nav.pathFor());

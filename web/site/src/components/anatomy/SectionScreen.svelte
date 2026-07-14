@@ -1,5 +1,5 @@
 <script>
-  // The screen — 64,000 divs, each a CSS rule reading video memory.
+  // The screen - 64,000 divs, each a CSS rule reading video memory.
   // Copy recycled from the retired "Screen, keys, time" page; facts
   // from CABINET-ANATOMY.md §8.
   import Foldable from '../Foldable.svelte';
@@ -8,7 +8,7 @@
   import SectionHead from '../SectionHead.svelte';
   import Term from '../Term.svelte';
 
-  const RETRACE = `/* in retrace? — 1 while the beam would be flying back */
+  const RETRACE = `/* in retrace? - 1 while the beam would be flying back */
 max(0, sign(3409 - mod(var(--cycleCount-prev), 68182)))`;
 
   const PIXEL_RULE = `#p31840 { --ci: mod(var(--mc343600-prev), 256); background-color: --screenPx(var(--vidMode), var(--ci), mod(var(--mc382908-prev), 256), var(--mc377332-prev), var(--mc377832-prev), 3, 128, 128, var(--vidPal)); }`;
@@ -23,7 +23,7 @@ max(0, sign(3409 - mod(var(--cycleCount-prev), 68182)))`;
 }`;
 
   const DAC_SUBINDEX = `--dacSubIndex: if(
-  style(--q1: 968): 0;                                      /* OUT 0x3C8: new colour slot — reset */
+  style(--q1: 968): 0;                                      /* OUT 0x3C8: new colour slot - reset */
   style(--q1: 967): 0;                                      /* OUT 0x3C7 (read cursor) also resets */
   style(--q1: 969) and style(--dacSubIndex-prev: 2): 0; /* blue just landed: wrap to red… */
   style(--q1: 969): calc(var(--dacSubIndex-prev) + 1);  /* …otherwise advance R→G→B */

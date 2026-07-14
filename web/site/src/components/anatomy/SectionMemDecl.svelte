@@ -1,5 +1,5 @@
 <script>
-  // Memory declarations — the per-cell @property array, one declaration
+  // Memory declarations - the per-cell @property array, one declaration
   // per memory cell (368,256 of them), which dominates the file. The
   // subsystem declarations (registers, chipset, keyboard, write slots)
   // now live in their own sections, so this is purely the memory cells.

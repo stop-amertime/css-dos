@@ -24,7 +24,7 @@ for (const id of ['kb-caps','kb-ctrl','kb-shift','kb-f1','kb-f10','kb-slash','kb
   assert.ok(raw.includes(`id="${id}"`), `raw has ${id}`);
 }
 
-// Machine host present so cabinet rules can match — the element
+// Machine host present so cabinet rules can match - the element
 // carries BOTH classes: .motherboard (chipset/memory/plumbing rules)
 // and .cpu (decode + register-table rules).
 assert.ok(/class="[^"]*\bmotherboard\b/.test(raw), 'raw has .motherboard host');

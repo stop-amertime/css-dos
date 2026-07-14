@@ -1,7 +1,7 @@
 {
   "name": "calcite-wasm",
   "type": "module",
-  "description": "WASM bindings for calc(ite) — runs in a Web Worker",
+  "description": "WASM bindings for calc(ite) - runs in a Web Worker",
   "version": "0.1.0",
   "license": "GPL-3.0-only",
   "files": [

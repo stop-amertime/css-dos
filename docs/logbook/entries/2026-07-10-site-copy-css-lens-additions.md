@@ -1,6 +1,6 @@
-# 2026-07-10 — Site copy: CSS-lens additions (decoder, REP, idle-branch hardware…)
+# 2026-07-10 - Site copy: CSS-lens additions (decoder, REP, idle-branch hardware…)
 
-**LANDED** (master) — owner-directed copy pass on
+**LANDED** (master) - owner-directed copy pass on
 `docs/CSS-DOS-site-copy.md`, applying the "start from the capability CSS
 lacks" editorial filter. New sections, all grounded in kiln source:
 

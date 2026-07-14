@@ -1,4 +1,4 @@
-## 2026-05-06 — Plan filed: `rep_fast_forward` genericity mission
+## 2026-05-06 - Plan filed: `rep_fast_forward` genericity mission
 
 Planning-only entry. Wrote
 [`docs/plans/2026-05-06-rep-fast-forward-genericity.md`](../plans/2026-05-06-rep-fast-forward-genericity.md)

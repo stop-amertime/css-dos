@@ -1,7 +1,7 @@
 <script>
   // Old-school DOS wait throbber: the | / - \ spinner every DOS-era
   // utility drew while working, one character rotating in place.
-  // Pure text — inherits font and colour from where it sits. Any
+  // Pure text - inherits font and colour from where it sits. Any
   // "loading" wording belongs to the caller; this is just the char.
   const FRAMES = ['|', '/', '-', '\\'];
   let i = $state(0);

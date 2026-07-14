@@ -1,4 +1,4 @@
-## 2026-04-29 — bridge: hash-gated emit + 30Hz sampler
+## 2026-04-29 - bridge: hash-gated emit + 30Hz sampler
 
 **Problem.** Web bridge claimed 20 fps (TARGET_MS=50, BMP/batch).
 User-perceived rate doom8088 gameplay = ~1-2 fps. The other 18
@@ -19,7 +19,7 @@ post + browser BMP-decode + DOM put).
 ```
 simulatedFps = 34.2  (vs native 35Hz)
 vramFps      = 1.6   (cabinet's true visible-frame rate)
-paintFps     = 2.1   (was 19.5 pre-hash-gate — 9× fewer dups)
+paintFps     = 2.1   (was 19.5 pre-hash-gate - 9× fewer dups)
 ```
 
 Each gametic only renders one column strip; full visible frame builds

@@ -1,6 +1,6 @@
 # MS-DOS 4.00 (MIT-licensed)
 
-System files for the `boot.os: "msdos4"` cart mode — real MS-DOS 4.00
+System files for the `boot.os: "msdos4"` cart mode - real MS-DOS 4.00
 booting from its own boot sector instead of the default EDR-DOS kernel.
 
 ## Contents
@@ -27,12 +27,12 @@ source fork: <https://github.com/lotharsm/MS-DOS> branch
 `dos-4.00-reconstructed`.
 
 Extraction recipe: files are ordinary FAT12 root-dir entries; boot
-sector is LBA 0. Any FAT12 reader works — the session used a ~40-line
+sector is LBA 0. Any FAT12 reader works - the session used a ~40-line
 Node script walking the BPB/FAT/root dir of the image.
 
 `LICENSE` is the MIT license from microsoft/MS-DOS. The full utility
 set (EDLIN, DEBUG, CHKDSK, …) exists in the same image and is equally
-MIT — only the boot-essential trio is parked here; utilities belong in
+MIT - only the boot-essential trio is parked here; utilities belong in
 carts that want them.
 
 ## Boot contract (from v4.0/src/BOOT/MSBOOT.ASM)
@@ -46,5 +46,5 @@ carts that want them.
   AX:BX = first data sector. SYSINIT then loads the rest of IO.SYS +
   MSDOS.SYS itself via INT 13h.
 - It reads the INT 1Eh diskette-parameter-table vector at boot (copies
-  11 bytes) and re-points it — the BIOS must have a valid INT 1Eh
+  11 bytes) and re-points it - the BIOS must have a valid INT 1Eh
   vector (Corduroy does: `disk_param_table`).

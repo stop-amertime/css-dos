@@ -1,10 +1,10 @@
-; mode13_logo.asm — CSS-DOS boot splash in VGA Mode 13h.
+; mode13_logo.asm - CSS-DOS boot splash in VGA Mode 13h.
 ;
 ; Sets video mode 13h, blits the 32x32 CSS-DOS logo (embedded via
 ; incbin) into the framebuffer at 4x nearest-neighbor scale, centered.
 ;
 ; BIOS constraints: no 0x0F-prefixed Jcc, no segment override prefixes,
-; all memory access via DS. So we can't use ES for the framebuffer —
+; all memory access via DS. So we can't use ES for the framebuffer -
 ; we push DS, swap to 0xA000, write, pop DS back, for each source pixel.
 ;
 ; Layout:
@@ -14,7 +14,7 @@
 ; Build the .com:
 ;   nasm -f bin -o tests/mode13_logo.com tests/mode13_logo.asm
 ; To turn a .com like this into a cabinet, wrap it as a hack-preset cart
-; (with graphics memory enabled) and run it through the builder — see
+; (with graphics memory enabled) and run it through the builder - see
 ; docs/hack-path.md.
 ; Render:
 ;   calcite --input tests/mode13_logo.css --ticks 5000000 --halt 0x2110 \

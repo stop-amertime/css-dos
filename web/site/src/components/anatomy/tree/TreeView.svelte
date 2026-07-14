@@ -1,7 +1,7 @@
 <script>
-  // TreeView — the anatomy Tree View: one TreeAst per top-level entry
+  // TreeView - the anatomy Tree View: one TreeAst per top-level entry
   // in `nodes` (sections, blocks, and dispatch ASTs all render through
-  // the same component — see tools/extract-tree-data.mjs for the node
+  // the same component - see tools/extract-tree-data.mjs for the node
   // model). Chrome-less since the 2026-07-12 pane restyle: the code
   // pane in AboutFileMap provides the box, header (section name +
   // size + icon) and colour; this renders only the tree. `title`
@@ -12,14 +12,14 @@
 
   // The one-lining budget is MEASURED, not guessed: chars that fit one
   // row at this container's real width (~8px/char WebVGA + the glyph
-  // gutter). The old fixed 80 was a desktop approximation — at phone
+  // gutter). The old fixed 80 was a desktop approximation - at phone
   // width it let 41-char keyboard rows "one-line" into an ugly soft-wrap
   // with an orphaned `}`. Each nesting level trims a little more.
   let width = $state(0);
   const budget = $derived(width > 0 ? Math.max(28, Math.floor((width - 56) / 8)) : 80);
 </script>
 
-<section class="tree-view" aria-label="{title} — real cabinet CSS" bind:clientWidth={width}>
+<section class="tree-view" aria-label="{title} - real cabinet CSS" bind:clientWidth={width}>
   {#each nodes as node}
     <TreeAst {node} {budget} />
   {/each}
@@ -31,7 +31,7 @@
     line-height: 19px;
   }
 
-  /* Prism token palette — mirrors .byte-example's (global.css) exactly.
+  /* Prism token palette - mirrors .byte-example's (global.css) exactly.
      The tree must colour its code EVERYWHERE: since the 2026-07-11
      de-ceremony pass, hoisted panes render content with no .byte-example
      ancestor, so the palette is scoped to the tree itself. Token spans

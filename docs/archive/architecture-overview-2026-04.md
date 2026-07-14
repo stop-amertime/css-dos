@@ -1,6 +1,6 @@
 # CSS-DOS Architecture Overview
 
-A complete Intel 8086 PC implemented in pure CSS. The CSS runs in Chrome —
+A complete Intel 8086 PC implemented in pure CSS. The CSS runs in Chrome -
 no JavaScript, no WebAssembly. [Calcite](../../calcite) is a JIT compiler
 that makes it fast enough to be usable.
 
@@ -17,7 +17,7 @@ the web or download a reference before guessing at how something works.
 ## The cardinal rule
 
 The CSS is a working program that runs in Chrome on its own. It is the source
-of truth. Calcite is a JIT compiler for CSS — it must produce the same results
+of truth. Calcite is a JIT compiler for CSS - it must produce the same results
 Chrome would, just faster. Calcite has zero x86 knowledge.
 
 - **The CSS must work in Chrome.** If Chrome can't evaluate it, it's wrong.
@@ -28,11 +28,11 @@ Chrome would, just faster. Calcite has zero x86 knowledge.
 
 ### When Chrome stops being practical
 
-Chrome has limitations — see `architecture/calcite.md` for details on nesting
+Chrome has limitations - see `architecture/calcite.md` for details on nesting
 depth, local variable, and argument restrictions. In practice:
 
 - **Simple instructions** (MOV, ADD, JMP) can be validated in Chrome
-- **Complex instructions** may exceed Chrome's limits — validate via Calcite +
+- **Complex instructions** may exceed Chrome's limits - validate via Calcite +
   reference emulator comparison
 - **The JS reference emulator (`tools/js8086.js`) is the primary source of
   truth** for instruction correctness
@@ -59,7 +59,7 @@ match what a real PC looks like:
   actual state.
 - **INT 10h handlers must actually do the thing.** Not fake it.
 - **The runner trusts the machine.** Display routing reads BDA 0x0449.
-- **The raw `.COM` path in `generate-hacky.mjs` is the "hack path"** — simpler
+- **The raw `.COM` path in `generate-hacky.mjs` is the "hack path"** - simpler
   layout, not trying to be a full DOS machine. The canonical layout applies to
   `generate-dos.mjs`.
 

@@ -1,6 +1,6 @@
 // A writeStream-shaped object that Kiln can write into. Accumulates
 // string chunks into an array; on finish() builds a single Blob.
-// The Blob constructor handles the underlying bytes natively — no
+// The Blob constructor handles the underlying bytes natively - no
 // intermediate string concat, so this scales to GB-sized cabinets
 // without OOMing.
 export class BlobWriter {

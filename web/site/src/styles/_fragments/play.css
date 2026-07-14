@@ -1,11 +1,11 @@
-/* play.css — the Play step (STEP 3). Since 2026-07-04 the step is
+/* play.css - the Play step (STEP 3). Since 2026-07-04 the step is
    player-first: Calcite runs embedded by default (screen + keyboard
    only, via the player's #embed :target mode), with a note linking to
    the About/Calcite page and a warning modal in front of the raw-CSS
    player. (The old two-card run-options layout moved to that About
    page / this modal.) */
 
-/* ===== Step 3 — Play ===== */
+/* ===== Step 3 - Play ===== */
 /* Every vertical pixel counts here: the goal is screen + keyboard +
    the Calcite note all visible with no scrolling. Tighter top padding
    than the prose steps. */
@@ -22,7 +22,7 @@
 }
 /* While the player is live the window takes the full viewport-fit
    height (same value as its usual max-height cap) instead of sizing to
-   content — a FIXED scroll band the squish-to-fit maths in Play.svelte
+   content - a FIXED scroll band the squish-to-fit maths in Play.svelte
    can size against without feedback. */
 .window.wizard:has(.inline-player) {
   height: calc(100dvh - 96px);
@@ -30,7 +30,7 @@
 }
 .window-body:has(.inline-player) .play-note { margin-top: auto; padding-top: 6px; }
 
-/* Inline player — /player/calcite.html#embed iframed into this page.
+/* Inline player - /player/calcite.html#embed iframed into this page.
    Keeps the bridge worker's tab in the foreground; mobile Chrome
    freezes background tabs, so the old two-tab flow starved the frame
    stream on phones. */
@@ -48,7 +48,7 @@
   color: var(--edit-black);
   border-bottom: 1px solid var(--edit-black);
 }
-/* "Change program" — deliberately quiet next to the playing surface:
+/* "Change program" - deliberately quiet next to the playing surface:
    flat, no drop shadow, dim text that wakes up on hover. */
 .soft-btn {
   background: transparent;
@@ -112,7 +112,7 @@
   cursor: pointer;
 }
 
-/* ── Per-cart hints toast (display.playTips) — a small DOS dialog
+/* ── Per-cart hints toast (display.playTips) - a small DOS dialog
    pinned to the corner over the player. Dismissible; per-cart. ── */
 .play-toast {
   position: fixed;
@@ -155,7 +155,7 @@
   .play-toast { left: 8px; right: 8px; width: auto; bottom: 24px; }
 }
 
-/* ── The raw-CSS warning modal — a DOS dialog over a dimmed desktop. ── */
+/* ── The raw-CSS warning modal - a DOS dialog over a dimmed desktop. ── */
 .raw-overlay {
   position: fixed;
   inset: 0;
@@ -178,7 +178,7 @@
   margin-top: 14px;
 }
 
-/* Phone: the player is the page — nearly full-bleed, but keep a small
+/* Phone: the player is the page - nearly full-bleed, but keep a small
    even margin around the frame (the wizard body pads 10px; -6px leaves
    4px each side to match the 4px top gap). Thinner chrome. */
 @media (max-width: 640px) {

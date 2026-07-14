@@ -1,4 +1,4 @@
-// shoot.mjs — grab a screenshot from the calcite-debugger at the current tick.
+// shoot.mjs - grab a screenshot from the calcite-debugger at the current tick.
 //
 // Two source paths:
 //   A. Render directly from 8086 memory via /memory. Fast, no browser,
@@ -6,7 +6,7 @@
 //      and CGA 320×200×4. This is the primary path.
 //   B. Drive the web player through Playwright and take a Chrome
 //      screenshot. Slower and depends on Playwright being installed,
-//      but shows what Chrome actually renders — useful when the suspicion
+//      but shows what Chrome actually renders - useful when the suspicion
 //      is that the calcite-produced framebuffer is right but Chrome's CSS
 //      evaluation diverges. Opt-in.
 //
@@ -62,7 +62,7 @@ function buildFont() {
   const path = resolve(CSS_DOS_ROOT, 'bios', 'corduroy', 'cga-8x8.bin');
   FONT_BYTES = new Uint8Array(readFileSync(path));
   if (FONT_BYTES.length !== 256 * FONT_HEIGHT) {
-    throw new Error(`cga-8x8.bin size ${FONT_BYTES.length} !== 2048 — font file is wrong shape`);
+    throw new Error(`cga-8x8.bin size ${FONT_BYTES.length} !== 2048 - font file is wrong shape`);
   }
   return FONT_BYTES;
 }
@@ -100,7 +100,7 @@ export async function shoot(dbg, { mode: modeOverride = null } = {}) {
   if (mode === 0x06) {
     return shootCgaHires(dbg);
   }
-  // Unknown — dump the common framebuffer regions so the caller at least
+  // Unknown - dump the common framebuffer regions so the caller at least
   // sees *something*, and flag the mode.
   return shootUnknown(dbg, mode);
 }
@@ -186,7 +186,7 @@ async function shootMode13(dbg) {
   const rgba = new Uint8Array(320 * 200 * 4);
   for (let i = 0; i < 320 * 200; i++) {
     const c = fb[i] & 0xFF;
-    // DAC entries are 6-bit (0..63) — scale to 0..255 by multiplying by 4
+    // DAC entries are 6-bit (0..63) - scale to 0..255 by multiplying by 4
     // plus the remainder bit to fill the full range.
     const r6 = pal[c * 3 + 0] & 0x3F;
     const g6 = pal[c * 3 + 1] & 0x3F;
@@ -219,7 +219,7 @@ async function shootCgaGfx(dbg, { mode }) {
   const pEven = even.bytes, pOdd = odd.bytes;
 
   // Palette 1 (cyan/magenta/white) is the common one; palette 0
-  // (green/red/brown) is rarer. Default assumption is palette 1 — it's
+  // (green/red/brown) is rarer. Default assumption is palette 1 - it's
   // what DOS 4DOS/EDIT/QBasic use. Mode 5 = palette 1 low-intensity.
   const CGA = [
     [0x00, 0x00, 0x00],  // 0 background (usually black)
@@ -282,19 +282,19 @@ async function shootUnknown(dbg, mode) {
     rgba: null,
     png: null,
     phash: null,
-    note: `unknown video mode ${mode.toString(16)} — no renderer; dumping common framebuffer regions`,
+    note: `unknown video mode ${mode.toString(16)} - no renderer; dumping common framebuffer regions`,
     dumpA0000Hex: a0000.hex,
     dumpB8000Hex: b8000.hex,
   };
 }
 
 // Optional: Chrome-rendered screenshot via Playwright. We don't import
-// playwright at module scope — it's optional. Callers that want it
+// playwright at module scope - it's optional. Callers that want it
 // must `await import('playwright')` themselves or pass `playwright`
 // as an arg.
 export async function shootChrome({ playwright, cabinetPath, playerUrl, width = 640, height = 400 }) {
   if (!playwright) {
-    throw new Error('shootChrome requires playwright — pass it in as `playwright`');
+    throw new Error('shootChrome requires playwright - pass it in as `playwright`');
   }
   const browser = await playwright.chromium.launch();
   try {

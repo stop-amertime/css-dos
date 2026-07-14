@@ -1,7 +1,7 @@
 // Per-instruction 8086 cycle counts.
 //
 // Each instruction increments --cycleCount by the real 8086 cycle cost.
-// This drives accurate PIT timer derivation — the PIT counts down in
+// This drives accurate PIT timer derivation - the PIT counts down in
 // real 8086 cycles, not in CSS ticks.
 
 const CC = (n) => `calc(var(--__1cycleCount) + ${n})`;

@@ -13,13 +13,13 @@
   <link rel="stylesheet" href="/cabinet.css">
   <style>
     /* "Web437 IBM VGA 8x16" from VileR's Oldschool PC Font Pack v2.2,
-       CC BY-SA 4.0 — https://int10h.org/oldschool-pc-fonts/
+       CC BY-SA 4.0 - https://int10h.org/oldschool-pc-fonts/
        Self-hosted; license + attribution in /player/fonts/. */
     @font-face {
       font-family: 'WebVGA';
       /* Relative, not /player/fonts/…: resolves the same when served
          (this file lives at /player/), and ALSO when the page is
-         opened straight from disk — the raw player is meant to run
+         opened straight from disk - the raw player is meant to run
          with no server at all. */
       src: url('fonts/Web437_IBM_VGA_8x16.woff') format('woff');
       font-display: block;
@@ -43,7 +43,7 @@
       image-rendering: pixelated;
       padding: calc(16px + 16px) 0 calc(16px + 16px);
     }
-    /* Sticky top menu bar — decorative retro IDE chrome. */
+    /* Sticky top menu bar - decorative retro IDE chrome. */
     .menu-bar {
       position: fixed;
       top: 0; left: 0; right: 0;
@@ -76,7 +76,7 @@
       line-height: 16px;
     }
     .status-line .skey b { font-weight: normal; color: var(--edit-red); }
-    /* Dialog window — flat gray with a hard 1-cell black drop shadow. */
+    /* Dialog window - flat gray with a hard 1-cell black drop shadow. */
     .window {
       background: var(--edit-gray);
       color: var(--edit-black);
@@ -141,7 +141,7 @@
     }
     /* Mouse surface: an 80×25 grid of invisible submit buttons over the
        screen. Each button is one #mc-N cell of the cabinet's pointing
-       surface (kiln emitMouseCellRules) — a tap posts /_kbd?key=mc-N
+       surface (kiln emitMouseCellRules) - a tap posts /_kbd?key=mc-N
        through the same SW→bridge pulse path the keyboard uses, which
        the serial-mouse machine turns into move+click packets. Only
        mouse-enabled cabinets react; on others the pulses are inert.
@@ -319,12 +319,12 @@
     .kb-left  { grid-column: 1; grid-row: 2; }
     .kb-down  { grid-column: 2; grid-row: 2; }
     .kb-right { grid-column: 3; grid-row: 2; }
-    /* Hold a key — zero <script> in both players, different plumbing.
+    /* Hold a key - zero <script> in both players, different plumbing.
 
        CALCITE (this file): #kb-hold is a SUBMIT button like every
        other key (key=kb-hold). The bridge owns the mode: each kb-hold
        press toggles it and mirrors it onto the cabinet's --kbdHold
-       wire immediately — so turning the mode OFF releases every held
+       wire immediately - so turning the mode OFF releases every held
        key right away, no follow-up key press needed. While the wire
        is up the MACHINE latches key releases (presses accumulate as
        chords); when it drops the machine drains the break codes
@@ -332,14 +332,14 @@
        state (a zero-JS click can't both flip page state and submit),
        so the label can't swap with the mode here; the lamp dot on the
        button is an <img> streamed by the bridge (/_screen/holdlamp)
-       showing the machine's ACTUAL wire state — green = holding,
+       showing the machine's ACTUAL wire state - green = holding,
        black = off.
 
        RAW (raw.html, derived by web/scripts/raw-regen.mjs): the
        button becomes a label toggling the hidden #kb-holdmode
        checkbox, which the cabinet reads directly via
-       `&:has(#kb-holdmode:checked) { --kbdHold: 1 }` — immediate by
-       construction — and the :checked rules below light the key and
+       `&:has(#kb-holdmode:checked) { --kbdHold: 1 }` - immediate by
+       construction - and the :checked rules below light the key and
        swap its text (page state is real there, so pure CSS can).
        Those rules are inert in this file (no checkbox here). */
     .kb-state {
@@ -358,7 +358,7 @@
     }
     #kb-hold::before { content: "Hold Mode"; }
     /* The hold-mode lamp (calcite only): fed by the bridge's
-       /_screen/holdlamp multipart stream — same mechanism as the
+       /_screen/holdlamp multipart stream - same mechanism as the
        screen <img>. Tucked into the button's top-right corner; the
        black background reads as "off" until (unless) the stream
        delivers, so a dead bridge shows mode off. */
@@ -370,7 +370,7 @@
       border: 1px solid var(--edit-black);
       background: #000000;
     }
-    /* Mode on (raw player only — needs the checkbox): the key stays
+    /* Mode on (raw player only - needs the checkbox): the key stays
        down, lights up, and says so. */
     .keyboard:has(#kb-holdmode:checked) #kb-hold {
       transform: translate(3px, 3px);
@@ -386,17 +386,17 @@
 
     .kbd-sink { width: 0; height: 0; border: 0; position: absolute; visibility: hidden; }
 
-    /* Embedded mode — /player/calcite.html#embed (the site's Play-page
+    /* Embedded mode - /player/calcite.html#embed (the site's Play-page
        iframe). The fragment targets a display:none anchor (an invisible
        target is skipped by scroll-into-view, so loading the iframe can't
        scroll the parent page) and :has(:target) hides the decorative
-       desktop chrome — the frame is just the screen + keyboard. The
-       popped-out player keeps the full blue desktop. Pure CSS — this
+       desktop chrome - the frame is just the screen + keyboard. The
+       popped-out player keeps the full blue desktop. Pure CSS - this
        file stays script-free. */
     .embed-anchor { display: none; }
     body:has(#embed:target) {
       /* #d6d6d6 = the SITE's dialog gray (web/site global.css --edit-gray),
-         not this file's EGA #aaaaaa — the iframe must be invisible against
+         not this file's EGA #aaaaaa - the iframe must be invisible against
          the window that hosts it. Separate documents, so no shared var. */
       background: #d6d6d6;
       padding: 4px 0;
@@ -416,7 +416,7 @@
     body:has(#embed:target) .window-body { padding: 8px 6px; }
   </style>
   <style>
-    /* AUTOGEN raw-player pixel grid — replaces the calcite <img>. */
+    /* AUTOGEN raw-player pixel grid - replaces the calcite <img>. */
     .screen-grid {
       display: grid;
       grid-template-columns: repeat(320, 2px);
@@ -433,7 +433,7 @@
 </head>
 <body>
   <a id="embed" class="embed-anchor" aria-hidden="true"></a>
-  <!-- Sticky top menu bar — decorative retro IDE chrome. -->
+  <!-- Sticky top menu bar - decorative retro IDE chrome. -->
   <div class="menu-bar">
     <span class="menu-item"><span class="hot">F</span>ile</span>
     <span class="menu-item"><span class="hot">E</span>dit</span>
@@ -743,7 +743,7 @@
           <button id="kb-space" class="kb-key kb-space" type="submit" name="key" value="kb-space">&#x2423;</button>
         </div>
         <div class="kb-right-stack">
-          <input type="checkbox" id="kb-holdmode" class="kb-state" aria-label="Hold Mode: while on, pressed keys stay held (chords) — tap a held key again to release just that key; toggle off to release everything"><label id="kb-hold" class="kb-key kb-mod" for="kb-holdmode" title="Hold Mode: while on, pressed keys stay held (chords) — tap a held key again to release just that key; tap again to turn off and release everything"></label>
+          <input type="checkbox" id="kb-holdmode" class="kb-state" aria-label="Hold Mode: while on, pressed keys stay held (chords) - tap a held key again to release just that key; toggle off to release everything"><label id="kb-hold" class="kb-key kb-mod" for="kb-holdmode" title="Hold Mode: while on, pressed keys stay held (chords) - tap a held key again to release just that key; tap again to turn off and release everything"></label>
           <div class="kb-arrows">
             <button id="kb-up" class="kb-key kb-arrow kb-up" type="submit" name="key" value="kb-up" aria-label="Up"><span></span></button>
             <button id="kb-left" class="kb-key kb-arrow kb-left" type="submit" name="key" value="kb-left" aria-label="Left"><span></span></button>

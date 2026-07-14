@@ -1,4 +1,4 @@
-# 2026-06-10 — rep-generic MERGED to calcite main: the x86 string-op cheat is gone
+# 2026-06-10 - rep-generic MERGED to calcite main: the x86 string-op cheat is gone
 
 Calcite `main` `cc729b2` (pushed) merges `feat/rep-generic`. Before
 merging, the 2026-06-09 review warts were fixed on the branch

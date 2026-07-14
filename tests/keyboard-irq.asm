@@ -1,4 +1,4 @@
-; keyboard-irq.asm — Test keyboard IRQ → BDA buffer → INT 16h path
+; keyboard-irq.asm - Test keyboard IRQ → BDA buffer → INT 16h path
 ; Unmasked IRQ 1, waits for a key via INT 16h AH=00h, stores AX, halts.
 ; When run with --key-events=50:0x1E61,100:0 the expected result is AX=0x1E61.
 

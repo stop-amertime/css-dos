@@ -1,4 +1,4 @@
-// fast-shoot.mjs — screenshot at tick N via calcite-cli, no daemon.
+// fast-shoot.mjs - screenshot at tick N via calcite-cli, no daemon.
 //
 // The slow path (`shoot.mjs` over `DebuggerClient`) advances the debugger
 // in chunked seek calls (default 5000 ticks per IPC round-trip), recording
@@ -26,9 +26,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..', '..', '..');
 
 // Default location for the calcite-cli release binary. Resolution order:
-//   1. CALCITE_CLI_BIN — direct path to the binary, wins over everything.
-//   2. CALCITE_REPO — calcite repo root; binary is target/release/calcite-cli[.exe] under it.
-//   3. ../calcite from CSS-DOS repo root — the legacy sibling-repo default.
+//   1. CALCITE_CLI_BIN - direct path to the binary, wins over everything.
+//   2. CALCITE_REPO - calcite repo root; binary is target/release/calcite-cli[.exe] under it.
+//   3. ../calcite from CSS-DOS repo root - the legacy sibling-repo default.
 // Mirrors `defaultDebuggerBinary` in debugger-client.mjs.
 export function defaultCalciteCliBinary() {
   if (process.env.CALCITE_CLI_BIN) return process.env.CALCITE_CLI_BIN;
@@ -36,7 +36,7 @@ export function defaultCalciteCliBinary() {
     ? resolve(process.env.CALCITE_REPO)
     : resolve(REPO_ROOT, '..', 'calcite');
   // Cargo names the binary calcite-cli.exe on Windows, calcite-cli
-  // elsewhere — pick whichever exists (fall back to .exe for the error path).
+  // elsewhere - pick whichever exists (fall back to .exe for the error path).
   const bare = resolve(calciteRoot, 'target', 'release', 'calcite-cli');
   if (existsSync(bare)) return bare;
   return `${bare}.exe`;
@@ -55,7 +55,7 @@ const FONT_HEIGHT = 8;
 let FONT_BYTES = null;
 function loadFont() {
   if (FONT_BYTES) return FONT_BYTES;
-  // Same 8×8 font shoot.mjs uses — keeps screenshots visually identical
+  // Same 8×8 font shoot.mjs uses - keeps screenshots visually identical
   // between the slow and fast paths for baseline comparison.
   const path = resolve(REPO_ROOT, 'bios', 'corduroy', 'cga-8x8.bin');
   FONT_BYTES = new Uint8Array(readFileSync(path));
@@ -64,15 +64,15 @@ function loadFont() {
 
 /**
  * Take a screenshot of `cabinetPath` at tick `tick`, returning the same
- * shape as `shoot()` from shoot.mjs. Wall-clock budget enforced — pass
+ * shape as `shoot()` from shoot.mjs. Wall-clock budget enforced - pass
  * `wallMs` to bound how long calcite-cli is allowed to run.
  *
  * @param {object} opts
- * @param {string} opts.cabinetPath — path to .css cabinet
- * @param {number} opts.tick — target tick for the screenshot
- * @param {number} [opts.wallMs=120_000] — kill calcite-cli after this many ms
- * @param {string} [opts.calciteCliBin] — override the calcite-cli binary path
- * @param {string} [opts.pressEvents] — forwarded to calcite-cli
+ * @param {string} opts.cabinetPath - path to .css cabinet
+ * @param {number} opts.tick - target tick for the screenshot
+ * @param {number} [opts.wallMs=120_000] - kill calcite-cli after this many ms
+ * @param {string} [opts.calciteCliBin] - override the calcite-cli binary path
+ * @param {string} [opts.pressEvents] - forwarded to calcite-cli
  *   `--press-events=TICK:[+|-][PSEUDO@]SELECTOR,...` (press/release keyboard
  *   wires at scheduled ticks, e.g. `8300000:kb-down,8303000:-kb-down`)
  * @returns {Promise<{mode, kind, width, height, text?, rgba, png, phash}>}
@@ -105,7 +105,7 @@ export async function fastShoot({ cabinetPath, tick, wallMs = 120_000, calciteCl
     '--dump-mem-range', `0xB8000:0x4000:${cgaPath}`,
     '--dump-mem-range', `0xA0000:0xFA00:${vgaPath}`,
     '--dump-mem-range', `0x100000:768:${dacPath}`,
-    // Suppress the long property dump --dump-tick produces by default —
+    // Suppress the long property dump --dump-tick produces by default -
     // we don't need it. --sample-cells with an empty list isn't allowed,
     // but giving it `--sample-cells=0` is harmless and keeps stdout small.
     '--sample-cells', '0',
@@ -141,18 +141,18 @@ export async function fastShoot({ cabinetPath, tick, wallMs = 120_000, calciteCl
     rgba: null,
     png: null,
     phash: null,
-    note: `unknown video mode 0x${mode.toString(16)} — no fast-shoot renderer`,
+    note: `unknown video mode 0x${mode.toString(16)} - no fast-shoot renderer`,
   };
 }
 
-// ---- Renderers — pure (bytes -> {rgba, png, ...}) ----
+// ---- Renderers - pure (bytes -> {rgba, png, ...}) ----
 
 function renderText({ mode, cols, rows, vram }) {
   const font = loadFont();
   const w = cols * FONT_WIDTH;
   const h = rows * FONT_HEIGHT;
   const rgba = new Uint8Array(w * h * 4);
-  // Plain ASCII mirror — useful for debugging "did the prompt show up?"
+  // Plain ASCII mirror - useful for debugging "did the prompt show up?"
   // without opening the PNG.
   const lines = [];
   for (let y = 0; y < rows; y++) {
@@ -199,7 +199,7 @@ function renderMode13({ vram, dac }) {
 }
 
 function renderCga4({ mode, vram }) {
-  // Same palette assumption as shoot.mjs — palette 1, intensity 0. CGA 5
+  // Same palette assumption as shoot.mjs - palette 1, intensity 0. CGA 5
   // (mono) overrides only the colour table, kept simple here.
   const PAL = [
     [0x00, 0x00, 0x00], [0x00, 0xFF, 0xFF], [0xFF, 0x00, 0xFF], [0xFF, 0xFF, 0xFF],
@@ -250,7 +250,7 @@ function runCalciteCli(bin, args, { wallMs }) {
       killed = true;
       child.kill('SIGKILL');
     }, wallMs);
-    child.stdout.on('data', () => { /* discard — we only care about side-effect files */ });
+    child.stdout.on('data', () => { /* discard - we only care about side-effect files */ });
     child.stderr.on('data', d => { stderr += d.toString(); });
     child.on('error', e => { clearTimeout(t); rej(new Error(`calcite-cli spawn failed: ${e.message}`)); });
     child.on('close', code => {

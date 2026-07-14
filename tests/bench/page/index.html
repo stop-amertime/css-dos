@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  tests/bench/page/index.html — bench harness page.
+  tests/bench/page/index.html - bench harness page.
 
   Not the player. Full JS allowed. Calcite-wasm runs in the bridge
   worker (web/shim/calcite-bridge.js) which we spawn here.
@@ -27,7 +27,7 @@
 </style>
 </head>
 <body>
-<h1 id="title">bench harness — loading...</h1>
+<h1 id="title">bench harness - loading...</h1>
 <div class="layout">
   <div class="player-wrap">
     <!--
@@ -35,7 +35,7 @@
       <img src="/_screen/framebuffer"> drives frame consumption (without it the
       bridge's frame emissions go to no SW subscribers, and the runtime
       cost / FPS reading diverges from real player). Keyboard <a> links
-      fire `/_kbd?key=...` through the SW to our bridge — same input
+      fire `/_kbd?key=...` through the SW to our bridge - same input
       path the player uses. Populated after cabinet is in Cache Storage.
     -->
     <iframe id="player-frame" title="player" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
@@ -82,7 +82,7 @@
   log('service worker ready');
 
   // 2. Spawn the bridge worker. It talks to the SW over the
-  //    'cssdos-bridge' BroadcastChannel — nothing to wire up.
+  //    'cssdos-bridge' BroadcastChannel - nothing to wire up.
   const bridge = new Worker('/shim/calcite-bridge.js', { type: 'module' });
   window.__bridgeWorker = bridge;
   bridge.addEventListener('message', (ev) => {
@@ -132,11 +132,11 @@
     const fetchMs = performance.now() - compileT0;
     log(`fetched ${(blob.size / 1024 / 1024).toFixed(1)} MB cabinet in ${Math.round(fetchMs)} ms`);
 
-    // Put the cabinet into Cache Storage at /cabinet.css — its only
+    // Put the cabinet into Cache Storage at /cabinet.css - its only
     // home: the bridge compiles from there, and the iframed player's
     // <link href="/cabinet.css"> resolves through the SW. saveCabinet
     // stores it chunked (single ~330 MB puts die on Windows Chromium).
-    // A failed save must be FATAL — a stale cabinet from a previous
+    // A failed save must be FATAL - a stale cabinet from a previous
     // run could be sitting at that key, and benching the wrong cabinet
     // is worse than no bench.
     let saveMs;
@@ -154,12 +154,12 @@
       throw new Error(err);
     }
 
-    // Direct worker message (not the broadcast) — it queues until the
+    // Direct worker message (not the broadcast) - it queues until the
     // worker module is ready, so there's no boot race.
     bridge.postMessage({ type: 'cabinet-updated', eager: true });
     log('cabinet-updated (eager) posted; waiting for compile-done');
     // The bridge broadcasts compile-done over the cssdos-bridge-stats
-    // BroadcastChannel — not a direct postMessage. Listen there.
+    // BroadcastChannel - not a direct postMessage. Listen there.
     // Capture compileMs / cabinetBytes for the result envelope.
     var compileInfo = null;
     await new Promise((resolve) => {
@@ -177,7 +177,7 @@
 
     // Point the player iframe at /player/calcite.html. The iframe's
     // <img src="/_screen/framebuffer"> fetch triggers the SW's
-    // viewer-connected signal which calls bridge.startRunning() —
+    // viewer-connected signal which calls bridge.startRunning() -
     // that's the engine start. The keyboard <a> links inside the
     // iframe also flow through the SW to our bridge. The bridge's
     // startRunning is idempotent (running-guard) so a later bench-run
@@ -186,7 +186,7 @@
     $iframe.src = '/player/calcite.html';
     log('player iframe loading (SW will viewer-connect → engine starts)');
 
-    // Wait for the bridge to broadcast running-started — the iframe's
+    // Wait for the bridge to broadcast running-started - the iframe's
     // framebuffer fetch triggers viewer-connected → startRunning →
     // engine.reset(). We must wait until AFTER reset before the profile
     // registers watches, or reset wipes them.
@@ -245,12 +245,12 @@
     })();
     window.__benchResult = { ok: true, ...result, statsSamples, ticksPerSecAvg: tps, ...(compileInfo ?? {}) };
     log(`profile complete (avgTicksPerSec=${tps})`, 'ok');
-    $title.textContent = `bench: ${profileName} — done`;
+    $title.textContent = `bench: ${profileName} - done`;
   } catch (e) {
     statsCh.close();
     log(`profile threw: ${e.message}`, 'err');
     window.__benchResult = { ok: false, error: e.message, stack: e.stack, statsSamples };
-    $title.textContent = `bench: ${profileName} — FAILED`;
+    $title.textContent = `bench: ${profileName} - FAILED`;
   }
 </script>
 </body>

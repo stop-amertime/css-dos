@@ -1,6 +1,6 @@
 # Whole-routine semantic substitution for hot guest sub-routines
 
-> **CORRECTION 2026-06-09 — DEPRIORITISED.** The motivating "46.1 %
+> **CORRECTION 2026-06-09 - DEPRIORITISED.** The motivating "46.1 %
 > of doomLoad" is guest-cycle-weighted. Calcite wall time follows
 > **ticks**, and by ticks `__I4D` is ~22 % while the EDR-DOS kernel
 > is ~49 % (LOGBOOK 2026-06-09). This plan's payoff ceiling is
@@ -12,8 +12,8 @@
 2026-06-09 (see correction above). First target: Watcom's
 `__I4D` (32-bit signed divide). 46.1 % of doomLoad cycles per the
 2026-05-11 cycle-weighted heatmap. Expected wall improvement on
-`doomLoad`: 15-20 % (projection, not measured — and overstated, per
-the correction). See LOGBOOK 2026-05-11 — `__I4D` heatmap entry for
+`doomLoad`: 15-20 % (projection, not measured - and overstated, per
+the correction). See LOGBOOK 2026-05-11 - `__I4D` heatmap entry for
 the finding that motivated this plan.
 
 ## 2026-05-12 reframing: regions live in guest memory, not the Op stream
@@ -24,7 +24,7 @@ of calcite Ops). It does not. After reading the Op enum and
 `Evaluator::tick` end-to-end I confirmed: the **entire `program.ops`
 array runs once per calcite tick**, and one tick equals one **guest**
 x86 instruction. The Op stream is the cabinet's per-tick dispatch
-logic — it reads `mem[CS:IP]`, looks up the opcode in a dispatch
+logic - it reads `mem[CS:IP]`, looks up the opcode in a dispatch
 table, runs the per-opcode body, advances IP. `__I4D` is not in the
 Op stream; it is **211 bytes of guest x86 in `state.memory`** at
 link-relative offset 0x16948.
@@ -33,7 +33,7 @@ This makes the cardinal-rule problem more delicate, not less. Scanning
 guest memory bytes for x86 patterns ("does this byte sequence look
 like Watcom's bit-shift divide?") is exactly what the cardinal rule
 forbids: it requires calcite to know x86. The genericity probe would
-fail trivially — a 6502 cabinet's signed-divide in 6502 bytes would
+fail trivially - a 6502 cabinet's signed-divide in 6502 bytes would
 never match.
 
 The cardinal-rule-clean reframing:
@@ -43,7 +43,7 @@ The cardinal-rule-clean reframing:
   the per-tick dispatch *symbolically*, treating guest memory bytes
   as opaque data the CSS reads.
 - The symbolic evaluator runs `program.ops` (the calcite Op stream
-  — which is CSS) abstractly, starting from a symbolic state where
+  - which is CSS) abstractly, starting from a symbolic state where
   `CS:IP` points at the entry, and accumulates the effect on slots
   and memory until it hits a Return-shape (a write to IP that
   reads from the stack).
@@ -68,8 +68,8 @@ This is harder than the original plan because:
    instruction, then chain ~hundreds of guest instructions per
    region, with path-splitting at every branch.
 2. Loop-summary templates need to recognise loops at the **guest**
-   level — induction variables in guest registers, exits via guest
-   compare-and-branch — not at the Op-stream level.
+   level - induction variables in guest registers, exits via guest
+   compare-and-branch - not at the Op-stream level.
 
 Cheaper falls-out-of-itself alternative considered and rejected:
 maintain a static map of CS:IP entry addresses with the catalogued
@@ -97,7 +97,7 @@ A compile-time pass in calcite that:
    computes the matched function in Rust, writes results into the
    discovered output slots, advances `CS:IP` to the region's return
    address (read from the simulated stack), advances `cycleCount`
-   by the region's average cost, and continues — skipping the
+   by the region's average cost, and continues - skipping the
    per-tick dispatch for those ticks.
 
 The cardinal-rule defence is that the verifier proves equivalence
@@ -124,7 +124,7 @@ specific failure modes to avoid:
 
 Operational test from CLAUDE.md: "could a calcite engineer who has
 never seen a CPU emulator derive this rule by staring at CSS shape
-alone?" — yes, because the rule is "any region whose computed
+alone?" - yes, because the rule is "any region whose computed
 function equals one of N pure mathematical functions in our catalogue
 can be replaced by a host call to that function." The catalogue is
 the *only* x86-flavoured part of this plan, and even that is mitigated
@@ -172,7 +172,7 @@ pass.
 Each phase is independently landable. Each has a hard pass/fail gate
 defined before measurement.
 
-### Phase 1 — region finder + `--probe-routines` flag
+### Phase 1 - region finder + `--probe-routines` flag
 
 Build the recogniser that identifies candidate **guest-memory
 regions** by walking the per-tick dispatch forward from candidate
@@ -200,14 +200,14 @@ Candidate entry addresses come from the cabinet's loaded image
 without name introspection: every byte that is the target of a
 direct `call` instruction (opcode `0xE8` `0x9A`) in any other byte
 range. The detection of "is this byte a call target" is itself the
-trickiest part — and **it must be cardinal-rule-defensible**. Two
+trickiest part - and **it must be cardinal-rule-defensible**. Two
 options:
 
 - **Option A (preferred)**: detect call targets by *running* the
   dispatch with concrete starting states (e.g. start from the
   reset vector and follow every reachable path with bounded depth);
   every IP that the dispatch's call-handling code writes to during
-  this walk is a candidate. This is generic — brainfuck's `[` would
+  this walk is a candidate. This is generic - brainfuck's `[` would
   push a return address the same way (modulo specific dispatch
   encoding), so a brainfuck dispatch with stack semantics would
   yield candidate entries.
@@ -230,7 +230,7 @@ doesn't find that region, the recogniser is broken.
 detection or Return-shape detection is wrong; debug before
 proceeding.
 
-### Phase 2 — symbolic dry-run
+### Phase 2 - symbolic dry-run
 
 A symbolic variant of Phase 1's dry-run. Same Op-stream concrete
 execution machinery, but slot values and memory cells track symbolic
@@ -252,7 +252,7 @@ The shape of the abstract state:
 This formulation has a subtle but critical property: **the calcite
 Op stream itself is run concretely at every step**, because the IP
 is concrete and the dispatch table is keyed on concrete opcode
-bytes. We're not symbolically interpreting CSS dispatch logic —
+bytes. We're not symbolically interpreting CSS dispatch logic -
 we're concretely running it, but the *data flowing through* the
 dispatch is symbolic. This works because the dispatch implements a
 deterministic state-transition over (opcode, state); concrete
@@ -288,7 +288,7 @@ the simplifier can't reduce the symbolic output to a divide form.
 Reassess: extend simplifier, extend summary template, or fall back
 to property-test verification (described below).
 
-### Phase 3 — function catalogue + matcher
+### Phase 3 - function catalogue + matcher
 
 Catalogue: a small Rust enum `SubstitutableFn` with variants
 `SignedDiv32`, `SignedMod32`. Each variant has:
@@ -307,20 +307,20 @@ return values. Calcite must not encode "DX:AX holds the result."
 The matcher tries every (input-slot-permutation, output-slot-pair)
 combination and picks the first that matches; on doom8088 the
 search space is bounded by the region's live-in / live-out counts
-(small — `__I4D` has 4 input slots and 4 output slots tops).
+(small - `__I4D` has 4 input slots and 4 output slots tops).
 
 **Pass gate**: the matcher correctly identifies the `__I4D` region
 as `(SignedDiv32, SignedMod32)` and reports the slot mapping. We
 verify by checking the slot mapping against the Watcom calling
 convention by hand (DX:AX = quotient, CX:BX = remainder per ABI
-docs) — **but calcite doesn't know that**, calcite just reports
+docs) - **but calcite doesn't know that**, calcite just reports
 what slots it found.
 
 **Fail gate**: the matcher finds the wrong slots or no match.
 Either the catalogue's canonical form is too narrow (extend it) or
 Phase 2's simplifier left rubble that the matcher can't see through.
 
-### Phase 4 — substitution hook (tick-level)
+### Phase 4 - substitution hook (tick-level)
 
 Add a per-tick check: before running `program.ops`, compare the
 current `CS:IP` against the table of substituted regions. If it
@@ -351,7 +351,7 @@ divergence vs the unsubstituted run.
 **Fail gate**: any state divergence. The substitution is broken;
 debug or revert.
 
-### Phase 5 — correctness sweep
+### Phase 5 - correctness sweep
 
 `pipeline.mjs fulldiff doom8088.css --ticks=30M` (full level-load).
 Plus `prince`, `zork1`, `montezuma` smoke. Plus the conformance
@@ -364,7 +364,7 @@ likely cause is a sign-extension or overflow edge case in the
 catalogue's Rust impl not matching Watcom's exact semantics. If
 unfixable, revert and consider the property-test fallback.
 
-### Phase 6 — perf gate
+### Phase 6 - perf gate
 
 `node tests/bench/driver/run.mjs doom-all --headed`, 3-run median.
 Quiet host (no other agent benching, no stray Playwright).
@@ -416,8 +416,8 @@ at compile time**: pick 10K random input pairs, execute both the
 original region's Ops and the catalogue's Rust impl on each, require
 bit-for-bit equality. Only substitute if all 10K agree.
 
-This is a weaker cardinal-rule defence — it's empirical equivalence
-rather than proven equivalence — but it's still entirely shape-based:
+This is a weaker cardinal-rule defence - it's empirical equivalence
+rather than proven equivalence - but it's still entirely shape-based:
 no name sniffing, no bytecode hashing, no x86-specific hardcoding.
 And 10K random pairs covers the i32 input space densely enough that
 the divide's edge cases (sign combinations, by-zero, INT_MIN) all
@@ -429,20 +429,20 @@ blocked. Document the trade-off in the log entry where it ships.
 ## Files this will touch
 
 Calcite:
-- `crates/calcite-core/src/pattern/routine_finder.rs` — new, Phase 1.
-- `crates/calcite-core/src/pattern/symbolic.rs` — new, Phase 2.
-- `crates/calcite-core/src/pattern/substitutable.rs` — new, Phase 3
+- `crates/calcite-core/src/pattern/routine_finder.rs` - new, Phase 1.
+- `crates/calcite-core/src/pattern/symbolic.rs` - new, Phase 2.
+- `crates/calcite-core/src/pattern/substitutable.rs` - new, Phase 3
   catalogue.
-- `crates/calcite-core/src/compile.rs` — adds `Op::SubstitutedRoutine`
+- `crates/calcite-core/src/compile.rs` - adds `Op::SubstitutedRoutine`
   + eval arm + emission wiring (Phase 4).
-- `crates/calcite-cli/src/main.rs` — adds `--probe-routines` flag
+- `crates/calcite-cli/src/main.rs` - adds `--probe-routines` flag
   (Phase 1).
-- `crates/calcite-cli/src/bin/probe_routine_shape.rs` — optional
+- `crates/calcite-cli/src/bin/probe_routine_shape.rs` - optional
   diagnostic, Phase 1.
 
 CSS-DOS:
-- `docs/logbook/LOGBOOK.md` — entries at each phase landing.
-- `docs/logbook/STATUS.md` — updates to "Open work" and baseline
+- `docs/logbook/LOGBOOK.md` - entries at each phase landing.
+- `docs/logbook/STATUS.md` - updates to "Open work" and baseline
   after Phase 6 perf gate.
 
 ## Genericity audit checklist (run at each phase)
@@ -498,7 +498,7 @@ times symbolically. That requires:
   need a parallel symbolic-state structure.
 
 If either is too expensive, the whole approach is non-starter
-and we revisit. Spike step 2 first with no symbolic component —
+and we revisit. Spike step 2 first with no symbolic component -
 just confirm the *concrete* dry-run (real i32 values, real
 memory) works and can identify `__I4D`'s region boundaries from
 a real boot trace. If concrete works, symbolic is a generalisation.
@@ -516,14 +516,14 @@ need a different shape.
 
 ## Cross-references
 
-- LOGBOOK 2026-05-11 (cycle-weighted heatmap, `__I4D` finding) —
+- LOGBOOK 2026-05-11 (cycle-weighted heatmap, `__I4D` finding) -
   the measurement that motivated this plan.
-- `docs/plans/2026-05-01-affine-loop-fastforward.md` — the
+- `docs/plans/2026-05-01-affine-loop-fastforward.md` - the
   generalist alternative that this plan supersedes for `__I4D`
   specifically.
-- `docs/plans/2026-05-06-rep-fast-forward-genericity.md` — precedent
+- `docs/plans/2026-05-06-rep-fast-forward-genericity.md` - precedent
   for "compile-time recogniser + runtime applier behind a flag,
   then default-on" workflow. This plan uses the same shape but
   skips the env-var flag (per "Out of scope").
-- CLAUDE.md cardinal rule section — the source of the genericity
+- CLAUDE.md cardinal rule section - the source of the genericity
   probes used here.

@@ -1,4 +1,4 @@
-// baseline.mjs — record + verify golden baselines for a cart.
+// baseline.mjs - record + verify golden baselines for a cart.
 //
 // A baseline is a frozen record of "what this cart's state looks like at
 // these specific ticks." Per-cart directory: tests/harness/baselines/<cart>/
@@ -125,7 +125,7 @@ export async function verifyBaseline({ cssPath, dir = null, maxPhashDistance = 4
   const baseDir = dir ?? cartDirFor(cssPath);
   const manifestPath = resolve(baseDir, 'baseline.json');
   if (!existsSync(manifestPath)) {
-    throw new Error(`no baseline at ${manifestPath} — record one first with recordBaseline()`);
+    throw new Error(`no baseline at ${manifestPath} - record one first with recordBaseline()`);
   }
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
   const dbg = await DebuggerClient.spawnChild({ cssPath, session });
@@ -145,7 +145,7 @@ export async function verifyBaseline({ cssPath, dir = null, maxPhashDistance = 4
       // Include actual regs when failed, so agents can see what changed.
       if (r.anyFail) {
         r.regs = c.regs;
-        // Also include expected regs — read from the tick-N.state.json sidecar.
+        // Also include expected regs - read from the tick-N.state.json sidecar.
         const side = resolve(baseDir, `tick-${entry.tick}.state.json`);
         if (existsSync(side)) {
           try { r.expectedRegs = JSON.parse(readFileSync(side, 'utf8')).regs; } catch { /* ignore */ }

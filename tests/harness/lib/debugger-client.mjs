@@ -1,4 +1,4 @@
-// debugger-client.mjs — harness-facing client for calcite-debugger.
+// debugger-client.mjs - harness-facing client for calcite-debugger.
 //
 // This is a thin adapter over mcp-client.mjs that maps from the HTTP-style
 // method names used elsewhere in the harness (`dbg.tick(n)`, `dbg.memory(addr, len)`)
@@ -16,7 +16,7 @@
 //     client keeps resident across Claude Code sessions). Caller is
 //     responsible for first calling `open` if the session doesn't exist.
 //
-// All methods take/include `session` — every calcite-debugger tool requires
+// All methods take/include `session` - every calcite-debugger tool requires
 // it. Constructor binds a default session so the harness doesn't have to
 // thread it through every call site.
 
@@ -28,9 +28,9 @@ import { ChildMcpClient, TcpMcpClient } from './mcp-client.mjs';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Locate the debugger binary. Resolution order:
-//   1. CALCITE_DEBUGGER_BIN — direct path to the binary.
-//   2. CALCITE_REPO — calcite repo root; binary at target/release/calcite-debugger[.exe] under it.
-//   3. ../calcite from CSS-DOS repo root — the legacy sibling-repo default.
+//   1. CALCITE_DEBUGGER_BIN - direct path to the binary.
+//   2. CALCITE_REPO - calcite repo root; binary at target/release/calcite-debugger[.exe] under it.
+//   3. ../calcite from CSS-DOS repo root - the legacy sibling-repo default.
 export function defaultDebuggerBinary() {
   const envPath = process.env.CALCITE_DEBUGGER_BIN;
   if (envPath) return envPath;
@@ -38,7 +38,7 @@ export function defaultDebuggerBinary() {
     ? resolve(process.env.CALCITE_REPO)
     : resolve(__dirname, '..', '..', '..', '..', 'calcite');
   // Cargo names the binary calcite-debugger.exe on Windows, calcite-debugger
-  // elsewhere — pick whichever exists (fall back to .exe for the error path).
+  // elsewhere - pick whichever exists (fall back to .exe for the error path).
   const bare = resolve(calciteRoot, 'target', 'release', 'calcite-debugger');
   if (existsSync(bare)) return bare;
   return `${bare}.exe`;
@@ -87,7 +87,7 @@ export class DebuggerClient {
     return this.mcp.call(tool, this._withSession(args), opts);
   }
 
-  // Liveness. Cheap — `info` works even without a loaded program.
+  // Liveness. Cheap - `info` works even without a loaded program.
   async ping({ timeoutMs = 2_000 } = {}) {
     try {
       await this.mcp.call('info', { session: this.session }, { timeoutMs });
@@ -118,20 +118,20 @@ export class DebuggerClient {
   // mapping below.
   request(path, { method = 'GET', body = null, timeoutMs = 30_000 } = {}) {
     const spec = HTTP_TO_TOOL[path];
-    if (!spec) throw new Error(`debugger-client: no tool mapping for ${method} ${path} — add to HTTP_TO_TOOL or call tool directly`);
+    if (!spec) throw new Error(`debugger-client: no tool mapping for ${method} ${path} - add to HTTP_TO_TOOL or call tool directly`);
     return this.call(spec.tool, spec.map ? spec.map(body) : body, { timeoutMs });
   }
 
   // run_until with job polling. Returns whatever the server returns.
   // Harness code should prefer timed-run.mjs's chunked /tick driving
-  // — this is just a pass-through if the caller wants native run_until.
+  // - this is just a pass-through if the caller wants native run_until.
   async runUntil(condition, { maxTicks = 1_000_000, fromTick = null } = {}) {
     const body = { condition, max_ticks: maxTicks };
     if (fromTick != null) body.from_tick = fromTick;
     return this.call('run_until', body, { timeoutMs: Math.max(60_000, maxTicks / 100) });
   }
 
-  // Watchpoint — blocks until hit or max_ticks. Passthrough.
+  // Watchpoint - blocks until hit or max_ticks. Passthrough.
   watchpoint({ addr, maxTicks = 200_000, fromTick = null, expected = null }) {
     const body = { addr, max_ticks: maxTicks };
     if (fromTick != null) body.from_tick = fromTick;

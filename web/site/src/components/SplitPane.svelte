@@ -1,5 +1,5 @@
 <script>
-  // SplitPane — reusable two-pane layout for widgets: typically code on
+  // SplitPane - reusable two-pane layout for widgets: typically code on
   // the left, a visual on the right. Collapses to a single column on
   // narrow screens (split-pane.css). Pure layout: no box chrome, so it
   // nests inside the house widget boxes.

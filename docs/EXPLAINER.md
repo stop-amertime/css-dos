@@ -4,13 +4,13 @@
 
 ---
 
-## Section 1 — A quick orientation: what is this thing?
+## Section 1 - A quick orientation: what is this thing?
 
 Most websites use three languages working together:
 
-- **HTML** is the structure — the boxes, the headings, the buttons.
-- **CSS** is the paint — what colour the buttons are, where they sit, how big the text is.
-- **JavaScript** is the behaviour — what happens when you click, type, scroll.
+- **HTML** is the structure - the boxes, the headings, the buttons.
+- **CSS** is the paint - what colour the buttons are, where they sit, how big the text is.
+- **JavaScript** is the behaviour - what happens when you click, type, scroll.
 
 It looks roughly like this:
 
@@ -29,7 +29,7 @@ CSS is, traditionally, the most boring of the three. It's a styling language. Yo
 
 **This project runs the original 1981 IBM PC inside CSS.**
 
-Not "uses CSS for the look." Not "JavaScript that styles things with CSS." We mean: a `.css` file — the same kind that normally just decides what colour your headings are — boots an Intel 8086 processor, runs DOS, loads the original *Doom*, and (eventually) shows you the marine.
+Not "uses CSS for the look." Not "JavaScript that styles things with CSS." We mean: a `.css` file - the same kind that normally just decides what colour your headings are - boots an Intel 8086 processor, runs DOS, loads the original *Doom*, and (eventually) shows you the marine.
 
 There is no JavaScript doing the work. There is no WebAssembly, no clever runtime, no hidden engine. There is one stylesheet. It is *executing machine code*.
 
@@ -48,16 +48,16 @@ Some numbers, to set the tone for everything that follows:
 |---|---|
 | The complete works of Shakespeare | ~5 MB of text |
 | A typical website's CSS | ~50 KB |
-| `hello-text.css` — a CSS-DOS cabinet that just prints "hello" | **3 MB** |
-| `zork1.css` — the text adventure *Zork* as a single stylesheet | **300 MB** |
-| `doom8088.css` — *Doom*, as a single stylesheet | **352 MB** |
+| `hello-text.css` - a CSS-DOS cabinet that just prints "hello" | **3 MB** |
+| `zork1.css` - the text adventure *Zork* as a single stylesheet | **300 MB** |
+| `doom8088.css` - *Doom*, as a single stylesheet | **352 MB** |
 
-That's right: the stylesheet for *Doom* is **roughly 70× the entire works of Shakespeare**. One file. About 1.8 million lines of CSS. If you printed it out single-spaced, you'd get a stack of paper around 60 metres tall — taller than the Statue of Liberty without her pedestal.
+That's right: the stylesheet for *Doom* is **roughly 70× the entire works of Shakespeare**. One file. About 1.8 million lines of CSS. If you printed it out single-spaced, you'd get a stack of paper around 60 metres tall - taller than the Statue of Liberty without her pedestal.
 
 It is also, by the project's own admission, too much CSS for any web browser to actually open.
 
-> *"A complete Intel 8086 PC implemented in pure CSS. The CSS runs in Chrome (in theory — in practice it crashes it)."*
-> — the project's own README
+> *"A complete Intel 8086 PC implemented in pure CSS. The CSS runs in Chrome (in theory - in practice it crashes it)."*
+> - the project's own README
 
 So we wrote a second program, **Calcite**, whose only job is to read the CSS and pretend to be Chrome, but faster, without crashing. Calcite is allowed to be quick. Calcite is **not** allowed to know anything about computers, processors, DOS, or *Doom*. Calcite only knows CSS. The fact that this CSS happens to be a working PC is, formally, none of Calcite's business.
 
@@ -65,13 +65,13 @@ So we wrote a second program, **Calcite**, whose only job is to read the CSS and
 
 We'll build the whole stack from the bottom up:
 
-1. **What CSS can and can't do** — the cliff at the edge of the styling language.
-2. **The trick that turns CSS into a programmable machine** — counters, custom properties, and a 400-millisecond heartbeat.
-3. **How to store memory in a stylesheet** — one CSS variable per byte, half a million of them.
-4. **How to execute an instruction** — reading an opcode, decoding it, writing the result back, all in style rules.
-5. **The floppy disk that doesn't fit in memory** — a separate trick for storing data outside the 8086's tiny address space.
-6. **How we cheat with Calcite** — what counts as "the same CSS, just faster" and what would be cheating.
-7. **Why everything is so absurdly large** — and why we like it that way.
+1. **What CSS can and can't do** - the cliff at the edge of the styling language.
+2. **The trick that turns CSS into a programmable machine** - counters, custom properties, and a 400-millisecond heartbeat.
+3. **How to store memory in a stylesheet** - one CSS variable per byte, half a million of them.
+4. **How to execute an instruction** - reading an opcode, decoding it, writing the result back, all in style rules.
+5. **The floppy disk that doesn't fit in memory** - a separate trick for storing data outside the 8086's tiny address space.
+6. **How we cheat with Calcite** - what counts as "the same CSS, just faster" and what would be cheating.
+7. **Why everything is so absurdly large** - and why we like it that way.
 
 Each layer is, on its own, a fairly small idea. Stacked together, they let a stylesheet play *Doom*.
 
@@ -79,7 +79,7 @@ Let's start with the cliff.
 
 ---
 
-## Section 2 — Walking to the Moon
+## Section 2 - Walking to the Moon
 
 Let's go back to basics. Here's a CSS rule:
 
@@ -149,7 +149,7 @@ In principle.
 
 Here's the catch.
 
-**Saying something is Turing-complete is like saying any distance is walkable.** It's true. Given enough time, your legs will get you anywhere on Earth. They'll get you to the next town. They'll get you to the next country. They'll get you, eventually, *off the planet* — there's no rule that says walking has to stop at the atmosphere. Anywhere is walking distance, if you've got the time.
+**Saying something is Turing-complete is like saying any distance is walkable.** It's true. Given enough time, your legs will get you anywhere on Earth. They'll get you to the next town. They'll get you to the next country. They'll get you, eventually, *off the planet* - there's no rule that says walking has to stop at the atmosphere. Anywhere is walking distance, if you've got the time.
 
 But the time, as it turns out, is the whole story.
 
@@ -175,11 +175,11 @@ That's the entire stylesheet for *Doom*. One file. About 1.8 million lines.
 >
 > If you walked eight hours a day at a normal pace, it would take you **about nineteen years.**
 
-For perspective, a typical website's CSS is around 50 kilobytes. That's 50,000 characters — about **37 kilometres on foot.** A long day's hike. Done by sunset, home for tea.
+For perspective, a typical website's CSS is around 50 kilobytes. That's 50,000 characters - about **37 kilometres on foot.** A long day's hike. Done by sunset, home for tea.
 
 The *Doom* stylesheet is a hike to the Moon.
 
-And it isn't even the only one. *Zork* — a text adventure from 1980, no graphics, just words on a screen — is **300 megabytes of CSS.** Roughly 225,000 km of walking. *Halfway to the Moon, for a text adventure.* The whole genre is moonshot-scale.
+And it isn't even the only one. *Zork* - a text adventure from 1980, no graphics, just words on a screen - is **300 megabytes of CSS.** Roughly 225,000 km of walking. *Halfway to the Moon, for a text adventure.* The whole genre is moonshot-scale.
 
 > 💡 **The shape of the trick**
 >
@@ -205,9 +205,9 @@ Because CSS, brilliant as it is, is missing some things you'd usually take for g
 
 Every red cross on the right is a thing a normal computer does without thinking. CSS has the *brain* of a computer but none of the *hands.*
 
-Which means: if we want a computer, we have to build the entire thing — every register, every flag, every byte of memory, every instruction the CPU knows, the keyboard, the screen, the disk, the BIOS, DOS, and the program running on top — **out of nothing but the four things CSS has.** Maths, memory, choice, and a clock.
+Which means: if we want a computer, we have to build the entire thing - every register, every flag, every byte of memory, every instruction the CPU knows, the keyboard, the screen, the disk, the BIOS, DOS, and the program running on top - **out of nothing but the four things CSS has.** Maths, memory, choice, and a clock.
 
-We're not allowed to ask the browser to do anything. We can only ask the browser, *very politely,* what colour something should be. And if our answer happens to involve simulating an entire 1981 IBM PC for one tick of its clock, well — that's between us and the stylesheet.
+We're not allowed to ask the browser to do anything. We can only ask the browser, *very politely,* what colour something should be. And if our answer happens to involve simulating an entire 1981 IBM PC for one tick of its clock, well - that's between us and the stylesheet.
 
 That's the walk. The rest of this guide is how we actually take the steps.
 
@@ -217,19 +217,19 @@ That's the walk. The rest of this guide is how we actually take the steps.
 
 The project's own README puts it like this:
 
-> *"A complete Intel 8086 PC implemented in pure CSS. The CSS runs in Chrome — in theory. In practice, it crashes it."*
+> *"A complete Intel 8086 PC implemented in pure CSS. The CSS runs in Chrome - in theory. In practice, it crashes it."*
 
 Chrome is built to handle stylesheets that describe *websites.* It is not built to handle stylesheets that describe *CPUs.* Doom-as-CSS is around 1.8 million lines of conditional arithmetic, and Chrome's style engine, asked to evaluate that for every animation frame, falls over from sheer weight.
 
-So we wrote a second program called **Calcite** that reads the same CSS file — *the exact same one Chrome would, byte for byte* — and evaluates it the way Chrome would, but quickly, without dying. Calcite is the subject of a much later section. For now, hold this thought:
+So we wrote a second program called **Calcite** that reads the same CSS file - *the exact same one Chrome would, byte for byte* - and evaluates it the way Chrome would, but quickly, without dying. Calcite is the subject of a much later section. For now, hold this thought:
 
-**The CSS is real.** It is a complete, working description of an 8086 PC. Calcite doesn't add cleverness on top — it just walks the same 276,000 kilometres faster than Chrome can. If Chrome could keep up, we wouldn't need Calcite at all.
+**The CSS is real.** It is a complete, working description of an 8086 PC. Calcite doesn't add cleverness on top - it just walks the same 276,000 kilometres faster than Chrome can. If Chrome could keep up, we wouldn't need Calcite at all.
 
 Now. Let's start taking steps.
 
 ---
 
-## Section 3 — How to remember a number
+## Section 3 - How to remember a number
 
 We've talked a lot about what CSS *can* do. Now let's actually do something with it. Let's build the smallest, most fundamental piece of a computer: **a single byte of memory.**
 
@@ -261,7 +261,7 @@ So far, so normal. This is what custom properties are *for.*
 
 But here's the first wrinkle: a custom property, by default, is just a piece of text. CSS doesn't know that `0` is a number. As far as the browser is concerned, it could be `0`, or `"hello"`, or `unicorn`. It only becomes a number at the moment we use it inside `calc()`.
 
-For a CPU, that's not good enough. We need the browser to know, *firmly and at all times,* that this thing is a number — specifically, an integer between 0 and 255. We need it to **type-check** our byte.
+For a CPU, that's not good enough. We need the browser to know, *firmly and at all times,* that this thing is a number - specifically, an integer between 0 and 255. We need it to **type-check** our byte.
 
 For that, CSS gives us this:
 
@@ -279,7 +279,7 @@ Read it as a little contract with the browser:
 - *"It starts at zero."*
 - *"Pass it down to child elements."*
 
-That's a real byte. It has a name (`m1280` — short for "memory at address 1280"). It has a type (integer). It has a starting value (zero). It can be read with `var(--m1280)`. It can be written by changing it. The browser will refuse to put non-numbers into it.
+That's a real byte. It has a name (`m1280` - short for "memory at address 1280"). It has a type (integer). It has a starting value (zero). It can be read with `var(--m1280)`. It can be written by changing it. The browser will refuse to put non-numbers into it.
 
 **Congratulations. We've stored one byte.**
 
@@ -287,7 +287,7 @@ That's a real byte. It has a name (`m1280` — short for "memory at address 1280
 
 ### Step 2: a million of them
 
-A 1981 IBM PC has 1,048,576 bytes of memory — one megabyte. So now we just write that `@property` block… a million times.
+A 1981 IBM PC has 1,048,576 bytes of memory - one megabyte. So now we just write that `@property` block… a million times.
 
 ```css
 @property --m0       { syntax: '<integer>'; inherits: true; initial-value: 0; }
@@ -306,15 +306,15 @@ Each block is about 80 characters. A million of them is 80 megabytes of styleshe
 >
 > And we haven't put a CPU in yet. Or a screen. Or a program.
 
-This is the first place the project's absurd file sizes start to make sense. There's no clever compression trick available — *each byte needs its own variable*, because each byte has to be readable and writable independently. A million bytes means a million names.
+This is the first place the project's absurd file sizes start to make sense. There's no clever compression trick available - *each byte needs its own variable*, because each byte has to be readable and writable independently. A million bytes means a million names.
 
-(In practice CSS-DOS only declares the bytes it actually needs — empty regions of memory aren't worth the disk space. The full sprawl is closer to a few hundred thousand bytes, packed cleverly into half as many properties, which we'll get to. But the principle stands: one variable per byte, give or take.)
+(In practice CSS-DOS only declares the bytes it actually needs - empty regions of memory aren't worth the disk space. The full sprawl is closer to a few hundred thousand bytes, packed cleverly into half as many properties, which we'll get to. But the principle stands: one variable per byte, give or take.)
 
 ---
 
 ### Step 3: writing to a byte
 
-Now the trickier half. *Reading* a byte is easy — `var(--m1280)`. But how do you *write* to it?
+Now the trickier half. *Reading* a byte is easy - `var(--m1280)`. But how do you *write* to it?
 
 This is where CSS-as-a-computer starts to get genuinely strange, because CSS is **declarative**. You can't say *"set --m1280 to 42."* That's an instruction, and CSS doesn't do instructions. CSS only does descriptions.
 
@@ -337,7 +337,7 @@ What you *can* do is **describe what the new value should be, given the old one.
 
 Read this slowly. It says:
 
-> *"The new value of `--m1280` is: if some other variable called `--writeAddress` is currently 1280, it becomes whatever `--writeValue` is. Otherwise, it stays the same — keep the old value (`--__1m1280` is the previous tick's value, which we'll explain shortly)."*
+> *"The new value of `--m1280` is: if some other variable called `--writeAddress` is currently 1280, it becomes whatever `--writeValue` is. Otherwise, it stays the same - keep the old value (`--__1m1280` is the previous tick's value, which we'll explain shortly)."*
 
 This is a description, not an instruction. It's saying *what `--m1280` is,* in terms of other things. The browser, evaluating the stylesheet, looks at `--writeAddress`, looks at `--writeValue`, and computes the new `--m1280` from them. Every time anything changes, this rule re-evaluates, and the byte either updates or stays put.
 
@@ -362,7 +362,7 @@ Look at the rule again:
 
 The "else" branch reads `--__1m1280`, not `--m1280`. Why?
 
-Because we're *defining* `--m1280` right here, in this rule. We can't use its own current value to define its new value — that's a circular reference, and CSS, like every other reasonable language, refuses.
+Because we're *defining* `--m1280` right here, in this rule. We can't use its own current value to define its new value - that's a circular reference, and CSS, like every other reasonable language, refuses.
 
 So CSS-DOS keeps **two copies of every byte**: the current one (`--m1280`) and the previous tick's value (`--__1m1280`, with a "1" in the name standing for "one tick ago"). At the end of every tick, the current values get copied into the previous-tick variables, and the next tick begins. *"Today's value is yesterday's value, unless something wrote to me, in which case it's the new value."*
 
@@ -383,7 +383,7 @@ This means **every byte exists twice in the stylesheet.** Two `@property` blocks
 
 ### Step 5: where does the writing actually come from?
 
-We've been talking about `--writeAddress` and `--writeValue` as if they were just sitting around. They're not. They're set by the *CPU* — by whatever instruction is running on this tick.
+We've been talking about `--writeAddress` and `--writeValue` as if they were just sitting around. They're not. They're set by the *CPU* - by whatever instruction is running on this tick.
 
 If the program does the 8086 equivalent of *"store the number 42 at address 1280,"* then on that tick:
 
@@ -399,15 +399,15 @@ Every byte in memory wakes up, looks at `--writeAddress`, and asks: *"is that me
 
 A million bytes, every single tick, all asking *"is it my turn?"* and all but one of them shrugging and going back to sleep. This is the heartbeat of CSS-DOS. It's why the file is so big. It's why it's so slow in Chrome. It's why we needed to build Calcite.
 
-It's also, secretly, kind of beautiful. There's no "memory controller" in this design — no central thing routing writes to the right byte. Every byte routes *itself,* by asking the same question at the same time. The CPU shouts an address into the void; one byte answers.
+It's also, secretly, kind of beautiful. There's no "memory controller" in this design - no central thing routing writes to the right byte. Every byte routes *itself,* by asking the same question at the same time. The CPU shouts an address into the void; one byte answers.
 
 ---
 
-### Step 6: but wait — we cheat a little
+### Step 6: but wait - we cheat a little
 
 If you do the maths on a million bytes, each watching a single write address per tick, you only ever get to write *one byte per tick.* That would make our pretend computer impossibly slow. Real 8086 instructions sometimes write **two bytes at once** (a 16-bit value), and some BIOS routines want to push a whole stack frame.
 
-So CSS-DOS doesn't have one write channel — it has **six.** Six pairs of `--writeAddress` and `--writeValue`, numbered 0 through 5. Every byte checks all six every tick:
+So CSS-DOS doesn't have one write channel - it has **six.** Six pairs of `--writeAddress` and `--writeValue`, numbered 0 through 5. Every byte checks all six every tick:
 
 ```css
 .cpu {
@@ -439,7 +439,7 @@ In the next section, we'll build the thing doing the broadcasting: the **CPU.** 
 
 ---
 
-## Section 4 — The CPU, which is also some CSS
+## Section 4 - The CPU, which is also some CSS
 
 So we have a million little boxes, each waiting to be told it's their turn. The thing that does the telling is the CPU.
 
@@ -457,11 +457,11 @@ In CSS-DOS, the CPU is a stylesheet. It has the same job, performs it considerab
 
 ### What "an instruction" actually is
 
-When you compile a program for the 8086, what comes out the other end is a long string of numbers. Each number — or, more often, each small group of numbers — is an **instruction**. The CPU reads them one at a time and does what they say.
+When you compile a program for the 8086, what comes out the other end is a long string of numbers. Each number - or, more often, each small group of numbers - is an **instruction**. The CPU reads them one at a time and does what they say.
 
 For instance, the byte `0x40` means *"add one to the AX register."* The byte `0x90` means *"do nothing for one tick."* The bytes `0xB8 0x05 0x00` together mean *"put the number 5 into the AX register."* There are about two hundred such instructions, each a number or a short sequence of them, each meaning something specific. The CPU's entire life is spent reading these numbers and performing the matching action.
 
-The bit of CPU state that remembers *which byte to look at next* is called the **instruction pointer**, written `IP`. It's just a number — an address into memory. Each tick, the CPU:
+The bit of CPU state that remembers *which byte to look at next* is called the **instruction pointer**, written `IP`. It's just a number - an address into memory. Each tick, the CPU:
 
 - reads the byte at `IP`,
 - works out what instruction that is,
@@ -484,7 +484,7 @@ The instruction pointer is, naturally, a custom property:
 }
 ```
 
-To find out what instruction we're meant to run this tick, we read whichever memory byte `--IP` points at. And here, immediately, we hit a small problem. We can't write `var(--m{var(--IP)})` — CSS doesn't let you build variable names out of other variables. There's no such thing as a dynamic lookup.
+To find out what instruction we're meant to run this tick, we read whichever memory byte `--IP` points at. And here, immediately, we hit a small problem. We can't write `var(--m{var(--IP)})` - CSS doesn't let you build variable names out of other variables. There's no such thing as a dynamic lookup.
 
 So we do the only thing we can do, which is ask every possibility at once:
 
@@ -514,7 +514,7 @@ The Moon is, you'll be unsurprised to hear, somewhat further away.
 
 Now we have `--opcode`. It's a number from 0 to 255. We need to act on it.
 
-The 8086 has eight main registers — small numbered pigeonholes the CPU keeps near at hand for things it's currently working on. They're called `AX`, `BX`, `CX`, `DX`, `SI`, `DI`, `BP`, and `SP`, and like everything else, they're custom properties. The job of the CPU each tick is to update each register according to whatever the current opcode says to do.
+The 8086 has eight main registers - small numbered pigeonholes the CPU keeps near at hand for things it's currently working on. They're called `AX`, `BX`, `CX`, `DX`, `SI`, `DI`, `BP`, and `SP`, and like everything else, they're custom properties. The job of the CPU each tick is to update each register according to whatever the current opcode says to do.
 
 So, for the AX register, we write a rule that defines its new value as a giant choice over every opcode that might affect it:
 
@@ -531,7 +531,7 @@ So, for the AX register, we write a rule that defines its new value as a giant c
 }
 ```
 
-You can read this as a description of what AX is at the end of this tick: *"if the current opcode is 0x40 it's yesterday's AX plus one; if it's 0x48 it's yesterday's AX minus one; if it's 0xB8 it's the immediate value the program supplied;"* and so on for every instruction that touches AX. Anything else, AX stays as it was. The same shape of rule exists for each of the other seven registers, plus the flags, plus the instruction pointer, plus the segment registers, plus the stack pointer — every piece of CPU state, defined as a giant `if`-chain over the current opcode.
+You can read this as a description of what AX is at the end of this tick: *"if the current opcode is 0x40 it's yesterday's AX plus one; if it's 0x48 it's yesterday's AX minus one; if it's 0xB8 it's the immediate value the program supplied;"* and so on for every instruction that touches AX. Anything else, AX stays as it was. The same shape of rule exists for each of the other seven registers, plus the flags, plus the instruction pointer, plus the segment registers, plus the stack pointer - every piece of CPU state, defined as a giant `if`-chain over the current opcode.
 
 Memory writes work the same way. From the previous section, you'll remember that every byte is watching six broadcast write channels. Those channels (`--writeAddress0`, `--writeValue0`, and so on) are themselves defined the same way:
 
@@ -564,9 +564,9 @@ You may have noticed that all the rules above read `var(--__1AX)` rather than `v
 
 But that raises a question. *When* does today's `--AX` become tomorrow's `--__1AX`? Something has to do that copying, and it has to happen at the right moment, after the current tick's computation is done but before the next tick starts.
 
-The answer is a CSS animation. We have one running constantly in the background that toggles a property called `--clock` between four values — 0, 1, 2, 3, 0, 1, 2, 3 — and the work of one tick is split across these four phases. Two of them compute new values, two of them copy the new values into the "yesterday" slots. The browser, evaluating the stylesheet, does the right thing in each phase because the rules say *"only do this if the clock is 1"* or similar. The clock advances itself, the phases follow, and an instruction completes every four ticks of the animation.
+The answer is a CSS animation. We have one running constantly in the background that toggles a property called `--clock` between four values - 0, 1, 2, 3, 0, 1, 2, 3 - and the work of one tick is split across these four phases. Two of them compute new values, two of them copy the new values into the "yesterday" slots. The browser, evaluating the stylesheet, does the right thing in each phase because the rules say *"only do this if the clock is 1"* or similar. The clock advances itself, the phases follow, and an instruction completes every four ticks of the animation.
 
-We'll come back to the clock — it's the thing that turns this whole apparatus from a static description into a running machine — but for now, the relevant fact is that there *is* a heartbeat, and the bytes and registers know which beat they're on.
+We'll come back to the clock - it's the thing that turns this whole apparatus from a static description into a running machine - but for now, the relevant fact is that there *is* a heartbeat, and the bytes and registers know which beat they're on.
 
 ---
 
@@ -576,13 +576,13 @@ Each of the eight registers gets its own giant `if`-chain. The flags register ge
 
 By the time you've covered every instruction the 8086 supports, multiplied by every register or memory slot that instruction might touch, you're looking at something on the order of **a hundred and fifty thousand lines of dispatcher CSS**, before you've added a single byte of program memory. That's roughly Antarctica-to-the-tip-of-South-America's worth of walking, in stylesheet form, just to convince the browser to act like a CPU.
 
-The processor is, in this sense, the smallest part of the file. Most of `doom8088.css` is the program itself — *Doom*'s code and data, every byte of it pinned to its own custom property, watching the broadcast channels.
+The processor is, in this sense, the smallest part of the file. Most of `doom8088.css` is the program itself - *Doom*'s code and data, every byte of it pinned to its own custom property, watching the broadcast channels.
 
 ---
 
 ### One small ungainly truth
 
-The CPU we've described has roughly the architecture of a real 8086, but built backwards. A real CPU is a network of physical components — adders, multiplexers, decoders — each doing one specific small thing, all wired together so that an instruction propagates through them like water through plumbing. The CSS version has none of this. It has a giant lookup table, expressed as a giant conditional, which the browser evaluates afresh every tick.
+The CPU we've described has roughly the architecture of a real 8086, but built backwards. A real CPU is a network of physical components - adders, multiplexers, decoders - each doing one specific small thing, all wired together so that an instruction propagates through them like water through plumbing. The CSS version has none of this. It has a giant lookup table, expressed as a giant conditional, which the browser evaluates afresh every tick.
 
 This makes it, in a sense, more honest than a real CPU. There's no pipelining, no speculative execution, no branch prediction, no cache. There is one rule per piece of state, and the rules say what the state is. If you wanted to formally prove the CPU correct, you could read the stylesheet top to bottom and check each rule against the 8086 manual. (You would be there for some time.)
 
@@ -590,13 +590,13 @@ It also makes it absurdly inefficient, which is what the next section is about: 
 
 ---
 
-## Section 5 — A heartbeat made of animation
+## Section 5 - A heartbeat made of animation
 
 We've now got memory and a CPU, and they're both rather good at sitting there doing absolutely nothing.
 
 This is the awkward truth about everything we've built so far. The CPU's giant `if`-statement says *"the new value of AX is this, given the current opcode."* But the browser only re-evaluates that rule when *something changes,* and in our stylesheet, nothing has any reason to. The CPU is a perfectly correct description of an 8086 frozen mid-thought. To bring it to life, something has to keep nudging it.
 
-For real computers this is solved with a quartz crystal. You pass electricity through a small lump of quartz and it wobbles, very precisely, several million times a second. You count the wobbles, and each wobble is one tick. The whole CPU keeps in step with this wobble — registers update, instructions advance, the world moves on.
+For real computers this is solved with a quartz crystal. You pass electricity through a small lump of quartz and it wobbles, very precisely, several million times a second. You count the wobbles, and each wobble is one tick. The whole CPU keeps in step with this wobble - registers update, instructions advance, the world moves on.
 
 We don't have a quartz crystal. We have CSS animations. They will, it turns out, do nicely.
 
@@ -619,7 +619,7 @@ Recall from a few sections ago that CSS animations let a value change over time.
 }
 ```
 
-This says: *over 400 milliseconds, change `--clock` from 0 to 1 to 2 to 3, in discrete steps, and then loop forever.* The `steps(4, jump-end)` part is what stops the browser from gradually interpolating between values — we don't want `--clock: 1.7`, we want it to jump cleanly from 1 to 2 to 3.
+This says: *over 400 milliseconds, change `--clock` from 0 to 1 to 2 to 3, in discrete steps, and then loop forever.* The `steps(4, jump-end)` part is what stops the browser from gradually interpolating between values - we don't want `--clock: 1.7`, we want it to jump cleanly from 1 to 2 to 3.
 
 So now we have a variable that changes value, by itself, four times every 400 milliseconds. That's our wobble. One tick of the 8086 happens every full cycle of `--clock`, which means our pretend computer runs at the dizzying rate of **two and a half instructions per second.**
 
@@ -670,7 +670,7 @@ function step() {
 }
 ```
 
-That is the entire engine. It walks the clock 0→1→2→3 by hand, asks the browser to recompute the stylesheet after each change (which is what the `getComputedStyle` line does), and then waits for the next animation frame to do it all again. The CSS doesn't know any of this is happening — it just notices that `--clock` keeps changing and dutifully re-evaluates every rule that depends on it. Twenty-four lines of JavaScript and we're suddenly running at sixty ticks a second, or about fifteen instructions per second.
+That is the entire engine. It walks the clock 0→1→2→3 by hand, asks the browser to recompute the stylesheet after each change (which is what the `getComputedStyle` line does), and then waits for the next animation frame to do it all again. The CSS doesn't know any of this is happening - it just notices that `--clock` keeps changing and dutifully re-evaluates every rule that depends on it. Twenty-four lines of JavaScript and we're suddenly running at sixty ticks a second, or about fifteen instructions per second.
 
 This is, you may have noticed, still terrible. Fifteen instructions per second gets us to the DOS prompt sometime in 2099.
 
@@ -682,19 +682,19 @@ The second way out is Calcite, which is the next section.
 
 Before we move on, it's worth being clear about what the JavaScript shim is and isn't doing. It is *not* helping the stylesheet do its work. It is not running any of the 8086 logic. It is not deciding what the next opcode means or computing the new value of AX. All of that still happens in CSS, in exactly the same `if`-statements we've been looking at. The shim's only job is to keep nudging `--clock` so the browser bothers to re-evaluate.
 
-This matters because the project's central conceit — *"the CSS is a complete, working description of an 8086 PC"* — would be a lie if we were quietly doing the real work in JavaScript. We're not. The pure-CSS player runs the same cabinet using nothing but the animation, just glacially. The turbo shim and Calcite (next section) are both, in this sense, *speed-readers* for the same stylesheet. They argue about how fast to walk to the Moon. They don't change the route.
+This matters because the project's central conceit - *"the CSS is a complete, working description of an 8086 PC"* - would be a lie if we were quietly doing the real work in JavaScript. We're not. The pure-CSS player runs the same cabinet using nothing but the animation, just glacially. The turbo shim and Calcite (next section) are both, in this sense, *speed-readers* for the same stylesheet. They argue about how fast to walk to the Moon. They don't change the route.
 
 ---
 
-## Section 6 — Calcite, or: how to walk to the Moon faster
+## Section 6 - Calcite, or: how to walk to the Moon faster
 
 Here is the situation we're in. We have a stylesheet that fully and faithfully describes a 1981 IBM PC. We have a clock that keeps it ticking. We have, in principle, a working computer made entirely of style rules.
 
-We also have Chrome — the browser the whole thing was theoretically designed for — refusing point-blank to open the file. *Doom* as CSS is around 1.8 million lines, and Chrome's style engine, asked to re-evaluate all of them every animation frame, runs out of patience long before it runs out of memory. The project's README is unusually honest about this:
+We also have Chrome - the browser the whole thing was theoretically designed for - refusing point-blank to open the file. *Doom* as CSS is around 1.8 million lines, and Chrome's style engine, asked to re-evaluate all of them every animation frame, runs out of patience long before it runs out of memory. The project's README is unusually honest about this:
 
-> *"The CSS runs in Chrome. In theory — in practice, it crashes it."*
+> *"The CSS runs in Chrome. In theory - in practice, it crashes it."*
 
-So we wrote Calcite. Calcite is a separate program, written in Rust, and its single solitary job is to do exactly what Chrome would do — read the stylesheet, evaluate its rules, work out what each variable becomes after each tick — but quickly, and without falling over.
+So we wrote Calcite. Calcite is a separate program, written in Rust, and its single solitary job is to do exactly what Chrome would do - read the stylesheet, evaluate its rules, work out what each variable becomes after each tick - but quickly, and without falling over.
 
 ---
 
@@ -706,7 +706,7 @@ The project has a name for the rule that prevents this: the *cardinal rule*. Sta
 
 > **Calcite must produce the same results Chrome would, just faster.**
 
-Not *similar* results. The same results. Calcite is not allowed to know that the file is a CPU. It is not allowed to know what an opcode is, or that there are registers, or that 0x40 means "increment AX." It reads the file as CSS — `@property` blocks, `if()`-statements, `var()` references, `calc()` expressions — and evaluates them honestly, the way a browser would. If the CSS is wrong, the fix goes in the CSS. Calcite does not get to patch around it.
+Not *similar* results. The same results. Calcite is not allowed to know that the file is a CPU. It is not allowed to know what an opcode is, or that there are registers, or that 0x40 means "increment AX." It reads the file as CSS - `@property` blocks, `if()`-statements, `var()` references, `calc()` expressions - and evaluates them honestly, the way a browser would. If the CSS is wrong, the fix goes in the CSS. Calcite does not get to patch around it.
 
 This sounds like a self-imposed handicap, and it is, but it's the *whole point*. A CSS-shaped computer that runs fast because we secretly cheated isn't a CSS-shaped computer. It's just an emulator.
 
@@ -716,31 +716,31 @@ This sounds like a self-imposed handicap, and it is, but it's the *whole point*.
 
 Calcite's trick is that it notices **shapes** in the CSS, not meanings.
 
-Consider the giant register-dispatch `if`-statement from a couple of sections ago — the one with about a hundred branches, each saying *"if `--opcode` is some specific number, then AX becomes this expression."* Chrome, being a general-purpose browser, evaluates this by walking the branches in order: *is the opcode 0x40? no. is it 0x48? no. is it 0xB8? no.* It does this every tick, for every register, for every channel.
+Consider the giant register-dispatch `if`-statement from a couple of sections ago - the one with about a hundred branches, each saying *"if `--opcode` is some specific number, then AX becomes this expression."* Chrome, being a general-purpose browser, evaluates this by walking the branches in order: *is the opcode 0x40? no. is it 0x48? no. is it 0xB8? no.* It does this every tick, for every register, for every channel.
 
-Calcite reads the same `if`-statement and recognises a *shape* it has seen before: a long chain of equality tests against a single variable, with each branch returning a different expression. That's a lookup table. Calcite compiles it into one — a hash map from opcode to expression — and the next time the rule fires, it does one lookup instead of a hundred comparisons.
+Calcite reads the same `if`-statement and recognises a *shape* it has seen before: a long chain of equality tests against a single variable, with each branch returning a different expression. That's a lookup table. Calcite compiles it into one - a hash map from opcode to expression - and the next time the rule fires, it does one lookup instead of a hundred comparisons.
 
 That's the entire idea, repeated about thirty different ways. A long `if`-chain comparing against a single variable becomes a hash map. Six parallel "is this address mine?" checks across a million bytes become a single sparse index. A four-way clock state machine becomes a counter. None of these transformations require any knowledge of the 8086 or DOS or *Doom*. They're patterns in the CSS itself, the kind a sufficiently determined optimising compiler will spot in any program.
 
-The result is that Calcite runs a CSS-DOS cabinet at somewhere around four hundred thousand ticks per second, against Chrome's three or four. That's enough to boot DOS in a few seconds, load *Doom* in about half a minute, and get the marine on screen at — admittedly — about a fifth of a frame per second. The performance work is ongoing. *Doom* on a stylesheet was always going to be a long walk.
+The result is that Calcite runs a CSS-DOS cabinet at somewhere around four hundred thousand ticks per second, against Chrome's three or four. That's enough to boot DOS in a few seconds, load *Doom* in about half a minute, and get the marine on screen at - admittedly - about a fifth of a frame per second. The performance work is ongoing. *Doom* on a stylesheet was always going to be a long walk.
 
 > 💡 **What the honest clock would deliver**
 >
-> It's worth actually doing the arithmetic on what *Doom* would run like in pure CSS, on the real 400 ms clock from section 5 — 2.5 instructions per second — because the numbers come out needing scientific notation.
+> It's worth actually doing the arithmetic on what *Doom* would run like in pure CSS, on the real 400 ms clock from section 5 - 2.5 instructions per second - because the numbers come out needing scientific notation.
 >
 > From the benchmarks, one rendered *Doom* frame costs roughly 2 × 10⁵ instructions (measured: ~1–2.4 fps while executing ~330–478K ticks/s; divide one by the other). At 2.5 instructions per second, that's:
 >
 > **FPS = 2.5 ÷ (2 × 10⁵) ≈ 1 × 10⁻⁵ frames per second.**
 >
-> One frame every ~25 hours. Almost exactly **one frame of *Doom* per day**, or about 360 frames a year — call it twelve seconds of gameplay footage per decade of continuous rendering.
+> One frame every ~25 hours. Almost exactly **one frame of *Doom* per day**, or about 360 frames a year - call it twelve seconds of gameplay footage per decade of continuous rendering.
 >
-> And that's the *steady state*. Just reaching gameplay — BIOS, DOS boot, the two-month… sorry, the 13.5-million-instruction boot-and-level-load — takes 13.5M ÷ 2.5 = 5.4 × 10⁶ seconds: **about 62 days**. Two months of Chrome running before the first frame of the one-frame-per-day slideshow appears.
+> And that's the *steady state*. Just reaching gameplay - BIOS, DOS boot, the two-month… sorry, the 13.5-million-instruction boot-and-level-load - takes 13.5M ÷ 2.5 = 5.4 × 10⁶ seconds: **about 62 days**. Two months of Chrome running before the first frame of the one-frame-per-day slideshow appears.
 >
-> (These are the *optimistic* figures, too — they assume Chrome finishes each tick's style recalculation inside its 400 ms slot, which on a 352 MB stylesheet it would not. The honest number is "slower than that, right up until it crashes.")
+> (These are the *optimistic* figures, too - they assume Chrome finishes each tick's style recalculation inside its 400 ms slot, which on a 352 MB stylesheet it would not. The honest number is "slower than that, right up until it crashes.")
 >
 > Which puts a hard number on what Calcite is actually buying us:
 >
-> **Calcite's speedup ≈ 400,000 ÷ 2.5 = 1.6 × 10⁵ — about 160,000× faster than the honest clock.**
+> **Calcite's speedup ≈ 400,000 ÷ 2.5 = 1.6 × 10⁵ - about 160,000× faster than the honest clock.**
 >
 > Every downstream number scales by that same factor: one frame a day becomes a couple of frames a second; a 62-day boot becomes about half a minute. It's the entire distance between geology and a slideshow. (For scale: 160,000× is roughly the speed difference between continental drift and a walking human.)
 
@@ -750,7 +750,7 @@ The result is that Calcite runs a CSS-DOS cabinet at somewhere around four hundr
 
 This means there are, in practice, two ways to run a CSS-DOS cabinet.
 
-The **pure-CSS player** is a static HTML page, about a hundred lines, that loads the stylesheet, attaches it to a `<div>`, and lets Chrome get on with it. This is the version that works in theory and fails in practice. Tiny cabinets — a few kilobytes of code printing "hello" to the screen — run fine. Cabinets that contain an entire DOS install do not. The pure-CSS player is the *demonstration* that the whole thing is real CSS. It is not how you actually play *Doom*.
+The **pure-CSS player** is a static HTML page, about a hundred lines, that loads the stylesheet, attaches it to a `<div>`, and lets Chrome get on with it. This is the version that works in theory and fails in practice. Tiny cabinets - a few kilobytes of code printing "hello" to the screen - run fine. Cabinets that contain an entire DOS install do not. The pure-CSS player is the *demonstration* that the whole thing is real CSS. It is not how you actually play *Doom*.
 
 The **Calcite-backed player** is the same HTML page, but with a small WebAssembly module embedded that contains Calcite's CSS evaluator. The cabinet still loads as a stylesheet. The evaluator runs Calcite's compiled version of it, ticks the clock as fast as it can, and writes the resulting framebuffer to a `<canvas>`. From the outside, you cannot tell which engine is running. They produce the same pixels.
 
@@ -764,17 +764,17 @@ The project's CLAUDE file phrases the rule like this:
 
 > *"You may restructure CSS to be easier to JIT-optimise, as long as Chrome still evaluates it the same way and produces the same results. Expressing the same computation in a different, more pattern-recognisable shape is fine. What is NOT fine: dummy code, metadata properties, or side-channels whose only purpose is to 'signal' to Calcite or sneak information to Calcite. The CSS must pay for itself in Chrome."*
 
-This is the bit that makes the project tick (so to speak). The CSS isn't allowed to wink at Calcite. It isn't allowed to leave a little note saying *"this bit's the CPU dispatcher, by the way."* If a piece of CSS exists, it has to do real work in Chrome — even if Chrome will only ever evaluate it once before falling over. Calcite is then allowed to be clever about how it speeds things up, but only by being clever *about CSS*, not by being clever *about computers*.
+This is the bit that makes the project tick (so to speak). The CSS isn't allowed to wink at Calcite. It isn't allowed to leave a little note saying *"this bit's the CPU dispatcher, by the way."* If a piece of CSS exists, it has to do real work in Chrome - even if Chrome will only ever evaluate it once before falling over. Calcite is then allowed to be clever about how it speeds things up, but only by being clever *about CSS*, not by being clever *about computers*.
 
-If you find that distinction precious or pedantic, well — yes. That's the whole project, really. The fun is in the constraint.
+If you find that distinction precious or pedantic, well - yes. That's the whole project, really. The fun is in the constraint.
 
 ---
 
-## Section 7 — Drawing pixels with a stylesheet
+## Section 7 - Drawing pixels with a stylesheet
 
 We've spent five sections building a CPU that nobody can see. It's time to fix that.
 
-Here's the situation. *Doom* runs in what's called **mode 13h**, which is a graphics mode the original IBM PC supported in the late 1980s. In mode 13h the screen is 320 pixels wide by 200 pixels tall, and each pixel is a single byte — a number from 0 to 255 — that picks one of 256 possible colours from a separate table called the **palette**.
+Here's the situation. *Doom* runs in what's called **mode 13h**, which is a graphics mode the original IBM PC supported in the late 1980s. In mode 13h the screen is 320 pixels wide by 200 pixels tall, and each pixel is a single byte - a number from 0 to 255 - that picks one of 256 possible colours from a separate table called the **palette**.
 
 The screen lives at a specific spot in memory: 64,000 bytes starting at address `0xA0000`. The first byte is the top-left pixel, the next byte is the pixel to its right, and so on, row by row, until you reach the bottom-right corner 64,000 bytes later. To draw something, the program writes bytes into that region. To change a pixel, you change a byte. There is no API, no graphics library, no draw call. The screen is just *memory you can see.*
 
@@ -800,7 +800,7 @@ Either way, the principle holds: **the screen is memory, the memory is custom pr
 
 ### The palette, as a small sub-puzzle
 
-There's one subtlety worth a moment. Each pixel byte is an index into a palette of 256 colours, and the palette itself lives in memory too — 768 more bytes (one red, one green, one blue per colour) at a different address. Programs change the palette constantly. *Doom* uses this to do the "screen flashes red when you take damage" effect: it doesn't redraw any pixels, it just shifts every entry in the palette towards red for a few frames.
+There's one subtlety worth a moment. Each pixel byte is an index into a palette of 256 colours, and the palette itself lives in memory too - 768 more bytes (one red, one green, one blue per colour) at a different address. Programs change the palette constantly. *Doom* uses this to do the "screen flashes red when you take damage" effect: it doesn't redraw any pixels, it just shifts every entry in the palette towards red for a few frames.
 
 So the rule that decides a pixel's colour is, properly speaking, a two-step lookup: *take the memory byte at this pixel's address, treat it as a number, and use that number to index the palette table elsewhere in memory.* Two giant `if`-chains, nested. One for the pixel value, one for the palette entry. Both made of style rules, both re-evaluating every tick, both contributing handsomely to the file size.
 
@@ -810,19 +810,19 @@ When *Doom* flashes red on damage, what's actually happening is: 768 bytes get w
 
 ### Text mode, briefly
 
-Before *Doom* boots, you spend a few seconds looking at text — DOS messages, the kernel's startup banner, the program's own loading screen. This is a different graphics mode, called **text mode**, in which each "pixel" is actually a *character*: an 80-column, 25-row grid where each cell holds a letter and a colour code.
+Before *Doom* boots, you spend a few seconds looking at text - DOS messages, the kernel's startup banner, the program's own loading screen. This is a different graphics mode, called **text mode**, in which each "pixel" is actually a *character*: an 80-column, 25-row grid where each cell holds a letter and a colour code.
 
-The mechanism is exactly the same. Text-mode video memory lives at `0xB8000`. Each cell is two bytes — one for the character (an ASCII code), one for the foreground and background colour. The CSS-DOS player draws an 80×25 grid of `<span>` elements, each with a rule that reads its two memory bytes, looks the character up in a font table, and styles the cell accordingly. When DOS prints `A:\>`, what actually happens is that four memory bytes get written, four spans re-evaluate their content, and four characters appear.
+The mechanism is exactly the same. Text-mode video memory lives at `0xB8000`. Each cell is two bytes - one for the character (an ASCII code), one for the foreground and background colour. The CSS-DOS player draws an 80×25 grid of `<span>` elements, each with a rule that reads its two memory bytes, looks the character up in a font table, and styles the cell accordingly. When DOS prints `A:\>`, what actually happens is that four memory bytes get written, four spans re-evaluate their content, and four characters appear.
 
 There are no `console.log`s. There is no terminal. There is a stylesheet, looking at memory.
 
 ---
 
-## Section 8 — The disk that won't fit
+## Section 8 - The disk that won't fit
 
 A small but important fact about the 1981 IBM PC: it could only ever address one megabyte of memory. Not because the hardware designers were cheap, but because the CPU's address bus was 20 bits wide, and twenty bits gives you exactly 1,048,576 distinct addresses, no more and no fewer. This was, at the time, an *enormous* amount of room. Bill Gates is famously supposed to have said something to the effect of *"640 kilobytes ought to be enough for anyone,"* though he denies ever having said it; in any case nobody really expected the limit to bite.
 
-The limit, of course, bit. Almost immediately. By the late 1980s, programs routinely came on floppy disks holding 1.44 megabytes — *more than the entire address space of the computer they were meant to run on.* By the time *Doom* arrived in 1993, the data files were tens of megabytes. The PC industry spent two decades inventing increasingly elaborate workarounds (extended memory, expanded memory, protected mode, the A20 line, the high memory area — each with its own story, none of them happy) to get around the fact that a 16-bit CPU can only see a megabyte at once.
+The limit, of course, bit. Almost immediately. By the late 1980s, programs routinely came on floppy disks holding 1.44 megabytes - *more than the entire address space of the computer they were meant to run on.* By the time *Doom* arrived in 1993, the data files were tens of megabytes. The PC industry spent two decades inventing increasingly elaborate workarounds (extended memory, expanded memory, protected mode, the A20 line, the high memory area - each with its own story, none of them happy) to get around the fact that a 16-bit CPU can only see a megabyte at once.
 
 We are emulating the 16-bit CPU. We have inherited all of its problems.
 
@@ -836,7 +836,7 @@ This is fine. We have a plan.
 
 A real PC, asked to deal with a file bigger than its memory, would store the file on a *disk* and ask the disk for one chunk at a time. Disks are slow but enormous. Memory is fast but small. The whole architecture of computing for the first thirty years was built around this trade-off.
 
-The disk in a real PC isn't sitting inside the megabyte of RAM — it's a separate device, off to the side, that the CPU talks to through the BIOS. When *Doom* wants a chunk of `DOOM1.WAD`, it asks the BIOS *"please load 512 bytes starting at sector 4,712 into this spot in memory,"* the BIOS twiddles some hardware ports, the disk wakes up, the sector arrives, and *Doom* reads it from RAM as if it had always been there.
+The disk in a real PC isn't sitting inside the megabyte of RAM - it's a separate device, off to the side, that the CPU talks to through the BIOS. When *Doom* wants a chunk of `DOOM1.WAD`, it asks the BIOS *"please load 512 bytes starting at sector 4,712 into this spot in memory,"* the BIOS twiddles some hardware ports, the disk wakes up, the sector arrives, and *Doom* reads it from RAM as if it had always been there.
 
 We're going to do exactly this, except the disk is going to be made of CSS, and it's going to live just outside the megabyte of RAM, in a place the CPU can sort of see if it squints.
 
@@ -846,16 +846,16 @@ We're going to do exactly this, except the disk is going to be made of CSS, and 
 
 Here is the trick, and it is genuinely lovely.
 
-Inside the 8086's one megabyte of address space, there's a small region — 512 bytes, the size of a single disk sector — that we set aside as a *window*. Its address is `0xD0000` to `0xD01FF`. As far as the CPU is concerned, this is normal memory. You can read it. You can copy from it. Nothing about it looks unusual.
+Inside the 8086's one megabyte of address space, there's a small region - 512 bytes, the size of a single disk sector - that we set aside as a *window*. Its address is `0xD0000` to `0xD01FF`. As far as the CPU is concerned, this is normal memory. You can read it. You can copy from it. Nothing about it looks unusual.
 
-But the bytes you read from it aren't stored anywhere in the megabyte of RAM. They're stored *outside it*, in a much larger array — the 2.88-megabyte disk image. When the CPU reads byte `0xD0042`, the stylesheet doesn't look up `--m851010`. It does something else entirely.
+But the bytes you read from it aren't stored anywhere in the megabyte of RAM. They're stored *outside it*, in a much larger array - the 2.88-megabyte disk image. When the CPU reads byte `0xD0042`, the stylesheet doesn't look up `--m851010`. It does something else entirely.
 
-Specifically: there's a separate variable, called `--lba`, that holds a sector number. (LBA stands for *Logical Block Address* — sector 0 is the first 512 bytes of the disk, sector 1 is the next 512 bytes, and so on.) When the CPU reads any byte in the window, the rule looks up *"byte 0x42 of sector `--lba` of the disk."* Change `--lba`, and the entire window's contents change. It's not a region of memory; it's a *view onto whichever sector you've currently asked to see*.
+Specifically: there's a separate variable, called `--lba`, that holds a sector number. (LBA stands for *Logical Block Address* - sector 0 is the first 512 bytes of the disk, sector 1 is the next 512 bytes, and so on.) When the CPU reads any byte in the window, the rule looks up *"byte 0x42 of sector `--lba` of the disk."* Change `--lba`, and the entire window's contents change. It's not a region of memory; it's a *view onto whichever sector you've currently asked to see*.
 
 Reading from the disk, then, looks like this from inside the program:
 
-1. *"I'd like sector 4,712 please."* — the CPU writes 4712 into the variable `--lba`.
-2. *"Now copy 512 bytes from address `0xD0000` to my buffer."* — a normal memory-to-memory copy, the kind the 8086 does in its sleep.
+1. *"I'd like sector 4,712 please."* - the CPU writes 4712 into the variable `--lba`.
+2. *"Now copy 512 bytes from address `0xD0000` to my buffer."* - a normal memory-to-memory copy, the kind the 8086 does in its sleep.
 
 The window, transparently, returns the bytes of sector 4,712. Nobody had to know it wasn't ordinary RAM.
 
@@ -885,7 +885,7 @@ Three million entries. Every byte of the disk image, encoded as a CSS `if`-branc
 
 This is, you'll be unsurprised to hear, the single biggest section of the *Doom* stylesheet. The disk dispatch alone is around 200 megabytes of CSS. About **150,000 kilometres of walking,** entirely for the disk lookup. *Roughly one-way to the Moon, just for the file format.*
 
-In the *Doom* cabinet, Calcite recognises this dispatch as a particularly long lookup table and compiles it down to a flat byte array — the disk image, reconstituted in memory, indexed in O(1). For Chrome, of course, no such mercy: it walks the chain.
+In the *Doom* cabinet, Calcite recognises this dispatch as a particularly long lookup table and compiles it down to a flat byte array - the disk image, reconstituted in memory, indexed in O(1). For Chrome, of course, no such mercy: it walks the chain.
 
 ---
 
@@ -899,7 +899,7 @@ This is the same shape as the trick we played with the screen, by the way. The s
 
 ---
 
-## Section 9 — How a cabinet gets built
+## Section 9 - How a cabinet gets built
 
 Time to talk about how this thing is actually made. We've been treating `doom8088.css` as if it appeared from nowhere. It didn't. It was *built*, by a small pile of programs that turn an ordinary DOS executable into a 350-megabyte stylesheet.
 
@@ -907,11 +907,11 @@ The pipeline has a vocabulary worth learning, because the project uses these wor
 
 | Word | What it is |
 |---|---|
-| **cart** | A folder containing a DOS program. Like a cartridge for an old games console — drop one in, it boots. |
+| **cart** | A folder containing a DOS program. Like a cartridge for an old games console - drop one in, it boots. |
 | **floppy** | A simulated 1980s floppy disk, in standard FAT12 format. Built from the cart. |
 | **BIOS** | The little firmware program that boots the machine and provides basic services. The project has three of them, with names like fabric (Gossamer, Muslin, Corduroy). |
 | **Kiln** | The transpiler. Turns a pile of bytes (BIOS + DOS + program + disk) into one enormous stylesheet. |
-| **cabinet** | The output `.css` file. Like a cabinet in an arcade — self-contained, plug it in, play it. |
+| **cabinet** | The output `.css` file. Like a cabinet in an arcade - self-contained, plug it in, play it. |
 
 Putting these together, the build pipeline looks like this:
 
@@ -938,16 +938,16 @@ Let's walk through each step.
 
 ### Step 1: assemble a floppy
 
-The cart is just a folder. To make it look like a disk a 1980s computer can boot from, the builder creates a **FAT12 filesystem image** — the same disk format that floppies actually used in 1981, byte-for-byte, with the original directory structure, allocation tables, and boot sector. This is a real, period-accurate disk image; if you wrote it to an actual floppy with a real disk drive (good luck finding one), it would boot a real PC.
+The cart is just a folder. To make it look like a disk a 1980s computer can boot from, the builder creates a **FAT12 filesystem image** - the same disk format that floppies actually used in 1981, byte-for-byte, with the original directory structure, allocation tables, and boot sector. This is a real, period-accurate disk image; if you wrote it to an actual floppy with a real disk drive (good luck finding one), it would boot a real PC.
 
 The floppy contains `COMMAND.COM` (the DOS shell), the program from the cart, any data files it needs (like *Doom*'s 2.88 MB WAD), and a small autoexec script that runs the program on startup. It's a complete, bootable DOS environment in about three megabytes.
 
 ### Step 2: lay out memory
 
-Now the builder builds the **memory image** — what the 8086's RAM should look like at the moment the machine turns on. This involves:
+Now the builder builds the **memory image** - what the 8086's RAM should look like at the moment the machine turns on. This involves:
 
 - Dropping the BIOS at the top of memory, where the CPU expects to find it on boot.
-- Setting up the **interrupt vector table** at the bottom of memory (the small list of addresses the CPU jumps to when various events happen — keypresses, timer ticks, BIOS calls).
+- Setting up the **interrupt vector table** at the bottom of memory (the small list of addresses the CPU jumps to when various events happen - keypresses, timer ticks, BIOS calls).
 - Loading the DOS kernel into low memory.
 - Reserving regions for the screen, the disk window, and various BIOS scratch areas.
 - Filling in some standard PC bookkeeping (the BIOS Data Area, the keyboard buffer, all the small but important things real PCs come with).
@@ -960,13 +960,13 @@ Kiln is the transpiler. Its job is to take the memory image and the disk and pro
 
 It walks through the memory image and emits, for each byte, the two custom-property declarations and the corresponding write-rule entries. For ranges of memory that are read-only (like the BIOS), it bakes the values into the rules as constants and skips the write rules entirely. For RAM, it emits the full apparatus.
 
-It then emits the **CPU dispatch table** — the giant `if`-chains that turn opcodes into register and memory updates. These are actually the same for every cabinet: `MOV` always means `MOV`, regardless of which DOS program you're running. The CPU dispatch is roughly 150,000 lines of CSS that gets stamped out fresh every build.
+It then emits the **CPU dispatch table** - the giant `if`-chains that turn opcodes into register and memory updates. These are actually the same for every cabinet: `MOV` always means `MOV`, regardless of which DOS program you're running. The CPU dispatch is roughly 150,000 lines of CSS that gets stamped out fresh every build.
 
-It emits the **disk dispatch** — the three-million-line `--readDiskByte` function from the previous section.
+It emits the **disk dispatch** - the three-million-line `--readDiskByte` function from the previous section.
 
-It emits the **clock and the animation keyframes** — the small heartbeat we built in Section 5.
+It emits the **clock and the animation keyframes** - the small heartbeat we built in Section 5.
 
-And it staples on a tiny snippet of HTML — the **player** — that loads the resulting stylesheet, attaches it to a div, and lets the browser get on with it.
+And it staples on a tiny snippet of HTML - the **player** - that loads the resulting stylesheet, attaches it to a div, and lets the browser get on with it.
 
 The whole pipeline takes a few seconds. The output is a `.css` file weighing somewhere between three megabytes (for "hello, world") and 350 megabytes (for *Doom*). You can open it in a text editor if you have a brave one. It will scroll for a long time.
 
@@ -977,12 +977,12 @@ The whole pipeline takes a few seconds. The output is a `.css` file weighing som
 A small detail worth mentioning. The project has *three* different BIOSes, and which one a cabinet uses changes its character. They are, in order of complexity:
 
 - **Gossamer** is for raw `.COM` programs that don't need DOS at all. Tiny. Used mostly for tests and demos.
-- **Muslin** is a hand-written assembly DOS BIOS — fast, terse, accurate enough to boot most things.
+- **Muslin** is a hand-written assembly DOS BIOS - fast, terse, accurate enough to boot most things.
 - **Corduroy** is a proper structured C BIOS. Slower than Muslin but easier to maintain and extend, and it's what most cabinets use today, including *Doom*.
 
 Each one is a complete piece of firmware that handles keyboard input, screen output, disk reads, timer interrupts, and the half-dozen other services that DOS programs expect to find. They're written in real assembly and C, compiled with real compilers, and end up as bytes in the memory image that Kiln then turns into CSS. The BIOS is no different, from the stylesheet's point of view, than the program it's booting. It's just bytes in particular places.
 
-The fabric names — Gossamer, Muslin, Corduroy — are an aesthetic choice. They go from sheer to sturdy in roughly the order the BIOSes themselves do.
+The fabric names - Gossamer, Muslin, Corduroy - are an aesthetic choice. They go from sheer to sturdy in roughly the order the BIOSes themselves do.
 
 ---
 
@@ -1005,9 +1005,9 @@ There is no engine. There is no runtime. There is one stylesheet, one clock, and
 
 ---
 
-## Section 10 — A small museum of clever tricks
+## Section 10 - A small museum of clever tricks
 
-If you've made it this far, you've earned a reward. This is the bit where I show you some of the genuinely lovely sleight-of-hand the project does inside the stylesheet. None of these are essential to understanding the whole — they're showpieces, the kind of thing the people working on CSS-DOS have probably stared at for an hour each before solving.
+If you've made it this far, you've earned a reward. This is the bit where I show you some of the genuinely lovely sleight-of-hand the project does inside the stylesheet. None of these are essential to understanding the whole - they're showpieces, the kind of thing the people working on CSS-DOS have probably stared at for an hour each before solving.
 
 I'll try to keep the maths gentle.
 
@@ -1015,7 +1015,7 @@ I'll try to keep the maths gentle.
 
 ### Trick 1: how to do a left-shift when you've never heard of bits
 
-Computers spend a lot of time *shifting* numbers — moving all their bits a few positions to the left or right. A real CPU has a dedicated piece of circuitry for this, called a barrel shifter, that can move every bit of a number sideways in a single tick. If you ask the 8086 to shift the number `0b00010110` left by two, you get `0b01011000`, instantly.
+Computers spend a lot of time *shifting* numbers - moving all their bits a few positions to the left or right. A real CPU has a dedicated piece of circuitry for this, called a barrel shifter, that can move every bit of a number sideways in a single tick. If you ask the 8086 to shift the number `0b00010110` left by two, you get `0b01011000`, instantly.
 
 CSS, of course, doesn't have bits. CSS has *numbers*, and four arithmetic operations, and not even quite all of those. Asking it to "shift left" is like asking a calculator to play chess.
 
@@ -1037,13 +1037,13 @@ So the project's "left shift" function is, in its entirety, this:
 }
 ```
 
-It is, in a sense, an embarrassingly simple observation. But it means that *every shift instruction in the 8086* — and there are quite a few of them — comes down to multiplication or division. The CPU's barrel shifter, replaced by a high-school identity.
+It is, in a sense, an embarrassingly simple observation. But it means that *every shift instruction in the 8086* - and there are quite a few of them - comes down to multiplication or division. The CPU's barrel shifter, replaced by a high-school identity.
 
 ---
 
 ### Trick 2: making numbers wrap around like a real CPU
 
-Real CPUs don't have unlimited numbers. The 8086's registers hold values from 0 to 65,535, and if you add 1 to 65,535 you don't get 65,536 — you get 0, and the CPU sets a little flag to remember that you overflowed. This is called **wraparound**, and almost every program relies on it working correctly.
+Real CPUs don't have unlimited numbers. The 8086's registers hold values from 0 to 65,535, and if you add 1 to 65,535 you don't get 65,536 - you get 0, and the CPU sets a little flag to remember that you overflowed. This is called **wraparound**, and almost every program relies on it working correctly.
 
 CSS has unlimited numbers. Add 1 to 65,535 in CSS and you get 65,536, like any sensible mathematician. This is, for our purposes, a problem.
 
@@ -1065,7 +1065,7 @@ This function gets called *constantly.* Every time the CPU computes a new value 
 
 Here is one of the genuinely strange constraints of doing computation in CSS. **CSS has no comparison operator.** You can't write `if(a > b)`. The `if()` function tests for *equality*, and that's all. There's no greater-than, no less-than, no test for "is this number positive."
 
-This is fine for matching opcodes — every opcode is a specific number, and equality tests work. But the moment you need to ask *"did this counter just go negative?"* or *"which of these two values is bigger?"*, you're stuck.
+This is fine for matching opcodes - every opcode is a specific number, and equality tests work. But the moment you need to ask *"did this counter just go negative?"* or *"which of these two values is bigger?"*, you're stuck.
 
 Until you remember that CSS does have one function with an opinion about positive versus negative: `sign()`. It returns -1 for negative numbers, 0 for zero, and +1 for positive numbers. Combined with `max(0, ...)`, you can extract a clean 0-or-1 answer to *"is this number greater than that one?"* without ever using a comparison:
 
@@ -1076,7 +1076,7 @@ max(0, sign(a - b))
 If `a > b`, the difference is positive, `sign` returns 1, `max` keeps it at 1.
 If `a ≤ b`, the difference is zero or negative, `sign` returns 0 or -1, and `max(0, ...)` clamps it to 0.
 
-The result is a number that's exactly 1 when `a > b` and exactly 0 otherwise — which you can multiply other expressions by, to gate them on the comparison being true. You've just built an `if`-statement out of `sign` and `max`.
+The result is a number that's exactly 1 when `a > b` and exactly 0 otherwise - which you can multiply other expressions by, to gate them on the comparison being true. You've just built an `if`-statement out of `sign` and `max`.
 
 This is how the project's PIT timer (the chip that fires periodic interrupts on a real PC) decides whether it's time to wrap. The relevant line, lifted directly from the codebase, looks like this:
 
@@ -1085,7 +1085,7 @@ var(--__1pitCounter) - var(--_pitDecrement)
   + max(0, sign(calc(var(--_pitDecrement) - var(--__1pitCounter) + 1))) * var(--__1pitReload)
 ```
 
-Read it carefully: *"the new counter is the old counter minus the decrement, plus — IF the decrement is bigger than the counter — the reload value."* The `max(0, sign(...))` term is a fully-functional "if" that produces 1 when the timer should wrap and 0 when it shouldn't, expressed entirely with arithmetic. No branches. Pure algebra.
+Read it carefully: *"the new counter is the old counter minus the decrement, plus - IF the decrement is bigger than the counter - the reload value."* The `max(0, sign(...))` term is a fully-functional "if" that produces 1 when the timer should wrap and 0 when it shouldn't, expressed entirely with arithmetic. No branches. Pure algebra.
 
 The project does dozens of variations on this. If you ever need to ask CSS *"is X bigger than Y?",* you subtract, take the sign, clamp with max, and multiply.
 
@@ -1095,7 +1095,7 @@ The project does dozens of variations on this. If you ever need to ask CSS *"is 
 
 We talked about the clock in section 5. Here's the part I held back.
 
-We said the CPU has two animations attached to it — one called *store*, one called *execute* — both paused by default, and that the two get selectively un-paused depending on the current value of `--clock`. The actual code that does this is one of my favourite small things in the project:
+We said the CPU has two animations attached to it - one called *store*, one called *execute* - both paused by default, and that the two get selectively un-paused depending on the current value of `--clock`. The actual code that does this is one of my favourite small things in the project:
 
 ```css
 .cpu {
@@ -1106,13 +1106,13 @@ We said the CPU has two animations attached to it — one called *store*, one ca
 }
 ```
 
-Read this slowly. There are two animations attached to `.cpu`. They're both paused. *But* — there's a `@container style()` query, which is CSS's way of saying *"if a custom property has a particular value somewhere up the DOM tree, apply this rule."* When `--clock` is 1, the first animation runs. When `--clock` is 3, the second animation runs. At all other times, both are paused.
+Read this slowly. There are two animations attached to `.cpu`. They're both paused. *But* - there's a `@container style()` query, which is CSS's way of saying *"if a custom property has a particular value somewhere up the DOM tree, apply this rule."* When `--clock` is 1, the first animation runs. When `--clock` is 3, the second animation runs. At all other times, both are paused.
 
 The animations are 1 millisecond long, which means as soon as they start running, they finish. They each contain a single keyframe that copies a bunch of variables into other variables. So what this five-line block is actually doing is:
 
 > *"Every time the clock hits 1, do the *execute* phase. Every time the clock hits 3, do the *store* phase. The rest of the time, do nothing."*
 
-It's a state machine, expressed as two paused animations and a container query that toggles them. There is no JavaScript here. There is no event loop. The browser is doing all the work, because CSS happens to provide *exactly* the four primitives — animations, pause states, container queries, and the clock itself — that you need to build a phased computation.
+It's a state machine, expressed as two paused animations and a container query that toggles them. There is no JavaScript here. There is no event loop. The browser is doing all the work, because CSS happens to provide *exactly* the four primitives - animations, pause states, container queries, and the clock itself - that you need to build a phased computation.
 
 When you look at it for long enough, it stops looking absurd and starts looking *inevitable*. Like, *of course* this is how you'd build a CPU phase machine in CSS. What other way is there?
 
@@ -1130,7 +1130,7 @@ A naive implementation would test the address against every region, in order, di
 
 The project does something cleverer: it builds *one giant `if`-chain over every possible address,* and pre-resolves the answer for each. Address `0x401`? *That's the second byte of the BIOS Data Area, value baked in at build time, return 0x80.* Address `0xA0042`? *That's a video memory pixel, return `var(--m655426)`.* Address `0xD0042`? *That's the disk window at offset 0x42, return `--readDiskByte(--lba * 512 + 0x42)`.*
 
-The dispatch happens once, at build time, when Kiln walks every reachable address and decides the right expression to emit for it. By the time the stylesheet is generated, `--readMem` has already done its decision tree — it's a flat lookup by address, where each entry is the pre-baked answer for that exact spot in the memory map. The CPU's "where is this byte?" question never has to be asked at runtime, because the *answer* is already encoded in the structure of the stylesheet.
+The dispatch happens once, at build time, when Kiln walks every reachable address and decides the right expression to emit for it. By the time the stylesheet is generated, `--readMem` has already done its decision tree - it's a flat lookup by address, where each entry is the pre-baked answer for that exact spot in the memory map. The CPU's "where is this byte?" question never has to be asked at runtime, because the *answer* is already encoded in the structure of the stylesheet.
 
 This is, I think, the cleanest example of the project's broader philosophy. Anything that can be decided at build time gets baked into the CSS as a fact. The stylesheet is enormous because it knows *everything* in advance. It doesn't have logic to figure things out on the fly. It has the entire decision tree, expanded out, with the answer at every leaf.
 
@@ -1138,7 +1138,7 @@ This is, I think, the cleanest example of the project's broader philosophy. Anyt
 
 ### A theme, if you want one
 
-Look at all five of these and you can see something they have in common. The 8086 — like most computers — uses *control flow* to do its work. Branch here, jump there, dispatch on this, decide based on that. It's a machine for making choices in sequence.
+Look at all five of these and you can see something they have in common. The 8086 - like most computers - uses *control flow* to do its work. Branch here, jump there, dispatch on this, decide based on that. It's a machine for making choices in sequence.
 
 CSS-DOS doesn't really have control flow. What it has is **arithmetic, equality, and the power of being computed exhaustively at build time.** So every piece of control flow in the original CPU has been replaced with one of these things:
 
@@ -1155,21 +1155,21 @@ Whether algebra is *practical* enough is a separate question, and one the file s
 ---
 
 
-## Section 11 — Case study: the game that froze when it touched the ground
+## Section 11 - Case study: the game that froze when it touched the ground
 
-Everything above describes how CSS-DOS is *supposed* to work. This section is about a day when it didn't, because real projects have bugs, and the bugs in this project are unusually fun: when your computer is a stylesheet, a bug is one wrong expression hiding in 300 MB of CSS. This is the full story of one of them — the symptoms, the tools, the hunt, and the fix — told in enough detail that you could retrace every step.
+Everything above describes how CSS-DOS is *supposed* to work. This section is about a day when it didn't, because real projects have bugs, and the bugs in this project are unusually fun: when your computer is a stylesheet, a bug is one wrong expression hiding in 300 MB of CSS. This is the full story of one of them - the symptoms, the tools, the hunt, and the fix - told in enough detail that you could retrace every step.
 
 ### The symptom
 
-Prince of Persia (1990) boots fine. Title screen, intro, level one fades in. The prince drops down into the dungeon, his feet touch the flagstones — and the game stops. Not a crash, not an error, not a glitchy screen. It just… stops. The torches quit flickering. Keys do nothing. The machine looks dead.
+Prince of Persia (1990) boots fine. Title screen, intro, level one fades in. The prince drops down into the dungeon, his feet touch the flagstones - and the game stops. Not a crash, not an error, not a glitchy screen. It just… stops. The torches quit flickering. Keys do nothing. The machine looks dead.
 
-And here's the detail that matters: it happened *every single time*, at *exactly the same moment* — the first time the prince touches the ground. Other games ran fine. Doom ran fine. Zork ran fine. Something about *landing*, specifically, in *this game*, specifically, was fatal.
+And here's the detail that matters: it happened *every single time*, at *exactly the same moment* - the first time the prince touches the ground. Other games ran fine. Doom ran fine. Zork ran fine. Something about *landing*, specifically, in *this game*, specifically, was fatal.
 
-A 100%-reproducible freeze at a precise gameplay moment is, honestly, the best kind of bug. It means the machine is deterministic (it is — the same cabinet runs the same instruction at the same tick, every time), and it means the freeze has a *cause* sitting at a *findable tick*. The job is to find the tick, then find the cause.
+A 100%-reproducible freeze at a precise gameplay moment is, honestly, the best kind of bug. It means the machine is deterministic (it is - the same cabinet runs the same instruction at the same tick, every time), and it means the freeze has a *cause* sitting at a *findable tick*. The job is to find the tick, then find the cause.
 
 ### The debugging toolkit
 
-You can't debug this in Chrome's DevTools. The cabinet crashes Chrome, and even if it didn't, "inspect element" on 360,000 custom properties is not a plan. What the project has instead is Calcite (section 6) — the native engine that runs cabinets at hundreds of thousands of instructions per second — and a small toolbox built on top of it:
+You can't debug this in Chrome's DevTools. The cabinet crashes Chrome, and even if it didn't, "inspect element" on 360,000 custom properties is not a plan. What the project has instead is Calcite (section 6) - the native engine that runs cabinets at hundreds of thousands of instructions per second - and a small toolbox built on top of it:
 
 | Tool | What it answers |
 |---|---|
@@ -1179,13 +1179,13 @@ You can't debug this in Chrome's DevTools. The cabinet crashes Chrome, and even 
 | `calcite-cli --dump-mem-range=ADDR:LEN:FILE` | "What bytes are in guest memory at ADDR?" |
 | `calcite-cli --press-events=TICK:kb-x,...` | "Press this key at this tick." (drives the same `:active` pseudo-class path a real browser click would) |
 
-That last one deserves a note, because it's where the session actually started. To reproduce a freeze that happens *during gameplay*, you have to get *into* gameplay: dismiss two "press any key" sound-driver dialogs, skip the title, and start the game — all with keystrokes delivered at the right ticks, millions of ticks deep. The key-injection path existed but ran the whole simulation one tick at a time (about 10× slower than batch mode), so reaching tick 16,000,000 with input blew every time budget. First order of business was fixing the tool: the loop now runs at full batch speed and only pauses *exactly on* each keypress tick. Debugging infrastructure is load-bearing in this project; when it can't reach the bug, you fix the ladder before the roof.
+That last one deserves a note, because it's where the session actually started. To reproduce a freeze that happens *during gameplay*, you have to get *into* gameplay: dismiss two "press any key" sound-driver dialogs, skip the title, and start the game - all with keystrokes delivered at the right ticks, millions of ticks deep. The key-injection path existed but ran the whole simulation one tick at a time (about 10× slower than batch mode), so reaching tick 16,000,000 with input blew every time budget. First order of business was fixing the tool: the loop now runs at full batch speed and only pauses *exactly on* each keypress tick. Debugging infrastructure is load-bearing in this project; when it can't reach the bug, you fix the ladder before the roof.
 
 ### The hunt, step by step
 
-**Step 1: find the freeze with screenshots.** `fast-shoot` at increasing ticks gives you a flipbook of the boot: sound dialog at tick 4M, title screen at 8M, black screen (level loading — the FAT filesystem walk from section 8, working hard) at 10–12M, and level one, prince standing, at 16M. Then press a key to make him jump and screenshot again at 17.5M and 18.5M:
+**Step 1: find the freeze with screenshots.** `fast-shoot` at increasing ticks gives you a flipbook of the boot: sound dialog at tick 4M, title screen at 8M, black screen (level loading - the FAT filesystem walk from section 8, working hard) at 10–12M, and level one, prince standing, at 16M. Then press a key to make him jump and screenshot again at 17.5M and 18.5M:
 
-Nothing. Identical frames. He never even jumped. The game was *already* frozen before the input arrived — because level one *begins* with the prince dropping to the ground. The "first touch" isn't something the player does; it happens automatically, seconds into the level. The freeze was already minutes old by the time anyone wiggled the arrow keys.
+Nothing. Identical frames. He never even jumped. The game was *already* frozen before the input arrived - because level one *begins* with the prince dropping to the ground. The "first touch" isn't something the player does; it happens automatically, seconds into the level. The freeze was already minutes old by the time anyone wiggled the arrow keys.
 
 **Step 2: is the CPU dead or spinning?** Registers, sampled every 250,000 ticks:
 
@@ -1197,9 +1197,9 @@ tick       AX BX CX DX  ...   IP    CS    flags  cycleCount
 15750000    1  6  0  0       1389  4655   518    197386634
 ```
 
-This one table says a lot. `cycleCount` climbs — the CPU is executing, four million cycles per sample, so the machine isn't halted. But every register is frozen, `CS` never moves, and `IP` cycles through the same three values: 1389, 1394, 1396 (`0x056D`, `0x0572`, `0x0574`). The CPU is running a **three-instruction loop, forever**. That's not a dead machine; that's a machine *waiting for something that will never happen*.
+This one table says a lot. `cycleCount` climbs - the CPU is executing, four million cycles per sample, so the machine isn't halted. But every register is frozen, `CS` never moves, and `IP` cycles through the same three values: 1389, 1394, 1396 (`0x056D`, `0x0572`, `0x0574`). The CPU is running a **three-instruction loop, forever**. That's not a dead machine; that's a machine *waiting for something that will never happen*.
 
-**Step 3: read the loop.** Three IP values and a segment give you a linear address (`CS × 16 + IP` — section 4): `0x122F × 16 + 0x56D = 0x1285D`. Dump 64 bytes of guest memory there and decode them against the 8086 manual:
+**Step 3: read the loop.** Three IP values and a segment give you a linear address (`CS × 16 + IP` - section 4): `0x122F × 16 + 0x56D = 0x1285D`. Dump 64 bytes of guest memory there and decode them against the 8086 manual:
 
 ```
 0x056D:  83 3E EC 32 00    CMP  word [0x32EC], 0    ; is the counter zero?
@@ -1207,24 +1207,24 @@ This one table says a lot. `cycleCount` climbs — the CPU is executing, four mi
 0x0574:  EB F7             JMP  0x056D              ; no → check again
 ```
 
-The game is polling a 16-bit counter in its own memory, waiting for it to reach zero. And one more clue from the register dump: `flags` is 518 = `0x206`, and bit 9 (`0x200`) is the **interrupt flag** — interrupts are *enabled*. This is the classic shape of "wait for the interrupt handler to count something down." Somewhere, an interrupt service routine is supposed to be decrementing `[0x32EC]` — and it has stopped being called.
+The game is polling a 16-bit counter in its own memory, waiting for it to reach zero. And one more clue from the register dump: `flags` is 518 = `0x206`, and bit 9 (`0x200`) is the **interrupt flag** - interrupts are *enabled*. This is the classic shape of "wait for the interrupt handler to count something down." Somewhere, an interrupt service routine is supposed to be decrementing `[0x32EC]` - and it has stopped being called.
 
-**Step 4: check the interrupt hardware.** On a PC, the metronome behind almost everything is the **PIT** — the 8253 Programmable Interval Timer — whose channel 0 counts down and fires **IRQ 0** each time it wraps (that's the timer tick that drives `INT 8`, the handler games hook for anything rhythmic). CSS-DOS models it with a handful of state variables. Dumping them at the freeze:
+**Step 4: check the interrupt hardware.** On a PC, the metronome behind almost everything is the **PIT** - the 8253 Programmable Interval Timer - whose channel 0 counts down and fires **IRQ 0** each time it wraps (that's the timer tick that drives `INT 8`, the handler games hook for anything rhythmic). CSS-DOS models it with a handful of state variables. Dumping them at the freeze:
 
 ```
 picMask=252   picPending=0   pitMode=3   pitReload=0   pitCounter=0
 ```
 
-`picMask=252` is `0xFC` — IRQ 0 unmasked, allowed through. But `pitReload=0`. In the emulation, a reload of zero means *the timer is disarmed*; the counter holds at zero and never fires. There's the "something that will never happen": **the timer interrupt is dead.** No IRQ 0 → no `INT 8` → nobody decrements `[0x32EC]` → the loop at `0x056D` spins until the heat death of the universe.
+`picMask=252` is `0xFC` - IRQ 0 unmasked, allowed through. But `pitReload=0`. In the emulation, a reload of zero means *the timer is disarmed*; the counter holds at zero and never fires. There's the "something that will never happen": **the timer interrupt is dead.** No IRQ 0 → no `INT 8` → nobody decrements `[0x32EC]` → the loop at `0x056D` spins until the heat death of the universe.
 
-**Step 5: find the murder weapon.** Determinism pays off here. If the timer died, it died at a specific tick — so bisect with register dumps:
+**Step 5: find the murder weapon.** Determinism pays off here. If the timer died, it died at a specific tick - so bisect with register dumps:
 
 ```
-tick 12600000   pitReload=19886    ← alive (1,193,182 ÷ 19,886 ≈ 60 Hz — PoP runs its game clock at 60 Hz)
+tick 12600000   pitReload=19886    ← alive (1,193,182 ÷ 19,886 ≈ 60 Hz - PoP runs its game clock at 60 Hz)
 tick 12800000   pitReload=0        ← dead
 ```
 
-The timer was programmed to 60 Hz — Prince of Persia reprograms the PC's timer for its game loop, a famously smooth thing for a 1990 DOS game to do — and something between tick 12.6M and 12.8M zeroed it. Which is *exactly* when the prince lands. The landing plays a sound: a little percussive *thud* through the PC speaker.
+The timer was programmed to 60 Hz - Prince of Persia reprograms the PC's timer for its game loop, a famously smooth thing for a 1990 DOS game to do - and something between tick 12.6M and 12.8M zeroed it. Which is *exactly* when the prince lands. The landing plays a sound: a little percussive *thud* through the PC speaker.
 
 ### The actual bug
 
@@ -1236,9 +1236,9 @@ OUT 0x42, lo        ; low byte of the frequency divisor
 OUT 0x42, hi        ; high byte
 ```
 
-That control word, `0xB6`, is a bitfield: `10 11 011 0` — bits 7-6 say **"channel 2"**, bits 5-4 say "low byte then high byte," bits 3-1 say "mode 3, square wave." On real hardware, the chip reads bits 7-6 and applies the command *to channel 2 only*. Channel 0 — the one firing IRQ 0 sixty times a second, the game's heartbeat — is untouched.
+That control word, `0xB6`, is a bitfield: `10 11 011 0` - bits 7-6 say **"channel 2"**, bits 5-4 say "low byte then high byte," bits 3-1 say "mode 3, square wave." On real hardware, the chip reads bits 7-6 and applies the command *to channel 2 only*. Channel 0 - the one firing IRQ 0 sixty times a second, the game's heartbeat - is untouched.
 
-Now here's what Kiln's I/O emulation did with it. The handler for `OUT` on port `0x43` (67 in decimal — remember from section 10, `style()` compares against integer literals):
+Now here's what Kiln's I/O emulation did with it. The handler for `OUT` on port `0x43` (67 in decimal - remember from section 10, `style()` compares against integer literals):
 
 ```css
 /* pitReload: OUT 0x43 resets to 0. ... */
@@ -1250,9 +1250,9 @@ if(
 
 And there was even an honest comment admitting it:
 
-> *"Channel select (bits 7-6) is ignored for Phase 1 — we only track channel 0."*
+> *"Channel select (bits 7-6) is ignored for Phase 1 - we only track channel 0."*
 
-The emulation only *models* channel 0 — which is fine, nothing needs speaker output — but it treated **every** control word as if it were *for* channel 0. So the landing thud's perfectly innocent "hey, channel 2, play a note" got misread as "channel 0: reset," and wiped the reload value. And because the emulation treats `pitReload=0` as "timer disarmed," IRQ 0 stopped forever. One sound effect, one wrong assumption about two bits, one dead heartbeat.
+The emulation only *models* channel 0 - which is fine, nothing needs speaker output - but it treated **every** control word as if it were *for* channel 0. So the landing thud's perfectly innocent "hey, channel 2, play a note" got misread as "channel 0: reset," and wiped the reload value. And because the emulation treats `pitReload=0` as "timer disarmed," IRQ 0 stopped forever. One sound effect, one wrong assumption about two bits, one dead heartbeat.
 
 The full causal chain, laid end to end:
 
@@ -1265,15 +1265,15 @@ flowchart TD
     E --> F["CMP/JZ/JMP<br/>spins forever ❄️"]
 ```
 
-Why only this game? Because the freeze needs *both* halves: a game that programs channel 2 through port 0x43 (any game with PC-speaker sound effects) *and* a game whose main loop hard-depends on channel-0 interrupts it configured itself (rarer — many games poll the BIOS clock instead, or would merely lose a beep). Prince of Persia does both, and does the second at 60 Hz with a wait-loop, so the very first sound effect is instantly fatal.
+Why only this game? Because the freeze needs *both* halves: a game that programs channel 2 through port 0x43 (any game with PC-speaker sound effects) *and* a game whose main loop hard-depends on channel-0 interrupts it configured itself (rarer - many games poll the BIOS clock instead, or would merely lose a beep). Prince of Persia does both, and does the second at 60 Hz with a wait-loop, so the very first sound effect is instantly fatal.
 
-One more thing worth saying, because it's the project's cardinal rule (section 6): this was **not** a Calcite bug. Calcite executed the stylesheet with perfect fidelity — the *stylesheet* was wrong. Chrome, given infinite patience, would have frozen the prince in exactly the same way. The fix therefore belongs in Kiln, the transpiler that *generates* the CSS, so that every cabinet built from then on carries the corrected machine.
+One more thing worth saying, because it's the project's cardinal rule (section 6): this was **not** a Calcite bug. Calcite executed the stylesheet with perfect fidelity - the *stylesheet* was wrong. Chrome, given infinite patience, would have frozen the prince in exactly the same way. The fix therefore belongs in Kiln, the transpiler that *generates* the CSS, so that every cabinet built from then on carries the corrected machine.
 
 ### The fix
 
-The correct behaviour: an `OUT 0x43` should only touch channel-0 state when bits 7-6 of AL actually select channel 0 — and (a wrinkle discovered while reading the 8253 datasheet) not even then if bits 5-4 are `00`, which is the "latch" command, a read-your-count instruction that doesn't disturb counting either.
+The correct behaviour: an `OUT 0x43` should only touch channel-0 state when bits 7-6 of AL actually select channel 0 - and (a wrinkle discovered while reading the 8253 datasheet) not even then if bits 5-4 are `00`, which is the "latch" command, a read-your-count instruction that doesn't disturb counting either.
 
-Here's the awkward part, and it's a very CSS-DOS kind of awkward: the natural way to write this is `if (al >> 6 == 0 && (al & 0x30) != 0)`. But `style()` queries can only compare a property against a *literal* — there's no `style(--q1 > 64)`, no way to test a bitfield in a condition. Which is exactly the situation Section 10 was about: **when you can't branch, do algebra.** The fix builds the condition as an arithmetic gate that evaluates to exactly 1 or 0:
+Here's the awkward part, and it's a very CSS-DOS kind of awkward: the natural way to write this is `if (al >> 6 == 0 && (al & 0x30) != 0)`. But `style()` queries can only compare a property against a *literal* - there's no `style(--q1 > 64)`, no way to test a bitfield in a condition. Which is exactly the situation Section 10 was about: **when you can't branch, do algebra.** The fix builds the condition as an arithmetic gate that evaluates to exactly 1 or 0:
 
 ```js
 // 1 iff AL is a channel-0 write config: bits 7-6 == 00 AND bits 5-4 != 00
@@ -1283,7 +1283,7 @@ const pitCh0Write =
 
 Take it apart:
 
-- `--rightShift(al, 6)` extracts bits 7-6: `0` for channel 0, `1`/`2` for channels 1/2 (and `3` for read-back). Then `max(0, 1 - that)` is **1 only when the channel is 0** — subtract from 1 and clamp, the sign-and-clamp comparison trick, trick 3 from the museum.
+- `--rightShift(al, 6)` extracts bits 7-6: `0` for channel 0, `1`/`2` for channels 1/2 (and `3` for read-back). Then `max(0, 1 - that)` is **1 only when the channel is 0** - subtract from 1 and clamp, the sign-and-clamp comparison trick, trick 3 from the museum.
 - `--and(al, 48)` masks bits 5-4 (48 = `0x30`). It's `0` for a latch command, non-zero (16/32/48) for a real write config; `min(1, that)` squashes it to **0 or 1**.
 - Multiply the two: logical AND, expressed as arithmetic.
 
@@ -1299,7 +1299,7 @@ the new code says "on port 0x43, become *yourself times (1 − gate)*":
 style(--q1: 67): calc(var(--__1pitReload) * (1 - GATE));
 ```
 
-If the control word is a channel-0 write, the gate is 1 and the reload zeroes — old behaviour, still correct, that's how the BIOS and PoP legitimately set the timer. If it's a channel-2 word or a latch, the gate is 0 and the expression collapses to `var(--__1pitReload) × 1` — *hold your value*. The mode register gets the same treatment with a blend — `old + (new − old) × gate` — the standard trick for "conditionally assign" when all you have is arithmetic. Chrome evaluates all of this happily; it's just `calc()`, `min`, `max`, and two of the project's bitwise helper functions. The machine stays honest.
+If the control word is a channel-0 write, the gate is 1 and the reload zeroes - old behaviour, still correct, that's how the BIOS and PoP legitimately set the timer. If it's a channel-2 word or a latch, the gate is 0 and the expression collapses to `var(--__1pitReload) × 1` - *hold your value*. The mode register gets the same treatment with a blend - `old + (new − old) × gate` - the standard trick for "conditionally assign" when all you have is arithmetic. Chrome evaluates all of this happily; it's just `calc()`, `min`, `max`, and two of the project's bitwise helper functions. The machine stays honest.
 
 ### Proving it
 
@@ -1307,27 +1307,27 @@ Determinism giveth again: rebuild the cabinet, re-run the exact same input scrip
 
 ```
 tick 12600000   pitReload=19886   ← alive
-tick 12800000   pitReload=19886   ← STILL alive (the thud played — silently — and the timer survived)
+tick 12800000   pitReload=19886   ← STILL alive (the thud played - silently - and the timer survived)
 tick 13500000   pitReload=35093   ← PoP legitimately re-programming its own timer (a sound routine)
 tick 14500000   pitReload=19886   ← back to the 60 Hz game clock
 ```
 
-That third line is a lovely confirmation, incidentally — the game *does* reprogram channel 0 on purpose sometimes, through control words that genuinely select channel 0, and the gate lets those through while blocking the speaker's.
+That third line is a lovely confirmation, incidentally - the game *does* reprogram channel 0 on purpose sometimes, through control words that genuinely select channel 0, and the gate lets those through while blocking the speaker's.
 
-And then the fun part: screenshots as proof of life. The prince lands. He stands up. Hold →: he runs across the dungeon, off the ledge, *falls a full level, lands again* — the exact event that used to kill the machine, now happening repeatedly with impunity. Press ↑: he jumps (the screenshot catches him mid-air, arms up). Hold ←: he walks back the way he came. Left, right, jump, four separate landings, eleven million ticks of gameplay, torches still flickering.
+And then the fun part: screenshots as proof of life. The prince lands. He stands up. Hold →: he runs across the dungeon, off the ledge, *falls a full level, lands again* - the exact event that used to kill the machine, now happening repeatedly with impunity. Press ↑: he jumps (the screenshot catches him mid-air, arms up). Hold ←: he walks back the way he came. Left, right, jump, four separate landings, eleven million ticks of gameplay, torches still flickering.
 
-The regression gate (the smoke suite — six reference carts, built and booted) came back green, which closes the other half of the question: gating the reset didn't break the machines that were already working, because their control words (`0x36` — bits 7-6 = 00, a genuine channel-0 setup) sail through the gate exactly as before.
+The regression gate (the smoke suite - six reference carts, built and booted) came back green, which closes the other half of the question: gating the reset didn't break the machines that were already working, because their control words (`0x36` - bits 7-6 = 00, a genuine channel-0 setup) sail through the gate exactly as before.
 
 ### What this bug teaches
 
-**A frozen screen is data.** The difference between "halted," "crashed," and "spinning in a wait loop" is visible in three numbers — cycle count moving, registers frozen, IP cycling — and each one points somewhere completely different.
+**A frozen screen is data.** The difference between "halted," "crashed," and "spinning in a wait loop" is visible in three numbers - cycle count moving, registers frozen, IP cycling - and each one points somewhere completely different.
 
 **Waiting loops mean interrupt problems.** A tight poll-a-memory-location loop with interrupts enabled has one likely diagnosis before you've even read the interrupt state: whoever was supposed to write that location has stopped running. Work backwards from the counter to the handler to the hardware that triggers the handler.
 
-**Determinism is a superpower.** Every step of this hunt — the flipbook, the bisection to a 200,000-tick window, the before/after proof — leans on the machine running identically every time. In a stylesheet-computer there's no scheduler jitter, no async, no luck. Tick 12,700,000 is the same instruction today, tomorrow, always.
+**Determinism is a superpower.** Every step of this hunt - the flipbook, the bisection to a 200,000-tick window, the before/after proof - leans on the machine running identically every time. In a stylesheet-computer there's no scheduler jitter, no async, no luck. Tick 12,700,000 is the same instruction today, tomorrow, always.
 
-**Emulate the bits you ignore.** The original sin wasn't failing to emulate the speaker — nobody needs the speaker. It was accepting a command *addressed to the speaker* and applying it to something else. An emulator's ignored features still need their *addressing* respected: the safe way to not-implement channel 2 is to decode "this is for channel 2" and then do nothing.
+**Emulate the bits you ignore.** The original sin wasn't failing to emulate the speaker - nobody needs the speaker. It was accepting a command *addressed to the speaker* and applying it to something else. An emulator's ignored features still need their *addressing* respected: the safe way to not-implement channel 2 is to decode "this is for channel 2" and then do nothing.
 
-**And the theme holds.** The fix itself is Section 10 in miniature: a hardware chip's two-bit field decode, rebuilt as `max`, `min`, a shift, a mask, and a multiplication — one more decision converted into arithmetic, because in this machine, algebra is all there is.
+**And the theme holds.** The fix itself is Section 10 in miniature: a hardware chip's two-bit field decode, rebuilt as `max`, `min`, a shift, a mask, and a multiplication - one more decision converted into arithmetic, because in this machine, algebra is all there is.
 
 ---

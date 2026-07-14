@@ -24,7 +24,7 @@ export const STATE_VARS = [
   { name: 'cycleCount', init: 0 },
   { name: '_tfPending', init: 0 },
 
-  // PIC (i8259) state — see kiln/patterns/misc.mjs emitIO().
+  // PIC (i8259) state - see kiln/patterns/misc.mjs emitIO().
   // picMask: IMR. Bit set = IRQ masked. Init 0xFF (all masked) matches real
   // BIOS POST before the OS unmasks IRQ 0/1.
   // picPending: IRR. Bit set = IRQ requested, not yet acknowledged.
@@ -33,7 +33,7 @@ export const STATE_VARS = [
   { name: 'picPending', init: 0 },
   { name: 'picInService', init: 0 },
 
-  // PIT (i8253) channel 0 state — see kiln/patterns/misc.mjs emitIO().
+  // PIT (i8253) channel 0 state - see kiln/patterns/misc.mjs emitIO().
   // pitMode: counting mode (0..5 from control word bits 3-1).
   // pitReload: 16-bit reload latch, loaded by OUT 0x40 lo/hi sequence.
   // pitCounter: running countdown; reloads from pitReload on zero crossing.
@@ -56,13 +56,13 @@ export const STATE_VARS = [
   // tracking never sees release events).
   { name: 'kbdScancodeLatch', init: 0 },
 
-  // Hold-wire held set — scancodes whose release was latched while
+  // Hold-wire held set - scancodes whose release was latched while
   // --kbdHold was 1 (0 = empty slot). Filled lowest-slot-first; drained
   // highest-slot-first as synthesized break codes once --kbdHold drops.
   // Tapping a held key again while the wire is up delivers its break and
-  // clears its slot(s) — per-key un-hold, holes are fine. 8 slots;
+  // clears its slot(s) - per-key un-hold, holes are fine. 8 slots;
   // presses beyond that still deliver their make code but the break is
-  // lost (stuck key until re-press) — see emitKeyboardWires.
+  // lost (stuck key until re-press) - see emitKeyboardWires.
   { name: 'kbdHeld0', init: 0 },
   { name: 'kbdHeld1', init: 0 },
   { name: 'kbdHeld2', init: 0 },
@@ -72,7 +72,7 @@ export const STATE_VARS = [
   { name: 'kbdHeld6', init: 0 },
   { name: 'kbdHeld7', init: 0 },
 
-  // VGA DAC state — see patterns/misc.mjs emitIO().
+  // VGA DAC state - see patterns/misc.mjs emitIO().
   // dacWriteIndex: which of the 256 DAC registers is currently being written
   //   (set by OUT 0x3C8; auto-increments after every 3 writes to 0x3C9).
   // dacSubIndex: 0/1/2 counter for R/G/B within a single DAC register.
@@ -88,13 +88,13 @@ export const STATE_VARS = [
 
   // Sticky latch: set to the offending opcode byte the first time the CPU
   // hits an instruction with no dispatch entry (unknownOp=1). Once set, never
-  // clears — the host (player / CLI) surfaces it as a diagnostic. 0 means
+  // clears - the host (player / CLI) surfaces it as a diagnostic. 0 means
   // no unknown opcode seen yet.
   { name: 'haltCode', init: 0 },
 ];
 
 // Serial-mouse state (8250 UART @ COM1 + Microsoft-protocol packet
-// generator) — only included when the cart opts in via `input.mouse`.
+// generator) - only included when the cart opts in via `input.mouse`.
 // See kiln/patterns/misc.mjs emitMouseWires() for the machine.
 //
 // msCurX/msCurY: our estimate of where the guest driver's integrated
@@ -111,7 +111,7 @@ export const MOUSE_STATE_VARS = [
   // msCurX/msCurY are in MICKEYS (half-pixels): Windows 1.01's CGA
   // mapping applies mouse deltas 2:1 on both axes (see emitMouseWires).
   // Init = the guest's power-on cursor, measured empirically at pixel
-  // (320, 100) = mickey (160, 50). Dead reckoning from here is exact —
+  // (320, 100) = mickey (160, 50). Dead reckoning from here is exact -
   // targets are always in-bounds so neither side ever clamps, and the
   // guest coalescing deltas (summing) changes nothing.
   { name: 'msCurX', init: 160 },
@@ -119,12 +119,12 @@ export const MOUSE_STATE_VARS = [
   { name: 'msSentBtn', init: 0 },
   { name: 'msTgtLatch', init: 0 },
   // Hold-mode button latch: toggled by cell press edges while the hold
-  // wire (--msHold) is up — first tap arms it (button down there), the
-  // next tap completes the drag (release at that tap's position) — and
+  // wire (--msHold) is up - first tap arms it (button down there), the
+  // next tap completes the drag (release at that tap's position) - and
   // cleared the moment the wire drops. Required for Windows 1.x menus,
   // which only stay open while the button is held. See emitMouseWires.
   { name: 'msHeldBtn', init: 0 },
-  // Inter-packet pacing stamp (the 1200-baud line rate, in CYCLES —
+  // Inter-packet pacing stamp (the 1200-baud line rate, in CYCLES -
   // guest time): a new packet may only start once cycleCount passes
   // this. Without the gap the next packet's IRQ nests inside the
   // guest's still-running mouse event handler and Windows 1.x
@@ -137,7 +137,7 @@ export const MOUSE_STATE_VARS = [
   // packet. See emitMouseWires.
   { name: 'msPendEdges', init: 0 },
   { name: 'msRawPrev', init: 0 },
-  // Previous tick's cell-pressed level — press-edge detection for the
+  // Previous tick's cell-pressed level - press-edge detection for the
   // hold latch's tap toggle (see emitMouseWires --_msTouchEdge).
   { name: 'msTouchPrev', init: 0 },
   { name: 'msDxL', init: 0 },
@@ -207,14 +207,11 @@ export function emitMouseWireProperty() {
 }
 
 // The per-cell memory @property array is emitted directly by
-// emit-css.mjs (emitMemoryPropertiesStreaming) — it dominates the file and
+// emit-css.mjs (emitMemoryPropertiesStreaming) - it dominates the file and
 // must stream. The subsystem state registrations above are the small,
 // human-scale remainder.
 
-/**
- * Emit the machine element's __1 variable reads (read from double-buffer).
- * --__1AX: var(--__2AX, <init>);
- */
+// Emit the machine element's __1 variable reads from the double-buffer, e.g. `--__1AX: var(--__2AX, <init>);`.
 export function emitBufferReads(opts) {
   const all = getAllVars(opts);
   return all.map(v =>
@@ -238,34 +235,31 @@ export function emitRegisterAliases() {
   ].join('\n');
 }
 
+// Shared shape for the double-buffer copy keyframes: a `0%, 100%` block of
+// per-var assignments. NOTE: the closing `  }\n}` text is load-bearing -
+// emit-css.mjs does string surgery on it (see its replace call).
+function emitCopyKeyframe(name, all, lineFor) {
+  return `@keyframes ${name} {
+  0%, 100% {
+${all.map(lineFor).join('\n')}
+  }
+}`;
+}
+
 /**
  * Emit the store keyframe (clock phase 1): copy __0 → __2
  */
 export function emitStoreKeyframe(opts) {
-  const all = getAllVars(opts);
-  const lines = all.map(v =>
-    `    --__2${v.name}: var(--__0${v.name}, ${v.init});`
-  );
-  return `@keyframes store {
-  0%, 100% {
-${lines.join('\n')}
-  }
-}`;
+  return emitCopyKeyframe('store', getAllVars(opts),
+    v => `    --__2${v.name}: var(--__0${v.name}, ${v.init});`);
 }
 
 /**
  * Emit the execute keyframe (clock phase 3): copy computed → __0
  */
 export function emitExecuteKeyframe(opts) {
-  const all = getAllVars(opts);
-  const lines = all.map(v =>
-    `    --__0${v.name}: var(--${v.name});`
-  );
-  return `@keyframes execute {
-  0%, 100% {
-${lines.join('\n')}
-  }
-}`;
+  return emitCopyKeyframe('execute', getAllVars(opts),
+    v => `    --__0${v.name}: var(--${v.name});`);
 }
 
 /**
@@ -281,7 +275,7 @@ export function emitClockKeyframes() {
 }
 
 /**
- * Emit the .clock rule — the animation heartbeat. The .clock element
+ * Emit the .clock rule - the animation heartbeat. The .clock element
  * must be an ANCESTOR of the .motherboard element (never the same one:
  * the motherboard's `animation: store…, execute…` shorthand would
  * cascade-clobber anim-play, and the cabinet's `@container
@@ -297,7 +291,7 @@ export function emitClockRule() {
 /**
  * Open the clock-plumbing rule on the machine element: attaches the
  * store/execute keyframes permanently paused, and unpauses each for a
- * single beat per clock lap. Returned UNCLOSED — emit-css.mjs streams
+ * single beat per clock lap. Returned UNCLOSED - emit-css.mjs streams
  * the double-buffer reads into it and closes it.
  */
 export function emitClockPlumbingOpen() {
@@ -405,11 +399,11 @@ const KEYBOARD_KEYS = [
 
 /**
  * Emit CSS rules that map key-press UI state to --keyboard values.
- * Uses ID selectors (#kb-X) so HTML layout is free — button order in the
+ * Uses ID selectors (#kb-X) so HTML layout is free - button order in the
  * DOM does not need to match KEYBOARD_KEYS order.
  *
- *   #kb-X:active         — momentary press (mouse held down on the key).
- *   #kb-holdmode:checked — the hold wire (--kbdHold). While it is 1 the
+ *   #kb-X:active         - momentary press (mouse held down on the key).
+ *   #kb-holdmode:checked - the hold wire (--kbdHold). While it is 1 the
  *                          machine LATCHES key releases instead of
  *                          delivering them: presses accumulate as held
  *                          keys (chords), and when the wire drops every
@@ -419,7 +413,7 @@ const KEYBOARD_KEYS = [
  *                          drives this directly; the calcite bridge
  *                          mirrors it via set_pseudo_class_active.
  *
- * Emitted as separate rules (not a selector list) — calcite's input-edge
+ * Emitted as separate rules (not a selector list) - calcite's input-edge
  * recogniser matches one `&:has(#ID:pseudo) { ... }` per rule.
  *
  * --keyboard is a single cascade-resolved value carrying serial press
@@ -439,7 +433,7 @@ export function emitKeyboardRules() {
 
 // --- Mouse cell grid ---
 // The pointing surface: an 80×25 grid of 8×8-pixel cells over the CGA
-// 640×200 screen. Pressing cell N (`#mc-N:active` — a real click in the
+// 640×200 screen. Pressing cell N (`#mc-N:active` - a real click in the
 // raw player, set_pseudo_class_active from the calcite player) drives
 // --mouseTgt to that cell's centre, encoded (x << 8 | y) + 1 so that 0
 // means "no cell pressed". The serial-mouse machine (patterns/misc.mjs
@@ -450,7 +444,7 @@ export function emitKeyboardRules() {
 // keyboard keys) also raises the mouse hold wire --msHold: while it is
 // up, a tap latches the button DOWN and later taps drag with it held;
 // dropping the switch releases at the last position. This is how taps
-// express press-drag-release — which Windows 1.x menus require (they
+// express press-drag-release - which Windows 1.x menus require (they
 // only stay open while the button is held).
 export const MOUSE_GRID = { cols: 80, rows: 25, cellW: 8, cellH: 8 };
 
@@ -465,7 +459,7 @@ export function emitMouseCellRules() {
       lines.push(`  &:has(#mc-${n}:active) { --mouseTgt: ${((x << 8) | y) + 1}; }`);
     }
   }
-  lines.push(`  &:has(#kb-holdmode:checked) { --msHold: 1; } /* hold wire — the shared hold switch */`);
+  lines.push(`  &:has(#kb-holdmode:checked) { --msHold: 1; } /* hold wire - the shared hold switch */`);
   lines.push('}');
   return lines.join('\n');
 }

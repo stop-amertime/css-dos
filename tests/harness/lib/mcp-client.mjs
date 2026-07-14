@@ -1,8 +1,8 @@
-// mcp-client.mjs — tiny MCP (Model Context Protocol) client over a
+// mcp-client.mjs - tiny MCP (Model Context Protocol) client over a
 // framed bytes transport.
 //
 // MCP is JSON-RPC 2.0. calcite-debugger's implementation uses
-// newline-delimited JSON (NDJSON) — no Content-Length framing.
+// newline-delimited JSON (NDJSON) - no Content-Length framing.
 //
 // Two supported transports:
 //   - child: spawn `calcite-debugger.exe [opts...]` and talk over stdio.
@@ -66,7 +66,7 @@ class Base {
         p.resolve(msg.result);
       }
     }
-    // Notifications (no id) — currently ignored. We don't subscribe to
+    // Notifications (no id) - currently ignored. We don't subscribe to
     // anything that matters for test automation.
   }
 
@@ -107,7 +107,7 @@ class Base {
           clientInfo: { name: 'css-dos-harness', version: '0.1' },
         },
       }, { timeoutMs });
-      // Required followup per the spec — without this the server keeps
+      // Required followup per the spec - without this the server keeps
       // some clients in "waiting for initialized" mode. Harmless to send.
       this._write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n');
       this.ready = true;
@@ -118,7 +118,7 @@ class Base {
   // MCP `tools/call`: name + arguments. Returns the tool's content.
   // calcite-debugger's tools all return a single structured JSON result
   // inside `result.content[0].text` or `result.structuredContent`
-  // depending on rmcp version — we handle both.
+  // depending on rmcp version - we handle both.
   async call(toolName, args, { timeoutMs = 60_000 } = {}) {
     await this.initialize();
     const id = this.nextId++;
@@ -167,7 +167,7 @@ export class ChildMcpClient extends Base {
     this.child.stderr.setEncoding('utf8');
     this.child.stderr.on('data', chunk => {
       this.stderrLines.push(chunk);
-      // keep bounded — stderr from a 1hr debugger run can be huge
+      // keep bounded - stderr from a 1hr debugger run can be huge
       if (this.stderrLines.length > 500) this.stderrLines.splice(0, this.stderrLines.length - 500);
     });
     this.child.on('close', (code, sig) => {

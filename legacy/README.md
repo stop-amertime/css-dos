@@ -14,11 +14,11 @@ the current toolchain. Contents are not guaranteed to build.
 
 Several earlier experiments were deleted during the big rename:
 
-- `build_c.py` / `build_css.py` — the v1 Python transpiler (parallel dispatch tables; too fragile).
-- `base_template.css` / `base_template.html` — the v1 CSS skeleton.
-- `x86-instructions-rebane.json` — the v1 hand-rolled opcode database.
-- `extra/` — the v1 JSON-database generator toolchain.
-- `web/` — a TypeScript port of the v1 transpiler.
-- `gossamer-dos.asm`/`.bin`/`.lst` — superseded by `bios/muslin/muslin.asm`.
+- `build_c.py` / `build_css.py` - the v1 Python transpiler (parallel dispatch tables; too fragile).
+- `base_template.css` / `base_template.html` - the v1 CSS skeleton.
+- `x86-instructions-rebane.json` - the v1 hand-rolled opcode database.
+- `extra/` - the v1 JSON-database generator toolchain.
+- `web/` - a TypeScript port of the v1 transpiler.
+- `gossamer-dos.asm`/`.bin`/`.lst` - superseded by `bios/muslin/muslin.asm`.
 
 Git history preserves all of them under commit 8c40b86 and earlier.

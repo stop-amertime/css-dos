@@ -1,4 +1,4 @@
-## 2026-05-12 — Per-dispatch-key specialisation phase 2 landed
+## 2026-05-12 - Per-dispatch-key specialisation phase 2 landed
 
 Phase 2 of `docs/plans/2026-05-12-per-dispatch-key-specialisation.md`:
 Expr-level partial evaluator productised from the probe.
@@ -7,13 +7,13 @@ Expr-level partial evaluator productised from the probe.
 `crates/calcite-core/src/pattern/dispatch_specialise.rs`:
 
 - `specialise_assignments(&mut [Assignment], key, value) ->
-  SpecialiseStats` — partial-evaluate every assignment's Expr tree
+  SpecialiseStats` - partial-evaluate every assignment's Expr tree
   in-place; report aggregate counters.
-- `specialise_expr(&mut Expr, key, value, &mut SpecialiseStats)` —
+- `specialise_expr(&mut Expr, key, value, &mut SpecialiseStats)` -
   per-tree contract: drop `NeverTakes` branches, fold chains on
   `AlwaysTakes`, leave `Unknown` branches; if all branches drop,
   collapse to specialised fallback.
-- `test_outcome(&StyleTest, key, value) -> BranchOutcome` — pub for
+- `test_outcome(&StyleTest, key, value) -> BranchOutcome` - pub for
   phase-3 code paths that want to reason about decidability. Public
   `BranchOutcome` enum.
 - `SpecialiseStats { branches_dropped, conditions_decided,
@@ -43,7 +43,7 @@ overrides. New `count_style_conditions` helper added to eval.rs.
 | 184   | 668        | 65        | 9.7%  | 4      | 24            | 1412    |
 | 254   | 668        | 70        | 10.5% | 11     | 20            | 1557    |
 
-All within 9.7-10.6 % kept — **phase 2 gate (≤ 10 % SC kept) cleared
+All within 9.7-10.6 % kept - **phase 2 gate (≤ 10 % SC kept) cleared
 on a 6-value sample.** Matches the probe's 9.7 % on `--opcode=64` to
 the digit. Specialise cost: 0.00 s on the 147-assignment post-filter
 set.
@@ -56,7 +56,7 @@ hundreds of rejected rows first (more `dropped`).
 **Gates cleared:**
 - 18/18 unit tests pass.
 - Doom8088 SC collapse ≤ 10 % on 6 sampled opcode values.
-- CSS-DOS smoke 7/7 PASS — specialiser unused at runtime (no codegen
+- CSS-DOS smoke 7/7 PASS - specialiser unused at runtime (no codegen
   yet), so this confirms the wiring is inert when the env var is
   unset.
 

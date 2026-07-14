@@ -1,5 +1,5 @@
 <script>
-  // Home — the landing hero (the site's front page).
+  // Home - the landing hero (the site's front page).
   import Term from '../../components/Term.svelte';
 </script>
 
@@ -76,7 +76,7 @@
     max-width: 520px;
     text-align: left;
   }
-  /* The hero h1 keeps the global TUI title box (owner likes it) — sized
+  /* The hero h1 keeps the global TUI title box (owner likes it) - sized
      so the title fits the 520px column on one line: 24px WebVGA =
      12px/char, 38 chars + box padding + border = 516px. The
      :global(.window.wizard) prefix keeps this ahead of global.css's
@@ -94,15 +94,15 @@
     line-height: 20px;
     margin-bottom: 10px;
   }
-  /* 80s game-box flash — a seal-of-approval sticker whose edge is a
+  /* 80s game-box flash - a seal-of-approval sticker whose edge is a
      TRUE radial sine wave: r(θ) = 66px + 4px·sin(15θ), sampled at 300
      points into a clip-path polygon. (Compositing circles cannot make
-     this shape — unions give convex petals, bites give bottle caps;
+     this shape - unions give convex petals, bites give bottle caps;
      both were tried and pulled.) Regenerate the polygon with:
        node -e "const p=[];for(let i=0;i<300;i++){const t=i/300*2*Math.PI,
        r=66+4*Math.sin(15*t);p.push((50+r*Math.cos(t)/1.52).toFixed(2)+'% '+
        (50+r*Math.sin(t)/1.52).toFixed(2)+'%')};console.log(p.join(', '))"
-     — percentages of the 152px box, so it scales with the element. */
+     - percentages of the 152px box, so it scales with the element. */
   .flair-burst {
     width: 152px;
     height: 152px;
@@ -124,7 +124,7 @@
   /* Five lines set to the circle's chords, so the text fills the disc
      (widths: 30 → 90 → 104 → 72 → 56px against a 112px disc; each
      line's width sits just inside the chord at its own height). The
-     spans are blocks (base rule below) — no <br>s, which would insert
+     spans are blocks (base rule below) - no <br>s, which would insert
      empty line boxes and blow the leading apart. line-height ==
      font-size keeps the stack tight. */
   .flair-text .fl-1 { font-size: 20px; line-height: 20px; }
@@ -179,7 +179,7 @@
   @media (max-width: 640px) {
     /* Phone: the one-line title box (24px, nowrap) is wider than the
        screen and its min-content width drags the whole dialog into
-       horizontal overflow — let it wrap at the global phone h1 size. */
+       horizontal overflow - let it wrap at the global phone h1 size. */
     :global(.window.wizard) .intro-hero h1 {
       white-space: normal;
       font-size: 22px;

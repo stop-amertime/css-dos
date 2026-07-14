@@ -10,7 +10,7 @@
   // Buttons that .click() the hidden inputs, not <label for>: label
   // forwarding to a display:none input is unreliable on mobile, and
   // Android refuses to open a chooser at all for an extension-only
-  // accept list (.com/.exe have no MIME mapping) — so no accept attr;
+  // accept list (.com/.exe have no MIME mapping) - so no accept attr;
   // the picker is open, the sub-label says what belongs in it.
   let fileInput, dirInput;
 </script>
@@ -45,7 +45,7 @@
        onchange={(e) => build.pickFolder(e.currentTarget.files)} />
 
 <style>
-  /* Custom-program upload panel — surfaced only when the Custom card is
+  /* Custom-program upload panel - surfaced only when the Custom card is
      selected. A substantial bordered panel, not a one-line link. */
   .custom-panel {
     margin-top: 16px;
@@ -71,7 +71,7 @@
     grid-template-columns: 1fr 1fr;
     gap: 16px;
   }
-  /* A real <button> (it .click()s the hidden input) — reset the native
+  /* A real <button> (it .click()s the hidden input) - reset the native
      chrome, keep the dashed drop-target look. */
   .custom-choice {
     display: flex;

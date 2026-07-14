@@ -95,7 +95,7 @@ function regen() {
   out = out.replace(STUB_RE, '\n' + SPLIT_PLAYER_PANE);
 
   // Enable split mode at boot. Swap the whole inline boot <script>.
-  const INLINE_SCRIPT_RE = /<script>\s*\n\s*if \('serviceWorker' in navigator\) \{\s*\n\s*navigator\.serviceWorker\.register\('\/sw\.js', \{ scope: '\/' \}\);\s*\n\s*\}\s*\n\s*\/\/ No split — just the builder\.\s*\n\s*<\/script>/;
+  const INLINE_SCRIPT_RE = /<script>\s*\n\s*if \('serviceWorker' in navigator\) \{\s*\n\s*navigator\.serviceWorker\.register\('\/sw\.js', \{ scope: '\/' \}\);\s*\n\s*\}\s*\n\s*\/\/ No split - just the builder\.\s*\n\s*<\/script>/;
   if (!INLINE_SCRIPT_RE.test(out)) {
     throw new Error('split-regen: anchor missing: inline boot <script> block');
   }

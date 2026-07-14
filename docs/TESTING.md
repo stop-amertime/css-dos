@@ -12,14 +12,14 @@ divergence-finding, screenshots). Performance lives in
 **`tests/bench/`** (timed profiles, web + native targets,
 ensureFresh-driven artifact rebuild).
 
-## Correctness — `tests/harness/`
+## Correctness - `tests/harness/`
 
 ```sh
-# Full smoke suite — builds every reference cart, runs ~15s, checks it's alive.
+# Full smoke suite - builds every reference cart, runs ~15s, checks it's alive.
 # Run before/after any non-trivial change.
 node tests/harness/run.mjs smoke
 
-# Conformance diff — "is calcite correctly running x86?" Several minutes for the full set.
+# Conformance diff - "is calcite correctly running x86?" Several minutes for the full set.
 node tests/harness/run.mjs conformance --max-ticks=5000
 ```
 
@@ -29,7 +29,7 @@ passed, 2 = test failures, 1 = harness couldn't start.
 ### Single-cart commands
 
 ```sh
-# Build + run + screenshot — "does this cart work?"
+# Build + run + screenshot - "does this cart work?"
 node tests/harness/pipeline.mjs full carts/test-carts/dos-smoke
 
 # Find the first tick where calcite disagrees with the JS reference 8086.
@@ -70,14 +70,14 @@ node tests/harness/pipeline.mjs shoot <cabinet>.css --tick=100000 --out=shot.png
 Full tool list and recipe walkthroughs in
 [`tests/harness/README.md`](../tests/harness/README.md).
 
-## Performance — `tests/bench/`
+## Performance - `tests/bench/`
 
 > **Performance work has one entry: [`tests/bench/README.md`](../tests/bench/README.md).
 > Read it end-to-end before running any benchmark.** It is the source
 > of truth for the canonical profile set, the `--headed` rule, the
 > baseline numbers, and the methodology rules (3-run medians, JSON
 > citations, what NOT to use). The summary below exists so you know
-> where to go — go there.
+> where to go - go there.
 
 **Four canonical profiles** (`tests/bench/profiles/`):
 
@@ -110,10 +110,10 @@ baseline numbers live in [`tests/bench/README.md`](../tests/bench/README.md).
 `tests/harness/lib/ref-machine.mjs` stands up a JS reference 8086 with
 real PIC/PIT peripherals using the BIOS/kernel/disk sidecar bytes the
 builder emits alongside every cabinet. If calcite disagrees with the
-ref, **calcite is wrong** (or the CSS is wrong — either way it's a
+ref, **calcite is wrong** (or the CSS is wrong - either way it's a
 bug we can fix). See `conformance/README.md` for the deeper story.
 
-## Budgets, not hopes — every command needs an explicit ≤2-minute cap
+## Budgets, not hopes - every command needs an explicit ≤2-minute cap
 
 Every long-running command accepts `--wall-ms`, `--max-ticks`, and
 `--stall-rate`. **Use them.** Cabinets and the JS daemon can run
@@ -123,7 +123,7 @@ which is *not* reachable inside a 2-minute budget on the slow
 `shoot` / `run` paths (~1500 ticks/s through `calcite-debugger`).
 Use `fast-shoot` (`calcite-cli`, ~375K ticks/s) for late-tick
 screenshots, or pick a tick count the chosen path can reach. If no
-path fits the budget, **build a faster one** — that's how
+path fits the budget, **build a faster one** - that's how
 `fast-shoot`, `--dump-mem-range`, and the bench harness all came to
 exist.
 
@@ -143,7 +143,7 @@ run forever if its condition never triggers. Reach for
 | Raw guest memory dump                 | `calcite-cli --dump-mem-range=ADDR:LEN:PATH`               |
 | Regression check                      | `tests/harness/pipeline.mjs cabinet-diff` / `baseline-verify` |
 | Timed boot/load measurement           | `tests/bench/driver/run.mjs <profile>`                     |
-| React to engine state at runtime      | `--watch` / `register_watch` — see [`script-primitives.md`](script-primitives.md) |
+| React to engine state at runtime      | `--watch` / `register_watch` - see [`script-primitives.md`](script-primitives.md) |
 
 The full MCP tool surface (`inspect_packed_cell`, `compare_paths`,
 `watchpoint`, async `run_until`, multi-session diffs, `trace_property`,

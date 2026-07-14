@@ -1,7 +1,7 @@
 # BIOS flavors
 
 Three BIOSes exist side-by-side. They're not competing implementations
-— each targets a different level of faithfulness to a real IBM-PC BIOS.
+- each targets a different level of faithfulness to a real IBM-PC BIOS.
 
 | Flavor | Role | Language | When to pick |
 |---|---|---|---|
@@ -11,13 +11,13 @@ Three BIOSes exist side-by-side. They're not competing implementations
 
 Short version for each:
 
-- **Gossamer** — doesn't pretend to be a PC, just implements the
+- **Gossamer** - doesn't pretend to be a PC, just implements the
   handful of INT handlers a `.COM` typically calls. Ships pre-built.
-- **Muslin** — real IVT + BDA init, real `INT 13h`/`16h`/`10h`/`1Ah`
+- **Muslin** - real IVT + BDA init, real `INT 13h`/`16h`/`10h`/`1Ah`
   implementations. Boots EDR-DOS. Hand-written asm. Stubbed INT 09h,
-  no EOI on INT 08h — games that rely on BIOS keyboard IRQ don't work
+  no EOI on INT 08h - games that rely on BIOS keyboard IRQ don't work
   under Muslin.
-- **Corduroy** — same contract as Muslin plus a Mode 13h splash and a
+- **Corduroy** - same contract as Muslin plus a Mode 13h splash and a
   real INT 09h handler (port 0x60 read, scancode → BDA ring buffer,
   EOI). Rewritten modularly in C so future work (PIT, PIC, real IRQs)
   lands without touching monolithic assembly. The current default.
@@ -31,12 +31,12 @@ Short version for each:
 
 Both DOS BIOSes boot EDR-DOS; Corduroy also boots MS-DOS 4.00.
 COMMAND.COM is always the shell (`boot.runCommand` picks what it
-runs, `""` drops to the prompt) — the builder auto-detects a single
+runs, `""` drops to the prompt) - the builder auto-detects a single
 `.com`/`.exe` in the cart and runs it directly.
 
 ## Why fabric names
 
-The progression is faithfulness, not language — Gossamer → Muslin →
+The progression is faithfulness, not language - Gossamer → Muslin →
 Corduroy maps to "shim → real BIOS → structured BIOS". Calling them
 by version numbers or language tags obscured what was actually
 different.
@@ -65,5 +65,5 @@ Or override the preset's default:
 ```
 
 The only invalid combination the builder rejects is `preset: "hack"`
-with `bios: "muslin"|"corduroy"` — the hack path boots without DOS and
+with `bios: "muslin"|"corduroy"` - the hack path boots without DOS and
 expects Gossamer's handler layout.

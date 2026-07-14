@@ -1,4 +1,4 @@
-// artifacts.mjs — declarative manifest of every built artifact in CSS-DOS.
+// artifacts.mjs - declarative manifest of every built artifact in CSS-DOS.
 //
 // The single source of truth that ensureFresh consults. Each entry says:
 // "here's an artifact, here are its inputs, here's how to rebuild it."
@@ -6,12 +6,12 @@
 // `ensureArtifact(name)` and get back a fresh, ready-to-read absolute path.
 //
 // Adding a new artifact: add an entry here. The dependency is declared,
-// the rebuild is automatic, and staleness is detected by mtime — no
+// the rebuild is automatic, and staleness is detected by mtime - no
 // more "the agent forgot to run prebake.mjs after editing bios/corduroy/."
 //
 // Naming: `<scope>:<name>` where scope is one of `cabinet`, `prebake`,
 // `wasm`, `cli`. Artifacts can declare other artifacts as inputs
-// (transitive deps) — `cabinet:doom8088` depending on `prebake:corduroy`
+// (transitive deps) - `cabinet:doom8088` depending on `prebake:corduroy`
 // is the canonical example.
 
 import { resolve, dirname } from 'node:path';
@@ -22,13 +22,13 @@ import { registerArtifact } from './ensure-fresh.mjs';
 // `../calcite/` works for the main CSS-DOS checkout but not for git
 // worktrees: from `.claude/worktrees/<name>/`, `../calcite/` resolves
 // to `.claude/worktrees/calcite/` (a sibling worktree, possibly on a
-// different branch — usually the wrong calcite). Honour `CALCITE_REPO`
+// different branch - usually the wrong calcite). Honour `CALCITE_REPO`
 // to pick the right one. Default keeps the legacy main-checkout behaviour.
 //
 // Resolved to an ABSOLUTE path: the wasm rebuild passes it as wasm-pack's
 // --out-dir, which wasm-pack interprets relative to the crate manifest (not
 // the shell cwd). A relative CALCITE_REPO would land the bundle in the wrong
-// place — the exact gotcha this guards against.
+// place - the exact gotcha this guards against.
 // resolve() leaves an absolute CALCITE_REPO untouched and anchors a relative
 // one (the default `../calcite`) to REPO_ROOT, so the result is always absolute.
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
@@ -53,7 +53,7 @@ registerArtifact({
 
 // --- Calcite native CLI (used by the CLI bench path) ---
 //
-// Build runs in the calcite directory directly — invoking cargo with
+// Build runs in the calcite directory directly - invoking cargo with
 // --manifest-path from outside triggers a different build context that
 // on Windows-bash produced link.exe argument-mangling errors. Running
 // cargo from inside the calcite repo avoids it.

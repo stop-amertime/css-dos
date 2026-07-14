@@ -3,7 +3,7 @@
 Owner rejected the synthetic-cart "exhibit from a minimal build" framing
 and the explanatory heading style. Fixed:
 - `tools/extract-tree-data.mjs` now builds `carts/sokoban` (the cabinet the
-  whole site is measured against) and parses THAT — headers show the real
+  whole site is measured against) and parses THAT - headers show the real
   region sizes (memr 43.8 MB, memw 170.7 MB, decl 32 MB, disk 12.8 MB,
   clock 43 MB). Exhibit `note` prop deleted from TreeView + all mounts.
 - Caps are now PER RUN (CAP_ROWS=512 between run-delimiter comments) so a

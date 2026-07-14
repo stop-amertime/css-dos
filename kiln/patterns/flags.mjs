@@ -34,11 +34,49 @@ const ADD_AF = (dst, src) =>
 const SUB_AF = (dst, src) =>
   `calc(round(down, max(0, sign(mod(${src}, 16) - mod(${dst}, 16) - 0.5)) + 0.5) * 16)`;
 // INC AF: (dst & 0xF) == 0xF → res low nibble wraps from F to 0
-const INC_AF = (dst) =>
+const INC_AF = () =>
   `if(style(--_nibble: 15): 16; else: 0)`;
 // DEC AF: (dst & 0xF) == 0x0 → res low nibble wraps from 0 to F
-const DEC_AF = (dst) =>
+const DEC_AF = () =>
   `if(style(--_nibble: 0): 16; else: 0)`;
+
+// Composite logic-flag @function (--orFlags/--andFlags/--xorFlags, both
+// widths): compute --res via the bitwise op then the shared PF/ZF/SF/+2
+// tail that --logicFlags{16,8} carry. The 16-bit form uses --res directly;
+// the 8-bit form masks --full down to 8 bits first.
+function compositeLogicFlags(op, width) {
+  const resLines = width === 16
+    ? `  --res: --${op}(var(--a), var(--b));`
+    : `  --full: --${op}(var(--a), var(--b));\n  --res: --lowerBytes(var(--full), 8);`;
+  const sfBit = width === 16 ? 15 : 7;
+  return `@function --${op}Flags${width}(--a <integer>, --b <integer>) returns <integer> {
+${resLines}
+  --pf: --parity(var(--res));
+  --zf: if(style(--res: 0): 64; else: 0);
+  --sf: calc(--bit(var(--res), ${sfBit}) * 128);
+  result: calc(var(--pf) + var(--zf) + var(--sf) + 2);
+}`;
+}
+
+// INC/DEC flag @function. Differs only in: SF bit (15/7), the OF sentinel
+// (the signed-overflow value the op lands on - INC hits 0x8000/0x80 going
+// up, DEC hits 0x7FFF/0x7F coming down), and INC_AF vs DEC_AF.
+function incDecFlags(dir, width) {
+  const inc = dir === 'inc';
+  const sfBit = width === 16 ? 15 : 7;
+  const ofSentinel = width === 16 ? (inc ? 32768 : 32767) : (inc ? 128 : 127);
+  const af = inc ? INC_AF() : DEC_AF();
+  return `@function --${dir}Flags${width}(--dst <integer>, --res <integer>, --oldFlags <integer>) returns <integer> {
+  --cf: --bit(var(--oldFlags), 0);
+  --pf: --parity(var(--res));
+  --_nibble: mod(var(--dst), 16);
+  --zf: if(style(--res: 0): 64; else: 0);
+  --sf: calc(--bit(var(--res), ${sfBit}) * 128);
+  --of: if(style(--res: ${ofSentinel}): 2048; else: 0);
+  --keep: --and(var(--oldFlags), 1792);
+  result: calc(var(--cf) + var(--pf) + ${af} + var(--zf) + var(--sf) + var(--of) + var(--keep) + 2);
+}`;
+}
 
 export function emitFlagFunctions() {
   return `
@@ -49,7 +87,7 @@ ${PARITY.map((p, i) => `    style(--low8: ${i}): ${p * 4};`).join('\n')}
   else: 0);
 }
 
-/* OF helpers — arithmetic only, no --xor/--and (avoids Chrome nesting depth limit).
+/* OF helpers - arithmetic only, no --xor/--and (avoids Chrome nesting depth limit).
    ADD OF: signs same on inputs, different on result → overflow.
      OF = (1 - |sign_dst - sign_src|) * |sign_dst - sign_res|
    SUB OF: signs differ on inputs, result sign differs from dst → overflow.
@@ -144,102 +182,11 @@ ${PARITY.map((p, i) => `    style(--low8: ${i}): ${p * 4};`).join('\n')}
 
 /* --- composite logic flags --- */
 
-@function --orFlags16(--a <integer>, --b <integer>) returns <integer> {
-  --res: --or(var(--a), var(--b));
-  --pf: --parity(var(--res));
-  --zf: if(style(--res: 0): 64; else: 0);
-  --sf: calc(--bit(var(--res), 15) * 128);
-  result: calc(var(--pf) + var(--zf) + var(--sf) + 2);
-}
-
-@function --orFlags8(--a <integer>, --b <integer>) returns <integer> {
-  --full: --or(var(--a), var(--b));
-  --res: --lowerBytes(var(--full), 8);
-  --pf: --parity(var(--res));
-  --zf: if(style(--res: 0): 64; else: 0);
-  --sf: calc(--bit(var(--res), 7) * 128);
-  result: calc(var(--pf) + var(--zf) + var(--sf) + 2);
-}
-
-@function --andFlags16(--a <integer>, --b <integer>) returns <integer> {
-  --res: --and(var(--a), var(--b));
-  --pf: --parity(var(--res));
-  --zf: if(style(--res: 0): 64; else: 0);
-  --sf: calc(--bit(var(--res), 15) * 128);
-  result: calc(var(--pf) + var(--zf) + var(--sf) + 2);
-}
-
-@function --andFlags8(--a <integer>, --b <integer>) returns <integer> {
-  --full: --and(var(--a), var(--b));
-  --res: --lowerBytes(var(--full), 8);
-  --pf: --parity(var(--res));
-  --zf: if(style(--res: 0): 64; else: 0);
-  --sf: calc(--bit(var(--res), 7) * 128);
-  result: calc(var(--pf) + var(--zf) + var(--sf) + 2);
-}
-
-@function --xorFlags16(--a <integer>, --b <integer>) returns <integer> {
-  --res: --xor(var(--a), var(--b));
-  --pf: --parity(var(--res));
-  --zf: if(style(--res: 0): 64; else: 0);
-  --sf: calc(--bit(var(--res), 15) * 128);
-  result: calc(var(--pf) + var(--zf) + var(--sf) + 2);
-}
-
-@function --xorFlags8(--a <integer>, --b <integer>) returns <integer> {
-  --full: --xor(var(--a), var(--b));
-  --res: --lowerBytes(var(--full), 8);
-  --pf: --parity(var(--res));
-  --zf: if(style(--res: 0): 64; else: 0);
-  --sf: calc(--bit(var(--res), 7) * 128);
-  result: calc(var(--pf) + var(--zf) + var(--sf) + 2);
-}
+${['or', 'and', 'xor'].map(op => `${compositeLogicFlags(op, 16)}\n\n${compositeLogicFlags(op, 8)}`).join('\n\n')}
 
 /* --- INC/DEC flags --- */
 
-@function --incFlags16(--dst <integer>, --res <integer>, --oldFlags <integer>) returns <integer> {
-  --cf: --bit(var(--oldFlags), 0);
-  --pf: --parity(var(--res));
-  --_nibble: mod(var(--dst), 16);
-  --zf: if(style(--res: 0): 64; else: 0);
-  --sf: calc(--bit(var(--res), 15) * 128);
-  --of: if(style(--res: 32768): 2048; else: 0);
-  --keep: --and(var(--oldFlags), 1792);
-  result: calc(var(--cf) + var(--pf) + ${INC_AF('var(--dst)')} + var(--zf) + var(--sf) + var(--of) + var(--keep) + 2);
-}
-
-@function --decFlags16(--dst <integer>, --res <integer>, --oldFlags <integer>) returns <integer> {
-  --cf: --bit(var(--oldFlags), 0);
-  --pf: --parity(var(--res));
-  --_nibble: mod(var(--dst), 16);
-  --zf: if(style(--res: 0): 64; else: 0);
-  --sf: calc(--bit(var(--res), 15) * 128);
-  --of: if(style(--res: 32767): 2048; else: 0);
-  --keep: --and(var(--oldFlags), 1792);
-  result: calc(var(--cf) + var(--pf) + ${DEC_AF('var(--dst)')} + var(--zf) + var(--sf) + var(--of) + var(--keep) + 2);
-}
-
-@function --incFlags8(--dst <integer>, --res <integer>, --oldFlags <integer>) returns <integer> {
-  --cf: --bit(var(--oldFlags), 0);
-  --pf: --parity(var(--res));
-  --_nibble: mod(var(--dst), 16);
-  --zf: if(style(--res: 0): 64; else: 0);
-  --sf: calc(--bit(var(--res), 7) * 128);
-  --of: if(style(--res: 128): 2048; else: 0);
-  --keep: --and(var(--oldFlags), 1792);
-  result: calc(var(--cf) + var(--pf) + ${INC_AF('var(--dst)')} + var(--zf) + var(--sf) + var(--of) + var(--keep) + 2);
-}
-
-@function --decFlags8(--dst <integer>, --res <integer>, --oldFlags <integer>) returns <integer> {
-  --cf: --bit(var(--oldFlags), 0);
-  --pf: --parity(var(--res));
-  --_nibble: mod(var(--dst), 16);
-  --zf: if(style(--res: 0): 64; else: 0);
-  --sf: calc(--bit(var(--res), 7) * 128);
-  --of: if(style(--res: 127): 2048; else: 0);
-  --keep: --and(var(--oldFlags), 1792);
-  result: calc(var(--cf) + var(--pf) + ${DEC_AF('var(--dst)')} + var(--zf) + var(--sf) + var(--of) + var(--keep) + 2);
-}
+${[16, 8].flatMap(width => ['inc', 'dec'].map(dir => incDecFlags(dir, width))).join('\n\n')}
 
 /* --- ADC flags --- */
 

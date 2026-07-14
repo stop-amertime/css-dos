@@ -3,19 +3,7 @@
 // Flag bit positions for condition checks
 // CF=bit0, PF=bit2, AF=bit4, ZF=bit6, SF=bit7, OF=bit11
 
-// Stack-write address: SS*16 + (SP - offset) wrapped to 16 bits.
-// SP is unsigned 16-bit on x86; without the wrap, SP=0 (PUSH) or
-// small values give a negative offset and the address slips into the
-// previous segment. See kiln/patterns/stack.mjs for the full rationale.
-function stackAddrMinus(offset) {
-  return `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - ${offset} + 65536), 16))`;
-}
-function spDecBy(n) {
-  return `--lowerBytes(calc(var(--__1SP) - ${n} + 65536), 16)`;
-}
-function spIncBy(n) {
-  return `--lowerBytes(calc(var(--__1SP) + ${n}), 16)`;
-}
+import { stackWriteAddr, spDecBy, spIncBy, stackReadWord } from './stack-addr.mjs';
 
 /**
  * Conditional jump condition expressions.
@@ -23,43 +11,43 @@ function spIncBy(n) {
  * should be taken, 0 otherwise. Uses --bit() on the flags register.
  */
 const JCC_CONDITIONS = [
-  // 0x70: JO  — OF=1
+  // 0x70: JO  - OF=1
   { opcode: 0x70, name: 'JO',   taken: `--bit(var(--__1flags), 11)` },
-  // 0x71: JNO — OF=0
+  // 0x71: JNO - OF=0
   { opcode: 0x71, name: 'JNO',  taken: `calc(1 - --bit(var(--__1flags), 11))` },
-  // 0x72: JB/JC — CF=1
+  // 0x72: JB/JC - CF=1
   { opcode: 0x72, name: 'JB',   taken: `--bit(var(--__1flags), 0)` },
-  // 0x73: JNB/JNC — CF=0
+  // 0x73: JNB/JNC - CF=0
   { opcode: 0x73, name: 'JNB',  taken: `calc(1 - --bit(var(--__1flags), 0))` },
-  // 0x74: JZ/JE — ZF=1
+  // 0x74: JZ/JE - ZF=1
   { opcode: 0x74, name: 'JZ',   taken: `--bit(var(--__1flags), 6)` },
-  // 0x75: JNZ/JNE — ZF=0
+  // 0x75: JNZ/JNE - ZF=0
   { opcode: 0x75, name: 'JNZ',  taken: `calc(1 - --bit(var(--__1flags), 6))` },
-  // 0x76: JBE/JNA — CF=1 or ZF=1
+  // 0x76: JBE/JNA - CF=1 or ZF=1
   { opcode: 0x76, name: 'JBE',  taken: `min(1, calc(--bit(var(--__1flags), 0) + --bit(var(--__1flags), 6)))` },
-  // 0x77: JA/JNBE — CF=0 and ZF=0
+  // 0x77: JA/JNBE - CF=0 and ZF=0
   { opcode: 0x77, name: 'JA',   taken: `calc((1 - --bit(var(--__1flags), 0)) * (1 - --bit(var(--__1flags), 6)))` },
-  // 0x78: JS — SF=1
+  // 0x78: JS - SF=1
   { opcode: 0x78, name: 'JS',   taken: `--bit(var(--__1flags), 7)` },
-  // 0x79: JNS — SF=0
+  // 0x79: JNS - SF=0
   { opcode: 0x79, name: 'JNS',  taken: `calc(1 - --bit(var(--__1flags), 7))` },
-  // 0x7A: JP/JPE — PF=1
+  // 0x7A: JP/JPE - PF=1
   { opcode: 0x7A, name: 'JP',   taken: `--bit(var(--__1flags), 2)` },
-  // 0x7B: JNP/JPO — PF=0
+  // 0x7B: JNP/JPO - PF=0
   { opcode: 0x7B, name: 'JNP',  taken: `calc(1 - --bit(var(--__1flags), 2))` },
-  // 0x7C: JL/JNGE — SF!=OF
+  // 0x7C: JL/JNGE - SF!=OF
   { opcode: 0x7C, name: 'JL',   taken: `calc(--bit(var(--__1flags), 7) + --bit(var(--__1flags), 11) - 2 * --bit(var(--__1flags), 7) * --bit(var(--__1flags), 11))` },
-  // 0x7D: JGE/JNL — SF=OF
+  // 0x7D: JGE/JNL - SF=OF
   { opcode: 0x7D, name: 'JGE',  taken: `calc(1 - --bit(var(--__1flags), 7) - --bit(var(--__1flags), 11) + 2 * --bit(var(--__1flags), 7) * --bit(var(--__1flags), 11))` },
-  // 0x7E: JLE/JNG — ZF=1 or SF!=OF
+  // 0x7E: JLE/JNG - ZF=1 or SF!=OF
   { opcode: 0x7E, name: 'JLE',  taken: `min(1, calc(--bit(var(--__1flags), 6) + --bit(var(--__1flags), 7) + --bit(var(--__1flags), 11) - 2 * --bit(var(--__1flags), 7) * --bit(var(--__1flags), 11)))` },
-  // 0x7F: JG/JNLE — ZF=0 and SF=OF
+  // 0x7F: JG/JNLE - ZF=0 and SF=OF
   { opcode: 0x7F, name: 'JG',   taken: `calc((1 - --bit(var(--__1flags), 6)) * (1 - --bit(var(--__1flags), 7) - --bit(var(--__1flags), 11) + 2 * --bit(var(--__1flags), 7) * --bit(var(--__1flags), 11)))` },
 ];
 
 /**
  * All conditional jumps (Jcc): 0x70-0x7F
- * Format: opcode, rel8 — 2-byte instruction
+ * Format: opcode, rel8 - 2-byte instruction
  * IP = IP + 2 + (condition ? sign_extend(rel8) : 0)
  */
 export function emitJcc(dispatch) {
@@ -104,16 +92,11 @@ export function emitCALL_near(dispatch) {
   dispatch.addEntry('SP', 0xE8,
     spDecBy(2),
     `CALL near (SP-=2)`);
-  // Push return address to stack: write at SS:SP (after decrement)
-  // low byte at SS*16 + SP-2, high byte at SS*16 + SP-1
-  dispatch.addMemWrite(0xE8,
-    stackAddrMinus(2),
-    `--lowerBytes(${retAddr}, 8)`,
-    `CALL near push ret lo`);
-  dispatch.addMemWrite(0xE8,
-    stackAddrMinus(1),
-    `--rightShift(${retAddr}, 8)`,
-    `CALL near push ret hi`);
+  // Push return address to stack (word: lo at SS*16+SP-2, hi at SS*16+SP-1)
+  dispatch.addMemWriteWord(0xE8,
+    stackWriteAddr(2),
+    retAddr,
+    `CALL near push ret`);
   // Jump
   dispatch.addEntry('IP', 0xE8,
     `--lowerBytes(calc(var(--__1IP) + 3 + --u2s2(calc(var(--q1) + var(--q2) * 256))), 16)`,
@@ -126,7 +109,7 @@ export function emitCALL_near(dispatch) {
 export function emitRET(dispatch) {
   // Read return address from SS:SP
   dispatch.addEntry('IP', 0xC3,
-    `--read2(calc(var(--__1SS) * 16 + var(--__1SP)))`,
+    stackReadWord(),
     `RET near`);
   dispatch.addEntry('SP', 0xC3,
     spIncBy(2),
@@ -138,7 +121,7 @@ export function emitRET(dispatch) {
  */
 export function emitRET_imm(dispatch) {
   dispatch.addEntry('IP', 0xC2,
-    `--read2(calc(var(--__1SS) * 16 + var(--__1SP)))`,
+    stackReadWord(),
     `RET imm16`);
   dispatch.addEntry('SP', 0xC2,
     `--lowerBytes(calc(var(--__1SP) + 2 + var(--q1) + var(--q2) * 256), 16)`,
@@ -167,7 +150,7 @@ export function emitINT(dispatch) {
     `--read2(calc(var(--q1) * 4 + 2))`,
     `INT load CS from IVT`);
 
-  // FLAGS: clear IF (bit 9) and TF (bit 8) — keep other bits
+  // FLAGS: clear IF (bit 9) and TF (bit 8) - keep other bits
   // new flags = old flags & ~0x0300 = old flags & 0xFCFF
   // But this is the pushed value; the new flags register value has IF+TF cleared
   dispatch.addEntry('flags', 0xCD,
@@ -182,37 +165,25 @@ export function emitINT(dispatch) {
   //   [SP+0, SP+1] = return IP   (pushed last)
   //   [SP+2, SP+3] = CS          (pushed second)
   //   [SP+4, SP+5] = FLAGS       (pushed first)
-  // All offsets are wrapped to 16-bit unsigned via stackAddrMinus().
+  // All offsets are wrapped to 16-bit unsigned via stackWriteAddr().
 
-  // Push FLAGS (at SP-2, SP-1) — pushed first, goes to highest address
-  dispatch.addMemWrite(0xCD,
-    stackAddrMinus(2),
-    `--lowerBytes(var(--__1flags), 8)`,
-    `INT push FLAGS lo`);
-  dispatch.addMemWrite(0xCD,
-    stackAddrMinus(1),
-    `--rightShift(var(--__1flags), 8)`,
-    `INT push FLAGS hi`);
+  // Push FLAGS (word at SP-2, SP-1) - pushed first, goes to highest address
+  dispatch.addMemWriteWord(0xCD,
+    stackWriteAddr(2),
+    `var(--__1flags)`,
+    `INT push FLAGS`);
 
-  // Push CS (at SP-4, SP-3)
-  dispatch.addMemWrite(0xCD,
-    stackAddrMinus(4),
-    `--lowerBytes(var(--__1CS), 8)`,
-    `INT push CS lo`);
-  dispatch.addMemWrite(0xCD,
-    stackAddrMinus(3),
-    `--rightShift(var(--__1CS), 8)`,
-    `INT push CS hi`);
+  // Push CS (word at SP-4, SP-3)
+  dispatch.addMemWriteWord(0xCD,
+    stackWriteAddr(4),
+    `var(--__1CS)`,
+    `INT push CS`);
 
-  // Push return IP (at SP-6, SP-5) — pushed last, goes to lowest address
-  dispatch.addMemWrite(0xCD,
-    stackAddrMinus(6),
-    `--lowerBytes(${retIP}, 8)`,
-    `INT push IP lo`);
-  dispatch.addMemWrite(0xCD,
-    stackAddrMinus(5),
-    `--rightShift(${retIP}, 8)`,
-    `INT push IP hi`);
+  // Push return IP (word at SP-6, SP-5) - pushed last, goes to lowest address
+  dispatch.addMemWriteWord(0xCD,
+    stackWriteAddr(6),
+    retIP,
+    `INT push IP`);
 }
 
 /**
@@ -248,7 +219,6 @@ export function emitLOOP(dispatch) {
   const newCX = `--lowerBytes(calc(var(--__1CX) - 1 + 65536), 16)`;
   dispatch.addEntry('CX', 0xE2, newCX, `LOOP (CX-=1)`);
   // IP = IP + 2 + (CX-1 != 0 ? rel8 : 0)
-  // We need to check if the NEW CX is zero
   dispatch.addEntry('IP', 0xE2,
     `if(style(--_loopCX: 0): calc(var(--__1IP) + 2); else: --lowerBytes(calc(var(--__1IP) + 2 + --u2s1(var(--q1))), 16))`,
     `LOOP`);
@@ -302,24 +272,16 @@ export function emitCALL_far(dispatch) {
 
   const retIP = `calc(var(--__1IP) + 5)`;
 
-  // Push old CS at SP-2 (pushed first, higher address)
-  dispatch.addMemWrite(0x9A,
-    stackAddrMinus(2),
-    `--lowerBytes(var(--__1CS), 8)`,
-    `CALL far push CS lo`);
-  dispatch.addMemWrite(0x9A,
-    stackAddrMinus(1),
-    `--rightShift(var(--__1CS), 8)`,
-    `CALL far push CS hi`);
-  // Push return IP at SP-4 (pushed second, lower address)
-  dispatch.addMemWrite(0x9A,
-    stackAddrMinus(4),
-    `--lowerBytes(${retIP}, 8)`,
-    `CALL far push IP lo`);
-  dispatch.addMemWrite(0x9A,
-    stackAddrMinus(3),
-    `--rightShift(${retIP}, 8)`,
-    `CALL far push IP hi`);
+  // Push old CS (word at SP-2, pushed first, higher address)
+  dispatch.addMemWriteWord(0x9A,
+    stackWriteAddr(2),
+    `var(--__1CS)`,
+    `CALL far push CS`);
+  // Push return IP (word at SP-4, pushed second, lower address)
+  dispatch.addMemWriteWord(0x9A,
+    stackWriteAddr(4),
+    retIP,
+    `CALL far push IP`);
 }
 
 /**

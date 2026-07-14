@@ -11,7 +11,7 @@
   //
   // `open` binds the current state; `class` lets a caller theme the frame
   // (e.g. a coloured border) without re-implementing the glyph. `id` is
-  // forwarded onto the underlying <details> so a fold is addressable —
+  // forwarded onto the underlying <details> so a fold is addressable -
   // see AboutFaqs.svelte's deep-link handling for the pattern.
   let { summary, children, open = $bindable(false), class: klass = '', id = undefined } = $props();
 </script>
@@ -39,7 +39,7 @@
     user-select: none;
     padding: 10px 14px;
     /* A soft blue-grey so the fold reads as its own control instead of
-       blending into the dialog-gray page (glyph is blue — same family). */
+       blending into the dialog-gray page (glyph is blue - same family). */
     background: #ccd3e8;
     color: var(--edit-black);
     font-size: 16px;
@@ -52,7 +52,7 @@
   .foldable > summary::-webkit-details-marker { display: none; }
   .foldable > summary:hover { background: #dbe1f2; }
 
-  /* The toggle glyph — blue, so it reads as the interactive affordance. */
+  /* The toggle glyph - blue, so it reads as the interactive affordance. */
   .foldable .fold-glyph { color: var(--edit-blue); flex: none; }
   .foldable .fold-glyph::before { content: '[+]'; }
   .foldable[open] .fold-glyph::before { content: '[-]'; }
@@ -63,7 +63,7 @@
      already separates them (bands, not hairlines). */
 
   /* Background-primer variant (`class="fold-bg"`): holds prerequisite
-     knowledge some readers won't need — warm tint + [?] glyph so it reads
+     knowledge some readers won't need - warm tint + [?] glyph so it reads
      as "open if new to this", distinct from the deep-dive folds. Delivered
      via the `class` prop onto this component's own root element. */
   .foldable.fold-bg > summary { background: #e6dcc3; }

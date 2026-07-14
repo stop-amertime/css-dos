@@ -1,4 +1,4 @@
-// ensure-fresh.test.mjs — basic checks on the staleness primitive.
+// ensure-fresh.test.mjs - basic checks on the staleness primitive.
 //
 // Run with:  node tests/bench/lib/ensure-fresh.test.mjs
 

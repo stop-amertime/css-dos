@@ -1,4 +1,4 @@
-; BCD instruction test — avoids logic-op AF dependencies
+; BCD instruction test - avoids logic-op AF dependencies
 ; Uses ADD/SUB (which set AF correctly) before BCD adjustments
 org 0x100
 

@@ -2,7 +2,7 @@
 
 The **hack-path BIOS**: the minimum possible shim that lets a single DOS
 `.COM` program think it's running on a PC. No DOS, no full IVT, no
-disk, no faithful IBM-PC contract — just enough INT handlers to make a
+disk, no faithful IBM-PC contract - just enough INT handlers to make a
 toy demo or test program run.
 
 ## When to pick it
@@ -19,11 +19,11 @@ See `docs/hack-path.md` for the end-to-end story.
 
 Stubs for the handful of INTs a `.COM` typically calls:
 
-- `INT 10h` — video services (a subset).
-- `INT 16h` — keyboard (polling via a fixed memory location).
-- `INT 1Ah` — timer.
-- `INT 20h` — program terminate.
-- `INT 21h` — DOS services (the essentials: put-char, get-char, exit).
+- `INT 10h` - video services (a subset).
+- `INT 16h` - keyboard (polling via a fixed memory location).
+- `INT 1Ah` - timer.
+- `INT 20h` - program terminate.
+- `INT 21h` - DOS services (the essentials: put-char, get-char, exit).
 
 ## What it does **not** implement
 

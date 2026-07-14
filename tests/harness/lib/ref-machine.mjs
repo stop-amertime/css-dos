@@ -1,13 +1,13 @@
-// ref-machine.mjs — set up the JS reference 8086 emulator (`tools/js8086.js`)
+// ref-machine.mjs - set up the JS reference 8086 emulator (`tools/js8086.js`)
 // to run the *same* bytes the calcite cabinet runs.
 //
 // The cabinet builder writes sidecar .bin files alongside each .css:
-//   <cabinet>.bios.bin     — the BIOS bytes that ended up in the cabinet
+//   <cabinet>.bios.bin     - the BIOS bytes that ended up in the cabinet
 //                            (post patchBiosMemSize / patchBiosStackSeg)
-//   <cabinet>.disk.bin     — FAT12 floppy (DOS preset only)
-//   <cabinet>.kernel.bin   — kernel.sys bytes (DOS preset only)
-//   <cabinet>.program.bin  — .COM bytes (hack preset only)
-//   <cabinet>.meta.json    — the harness header payload
+//   <cabinet>.disk.bin     - FAT12 floppy (DOS preset only)
+//   <cabinet>.kernel.bin   - kernel.sys bytes (DOS preset only)
+//   <cabinet>.program.bin  - .COM bytes (hack preset only)
+//   <cabinet>.meta.json    - the harness header payload
 //
 // This module loads those sidecars, lays out a 1 MB memory image matching
 // the cabinet's layout, and returns a stepping interface.
@@ -28,7 +28,7 @@ let Intel8086;
 function loadIntel8086() {
   if (Intel8086) return Intel8086;
   const src = readFileSync(resolve(CSS_DOS_ROOT, 'tools', 'js8086.js'), 'utf-8');
-  // js8086 uses "let CPU_186 = 0" — flipping it to 1 enables 80186 ops
+  // js8086 uses "let CPU_186 = 0" - flipping it to 1 enables 80186 ops
   // (BOUND, ENTER/LEAVE, PUSH imm, IMUL imm, etc.) which most DOS
   // programs in this project rely on.
   const evalSource = src.replace("'use strict';", '').replace('let CPU_186 = 0;', 'var CPU_186 = 1;');
@@ -50,7 +50,7 @@ const require_ = createRequire(import.meta.url);
 let peripheralsSync;
 function loadPeripherals() {
   if (peripheralsSync) return peripheralsSync;
-  // peripherals.mjs is ESM — can't use require directly. Inline-eval
+  // peripherals.mjs is ESM - can't use require directly. Inline-eval
   // the source in a fresh function so ES export/import become regular
   // module.exports plumbing. Simpler alternative is to require callers
   // to pre-await an initRefMachine() helper; we go sync by reading the
@@ -70,7 +70,7 @@ export function loadCabinetSidecars(cssPath) {
   const base = cssPath.replace(/\.css$/, '');
   const metaPath = `${base}.meta.json`;
   if (!existsSync(metaPath)) {
-    throw new Error(`no sidecar meta at ${metaPath} — this cabinet was built before the harness-header upgrade; rebuild with \`node builder/build.mjs ${cssPath.replace(/\.css$/, '')}\``);
+    throw new Error(`no sidecar meta at ${metaPath} - this cabinet was built before the harness-header upgrade; rebuild with \`node builder/build.mjs ${cssPath.replace(/\.css$/, '')}\``);
   }
   const meta = JSON.parse(readFileSync(metaPath, 'utf8'));
   const out = { meta, cssPath };
@@ -86,18 +86,18 @@ export function loadCabinetSidecars(cssPath) {
 // mirrors what kiln emits into the cabinet:
 //   0x00000-0x00400   IVT (256 entries × 4 bytes = 0x400)
 //   0x00400-0x00600   BDA scratch (most fields populated by corduroy's
-//                     install_bda during BIOS boot — we don't pre-fill)
+//                     install_bda during BIOS boot - we don't pre-fill)
 //   0x00600+          kernel (DOS) or empty (hack)
 //   0xD0000+          disk image (DOS rom-disk; hack has none)
 //   0xF0000+          BIOS
-//   0xFFFF0           reset vector (BIOS) — supplied by BIOS bytes
+//   0xFFFF0           reset vector (BIOS) - supplied by BIOS bytes
 //
 // For hack preset, the .COM goes to 0x100 (CS:IP = 0:0x100) and we don't
 // load the kernel or disk.
 //
 // We set IVT entries to point into the BIOS only for carts where the
 // cabinet itself seeds IVT via embeddedData (hack preset). For DOS carts,
-// the BIOS installs its own IVT during boot — leave it zero, BIOS will
+// the BIOS installs its own IVT during boot - leave it zero, BIOS will
 // write to it at runtime.
 export function buildMemoryImage(sidecars) {
   const mem = new Uint8Array(1024 * 1024);
@@ -108,7 +108,7 @@ export function buildMemoryImage(sidecars) {
 
   if (meta.preset === 'hack') {
     // Hack cart: .COM at 0x100. IVT handled by kiln-embedded data that the
-    // cabinet materialises — we need to replicate it. Gossamer publishes
+    // cabinet materialises - we need to replicate it. Gossamer publishes
     // its handler offsets behind the 'IVTG' anchor in the BIOS image
     // (INT 10h/16h/1Ah/20h/21h); read them the same way kiln does so the
     // ref can never disagree with the cabinet. Other vectors point to
@@ -132,7 +132,7 @@ export function buildMemoryImage(sidecars) {
     mem.set(program, 0x100);
   } else {
     // DOS cart: load kernel at 0x600. The disk DOES NOT live in linear
-    // RAM — calcite implements the rom-disk window at 0xD0000..0xD01FF
+    // RAM - calcite implements the rom-disk window at 0xD0000..0xD01FF
     // as a virtual sliding sector. Reads from that window go through
     // `--readDiskByte(lba*512 + offset)` where lba is the word at 0x4F0,
     // written by corduroy's INT 13h handler. js8086 has no such hook
@@ -158,13 +158,13 @@ const DISK_LBA_LATCH   = 0x4F0; // word: linear address holding current LBA
 //
 // `peripherals` option: 'real' wires the full PIC + PIT from tools/peripherals.mjs
 // (matches calcite's behaviour during DOS boot), 'stub' gives dummies that
-// never fire. Default: 'real' — you almost always want the timer ticking.
+// never fire. Default: 'real' - you almost always want the timer ticking.
 export function createRefMachine(sidecars, { initialCS, initialIP, peripherals = 'real' } = {}) {
   const Intel8086 = loadIntel8086();
   const mem = buildMemoryImage(sidecars);
 
   // Writes during a single step accumulate here, then the caller can
-  // drain them between steps. Each entry: { addr, value }. Opt-in — only
+  // drain them between steps. Each entry: { addr, value }. Opt-in - only
   // populated when writeLog is non-null.
   let writeLog = null;
 
@@ -175,7 +175,7 @@ export function createRefMachine(sidecars, { initialCS, initialIP, peripherals =
   // memmapping the whole disk.
   //
   // Writable carts (`disk.writable` in the manifest): window WRITES land in
-  // a session copy of the disk image at the same lba*512+offset mapping —
+  // a session copy of the disk image at the same lba*512+offset mapping -
   // the JS twin of the cabinet's shadow-disk cells. Non-writable carts drop
   // window writes, matching CSS (no cells behind the window → write lost).
   const diskWritable = sidecars.meta?.disk?.writable === true;
@@ -204,7 +204,7 @@ export function createRefMachine(sidecars, { initialCS, initialIP, peripherals =
     if (writeLog) writeLog.push({ addr, value: val & 0xFF });
   };
 
-  // VGA DAC shadow — js8086 dispatches OUT to peripherals via isConnected,
+  // VGA DAC shadow - js8086 dispatches OUT to peripherals via isConnected,
   // but no peripheral handles 0x3C7/0x3C8/0x3C9 by default. Without this,
   // every DAC byte the program writes (and Doom reprograms the entire 256-
   // entry palette during title fade-in) goes nowhere, and screen renders
@@ -269,7 +269,7 @@ export function createRefMachine(sidecars, { initialCS, initialIP, peripherals =
   // Reset-vector convention on real 8086: CS=FFFF, IP=0000, so execution
   // starts at 0xFFFF0, where a 16-byte "far jump" stub lives in the BIOS.
   // If caller provided initialCS/IP (e.g. from the harness header's
-  // bios.entrySegment/Offset), honour that instead — matches what the
+  // bios.entrySegment/Offset), honour that instead - matches what the
   // cabinet's initialCS/IP setters pass into calcite.
   if (initialCS != null && initialIP != null) {
     cpu.setRegs({ cs: initialCS & 0xFFFF, ip: initialIP & 0xFFFF });
@@ -315,7 +315,7 @@ export function createRefMachine(sidecars, { initialCS, initialIP, peripherals =
 }
 
 // Mirror the calcite debugger's /state register keys so diffs line up
-// without translation. js8086 stores 16-bit regs as high/low halves —
+// without translation. js8086 stores 16-bit regs as high/low halves -
 // we combine them back to the uppercase names calcite uses.
 function snapshotRegs(cpu) {
   const r = cpu.getRegs();

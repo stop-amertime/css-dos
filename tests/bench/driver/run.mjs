@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// tests/bench/driver/run.mjs — drive a bench profile.
+// tests/bench/driver/run.mjs - drive a bench profile.
 //
 // Two transports:
 //
@@ -129,7 +129,7 @@ async function runWeb(profileName, port, headed) {
     // attaching to the user's running profile (which opens a tab in
     // their existing browser, invisible to this bench process).
     // Playwright's bundled chromium fails on this machine ("side-by-
-    // side configuration is incorrect" — missing VC++ redistributable),
+    // side configuration is incorrect" - missing VC++ redistributable),
     // so system Chrome is the only option.
     const tmpProfile = `${process.env.TEMP || '/tmp'}/cssdos-bench-profile-${Date.now()}`;
     ctx = await chromium.launchPersistentContext(tmpProfile, {
@@ -163,7 +163,7 @@ async function runWeb(profileName, port, headed) {
   page.on('pageerror', (err) => {
     process.stderr.write(`[pageerror] ${err.message}\n`);
   });
-  // Trace 404s with the offending URL — the default page-error log
+  // Trace 404s with the offending URL - the default page-error log
   // omits the URL so debugging "404 for who?" is impossible without it.
   page.on('requestfailed', (req) => {
     process.stderr.write(`[request-failed] ${req.method()} ${req.url()} (${req.failure()?.errorText})\n`);
@@ -217,7 +217,7 @@ async function runCli(profileName, manifest) {
   }
 
   // Resolve the cabinet path. The profile names a `cabinet:NAME` artifact;
-  // we already ensureFresh'd it earlier — so just look up the spec.
+  // we already ensureFresh'd it earlier - so just look up the spec.
   const { getArtifact } = await import('../lib/ensure-fresh.mjs');
   const cabSpec = getArtifact(manifest.cabinet);
   const cabPath = resolve(REPO_ROOT, cabSpec.output);
@@ -279,5 +279,5 @@ async function loadChromium() {
     const mod = await import(new URL('index.js', `file:///${dir.replace(/\\/g, '/')}/`).href);
     return mod.default ?? mod;
   }
-  throw new Error('playwright not found — install it or set PLAYWRIGHT_DIR');
+  throw new Error('playwright not found - install it or set PLAYWRIGHT_DIR');
 }

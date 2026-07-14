@@ -1,4 +1,4 @@
-## 2026-05-07 — `rep_fast_forward` genericity mission, phase 3a landed
+## 2026-05-07 - `rep_fast_forward` genericity mission, phase 3a landed
 
 Cross-link: see calcite [`docs/log.md`](../../../calcite/docs/log.md)
 2026-05-07 entry (the newest one) for full engine-side details.
@@ -29,7 +29,7 @@ Engine-side changes (calcite):
 
 Validator finding on doom8088: 8/8 string opcodes recognised. STOS
 classifies as `Fill` (correct). MOVS classifies as `Fill` rather than
-`Copy` — DRIFT message — because the cabinet uses an intermediate
+`Copy` - DRIFT message - because the cabinet uses an intermediate
 slot (`--_strSrcByte`) between SI's mirror and the write value, so
 pure-shape classification can't see the pointer dependency. CMPS/SCAS
 classify as `ReadOnly` with `flag_conditioned=true` (correct).
@@ -39,6 +39,6 @@ flag both off and on, tick 34.65M (parity with pre-mission baseline).
 
 What's next (phase 3b): build the descriptor-driven applier behind
 the same `CALCITE_REP_GENERIC=1` flag, replace the hardcoded path,
-hit ±1% perf gate. Open question: how to handle the MOVS DRIFT —
+hit ±1% perf gate. Open question: how to handle the MOVS DRIFT -
 either trace through the intermediate slot at compile time, or fall
 back to PerIter for shapes the structural classifier can't simplify.

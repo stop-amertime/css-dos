@@ -1,4 +1,4 @@
-## 2026-05-06 — `rep_fast_forward` genericity mission, phase 1 landed
+## 2026-05-06 - `rep_fast_forward` genericity mission, phase 1 landed
 
 Cross-link: see calcite [`docs/log.md`](../../../calcite/docs/log.md)
 2026-05-06 entry for the engine-side details. Summary: the

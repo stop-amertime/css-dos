@@ -10,7 +10,7 @@
    ───────────────────────────────────────────────────────────────────────── */
 
 /* "Web437 IBM VGA 8x16" from VileR's Oldschool PC Font Pack v2.2,
-   CC BY-SA 4.0 — https://int10h.org/oldschool-pc-fonts/ — self-hosted;
+   CC BY-SA 4.0 - https://int10h.org/oldschool-pc-fonts/ - self-hosted;
    license + attribution in /player/fonts/. The font is metric-locked to
    an 8x16 grid; the page uses 16-px line-height to keep glyphs crisp.
    font-display:block prevents the FOUT-into-fallback that would
@@ -23,7 +23,7 @@
   font-display: block;
 }
 
-/* "More Perfect DOS VGA" — LÆMEUR's readability remaster of Zeh
+/* "More Perfect DOS VGA" - LÆMEUR's readability remaster of Zeh
    Fernando's Perfect DOS VGA 437 (free for all use; IBM designed the
    glyphs). The same VGA look with cleaner metrics for screen reading.
    Used for prose only; headings, chrome, buttons and code stay on the
@@ -48,7 +48,7 @@
   --edit-yellow:  #ffff55;
   --edit-cyan:    #55ffff;
   --edit-green:   #00aa00;   /* success (EGA green) */
-  --edit-blue-bright: #5555ff;  /* EGA bright blue — desktop-weave partner */
+  --edit-blue-bright: #5555ff;  /* EGA bright blue - desktop-weave partner */
   --edit-gray-dark:   #aaaaaa;  /* true EGA gray (the dialog fill's parent) */
 
   /* ── Dither tiles (the ░/▒ halftones of a 16-colour TUI) ──
@@ -57,7 +57,7 @@
      the scrollbar track; the desktop weave below mixes the two blues. */
   --dither-dark: conic-gradient(var(--edit-black) 90deg, #0000 90deg 180deg,
                  var(--edit-black) 180deg 270deg, #0000 270deg);
-  /* ▒ in greys — chrome bands (menu bar, status line, wizard header/
+  /* ▒ in greys - chrome bands (menu bar, status line, wizard header/
      footer) separate from the flat dialog grey by texture, no hairlines.
      #999: a notch darker than EGA gray so the texture carries. */
   --dither-gray: conic-gradient(#999 90deg, #0000 90deg 180deg,
@@ -73,13 +73,13 @@
 html, body { min-height: 100%; }
 
 body {
-  /* Site-wide default is the 8x16 bitmap face (Web437 IBM VGA) — the
+  /* Site-wide default is the 8x16 bitmap face (Web437 IBM VGA) - the
      9-dot remaster ('MorePerfectVGA') read too wide for long prose.
      It stays as a fallback. */
   font-family: 'WebVGA', 'MorePerfectVGA', 'Perfect DOS VGA 437', 'Fixedsys', 'Terminal', monospace;
   font-size: 16px;
   line-height: 16px;
-  /* The desktop: navy woven with a sparse ░ of EGA bright blue — the
+  /* The desktop: navy woven with a sparse ░ of EGA bright blue - the
      Turbo-Vision-era dithered backdrop, one bright pixel-pair per 4px
      tile so it reads as texture, not noise. Flat navy underneath. */
   background: conic-gradient(var(--edit-blue-bright) 90deg, #0000 90deg) 0 0 / 4px 4px,
@@ -101,7 +101,7 @@ body {
   left: 0;
   right: 0;
   height: 16px;
-  /* Flat dialog grey — the fixed bars sit on the blue desktop, so they
+  /* Flat dialog grey - the fixed bars sit on the blue desktop, so they
      don't need a texture to separate them (owner un-dithered them,
      2026-07-10). */
   background: var(--edit-gray);
@@ -149,7 +149,7 @@ body {
 .status-line .skey { color: var(--edit-black); }
 .status-line .skey b { font-weight: normal; color: var(--edit-red); }
 
-/* ── Dialog "window" — flat gray panel with a 1-char black drop shadow ── */
+/* ── Dialog "window" - flat gray panel with a 1-char black drop shadow ── */
 /*
    EDIT.COM dialogs sit on the blue desktop with a hard black shadow
    offset by one character cell (8x16 px). Border is drawn by the font
@@ -159,10 +159,10 @@ body {
 .window {
   background: var(--edit-gray);
   color: var(--edit-black);
-  /* Drop shadow — offset is ~1/4 of the dialog edge thickness so the
+  /* Drop shadow - offset is ~1/4 of the dialog edge thickness so the
      shadow visibly tucks under the panel rather than floating away.
      No outline: the grey-on-blue edge + shadow carry the window shape
-     (the 1px border read too hi-res — owner call, 2026-07-09). */
+     (the 1px border read too hi-res - owner call, 2026-07-09). */
   box-shadow: 6px 6px 0 var(--edit-black);
   width: 720px;
   max-width: calc(100% - 32px);
@@ -186,7 +186,7 @@ body {
   padding: 16px 16px 8px;
 }
 
-/* ── Group box — a simple inset frame with a label notch on top ── */
+/* ── Group box - a simple inset frame with a label notch on top ── */
 .group {
   border: 1px solid var(--edit-black);
   padding: 16px 12px 8px;
@@ -219,7 +219,7 @@ body {
   border: none;
   /* Bigger than 1 cell tall so the dialog buttons read as "buttons"
      and the drop shadow has somewhere to overlap. EDIT.COM's OK/Cancel
-     are roughly 1.5x taller than a cell — same here. */
+     are roughly 1.5x taller than a cell - same here. */
   padding: 4px 16px;
   min-height: 24px;
   line-height: 16px;
@@ -229,7 +229,7 @@ body {
   text-decoration: none;
   text-align: center;
   user-select: none;
-  /* Drop shadow — small offset so the shadow visibly tucks under the
+  /* Drop shadow - small offset so the shadow visibly tucks under the
      button (overlapping by ~2/3 of the offset). 16px tall + 12px shadow
      = the shadow ends 4px past the button edge. */
   box-shadow: 4px 4px 0 var(--edit-black);
@@ -257,7 +257,7 @@ body {
   outline: none;
 }
 
-/* The accelerator letter — colored red, EDIT-style. */
+/* The accelerator letter - colored red, EDIT-style. */
 .btn .hot { color: var(--edit-red); }
 
 /* ── Disabled-control tooltip ──
@@ -265,7 +265,7 @@ body {
    hover/tap shows a small yellow DOS bubble explaining why the control
    is off. Browsers swallow pointer events on disabled form controls,
    so the child gets pointer-events:none and the WRAPPER takes the
-   hover/tap. Render data-tip as null when the control is enabled —
+   hover/tap. Render data-tip as null when the control is enabled -
    no attribute, no tooltip, wrapper inert. */
 .tip-anchor { position: relative; display: inline-block; }
 .tip-anchor[data-tip] { cursor: not-allowed; }
@@ -290,11 +290,11 @@ body {
 .tip-anchor[data-tip]:hover::after,
 .tip-anchor[data-tip]:active::after { display: block; }
 
-/* File-input label styled as a button — the actual input is hidden. */
+/* File-input label styled as a button - the actual input is hidden. */
 .file-label { cursor: pointer; }
 input[type="file"] { display: none; }
 
-/* ── Inputs — sunken white "type-here" rectangles inside the dialog ── */
+/* ── Inputs - sunken white "type-here" rectangles inside the dialog ── */
 .field {
   background: var(--edit-white);
   color: var(--edit-black);
@@ -409,7 +409,7 @@ body:has(.window.wizard) {
   /* Must repeat in dvh: the base body rule's min-height:100vh would
      otherwise win over height (min-height beats height), making the
      body 100vh tall on phones with the URL bar showing. safe-center
-     then centres the dialog in that too-tall box — extra blue gap on
+     then centres the dialog in that too-tall box - extra blue gap on
      top, pinned Back/Next footer shoved below the visible bottom. */
   min-height: 100dvh;
   box-sizing: border-box;
@@ -419,14 +419,14 @@ body:has(.window.wizard) {
 /* The Svelte mount node sits between body and the dialog; without this
    it becomes the grid item, its min-width:auto lets the 820px dialog
    prop it open, and the dialog's max-width resolves against IT instead
-   of the viewport-sized track — horizontal overflow on phones (the same
+   of the viewport-sized track - horizontal overflow on phones (the same
    bug fixed pre-port). display:contents takes #app out of layout so the
    dialog is the grid item again. */
 #app { display: contents; }
 /* The window is a flex column capped to the viewport: pinned header (step
    strip + substep dots + separator) and pinned footer (Back/Next) don't
    move; only the middle band (.wiz-scroll) scrolls. It can be SHORTER than
-   the cap when its content is small — height is content-driven up to the
+   the cap when its content is small - height is content-driven up to the
    max, so a short page still shows blue desktop above and below. */
 .window.wizard {
   width: 820px;
@@ -441,7 +441,7 @@ body:has(.window.wizard) {
      vh-sized dialog pushes the pinned Next footer off the visible screen
      whenever the URL bar is showing. */
   max-height: calc(100dvh - 96px);
-  /* Floor so sparse pages don't collapse to an awkward little box — but
+  /* Floor so sparse pages don't collapse to an awkward little box - but
      never taller than the viewport cap above (min() clamps it on short
      screens). */
   min-height: min(600px, calc(100dvh - 96px));
@@ -451,7 +451,7 @@ body:has(.window.wizard) {
 .wiz-head {
   flex: none;
   /* The dialog's OWN header band (tabs + subnav) gets the ▒ texture:
-     these were the "top and bottom 1px separators" — the band edge is
+     these were the "top and bottom 1px separators" - the band edge is
      now a texture change, not a hairline. */
   background: var(--dither-gray) 0 0 / 4px 4px, var(--edit-gray);
 }
@@ -470,7 +470,7 @@ body:has(.window.wizard) {
    EDIT drew them (track = dither glyphs, thumb = solid block). Square,
    no hover niceties. Webkit-only; Firefox falls back gracefully.
    (.anatomy-pane scrolls in .wiz-scroll's place on the file-map
-   carousel — see cabinet-bar.css — so it wears the same scrollbar.) ── */
+   carousel - see cabinet-bar.css - so it wears the same scrollbar.) ── */
 .wiz-scroll::-webkit-scrollbar,
 .anatomy-pane::-webkit-scrollbar { width: 16px; }
 .wiz-scroll::-webkit-scrollbar-track,
@@ -496,7 +496,7 @@ body:has(.window.wizard) {
 
 /* ===== Step content (shared prose/typography for all steps) ===== */
 .step { color: var(--edit-black); }
-/* All wizard headings are non-bold — the 32px WebVGA face carries the
+/* All wizard headings are non-bold - the 32px WebVGA face carries the
    emphasis on its own, and a bold weight just muddies the pixel grid.
    Scoped to the wizard body so it covers every step, not just .step
    (Build/Play prose sits outside a .step wrapper). */
@@ -534,24 +534,24 @@ pre, code, kbd {
 .step p { margin: 0 0 20px; font-size: 16px; line-height: 18px; }
 /* Nicer rag on flowing text everywhere (no-op where unsupported). */
 p, li, blockquote { text-wrap: pretty; }
-/* Readable prose measure — paragraphs and lists cap at ~80ch; code
+/* Readable prose measure - paragraphs and lists cap at ~80ch; code
    panes, widgets and diagrams keep the full window width. */
 .subpage p, .subpage ul, .subpage ol, .subpage blockquote { max-width: 660px; }
 /* Inline <code> reads as a little sunken monospace chip everywhere in the
-   wizard (headings included) — the boxed treatment is what signals "this
+   wizard (headings included) - the boxed treatment is what signals "this
    is a filename / literal", the font is already monospace. Scoped to
    .window.wizard so Build/Play prose (outside a .step) gets it too.
-   :not(pre) keeps the chip out of code blocks — inside a styled <pre>
+   :not(pre) keeps the chip out of code blocks - inside a styled <pre>
    the boxed look is noise, and this outguns the per-pane resets anyway. */
 .window.wizard :not(pre) > code {
   font-family: 'WebVGA', monospace;
   letter-spacing: normal;
   background: var(--edit-white);
   padding: 0 4px;
-  /* Flat white chip — no outline, no shadow (both read as clutter at
+  /* Flat white chip - no outline, no shadow (both read as clutter at
      inline size). */
 }
-/* In an h1 the box would be oversized against the 32px glyphs — keep the
+/* In an h1 the box would be oversized against the 32px glyphs - keep the
    chip but let it breathe and not overpower the line. */
 .window.wizard h1 code {
   padding: 0 6px;
@@ -559,7 +559,7 @@ p, li, blockquote { text-wrap: pretty; }
 }
 .step .explainer { max-width: 900px; margin-bottom: 16px; }
 
-/* ── Sim / bracket lists — [ ] as the bullet, DOS-menu style. Shared
+/* ── Sim / bracket lists - [ ] as the bullet, DOS-menu style. Shared
    prose vocabulary: usable in any step/subpage/anatomy section. ── */
 .sim-list {
   list-style: none;
@@ -582,16 +582,16 @@ p, li, blockquote { text-wrap: pretty; }
   color: var(--edit-blue);
   font-weight: bold;
 }
-/* bracket-list-num: [1] [2] … — same DOS-menu style, numbered */
+/* bracket-list-num: [1] [2] … - same DOS-menu style, numbered */
 .bracket-list-num { counter-reset: bracket-num; }
 .bracket-list-num li { counter-increment: bracket-num; }
 .bracket-list-num li::before { content: '[' counter(bracket-num) ']'; }
 
-/* External links — blue, underline on hover. */
+/* External links - blue, underline on hover. */
 .ext-link { color: var(--edit-blue); text-decoration: underline; }
 .ext-link:hover { color: #1111cc; }
 
-/* ── Code exhibit pane — white, black border, hard shadow. Shared by
+/* ── Code exhibit pane - white, black border, hard shadow. Shared by
    CodeCss.svelte (Prism-highlighted extracts), the file-map tree's
    boxed regions (TreeAst), and any widget that shows code. ── */
 .byte-example {
@@ -607,17 +607,17 @@ p, li, blockquote { text-wrap: pretty; }
   white-space: pre;
   overflow-x: auto;
 }
-/* The boxed look is for inline <code> in prose only — inside the pane
+/* The boxed look is for inline <code> in prose only - inside the pane
    <code> must be plain. */
 .byte-example code {
   background: none;
   border: none;
   padding: 0;
 }
-/* Prism tokens (CodeCss.svelte) — EGA palette on the light dialog
+/* Prism tokens (CodeCss.svelte) - EGA palette on the light dialog
    fill. Variables keep red and numbers green; functions and @-rules
    get their own families. Plain properties and punctuation stay black
-   on purpose — colouring everything makes nothing stand out. */
+   on purpose - colouring everything makes nothing stand out. */
 .byte-example .token.comment { color: #777; }
 .byte-example .token.variable { color: var(--edit-red); }
 .byte-example .token.selector { color: var(--edit-red); }
@@ -628,7 +628,7 @@ p, li, blockquote { text-wrap: pretty; }
 .byte-example .token.atrule .token.number { color: #006600; }
 .byte-example .token.string { color: #aa5500; }
 
-/* ── Hand-rolled code tokens (.tok-*) — the palette the inline demo
+/* ── Hand-rolled code tokens (.tok-*) - the palette the inline demo
    widgets (CssDemo, CssTimeline, RamWrite, TickClock, KeyboardDemo,
    PixelScreen, CycleDiagrams…) mark their snippets up with. Distinct
    from the Prism .token.* palette above (different colour convention;
@@ -641,7 +641,7 @@ p, li, blockquote { text-wrap: pretty; }
 .tok-at      { color: var(--edit-blue); }
 .tok-comment { color: #777; }
 
-/* ── Demo toggle — the small DOS push-button the interactive demos use
+/* ── Demo toggle - the small DOS push-button the interactive demos use
    (hard shadow, presses down on :active). Size, padding and fill vary
    per demo and stay in the component. ── */
 .demo-toggle {
@@ -668,7 +668,7 @@ p, li, blockquote { text-wrap: pretty; }
 }
 .wiz-nav .btn { margin-bottom: 0; }
 .wiz-nav-spacer { flex: 1; }
-/* Bright EGA cyan — the same "click me" signal the desktop weave uses —
+/* Bright EGA cyan - the same "click me" signal the desktop weave uses -
    marks the primary call-to-action. Cyan is light, so text/glyphs sit
    black on top of it (the Norton/DOS-utility look), not white. */
 .btn.primary {
@@ -680,7 +680,7 @@ p, li, blockquote { text-wrap: pretty; }
   background: #99ffff;
   color: var(--edit-black);
 }
-/* A disabled primary must actually READ as disabled — otherwise the blue
+/* A disabled primary must actually READ as disabled - otherwise the blue
    fill looks identical to the active button. Desaturate to a flat grey and
    drop the drop-shadow so it visibly can't be pressed. */
 .btn.primary:disabled {
@@ -704,7 +704,7 @@ p, li, blockquote { text-wrap: pretty; }
    The desktop layout is a fixed 820px window. On narrow viewports two
    things break: (1) the window's `max-width: 100% - 32px` is defeated
    because the step-strip / subdots have `white-space: nowrap`, giving the
-   flex column a min-content width far wider than the screen — `min-width`
+   flex column a min-content width far wider than the screen - `min-width`
    beats `max-width`, so the window overflows and the page gains a
    horizontal scrollbar (this is the "refresh doesn't fix the size" bug:
    it's horizontal overflow with restored scroll, not a stale dimension).
@@ -712,7 +712,7 @@ p, li, blockquote { text-wrap: pretty; }
 
    Fix: below 900px let the strip/dots shrink instead of forcing width;
    below 640px go effectively full-bleed and drop the drop-shadow margins.
-   The 8×16 pixel font itself is NOT scaled (fractional cells look mushy) —
+   The 8×16 pixel font itself is NOT scaled (fractional cells look mushy) -
    only the oversized headings and the chrome breathing-room shrink.
    ═══════════════════════════════════════════════════════════════════════ */
 
@@ -720,7 +720,7 @@ p, li, blockquote { text-wrap: pretty; }
 @media (max-width: 900px) {
   .window.wizard {
     /* Anchor width to the VIEWPORT (vw), not a percentage. A `%`/`max-width`
-       cap is circular here — the parent sizes to its content and the child
+       cap is circular here - the parent sizes to its content and the child
        caps at 100% of that, so a stubborn wide child (the source viewer's
        long CSS lines) still stretches everything. `100vw` is an absolute
        constraint the source-pre's overflow-x then scrolls inside of. */
@@ -758,7 +758,7 @@ p, li, blockquote { text-wrap: pretty; }
 
   /* The two trailing custom labels ("CSS-DOS SETUP" top-right, the build
      status bottom-right) are the only bits that overflow the fixed top/
-     bottom bars on a phone — the menu items and key hints fit. Hide just
+     bottom bars on a phone - the menu items and key hints fit. Hide just
      those two. */
   .menu-bar .menu-title { display: none; }
   .status-line .skey:last-child { display: none; }

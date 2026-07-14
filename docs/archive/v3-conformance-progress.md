@@ -7,7 +7,7 @@ and the JS reference emulator (js8086.js) on the DOS boot path.
 
 **3740 instructions conformant** on `bootle.com` DOS boot (as of 2026-04-13).
 
-The JS reference emulator boots DOS fully — kernel loads, INT 21h installs,
+The JS reference emulator boots DOS fully - kernel loads, INT 21h installs,
 program loads from disk, runs, draws to VGA, waits for keyboard. The CSS/calcite
 side diverges at instruction 3740.
 
@@ -51,7 +51,7 @@ prefix) instead of `IP` (the prefix byte itself).
 **Root cause:** `repIP()` used `calc(var(--__1IP) - var(--prefixLen))` for the
 rewind. This was correct when the old wrapper added `+ prefixLen` to everything
 (rewind became `IP - prefixLen + prefixLen = IP`). After removing the wrapper,
-it became `IP - prefixLen` — one byte too far back, landing on a 0x00 byte
+it became `IP - prefixLen` - one byte too far back, landing on a 0x00 byte
 instead of the F3 prefix.
 
 **Fix:** Changed rewind to `var(--__1IP)` in both `repIP()` and `repCondIP()`.
@@ -77,7 +77,7 @@ is the high byte of the word written by POP to CS:0x8633 (linear 0x8D33). The
 low byte is correct, but the high byte has 0xF0 (BIOS segment byte?) instead
 of 0x00.
 
-Likely cause: word write to memory (2 μops) with segment override — may be
+Likely cause: word write to memory (2 μops) with segment override - may be
 a similar class of bug to the seg-override prefix issue, but in the memory
 write address computation rather than IP.
 

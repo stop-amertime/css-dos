@@ -1,7 +1,7 @@
-# Web Svelte site — styling & UX pass (18 fixes)
+# Web Svelte site - styling & UX pass (18 fixes)
 
 **2026-07-01 · BRANCH (`web/build-boxart-cards`, on top of the Svelte
-static port) — not yet on master.**
+static port) - not yet on master.**
 
 A polish pass over the Svelte site (`web/site/`) after the static port.
 18 owner-requested fixes, all verified in Chromium against the dev
@@ -25,10 +25,10 @@ server (an actual Zork build → result page, Play unlocked):
   blue (blue = action colour) → neutral `#333`; **disabled primary
   buttons now visibly grey** (were indistinguishable blue).
 - **Result page (#16):** small floppy + "CSS file built" heading +
-  single "(optional) Download cabinet.css — N MB" link; pager collapsed
+  single "(optional) Download cabinet.css - N MB" link; pager collapsed
   to one centred line `Source Code: « Prev  Page [n] of N  Next »`
   (editable page #, no bytes/lines); source box smaller-font & much
-  taller — page is far less wasteful.
+  taller - page is far less wasteful.
 - **Play:** width constrained to 820px like the others (dropped the
   `wide`/`play-wide` path entirely).
 - **Shared `Foldable.svelte`** (+ `foldable.css`) with a blue `[+]`/`[-]`
@@ -37,13 +37,13 @@ server (an actual Zork build → result page, Play unlocked):
 - **Audit (#18):** removed dead `.cart-detail`/`.cart-body` CSS, stale
   `@media` grid overrides, unused `wide` prop / `.play-wide`,
   `bytesLabel`. `UNPLACED.css` is a stale carve-audit comment file (its
-  `.ext-link`/`.result-info` notes are now outdated) — left in place, not
+  `.ext-link`/`.result-info` notes are now outdated) - left in place, not
   a docs-session deletion.
 
 **Responsive / mobile layer** (same session, follow-on): the desktop
 layout is a fixed 820px window; on narrow viewports it overflowed
 horizontally (the "refresh doesn't fix the size" report was restored
-h-scroll, not a stale dimension — no ResizeObserver needed). Root cause:
+h-scroll, not a stale dimension - no ResizeObserver needed). Root cause:
 flex children with `min-width: auto` + `white-space: nowrap` (step-strip,
 subdots) and the source viewer's long CSS lines gave the flex column a
 min-content wider than the screen, defeating `max-width: 100%`. Fix:

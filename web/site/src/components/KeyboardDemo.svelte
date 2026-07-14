@@ -1,9 +1,9 @@
 <script>
-  // KeyboardDemo — the cabinet's real input mechanism, live, zero JS.
+  // KeyboardDemo - the cabinet's real input mechanism, live, zero JS.
   // SplitPane: left, the actual :has(:active) rules; right, pressable
   // keys and a --keyboard readout. Holding a key matches :active, the
   // rule in kbd-demo.css sets --demo-kbd, and the readout renders it
-  // via counter-reset (a CSS trick for turning a number into text —
+  // via counter-reset (a CSS trick for turning a number into text -
   // this demo's own, not part of the shipped cabinet). Values are the
   // real ones from kiln/template.mjs (scancode·256 + ascii).
   import SplitPane from './SplitPane.svelte';
@@ -126,7 +126,7 @@
     font-size: 18px;
     color: var(--edit-black);
   }
-  /* Render the live integer as text — counter-reset from a custom
+  /* Render the live integer as text - counter-reset from a custom
      property, CSS's only way to turn a number into displayable text. */
   .kbd-value::after {
     counter-reset: kbdval var(--demo-kbd);

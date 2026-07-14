@@ -2,7 +2,7 @@
 
 Rough tick counts for common execution milestones. Use these to size
 debugger runs and spot anomalies (e.g. "I ran 100M ticks and the game
-never started — something is wrong, not 'needs more ticks'").
+never started - something is wrong, not 'needs more ticks'").
 
 All numbers are approximate, measured with Corduroy BIOS on the V4
 single-cycle architecture. Actual values vary ±20% with code path.
@@ -60,6 +60,6 @@ thousand ticks, the halt isn't happening.
 Note: the warning is computed from `--unknownOp = 1` on any tick where
 `--opcode` has no dispatch entry. This can false-positive during TF or
 IRQ-delivery ticks if IP transiently points at an unimplemented byte in
-data / stack memory — the IRQ override takes execution elsewhere but
+data / stack memory - the IRQ override takes execution elsewhere but
 the latch still sets. If the warning fires at a surprising opcode,
 first check whether CS:IP is in code or data at that tick.

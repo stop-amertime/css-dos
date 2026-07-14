@@ -1,14 +1,14 @@
 // Code exhibits shown on the About pages.
 //
-// CELL_PLUMBING — one memory cell's four-variable ring, shown in
+// CELL_PLUMBING - one memory cell's four-variable ring, shown in
 // SectionClock's "Why do we need four keyframes?" fold. (It used to
 // appear on "How is this possible?" too; the owner trimmed that page
 // down to a one-line summary, 2026-07-12.)
 //
-// AND_FULL_EXHIBIT — Problem 1's full AND machinery, verbatim from the
+// AND_FULL_EXHIBIT - Problem 1's full AND machinery, verbatim from the
 // Kiln emitters (kiln/css-lib.mjs, kiln/patterns/flags.mjs).
 
-export const CELL_PLUMBING = `/* rule, always in force: the copy every formula reads —
+export const CELL_PLUMBING = `/* rule, always in force: the copy every formula reads -
    defined as the _2 copy, power-on value as the fallback */
 --mc5000-prev: var(--mc5000_2, 32861);
 

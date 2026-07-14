@@ -1,9 +1,9 @@
-## 2026-05-01 — Repo cleanup: script primitives + bench harness + web/player merge
+## 2026-05-01 - Repo cleanup: script primitives + bench harness + web/player merge
 
 Big-bang cleanup across both repos. Branches `cleanup-2026-05-01`
 in CSS-DOS and calcite.
 
-**Calcite engine — script-primitive layer.** Logged in
+**Calcite engine - script-primitive layer.** Logged in
 `../calcite/docs/log.md` 2026-05-01. Generic measurement primitives
 (stride/burst/at/edge/cond/halt + actions emit/halt/setvar/dump/
 snapshot) in calcite-core, exposed identically on calcite-cli
@@ -15,19 +15,19 @@ Grammar reference: [`docs/script-primitives.md`](../script-primitives.md).
 
 **CSS-DOS bench harness.** New harness at `tests/bench/`:
 
-- `lib/ensure-fresh.mjs` — staleness primitive. Mtime check artifact
+- `lib/ensure-fresh.mjs` - staleness primitive. Mtime check artifact
   vs declared inputs (file globs + transitive artifact deps);
   rebuild if stale; `--no-rebuild` bypass.
-- `lib/artifacts.mjs` — declarative manifest of every built artifact
+- `lib/artifacts.mjs` - declarative manifest of every built artifact
   (`wasm:calcite`, `cli:calcite`, `prebake:{corduroy,gossamer,muslin}`,
   `cabinet:{doom8088,zork1,montezuma,hello-text}`).
-- `driver/run.mjs` — Node CLI. Two transports (web via Playwright,
+- `driver/run.mjs` - Node CLI. Two transports (web via Playwright,
   cli via calcite-cli). Calls `ensureArtifact` for every required
   artifact before running.
-- `page/index.html` — page-side bench runner. Spawns the
+- `page/index.html` - page-side bench runner. Spawns the
   calcite-bridge worker, posts cabinet-blob, listens for compile-done.
-- `profiles/compile-only.mjs` — sanity profile; passes end-to-end.
-- `profiles/doom-loading.mjs` — six-stage doom8088 boot bench
+- `profiles/compile-only.mjs` - sanity profile; passes end-to-end.
+- `profiles/doom-loading.mjs` - six-stage doom8088 boot bench
   (CLI target reaches in-game with kbdtap landed 2026-05-02).
 
 **CSS-DOS-side web/player merge.** `player/*` → `web/player/*`
@@ -35,7 +35,7 @@ Grammar reference: [`docs/script-primitives.md`](../script-primitives.md).
 `web/shim/calcite-bridge.js`. URL paths kept stable (`/player/...`,
 `/sw.js`, `/cabinet.css`, `/_stream/fb`, `/_kbd?key=`); only the
 dev-server alias map changed. `?bench=1` inline `<script>` block
-removed from `web/player/calcite.html` — the player is now zero-script.
+removed from `web/player/calcite.html` - the player is now zero-script.
 The service worker stays at `web/site/sw.js` because SW scope must
 be at-or-above `/`.
 

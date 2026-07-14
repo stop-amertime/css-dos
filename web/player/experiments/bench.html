@@ -28,7 +28,7 @@
       if (!r.ok) { say('fetch failed: ' + r.status); return; }
       const css = await r.text();
       if (!css || css.trim().length === 0) {
-        say('no cabinet in cache — build one at /build-simple.html first');
+        say('no cabinet in cache - build one at /build-simple.html first');
         return;
       }
       say('cabinet bytes: ' + css.length);
@@ -38,7 +38,7 @@
         if (!d) return;
         if (d.type === 'log') say(d.msg);
         else if (d.type === 'ready') {
-          say('engine ready — ticking');
+          say('engine ready - ticking');
           w.postMessage({ type: 'tick', count: 50000 });
         } else if (d.type === 'tick-result') {
           w.postMessage({ type: 'tick', count: 50000 });

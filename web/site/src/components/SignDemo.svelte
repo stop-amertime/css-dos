@@ -1,5 +1,5 @@
 <script>
-  // SignDemo — the "no comparisons" trick, live. The 0/1 answer is
+  // SignDemo - the "no comparisons" trick, live. The 0/1 answer is
   // computed by real CSS (sign-demo.css evaluates
   // max(0, sign(B − A − 0.5)) into --sd-out and renders it with the
   // counter trick). JS only bumps the two inputs.

@@ -64,20 +64,10 @@ ${emitBitwiseNot()}
 /* Chrome can't nest function calls as arguments, so these provide
    pre-composed 8-bit variants of the bitwise ops. */
 
-@function --or8(--a <integer>, --b <integer>) returns <integer> {
-  --full: --or(var(--a), var(--b));
+${['or', 'and', 'xor'].map(op => `@function --${op}8(--a <integer>, --b <integer>) returns <integer> {
+  --full: --${op}(var(--a), var(--b));
   result: --lowerBytes(var(--full), 8);
-}
-
-@function --and8(--a <integer>, --b <integer>) returns <integer> {
-  --full: --and(var(--a), var(--b));
-  result: --lowerBytes(var(--full), 8);
-}
-
-@function --xor8(--a <integer>, --b <integer>) returns <integer> {
-  --full: --xor(var(--a), var(--b));
-  result: --lowerBytes(var(--full), 8);
-}
+}`).join('\n\n')}
 
 /* --- byte merges --- */
 
@@ -97,7 +87,7 @@ ${emitBitwiseNot()}
 
 /* --- packed-cell helpers --- */
 /*
-   Memory is packed 2 bytes to a cell (cell holds b0 | b1<<8 — a 16-bit word).
+   Memory is packed 2 bytes to a cell (cell holds b0 | b1<<8 - a 16-bit word).
    Value range 0..65535 stays well inside i32, so calcite's sign semantics
    don't corrupt byte extraction.
    --extractByte reads one byte from a cell; --applySlot conditionally splices
@@ -135,11 +125,11 @@ ${emitBitwiseNot()}
                                                  → cell.b0 = val
      6. width=1 byte at off 1                    (loOff=1)
                                                  → cell.b1 = val
-   Cases 5/6 only fire on width=1 ticks — the width=2 guards filter the
+   Cases 5/6 only fire on width=1 ticks - the width=2 guards filter the
    width=2 paths above first.
 
    Chained NUM_WRITE_SLOTS times per cell (slot N-1 innermost, slot 0
-   outermost) so slot 0 wins on same-cell collisions — matching the
+   outermost) so slot 0 wins on same-cell collisions - matching the
    legacy byte-level top-down dispatch semantics. */
 @function --applySlot(--cell <integer>, --live <integer>, --loOff <integer>, --hiOff <integer>, --val <integer>, --width <integer>) returns <integer> {
   result: if(
@@ -195,24 +185,31 @@ ${emitBitwiseNot()}
 `;
 }
 
+// Per-bit decomposition lines for one variable (`--${v}1..16`), the shared
+// prelude of every bitwise function.
+function decomposeBits(v) {
+  const lines = [];
+  for (let i = 1; i <= 16; i++) {
+    const div = Math.pow(2, i - 1);
+    lines.push(i === 1
+      ? `  --${v}1: mod(var(--${v}), 2);`
+      : `  --${v}${i}: mod(round(down, var(--${v}) / ${div}), 2);`);
+  }
+  return lines;
+}
+
+// Wrap the 16 weighted bit terms into the `result: calc(...)` sum and close
+// the function - the shared tail of every bitwise function.
+function combineBits(terms) {
+  return [`  result: calc(`, terms.join(' +\n'), `  );`, `}`];
+}
+
 // Generate a 16-bit bitwise function with per-bit decomposition
 function emitBitDecomp(name, bitExpr) {
   const lines = [];
   lines.push(`@function --${name}(--a <integer>, --b <integer>) returns <integer> {`);
-  // Decompose a into bits
-  for (let i = 1; i <= 16; i++) {
-    const div = Math.pow(2, i - 1);
-    lines.push(i === 1
-      ? `  --a1: mod(var(--a), 2);`
-      : `  --a${i}: mod(round(down, var(--a) / ${div}), 2);`);
-  }
-  // Decompose b into bits
-  for (let i = 1; i <= 16; i++) {
-    const div = Math.pow(2, i - 1);
-    lines.push(i === 1
-      ? `  --b1: mod(var(--b), 2);`
-      : `  --b${i}: mod(round(down, var(--b) / ${div}), 2);`);
-  }
+  lines.push(...decomposeBits('a'));
+  lines.push(...decomposeBits('b'));
   // Combine
   const terms = [];
   for (let i = 1; i <= 16; i++) {
@@ -220,10 +217,7 @@ function emitBitDecomp(name, bitExpr) {
     const expr = bitExpr(i);
     terms.push(i === 1 ? `    ${expr}` : `    calc(${expr})${mult}`);
   }
-  lines.push(`  result: calc(`);
-  lines.push(terms.join(' +\n'));
-  lines.push(`  );`);
-  lines.push(`}`);
+  lines.push(...combineBits(terms));
   return lines.join('\n');
 }
 
@@ -251,20 +245,12 @@ function emitBitwiseOr() {
 function emitBitwiseNot() {
   const lines = [];
   lines.push(`@function --not(--a <integer>) returns <integer> {`);
-  for (let i = 1; i <= 16; i++) {
-    const div = Math.pow(2, i - 1);
-    lines.push(i === 1
-      ? `  --a1: mod(var(--a), 2);`
-      : `  --a${i}: mod(round(down, var(--a) / ${div}), 2);`);
-  }
+  lines.push(...decomposeBits('a'));
   const terms = [];
   for (let i = 1; i <= 16; i++) {
     const mult = i === 1 ? '' : ` * ${Math.pow(2, i - 1)}`;
     terms.push(`    (1 - var(--a${i}))${mult}`);
   }
-  lines.push(`  result: calc(`);
-  lines.push(terms.join(' +\n'));
-  lines.push(`  );`);
-  lines.push(`}`);
+  lines.push(...combineBits(terms));
   return lines.join('\n');
 }

@@ -1,6 +1,6 @@
 // Cache Storage is the cabinet's only home. The builder writes it here;
 // the bridge worker compiles from here (imports getCabinetBlob below);
-// sw.js serves /cabinet.css from here for the raw player — its reader
+// sw.js serves /cabinet.css from here for the raw player - its reader
 // must mirror the part scheme (it's a classic script and can't import
 // this module).
 //
@@ -50,14 +50,14 @@ export async function hasCabinet(url = CURRENT_URL) {
   return hit != null;
 }
 
-/// The index entry (headers only — Content-Length is the cabinet size).
+/// The index entry (headers only - Content-Length is the cabinet size).
 export async function getCabinet(url = CURRENT_URL) {
   const cache = await caches.open(CACHE_NAME);
   return cache.match(url);
 }
 
 /// Reassemble the full cabinet as one Blob (part blobs are disk-backed
-/// references — this doesn't copy the bytes). Returns null if absent or
+/// references - this doesn't copy the bytes). Returns null if absent or
 /// incomplete. Falls back to a pre-chunking single-entry cabinet.
 export async function getCabinetBlob(url = CURRENT_URL) {
   const cache = await caches.open(CACHE_NAME);

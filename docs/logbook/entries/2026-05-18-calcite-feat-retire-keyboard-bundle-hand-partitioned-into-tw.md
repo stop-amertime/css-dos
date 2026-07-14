@@ -1,4 +1,4 @@
-## 2026-05-18 — calcite feat/retire-keyboard bundle hand-partitioned into two clean branches
+## 2026-05-18 - calcite feat/retire-keyboard bundle hand-partitioned into two clean branches
 
 Follow-on to the 2026-05-15 reorg. The parked
 `feat/retire-keyboard` bundle (calcite, tip `a05d85c`, 19 commits
@@ -8,7 +8,7 @@ rework, and the cardinal-rule genericity / perf-diagnostic stack.
 
 **Commit-level split is impossible.** A prior history rewrite
 (rebase/squash) fused both concerns in every commit's tree from
-`866d1b3` onward — the May-6-authored keyboard commit's tree already
+`866d1b3` onward - the May-6-authored keyboard commit's tree already
 contains `calcite_pc_video` refs introduced by a May-12-authored
 "upkeep" commit. Author dates do not track tree lineage. Cherry-pick
 and rebase splitting both fail. Only a hand-partition (diff final
@@ -17,9 +17,9 @@ patch sets) works. Decisive evidence:
 `git show 866d1b3:crates/calcite-wasm/src/lib.rs | grep calcite_pc_video`
 returns 7 hits; `git show ef44f20:...` returns 0.
 
-**Done (both branches now on origin — see corrected repo state):**
+**Done (both branches now on origin - see corrected repo state):**
 - `feat/keyboard-pseudo-input` (`baf3086`, off `ef44f20`, 12 files):
-  `:active` pseudo-class input model — `State::pseudo_active`,
+  `:active` pseudo-class input model - `State::pseudo_active`,
   InputEdge recogniser, per-tick `apply_input_edges`, cli
   `--press-events`, wasm export, web `press` bridge, the
   `SetVarPulse`/`Stride{last_fired_at}` watch refactor. Build gate
@@ -40,10 +40,10 @@ returns 7 hits; `git show ef44f20:...` returns 0.
 
 **Build gate (both branches):**
 `cargo build --release -p calcite-core -p calcite-cli -p calcite-wasm`
-— never core-only.
+- never core-only.
 
 **Pre-existing base debt (NOT mine, NOT fixed here):** `ef44f20`'s
-calcite lib-*test* target already fails to compile —
+calcite lib-*test* target already fails to compile -
 `script.rs` defines `WatchKind::Stride{every,last_fired_at}` but
 `script_spec.rs:309` matches `Stride{every}`. The simplification is
 keyboard-era, so `feat/keyboard-pseudo-input` incidentally fixes it
@@ -57,7 +57,7 @@ original version of this entry claimed "nothing pushed; calcite
 longer true and should not alarm a future agent**:
 
 - calcite `main` == `origin/main` == `ef44f20` (0 ahead / 0 behind).
-  The 2026-05-15 history rewrite has been reconciled with origin —
+  The 2026-05-15 history rewrite has been reconciled with origin -
   no force-push pending, no divergence.
 - `feat/calcite-genericity` (`3592bf0`) and
   `feat/keyboard-pseudo-input` (`baf3086`) are **on origin**,
@@ -65,11 +65,11 @@ longer true and should not alarm a future agent**:
 - `feat/retire-keyboard` (`a05d85c`) retained intact, also on origin.
 - CSS-DOS `master` unchanged.
 - Only genuine loss risk: local-only, not-on-any-origin-branch
-  `calcite-v2` / `calcite-v2-rewrite` (dead compiler experiments) —
+  `calcite-v2` / `calcite-v2-rewrite` (dead compiler experiments) -
   unrelated to this split.
 
 Most likely the original claim was written pre-push and the branches
-were pushed afterward without updating the entry — a staleness, not a
+were pushed afterward without updating the entry - a staleness, not a
 fabrication. Recorded here rather than silently rewritten so the
 correction itself is auditable.
 
@@ -80,4 +80,4 @@ blessed). (2) The two split branches have not been bench-validated
 end-to-end together; the keyboard branch needs the CSS-DOS-side
 `feat/retire-keyboard` (`8c54435`) bench/SW/bridge to exercise the
 new path. (3) The genericity branch's perf cost has never been
-isolated per-change — see STATUS "active work" item 1.
+isolated per-change - see STATUS "active work" item 1.

@@ -1,4 +1,4 @@
-// prism.js — the shared Prism instance. Bundled from npm (replaces
+// prism.js - the shared Prism instance. Bundled from npm (replaces
 // the old jsdelivr <script> tags in index.html, so highlighting
 // works offline and on the static host with no third-party fetch).
 //
@@ -15,7 +15,7 @@ Prism.manual = true; // never auto-highlight on DOMContentLoaded
 
 const variable = /--[\w-]+/;
 // No trailing \b: digits glued to a unit (400ms) still count. No
-// leading risk either — digits inside identifiers (--mc5000) are
+// leading risk either - digits inside identifiers (--mc5000) are
 // taken by the variable token first.
 const number = /\b\d+(?:\.\d+)?/;
 Prism.languages.insertBefore('css', 'property', { variable });

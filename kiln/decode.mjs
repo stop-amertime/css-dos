@@ -1,6 +1,6 @@
 // Opcode fetch, prefix handling, ModR/M decode, EA computation.
 // These are CSS @functions and computed properties emitted into the .cpu rule
-// (the machine element also carries .motherboard — same computed style).
+// (the machine element also carries .motherboard - same computed style).
 
 /**
  * Emit @function for ModR/M effective address computation.
@@ -343,7 +343,7 @@ export function emitPrecomputedState() {
   --_repContinue: calc(var(--hasREP) * min(1, max(0, calc(var(--__1CX) - 1))));
 
   /* Pre-computed ZF for REPE/REPNE with comparison string ops.
-     This is needed because IP and flags are computed in parallel — IP can't read
+     This is needed because IP and flags are computed in parallel - IP can't read
      the new ZF from the flags dispatch. Instead, we compute whether the comparison
      result is zero (operands equal) directly from the source operands.
      CMPSB (0xA6=166): mem[DS:SI] - mem[ES:DI]
@@ -363,7 +363,7 @@ export function emitPrecomputedState() {
      Segment override affects the source segment but NOT the destination (ES:DI). */
   --_strSrcSeg: if(style(--hasSegOverride: 1): var(--segOverride); else: calc(var(--__1DS) * 16));
 
-  /* Pre-computed string source bytes — avoids readMem calls inside dispatch entries
+  /* Pre-computed string source bytes - avoids readMem calls inside dispatch entries
      which cause miscompilation in calcite's near-identity dispatch. */
   --_strSrcByte: --readMem(calc(var(--_strSrcSeg) + var(--__1SI)));
   --_strSrcHiByte: --readMem(calc(var(--_strSrcSeg) + var(--__1SI) + 1));
@@ -376,7 +376,7 @@ export function emitPrecomputedState() {
      by a 26/2E/36/3E prefix. Doom8088 uses SS-XLAT to read the colormap. */
   --_xlatByte: --readMem(calc(var(--directSeg) + var(--__1BX) + var(--AL)));
 
-  /* Pre-computed MOV AL,[mem] byte — directSeg + imm16 address (avoids readMem inside dispatch entry) */
+  /* Pre-computed MOV AL,[mem] byte - directSeg + imm16 address (avoids readMem inside dispatch entry) */
   --_movAlMemByte: --readMem(calc(var(--directSeg) + var(--q1) + var(--q2) * 256));
 
   /* Pre-computed CL shift count for D2/D3 (shift by CL) */

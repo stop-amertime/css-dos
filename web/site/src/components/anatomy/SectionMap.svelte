@@ -1,10 +1,10 @@
 <script>
-  // The map — the carousel's landing page. Orients the reader on the
+  // The map - the carousel's landing page. Orients the reader on the
   // bar and plants the one-definition fact that the 171 MB payoff at
   // the end of the tour depends on. Not a file section (no bytes of
-  // its own) — see router FILE_SECTIONS vs anatomy/groups.js.
+  // its own) - see router FILE_SECTIONS vs anatomy/groups.js.
   // The old GLOSSARY callout (cart/cabinet/tick) was replaced by
-  // inline Term definitions 2026-07-04 — words define themselves at
+  // inline Term definitions 2026-07-04 - words define themselves at
   // the point of use.
 </script>
 

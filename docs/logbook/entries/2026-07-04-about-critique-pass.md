@@ -1,11 +1,11 @@
-# 2026-07-04 — About section critique pass (owner-approved list, actioned)
+# 2026-07-04 - About section critique pass (owner-approved list, actioned)
 
 Owner asked for a first-time-user critique of the About section, then
 approved actioning the full list. Changes (all `web/site/src/`):
 pages reordered Intro / How possible / **How it works** (was
 "What's in the file", was last) / FAQs / Why-as-epilogue; carousel
 header-comment section deleted (build-recipe fact moved to util's
-first sentence) and replaced at position 1 by a **map page** — bar
+first sentence) and replaced at position 1 by a **map page** - bar
 fully lit + GLOSSARY callout (cart/cabinet/tick, arcade framing) +
 the one-definition teaser that pays off at memw. Page 2 rebuilt as
 the mechanisms page (CssDemo + what-is-CSS absorbed as a fold-bg;
@@ -27,8 +27,8 @@ now disabled on the carousel's map page until the carousel has been
 used once (arrow/bar/deep link) so readers can't skip the tour
 without finding it. Credits & thanks restored as About page 6
 (verbatim from the retired route; dropped in the 2026-07-03
-collapse) — half-answers the old open [Q]; Tricks still attic-only.
-Second mobile fix (same day): the dvh switch above was incomplete —
+collapse) - half-answers the old open [Q]; Tricks still attic-only.
+Second mobile fix (same day): the dvh switch above was incomplete -
 the base `body{min-height:100vh}` still won over the wizard rule's
 `height:100dvh` (min-height beats height), so with the URL bar showing
 the body was URL-bar-height too tall and safe-center split that excess

@@ -1,4 +1,4 @@
-## 2026-04-28 — 3 word-slot scheme
+## 2026-04-28 - 3 word-slot scheme
 
 Kiln moves from **6 byte-slots → 3 word-slots** for memory writes.
 Each slot carries `--_slotKWidth` (1 or 2): width=2 packs addr/addr+1

@@ -1,14 +1,14 @@
-// web/site/public/sw.js — served at /sw.js (Vite publicDir). The old
+// web/site/public/sw.js - served at /sw.js (Vite publicDir). The old
 // duplicate at web/site/sw.js was removed 2026-07-04: edits there were
 // dead, public/ is what dev and dist actually serve.
 // Service worker for the CSS-DOS web version.
 //
 // Two jobs:
 //
-// 1. /cabinet.css — serve from Cache Storage. The browser-side builder
+// 1. /cabinet.css - serve from Cache Storage. The browser-side builder
 //    writes into this cache; the player reads a fixed URL.
 //
-// 2. /_screen/framebuffer, /_screen/holdlamp and /_kbd — the
+// 2. /_screen/framebuffer, /_screen/holdlamp and /_kbd - the
 //    calcite-bridge pipeline. Frames (and hold-lamp dots) arrive from
 //    the bridge worker over the 'cssdos-bridge' BroadcastChannel; each
 //    open stream response holds its own channel subscription and feeds
@@ -34,21 +34,21 @@ const LAMP_URL = '/_screen/holdlamp';
 const KBD_URL = '/_kbd';
 
 // Origin-wide bus shared with the bridge worker (frames, viewer
-// signals, keyboard) — must match web/shim/calcite-bridge.js.
+// signals, keyboard) - must match web/shim/calcite-bridge.js.
 const CHANNEL_NAME = 'cssdos-bridge';
 
 // One channel object for one-shot broadcasts (viewer signals, keys).
-// Per-instance and rebuilt for free on SW restart — not handshake
+// Per-instance and rebuilt for free on SW restart - not handshake
 // state. BroadcastChannel never delivers a message back to the object
 // that sent it, so frame messages don't echo here.
 const ctl = new BroadcastChannel(CHANNEL_NAME);
 
-// Open framebuffer streams in THIS instance — only used to tell the
+// Open framebuffer streams in THIS instance - only used to tell the
 // bridge when the last viewer left. Reconstructible: if the browser
 // kills this instance, the streams die with it.
 let activeStreams = 0;
 
-// Multipart boundary — must match the Content-Type header below.
+// Multipart boundary - must match the Content-Type header below.
 const BOUNDARY = 'cssdoscalciteframe';
 const ENC = new TextEncoder();
 
@@ -88,7 +88,7 @@ self.addEventListener('fetch', (event) => {
 });
 
 async function handleCabinet() {
-  // Cabinets are stored chunked (body-less index + ?part=N entries —
+  // Cabinets are stored chunked (body-less index + ?part=N entries -
   // see web/browser-builder/storage.mjs, whose scheme this mirrors;
   // classic SW scripts can't import the module). Reassembling as a
   // Blob-of-blobs references the cached parts without copying.
@@ -125,7 +125,7 @@ function multipartStream(msgType, onOpen, onClose) {
   let sub = null;
   const stream = new ReadableStream({
     start(controller) {
-      // Opening delimiter — Firefox likes a leading boundary before the
+      // Opening delimiter - Firefox likes a leading boundary before the
       // first part. Chrome accepts either way.
       controller.enqueue(ENC.encode(`--${BOUNDARY}\r\n`));
       sub = new BroadcastChannel(CHANNEL_NAME);
@@ -145,7 +145,7 @@ function multipartStream(msgType, onOpen, onClose) {
           // the following boundary (Content-Length is not enough), so
           // trailing the delimiter makes every frame render on arrival.
           // With leading boundaries instead, each frame showed only
-          // when the NEXT one arrived — invisible at the screen's
+          // when the NEXT one arrived - invisible at the screen's
           // 30 Hz, but the hold lamp (rare frames) lagged one toggle.
           controller.enqueue(ENC.encode(`\r\n--${BOUNDARY}\r\n`));
         } catch {
@@ -179,7 +179,7 @@ function handleStream() {
   return multipartStream('frame',
     () => {
       activeStreams++;
-      // New viewer — tell the bridge to (compile if needed and) start.
+      // New viewer - tell the bridge to (compile if needed and) start.
       // Idempotent bridge-side: a second viewer on a running machine is
       // a no-op via the running-guard.
       ctl.postMessage({ type: 'viewer-connected' });
@@ -195,7 +195,7 @@ function handleStream() {
 function handleLamp() {
   // The player's hold-mode lamp <img>: the bridge broadcasts a tiny
   // solid-colour BMP whenever the --kbdHold wire changes. Lamp viewers
-  // don't count toward activeStreams — a lamp alone must not keep the
+  // don't count toward activeStreams - a lamp alone must not keep the
   // engine running. On open, ask the bridge to (re-)send the current
   // state so the lamp is right immediately.
   return multipartStream('lamp',
@@ -206,16 +206,16 @@ function handleLamp() {
 function handleKbd(url) {
   // Two forms:
   //
-  // /_kbd?key=kb-X — the player keyboard's GET form. `key` is the
+  // /_kbd?key=kb-X - the player keyboard's GET form. `key` is the
   // clicked key; the bridge treats kb-hold as the hold-mode toggle
   // and everything else as a keypress pulse.
   //
-  // /_kbd?class=kb-X — legacy single-key link form (experiments, old
+  // /_kbd?class=kb-X - legacy single-key link form (experiments, old
   // pages): pulse the (active, kb-X) pseudo-class edge.
   //
   // Either way the cabinet's own `&:has(...) { --keyboard: V }` rules
   // produce the value via calcite's input-edge recogniser; the host
-  // only flips the gates. Rebroadcast unconditionally — no port to be
+  // only flips the gates. Rebroadcast unconditionally - no port to be
   // missing, so no key is ever lost to an SW restart.
   const key = url.searchParams.get('key');
   const klass = url.searchParams.get('class');
@@ -224,7 +224,7 @@ function handleKbd(url) {
   } else if (klass) {
     ctl.postMessage({ type: 'kbd-active', selector: klass });
   }
-  // 204 No Content — the target iframe won't re-render, page stays put.
+  // 204 No Content - the target iframe won't re-render, page stays put.
   return new Response(null, {
     status: 204,
     headers: { 'Cross-Origin-Resource-Policy': 'same-origin' },

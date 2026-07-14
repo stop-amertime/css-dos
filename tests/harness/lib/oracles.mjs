@@ -1,4 +1,4 @@
-// oracles.mjs — unified register-snapshot-producing interface over every
+// oracles.mjs - unified register-snapshot-producing interface over every
 // execution backend we can run a cabinet against.
 //
 // An oracle is anything that, given a tick number, tells us the 8086
@@ -18,15 +18,15 @@
 //                          correctly evaluating wrong CSS.
 //   chrome-player        : Playwright drives the web player, we read the
 //                          framebuffer. True CSS ground truth. Slow.
-//                          Sparse — use for a handful of milestones, not
+//                          Sparse - use for a handful of milestones, not
 //                          tick-by-tick.
 //
 // Each oracle exposes the same small interface:
 //
-//   async open()              — prepare (spawn child, load cabinet, etc.)
-//   async seekTo(tick)        — land the oracle at the given tick
-//   async snapshot()          — return normalized register object
-//   async close()             — free resources
+//   async open()              - prepare (spawn child, load cabinet, etc.)
+//   async seekTo(tick)        - land the oracle at the given tick
+//   async snapshot()          - return normalized register object
+//   async close()             - free resources
 //
 // Oracles share the standardized 14-key register shape from fulldiff:
 // { AX, BX, CX, DX, SI, DI, BP, SP, CS, DS, ES, SS, IP, FLAGS }.
@@ -91,7 +91,7 @@ export class CalciteCompiledOracle {
 
 // --- Compiled-vs-interpreted at-tick consistency -------------------------
 //
-// This is NOT a stream oracle — it reports per-tick self-consistency using
+// This is NOT a stream oracle - it reports per-tick self-consistency using
 // compare_paths. The interpreted path isn't advanced independently by the
 // debugger, so a clean "interp session at tick N" isn't accessible. What
 // we CAN do is: land on tick N via the compiled path, then ask the server
@@ -99,7 +99,7 @@ export class CalciteCompiledOracle {
 // disagrees. If compiled and interp disagree, there's a bytecode bug in
 // whatever op retired during tick N.
 //
-// Use this when fulldiff says "calcite-vs-ref disagrees at tick N" — this
+// Use this when fulldiff says "calcite-vs-ref disagrees at tick N" - this
 // tells you whether the N-th tick's computation was evaluated differently
 // by the two calcite paths (pointing at compile.rs), or whether both paths
 // agree and the bug is upstream of calcite (pointing at CSS / kiln).
@@ -107,7 +107,7 @@ export class CalciteCompiledOracle {
 // mixes in internal scaffolding (like `--_sAX`, `--_strSrcSeg`) that the
 // interpreter doesn't pre-compute the same way the compiled pass does;
 // those diffs are architectural, not bugs. For triage we only care about
-// the state-var diffs — a disagreement there is always a real compile.rs
+// the state-var diffs - a disagreement there is always a real compile.rs
 // vs interpreter bug.
 const CANONICAL_STATE_VARS = new Set([
   'AX','BX','CX','DX','SI','DI','BP','SP','CS','DS','ES','SS','IP','FLAGS',
@@ -184,7 +184,7 @@ export class RefMachineOracle {
   alignWith(calciteRegs) {
     this.machine.applyRegs(calciteRegs);
   }
-  async close() { /* nothing to close — GC handles it */ }
+  async close() { /* nothing to close - GC handles it */ }
 }
 
 // --- Multi-oracle runner --------------------------------------------------
@@ -194,7 +194,7 @@ export class RefMachineOracle {
 // plus enough context to act.
 //
 // Originally this tried to cross-check with compare_paths to classify
-// "compiler bug" vs "CSS bug" — but compare_paths after a seek doesn't
+// "compiler bug" vs "CSS bug" - but compare_paths after a seek doesn't
 // give reliable results (the interp path's intermediate scaffolding
 // isn't evolved alongside compiled during seek). Until the debugger
 // grows a real "run interp from 0 to N and snapshot" endpoint, that

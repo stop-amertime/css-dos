@@ -1,4 +1,4 @@
-## 2026-05-12 — `probe-specialise`: per-dispatch-key specialisation validated; plan filed
+## 2026-05-12 - `probe-specialise`: per-dispatch-key specialisation validated; plan filed
 
 Productised the "per-opcode specialisation" idea from earlier today
 into a measurement and a plan.
@@ -23,7 +23,7 @@ would be discovered identically.
 - Auto-picked hot key: **`--opcode`** (1615 SC tests). Next four are
   `--reg` (975), `--mod` (842), `--rm` (736), `--_tf` (39). The 4×
   gap between the top 4 and the rest confirms it's a real spike, not
-  noise — and the top 4 are exactly what you'd expect a generic
+  noise - and the top 4 are exactly what you'd expect a generic
   CPU-style dispatch to use, but the probe didn't know that.
 - Specialising for opcode = 0x40 (INC AX): **StyleConditions 668 → 65
   (9.7 % kept), branches 3130 → 143 (4.6 % kept), Calc nodes 3690 →
@@ -31,7 +31,7 @@ would be discovered identically.
 - Hot register-update bodies: `--AX` 2435 → 10 (0.4 %), `--flags`
   1946 → 17 (0.9 %), `--CX/--DX/--BX` 1900s → 6 (0.3 %), `--IP`
   1556 → 13 (0.8 %).
-- Repeated for 0x90 (NOP) and 0x89 (MOV r/m,r) — consistent
+- Repeated for 0x90 (NOP) and 0x89 (MOV r/m,r) - consistent
   collapse, slightly different bodies. Not a one-opcode artefact.
 
 **The caveat the probe also exposed.** Of doom8088's 362 242
@@ -42,7 +42,7 @@ are misleading because most of those nodes are trivial 2-node
 `Literal`/`Var` leaves from non-dispatching cells. The real win is on
 the ~178 dispatching assignments, where the collapse is 10-200×.
 That's still where today's per-tick "hundreds of dispatches" cost
-lives, so it's still the right lever — but the framing needs to be
+lives, so it's still the right lever - but the framing needs to be
 "shrink the dispatch budget on the hot 178," not "shrink the whole
 IR 100×."
 
@@ -72,11 +72,11 @@ to in-game tick count is the minimum bar.
 (no hardcoded name), discovers the value set structurally (no fixed
 range), and never reads characters out of slot names. Mandatory
 brainfuck genericity probe at phase 4. Plan rejects any env-var
-shipping gate — pays unconditionally or doesn't ship.
+shipping gate - pays unconditionally or doesn't ship.
 
 **Status.** Plan filed; STATUS open-work entry updated to point at
 the plan. Probe binary committed at calcite `1dd5151` (with the
 identity-prune module and the orphan `calcite-debug-summary` /
 `calcite-pc-video` crates that were referenced from Cargo.toml but
-unstaged). No code in the compile pipeline yet — phase 1 is the
+unstaged). No code in the compile pipeline yet - phase 1 is the
 pick-up.

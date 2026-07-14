@@ -1,9 +1,9 @@
-; emsdrv.asm — minimal EMS-presence device driver for CSS-DOS.
+; emsdrv.asm - minimal EMS-presence device driver for CSS-DOS.
 ;
 ; DOOM8088 (and many DOS programs) detect EMS by `open("EMMXXXX0", O_RDWR)`.
 ; That call succeeds iff DOS has a character device named EMMXXXX0
 ; registered. This driver registers that name so the open succeeds. It
-; does NOT implement any actual EMS pages — the program will believe EMS
+; does NOT implement any actual EMS pages - the program will believe EMS
 ; is "present" but won't get back any usable expanded memory. For DOOM8088,
 ; this is enough to clear the initial gate; lump cache reads still come back
 ; as zeros so visuals will be wrong, but the program enters the rendering
@@ -20,7 +20,7 @@
 ; Device driver header (18 bytes)
 ; ============================================================
 header:
-    dd 0xFFFFFFFF           ; next driver pointer — patched by DOS at load time
+    dd 0xFFFFFFFF           ; next driver pointer - patched by DOS at load time
     dw 0xC000               ; attributes: bit 15 = character device, bit 14 = IOCTL supported
     dw strategy             ; strategy entry offset
     dw interrupt            ; interrupt entry offset
@@ -48,8 +48,8 @@ strategy:
 ; We respond success (status = 0x0100) for every command. For INIT (cmd 0)
 ; we also need to return the end address of the resident driver and the
 ; number of units (0 for char devices). For OPEN (cmd 0xD) and CLOSE
-; (cmd 0xE) — which are what DOS issues during the open() call DOOM
-; makes — we just return success.
+; (cmd 0xE) - which are what DOS issues during the open() call DOOM
+; makes - we just return success.
 interrupt:
     push ax
     push bx

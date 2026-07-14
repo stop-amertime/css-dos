@@ -69,7 +69,7 @@ async function loadPresets() {
  * @returns {Promise<{ blob: Blob, diskBytes: Uint8Array | null }>}
  *          The CSS cabinet as a Blob, plus (for backward compatibility)
  *          the FAT12 floppy bytes on the DOS path. As of calcite v30 the
- *          disk-bytes payload is no longer required — the cabinet
+ *          disk-bytes payload is no longer required - the cabinet
  *          self-describes its rom-disk via the `--readDiskByte` dispatch
  *          and calcite installs a fast-path descriptor on State at compile
  *          time. The field is kept on the return shape so existing callers
@@ -124,7 +124,7 @@ export async function buildCabinetInBrowser({
     }
   }
 
-  // "Primary" program (first runnable) — used for display name and the
+  // "Primary" program (first runnable) - used for display name and the
   // hack path's programBytes.
   const runnables = cartFileList.filter(f => f.ext === '.com' || f.ext === '.exe');
   const primary = runnables[0] ?? cartFileList[0];
@@ -142,7 +142,7 @@ export async function buildCabinetInBrowser({
   const rawManifest = { preset, ...extraManifest };
   if (biosFlavorOverride) rawManifest.bios = biosFlavorOverride;
   // Pass through runCommand if the caller supplied one. `undefined` means
-  // "let resolveManifest infer from the cart's runnables" — same default
+  // "let resolveManifest infer from the cart's runnables" - same default
   // path the Node builder takes when program.json doesn't set runCommand.
   // An explicit empty string means "boot to a bare prompt", and overrides
   // any inference.
@@ -182,7 +182,7 @@ export async function buildCabinetInBrowser({
   } else if ((manifest.boot?.os ?? 'edrdos') === 'msdos4') {
     // MS-DOS 4.00 path: fetch the real DOS binaries + MSBOOT boot sector,
     // assemble the bootable floppy (IO.SYS/MSDOS.SYS first, AUTOEXEC.BAT
-    // synthesized), run Kiln with no kernel preload — the Corduroy BIOS is
+    // synthesized), run Kiln with no kernel preload - the Corduroy BIOS is
     // patched to INT 19h and boots the floppy's own boot sector.
     onProgress({ stage: 'dos', message: 'Loading MS-DOS 4.00 (IO.SYS, MSDOS.SYS, COMMAND.COM, MSBOOT)...' });
     const [ioArr, msdosArr, msCommandArr, msbootArr] = await Promise.all([
@@ -195,7 +195,7 @@ export async function buildCabinetInBrowser({
     onProgress({ stage: 'floppy', message: 'Assembling bootable MS-DOS floppy...' });
     await new Promise(resolve => setTimeout(resolve, 0));
 
-    // Honour an explicit disk.files list (order + selection — repo carts
+    // Honour an explicit disk.files list (order + selection - repo carts
     // keep license texts in the cart folder but off the floppy, and the
     // Node builder uses disk.files verbatim). Fall back to every uploaded
     // file for bare folder uploads.
@@ -227,7 +227,7 @@ export async function buildCabinetInBrowser({
       bios,
       floppy,
       manifest,
-      kernelBytes: null,     // no preloaded kernel — INT 19h boots the floppy
+      kernelBytes: null,     // no preloaded kernel - INT 19h boots the floppy
       programBytes: null,
       output: writer,
       header,
@@ -284,7 +284,7 @@ export async function buildCabinetInBrowser({
 
     runKiln({
       bios,
-      floppy,                // { bytes: Uint8Array, layout: [...] } — matches floppy.mjs output
+      floppy,                // { bytes: Uint8Array, layout: [...] } - matches floppy.mjs output
       manifest,
       kernelBytes,
       programBytes: null,    // DOS branch; Kiln uses kernelBytes, not programBytes

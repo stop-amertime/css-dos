@@ -39,7 +39,7 @@ export class CalciteEngine {
     /**
      * Read the sticky "unknown opcode" latch. 0 means none seen yet.
      * A non-zero value is the opcode byte of the first instruction the
-     * CPU hit that has no dispatch entry — typically a 286/386/486
+     * CPU hit that has no dispatch entry - typically a 286/386/486
      * instruction the 8086 core doesn't implement. Execution is
      * effectively halted because IP can't advance through it.
      */
@@ -128,17 +128,17 @@ export class CalciteEngine {
     read_video_memory(base_addr: number, width: number, height: number): Uint8Array;
     /**
      * Register a watch (script-primitive) with the engine. The spec
-     * uses the same string format as calcite-cli's `--watch` flag —
+     * uses the same string format as calcite-cli's `--watch` flag -
      * see `crates/calcite-core/src/script.rs` for the full grammar.
      * Examples (`spec`):
      *
-     * * `"poll:stride:every=50000"` — a cheap stride that ticks every
+     * * `"poll:stride:every=50000"` - a cheap stride that ticks every
      *   50K engine ticks. Suitable as a `gate=` target for expensive
      *   watches.
-     * * `"ingame:cond:0x3a3c4=0:gate=poll:then=emit+halt"` — fire +
+     * * `"ingame:cond:0x3a3c4=0:gate=poll:then=emit+halt"` - fire +
      *   halt when the byte at linear 0x3a3c4 is zero, evaluated only
      *   on `poll` fires.
-     * * `"vram_dump:at:tick=2000000:then=dump=0xb8000,4000"` — capture
+     * * `"vram_dump:at:tick=2000000:then=dump=0xb8000,4000"` - capture
      *   text VRAM at tick 2M; the bytes attach to the emitted event.
      *
      * Returns the watch's index on success. Throws on parse error.
@@ -179,7 +179,7 @@ export class CalciteEngine {
      *
      * `tick_batch` returns the changed state vars as a JSON string for
      * callers (debug-server, conformance harness) that consume them.
-     * The web bridge ignores the returned JSON — it observes state via
+     * The web bridge ignores the returned JSON - it observes state via
      * `get_state_var` / `read_framebuffer_rgba` after each batch instead.
      * On large cabinets the diff is non-trivial (doom8088: ~10K state
      * vars, full O(N) sweep each batch), and the JSON formatting on top
@@ -214,14 +214,14 @@ export class CalciteEngine {
      * the leading `#` (e.g. `"kb-1"`). `value` is the boolean state.
      *
      * The host is responsible for sending matching false edges
-     * (release) — calcite does not synthesise key-up automatically.
+     * (release) - calcite does not synthesise key-up automatically.
      */
     set_pseudo_class_active(pseudo: string, selector: string, value: boolean): void;
     /**
      * Serialise the runtime-mutable state (state_vars + memory + extended
      * + string_properties + frame_counter) to a byte blob. Pair with
      * [`restore`](Self::restore) on the same cabinet to resume execution
-     * from this exact tick — useful for benchmarking a level-load window
+     * from this exact tick - useful for benchmarking a level-load window
      * without re-running boot/title/menu first.
      *
      * The blob is portable across calcite-cli and calcite-wasm and across

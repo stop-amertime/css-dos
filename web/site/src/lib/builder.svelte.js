@@ -1,5 +1,5 @@
 // Build state + actions. Wraps the browser builder in reactive $state so
-// the UI binds to it directly — no hidden DOM surface, no MutationObserver.
+// the UI binds to it directly - no hidden DOM surface, no MutationObserver.
 // The manifest construction mirrors the old build.js exactly so cabinet
 // output stays byte-identical.
 import { buildCabinetInBrowser } from '/browser-builder/main.mjs';
@@ -9,7 +9,7 @@ import { mergeManifest } from './manifest.js';
 // The built cabinet persists in Cache Storage until the next build starts
 // (purgeCabinets() in build()). Cache Storage is the cabinet's ONLY home:
 // the bridge worker reads it from there when a viewer connects (which is
-// also what lets a reloaded tab recover — F5, Vite HMR, a discarded mobile
+// also what lets a reloaded tab recover - F5, Vite HMR, a discarded mobile
 // tab), and the restore probe below re-unlocks Play. The build just writes
 // the cache and broadcasts 'cabinet-updated'.
 
@@ -50,7 +50,7 @@ class Build {
     textVga: true,
     gfx: true,
     cgaGfx: false,
-    writable: false,          // disk.writable — session-writable floppy
+    writable: false,          // disk.writable - session-writable floppy
     runCommand: '',
     bootMode: 'program',      // 'program' | 'shell'
     eagerCompile: false,
@@ -59,7 +59,7 @@ class Build {
   status = $state('Ready.');
   busy = $state(false);
   done = $state(false);
-  failed = $state(false);   // last build threw — keeps the progress panel up
+  failed = $state(false);   // last build threw - keeps the progress panel up
   buildError = $state('');  // the message shown next to the failed bar
   restored = $state(false); // a cabinet from a previous page lifetime is playable
   progressLog = $state('');
@@ -74,7 +74,7 @@ class Build {
 
   // Landing grid: a cart opts in by declaring display.cover (boxart) OR
   // display.bullets (cover-less text card) in its program.json.
-  // name/description come from the same program.json — no second frontend
+  // name/description come from the same program.json - no second frontend
   // manifest. The synthetic "custom" upload card is appended and renders
   // as an ordinary grid cell (CartCard's cart.custom branch).
   get featuredCarts() {
@@ -97,7 +97,7 @@ class Build {
   }
 
   get sizeLabel() {
-    if (!this.cabinetBlob) return '—';
+    if (!this.cabinetBlob) return '-';
     return `Cabinet: ${(this.cabinetBlob.size / 1024 / 1024).toFixed(1)} MB`;
   }
   // Bare "320 MB" for the compact download line.
@@ -245,7 +245,7 @@ class Build {
   }
 
   selectCustom() {
-    // Custom card selected but no file yet — clear cart state, keep pickers.
+    // Custom card selected but no file yet - clear cart state, keep pickers.
     this.cart = null;
     this.selectedId = 'custom';
     if (this.source === 'cart') { this.source = null; this.#invalidateBuild(); }
@@ -356,7 +356,7 @@ class Build {
       bridgeBus?.postMessage({ type: 'cabinet-updated', eager: this.options.eagerCompile });
     } catch (e) {
       console.warn('[build] saveCabinet failed:', e);
-      this.status = 'Cabinet built, but caching it failed — the player cannot run it.';
+      this.status = 'Cabinet built, but caching it failed - the player cannot run it.';
     }
     this.busy = false;
   }
@@ -377,7 +377,7 @@ export const build = new Build();
 // Restore probe: a cabinet left by a previous page lifetime unlocks Play
 // without a rebuild (the bridge reads the cache itself when a viewer
 // connects; this only flips the UI state). Metadata comes from the cached
-// response's headers — the blob is never materialised here.
+// response's headers - the blob is never materialised here.
 if (typeof window !== 'undefined') {
   getCabinet().then((hit) => {
     if (!hit || build.busy || build.done) return;

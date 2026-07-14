@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// analyse-cs-ip-samples.mjs — read a CSV produced by calcite-cli's
+// analyse-cs-ip-samples.mjs - read a CSV produced by calcite-cli's
 // `--sample-cs-ip` flag and turn it into actionable hot-spot data.
 //
 // The input shape (one row per sample, header line first):
@@ -11,14 +11,14 @@
 //
 // 1. Hot-spot heatmap (from the wide singles).
 //    - Top buckets by exact (CS, IP).
-//    - Top buckets by (CS, IP>>8) — coarser, useful for "which 256-byte
+//    - Top buckets by (CS, IP>>8) - coarser, useful for "which 256-byte
 //      page of which segment is hot" when exact-IP is too noisy.
 //    - Both as raw count and percent of singles.
 //
 // 2. Local-shape analysis (from the bursts).
 //    For each burst:
 //    - distinct IPs hit (small => tight loop, large => long body)
-//    - distinct CS values (>1 means we crossed a segment boundary —
+//    - distinct CS values (>1 means we crossed a segment boundary -
 //      a CALL FAR happened)
 //    - max consecutive identical-IP run (256 => REP bail signature)
 //    - SP min/max (deep call chain vs flat)
@@ -88,7 +88,7 @@ for (let i = 1; i < lines.length; i++) {
 console.error(`loaded ${singles.length.toLocaleString()} wide singles + ${burstRows.size} bursts (${[...burstRows.values()].reduce((a, b) => a + b.length, 0).toLocaleString()} burst samples) from ${csvPath}`);
 
 if (singles.length === 0) {
-  console.error('no wide singles — heatmap requires --sample-cs-ip with EVERY > 1');
+  console.error('no wide singles - heatmap requires --sample-cs-ip with EVERY > 1');
   process.exit(2);
 }
 

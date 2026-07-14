@@ -1,4 +1,4 @@
-## 2026-05-05 — calcite-genericity cleanup: tasks 1-4 of the audit list
+## 2026-05-05 - calcite-genericity cleanup: tasks 1-4 of the audit list
 
 Worked through the post-keyboard "make calcite not cheat" list (LOGBOOK
 2026-05-05 line 271-278). Four of five items landed; the fifth is its
@@ -15,7 +15,7 @@ Stripped the corresponding `fusion_diag_enable` /
 `crates/calcite-cli/src/main.rs`. Smoke 7/7 PASS pre and post.
 
 **Task 2: move `summary.rs` out of `calcite-core`.**
-Per-tick event log + block segmenter for execution diagnostics — every
+Per-tick event log + block segmenter for execution diagnostics - every
 field name (CS/IP/opcode/_irqActive) was upstream-aware. New crate
 `calcite-debug-summary` (lib, depends on calcite-core), registered in
 the workspace `Cargo.toml` and as a workspace dependency. The
@@ -43,21 +43,21 @@ crates/calcite-wasm --target web --out-dir ../../web/pkg --release` so
 the JS bindings reflect the new build. Smoke 7/7 PASS.
 
 **Task 4: strip doom/DOS comments from non-test calcite-core code.**
-Surgical comment pass — converted `doom8088`/`DOOM`/`x86CSS`/`CSS-DOS`
+Surgical comment pass - converted `doom8088`/`DOOM`/`x86CSS`/`CSS-DOS`
 references in production-path comments to generic phrasings ("the
 reference cabinet", "measured cabinets", "the cabinet's bytecode").
 Kept calibration citations where they're load-bearing context (e.g.
 "95% of all such pairs in the reference cabinet") and didn't touch
 test code or comments inside `rep_fast_forward` (those describe real
 cardinal-rule violations the *code* makes; reframing them in comments
-without fixing the code would just hide the issue — see task 5).
+without fixing the code would just hide the issue - see task 5).
 Files touched: lib.rs, compile.rs, eval.rs, conformance.rs,
 parser/fast_path.rs, pattern/broadcast_write.rs, pattern/byte_period.rs,
 pattern/fusion_sim.rs, pattern/packed_broadcast_write.rs. Comment-only;
 calcite-core builds clean.
 
 **Task 5: reframe `rep_fast_forward` as a generic CSS-shape recogniser
-— DEFERRED.**
+- DEFERRED.**
 
 This is the audit's "perf-gated mission" item, not a quick refactor.
 The function (~341 lines + helpers in calcite-core/src/compile.rs)
@@ -68,7 +68,7 @@ iterations. It also encodes a list of "virtual" memory regions
 (0x0500-0x0502 keyboard bridge, 0xD0000-0xD0200 ROM-disk,
 0xF0000-0x100000 BIOS ROM) that the bulk path mustn't trample, and
 panics if it would. None of that knowledge is derivable from CSS
-shape — it's pure upstream awareness encoded in the engine.
+shape - it's pure upstream awareness encoded in the engine.
 
 Generalising means recognising "function repeats body N times,
 incrementing/decrementing addr, until counter hits 0" as a CSS shape
@@ -81,7 +81,7 @@ from the body, (c) replacing the hardcoded x86 flag-word semantics
 with whatever the body says, (d) replacing the hardcoded
 virtual-region check with a generic "this address falls outside the
 bulk-writable range" predicate driven by the address-map's dispatch
-exceptions. Plus the perf gate — doom8088 web+CLI must stay within 1%
+exceptions. Plus the perf gate - doom8088 web+CLI must stay within 1%
 of current.
 
 Multi-session work. Punted to its own brief.

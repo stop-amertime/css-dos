@@ -1,4 +1,4 @@
-// learn.js — interactive widgets on the Learn step. Purely cosmetic; no
+// learn.js - interactive widgets on the Learn step. Purely cosmetic; no
 // build wiring. Safe to no-op if the elements aren't present (e.g. on
 // build.html, which doesn't include the Learn markup).
 

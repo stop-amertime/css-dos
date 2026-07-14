@@ -1,15 +1,15 @@
 <script>
-  // CabinetBar — the whole 309 MB cabinet drawn to scale as a
+  // CabinetBar - the whole 309 MB cabinet drawn to scale as a
   // clickable bar, in file order, coloured by section group; a white
   // full-width topper pinned to the top of the wizard's scroll band so
   // the map stays visible while a section is read. (The carousel is
-  // stepped by the wizard's own Back/Next buttons — nav.next()/prev()
+  // stepped by the wizard's own Back/Next buttons - nav.next()/prev()
   // walk the sections.) The three sections too small to see at true
-  // scale (utilities / CPU / keyboard — 319 KB together) are a single
+  // scale (utilities / CPU / keyboard - 319 KB together) are a single
   // 2px sliver on the bar; the zoom box below expands them into
   // clickable segments. The selected segment drops a coloured
   // connector line out of the bar onto the section pane below (title +
-  // size live in the pane's header — AboutFileMap.svelte, which also
+  // size live in the pane's header - AboutFileMap.svelte, which also
   // owns the .anatomy-pane styles); hovering any segment shows a
   // cursor tooltip (title + size), clicking jumps there.
   import { GROUPS, SEGS, TINY, ZOOM } from './groups.js';
@@ -24,7 +24,7 @@
   const active = $derived(hovered ?? selected);
   const hoverG = $derived(hovered ? GROUPS.find((g) => g.id === hovered) : null);
   const cur = $derived(selected ? GROUPS.find((g) => g.id === selected) : null);
-  // Connector position: centre of the selected group's drawn segment —
+  // Connector position: centre of the selected group's drawn segment -
   // the zoom-box segment for the tiny sections (that's the highlighted
   // area the reader sees), the bar segment otherwise. In 700-unit svg
   // x; tickPct carries the same position as a % for the hanging tick.
@@ -64,7 +64,7 @@
                 stroke={cur.c} stroke-width="5" pointer-events="none"
                 vector-effect="non-scaling-stroke" />
         {/if}
-        <!-- utilities + CPU + keyboard: one to-scale sliver (319 KB —
+        <!-- utilities + CPU + keyboard: one to-scale sliver (319 KB -
              even 2px flatters it); the zoom box below is the click
              target. Coloured as the CPU, 80% of the sliver's bytes. -->
         <rect class:dim={active && !TINY.includes(active)}
@@ -135,7 +135,7 @@
        belt-and-braces. The negative margins cancel .window-body's
        padding so the topper runs edge to edge (values mirror the
        filemap-only paddings in AboutFileMap.svelte, NOT global.css's
-       defaults — this subpage runs tighter chrome). */
+       defaults - this subpage runs tighter chrome). */
     position: sticky;
     top: 0;
     z-index: 8;
@@ -150,7 +150,7 @@
 
   /* The hanging half of the connector: continues the svg line down
      through the topper's bottom padding + border and across the gap,
-     landing on the section pane's top edge (pane margin-top 12px —
+     landing on the section pane's top edge (pane margin-top 12px -
      see cabinet-bar.css). When the reader scrolls and the pane slides
      under the sticky topper, the tick stays put, still marking where
      the open section lives on the map. */
@@ -166,11 +166,11 @@
   .cab-bar .seg { cursor: pointer; outline: none; }
   .cab-bar .dim { opacity: 0.3; }
   /* svg text: font-size here is in viewBox units (700-wide), so it
-     shrinks with the bar — the phone override keeps it legible. */
+     shrinks with the bar - the phone override keeps it legible. */
   .cab-bar .zoom-label { fill: #555; font-family: inherit; font-size: 13px; }
 
   /* ── The first-visit hint: a small yellow HINT note (same dress as
-     the Play page's HINTS toast — play.css) hanging below the bar,
+     the Play page's HINTS toast - play.css) hanging below the bar,
      with an upward arrow still pointing at the map. Shows on every
      carousel page until the X is clicked; dismissal persists
      (router.svelte.js). ── */
@@ -196,7 +196,7 @@
     background: #ffffcc;
     text-align: left;
   }
-  /* The upward arrow — yellow like the note (a rotated square sharing
+  /* The upward arrow - yellow like the note (a rotated square sharing
      its background). */
   .hint-pop::before {
     content: '';

@@ -1,4 +1,4 @@
-# 2026-07-10 — Machine element renamed `.cpu` → `.motherboard`; chipset split out; file reordered
+# 2026-07-10 - Machine element renamed `.cpu` → `.motherboard`; chipset split out; file reordered
 
 Owner call during the site-copy pass: `.cpu` mislabelled the whole
 machine. Kiln now emits two flat rules targeting ONE player element
@@ -6,7 +6,7 @@ machine. Kiln now emits two flat rules targeting ONE player element
 tables + write slots (265 KB); `.motherboard` = everything else, incl.
 a new CHIPSET block (PIT/PIC/keyboard-latch/DAC tables + peripheral/
 IRQ compute; 16 KB). Nested `&.cpu` was REJECTED: calcite's parser
-silently skips non-`:has` nested rules (stylesheet.rs) — flat sibling
+silently skips non-`:has` nested rules (stylesheet.rs) - flat sibling
 rules on a double-classed element are the calcite-safe equivalent.
 New file order: util→cpu→chipset→keys→screen→decl→memr→memw→disk→
 clock; clock is now one contiguous region (buffer reads moved beside

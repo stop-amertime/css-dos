@@ -1,13 +1,13 @@
-# 2026-07-11 — Tree dedup + gap-comment landmarks (owner round 3)
+# 2026-07-11 - Tree dedup + gap-comment landmarks (owner round 3)
 
 Owner: registers duplicated across CPU/decl panes; comments not
 rendering properly; why not chunk at the 20-row page boundary?
 - CPU pane's borrowed boxes deleted (flag @functions live in util,
-  register @property blocks in decl) — cpu now parses its real file
+  register @property blocks in decl) - cpu now parses its real file
   region like every other pane: `.cpu {` open with FETCH & DECODE /
   REGISTERS / MEMORY WRITE SLOTS. `buildCpuNodes` special-case gone.
 - decl pane retitled "Variable declarations" (it holds ALL @property
-  decls, not just memory) — TreeView title + map-bar label.
+  decls, not just memory) - TreeView title + map-bar label.
 - Kiln: `/* gap: bytes 0x..-0x.. unpopulated in this build */` at
   address jumps in all 6 big lists (decl/@property, write rules,
   __1mc/__2mc/__0mc plumbing, readMem arms). Full A/B equivalence

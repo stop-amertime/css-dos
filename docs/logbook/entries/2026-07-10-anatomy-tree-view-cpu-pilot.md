@@ -1,9 +1,9 @@
-# Anatomy Tree View — CPU pilot (AST-powered)
+# Anatomy Tree View - CPU pilot (AST-powered)
 
 A Tree View above the CPU section prose (`SectionCpu.svelte`), fully
 powered by a real AST: `tools/extract-tree-data.mjs` runs the real
 `emitCSS()` on a tiny synthetic cart, slices each register's dispatch,
-and parses it token-by-token (decl/if/branch/value — a node's code is
+and parses it token-by-token (decl/if/branch/value - a node's code is
 ONLY its own token), plus `section`/`block` nodes for editorial labels
 and verbatim exhibits. The tool **round-trip-verifies** every register
 (AST reconstruction must equal the raw text) and opcode counts match
@@ -11,7 +11,7 @@ and verbatim exhibits. The tool **round-trip-verifies** every register
 file order (nothing reordered): 36 flag-arithmetic `@function`s
 (scanned dynamically, addOF16…sarFlagsN8) → the COMPLETE `.cpu` rule
 (163 entries: 8 aliases, fetch/decode/ModR/M/EA pipeline, 14
-dispatches, banner comments — whole-rule round-trip-verified) →
+dispatches, banner comments - whole-rule round-trip-verified) →
 `@property` blocks (really near the file's end). One
 renderer (`TreeAst.svelte`); collapse ONLY at tool-carved fold points
 (sections, decls, property/function blocks, nested-if opcode rows),

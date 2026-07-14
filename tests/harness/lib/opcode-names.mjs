@@ -1,4 +1,4 @@
-// opcode-names.mjs — map 8086 opcode bytes to human-readable names.
+// opcode-names.mjs - map 8086 opcode bytes to human-readable names.
 //
 // Best-effort: for group opcodes (Grp 1/2/3/4/5 and the 80-83 family)
 // we can't fully decode without the ModR/M byte, so we emit something
@@ -7,7 +7,7 @@
 //
 // The intent is debug sugar, not a full disassembler. If a real
 // disassembler is needed, feed the sidecar bytes into a standalone
-// tool — this is for in-band annotation of divergence reports.
+// tool - this is for in-band annotation of divergence reports.
 
 export function opcodeName(opcodeByte, secondByte = null) {
   const op = opcodeByte & 0xFF;
@@ -108,7 +108,7 @@ const GROUP_SHIFT = ['ROL','ROR','RCL','RCR','SHL','SHR','?','SAR'];
 
 // Decode a single instruction starting at linear addr. Reads up to 6
 // bytes from the ref memory image. Returns a small record describing the
-// instruction — used by fulldiff to annotate divergence reports.
+// instruction - used by fulldiff to annotate divergence reports.
 export function disassembleAt(mem, linearAddr) {
   const bytes = [];
   for (let i = 0; i < 6; i++) bytes.push(mem[(linearAddr + i) & 0xFFFFF] & 0xFF);

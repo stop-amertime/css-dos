@@ -1,8 +1,8 @@
-// script-runner.mjs — drive a cabinet through a sequence of keyboard
+// script-runner.mjs - drive a cabinet through a sequence of keyboard
 // events, waits, and screenshots. For testing interactive carts (Zork,
 // Montezuma) where gameplay is only reachable via keystrokes.
 //
-// Script format — JSON array of steps:
+// Script format - JSON array of steps:
 //
 //   [
 //     { "wait": "until-tick", "tick": 200000 },
@@ -15,23 +15,23 @@
 //   ]
 //
 // Waits:
-//   { wait: "ms", ms: N }                      — wall-clock pause
-//   { wait: "ticks", ticks: N }                — advance by N ticks
-//   { wait: "until-tick", tick: N }            — seek to tick N
+//   { wait: "ms", ms: N }                      - wall-clock pause
+//   { wait: "ticks", ticks: N }                - advance by N ticks
+//   { wait: "until-tick", tick: N }            - seek to tick N
 //   { wait: "until-text-contains", text: "…", maxTicks, maxWallMs }
-//                                              — run forward until the
+//                                              - run forward until the
 //                                                text-mode buffer contains
 //                                                the substring; budget-capped
-//   { wait: "until-mode", mode: 0x13, maxTicks, maxWallMs } — wait until
+//   { wait: "until-mode", mode: 0x13, maxTicks, maxWallMs } - wait until
 //                                                video mode changes
 //
 // Actions:
-//   { type: "string" }   — send each char as a BDA keyboard event. `\r`
+//   { type: "string" }   - send each char as a BDA keyboard event. `\r`
 //                          becomes 0x0D (Enter), `\n` → 0x0A, `\t` → 0x09.
 //                          ESC: use the literal char or "\\x1B".
-//   { key: N }           — push a specific raw scancode|ascii value
+//   { key: N }           - push a specific raw scancode|ascii value
 //                          directly into the BDA ring.
-//   { shoot: "name" }    — screenshot at the current tick; written to
+//   { shoot: "name" }    - screenshot at the current tick; written to
 //                          results/<script-name>/<name>.png.
 //
 // Returns: full log of events + screenshot paths.
@@ -46,7 +46,7 @@ function sleepMs(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // ASCII → BDA ring-buffer value. Real hardware would also push a scancode
 // in the high byte, but the DOS INT 16h code mostly cares about the ASCII
-// byte — simple carts don't inspect scancode. For precision use a raw
+// byte - simple carts don't inspect scancode. For precision use a raw
 // {key: N} step.
 function asciiToBdaWord(c) {
   const b = c.charCodeAt(0) & 0xFF;

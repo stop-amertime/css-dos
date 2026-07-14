@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// TEST HARNESS SHORTCUT — not a machine model.
+// TEST HARNESS SHORTCUT - not a machine model.
 //
 // This file bypasses the normal PC boot sequence (BIOS init, IVT setup via
 // bios_init) and sets up the emulator state directly from outside. It loads
@@ -77,7 +77,7 @@ for (let i = 0; i < comBin.length; i++) memory[0x100 + i] = comBin[i];
 const BIOS_BASE = 0xF0000;
 for (let i = 0; i < biosBin.length; i++) memory[BIOS_BASE + i] = biosBin[i];
 
-// IVT — handler offsets come from the NASM listing next to the .bin,
+// IVT - handler offsets come from the NASM listing next to the .bin,
 // not hardcoded. See tools/lib/bios-symbols.mjs for the rationale.
 const BIOS_SEG = 0xF000;
 const handlers = loadIvtHandlers(biosPath.replace(/\.bin$/, '.lst'));
@@ -264,7 +264,7 @@ for (let ri = 0; ri < refTrace.length && ci < calciteTrace.length; ri++) {
 
   // --- INT 16h AH=00h rewind skip ---
   // The JS int_handler for INT 16h AH=00h rewinds IP when the buffer is empty,
-  // so the ref trace shows the same IP repeating. Skip these repeated entries —
+  // so the ref trace shows the same IP repeating. Skip these repeated entries -
   // calcite is holding at the BIOS sentinel's μop 0, and we can't align until
   // the handler completes and both emulators advance past the INT instruction.
   if (ri > 0 && refIP === refTrace[ri - 1].IP && refIP < BIOS_BASE) {
@@ -299,7 +299,7 @@ for (let ri = 0; ri < refTrace.length && ci < calciteTrace.length; ri++) {
     }
 
     if (biosHalted) {
-      // INT 20h or similar halt — both emulators stop here.
+      // INT 20h or similar halt - both emulators stop here.
       // Check if calcite also halted (halt flag set).
       const calNow = calciteTrace[ci];
       const calHalt = calNow.halt || 0;
@@ -310,7 +310,7 @@ for (let ri = 0; ri < refTrace.length && ci < calciteTrace.length; ri++) {
     }
 
     if (biosExitTick < 0) {
-      // Ref never exited BIOS ROM within the trace — ran out of ticks
+      // Ref never exited BIOS ROM within the trace - ran out of ticks
       console.error(`  BIOS handler at tick ${biosEntryTick}: ref never returned (ran out of ticks)`);
       break;
     }

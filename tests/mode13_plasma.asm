@@ -1,10 +1,10 @@
-; mode13_plasma.asm — VGA Mode 13h plasma animation stress test
+; mode13_plasma.asm - VGA Mode 13h plasma animation stress test
 ;
 ; Full-frame animated plasma. Every pixel changes every frame,
 ; giving us worst-case paint load for the div-per-pixel grid.
 ;
 ; Formula per pixel: color = (x + y + frame) & 255
-; That's a trivial additive pattern — not a real plasma — but the
+; That's a trivial additive pattern - not a real plasma - but the
 ; important property is ALL 64000 pixels write and ALL change every
 ; frame, exercising the full paint path.
 ;

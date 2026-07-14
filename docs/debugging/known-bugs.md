@@ -9,7 +9,7 @@ detailed enough that a future agent hitting a similar bug can recognize it.
 
 **Symptom:** in the browser, keypresses stopped registering (Zork
 frozen after 1–2 keys; later the player keyboard was fully dead).
-CLI and bench unaffected — the bench injects keys via `setvar_pulse`
+CLI and bench unaffected - the bench injects keys via `setvar_pulse`
 watches and never exercises the player's real input path.
 
 **Resolution:** the keyboard model was replaced wholesale by the
@@ -23,12 +23,12 @@ Real-input e2e coverage: `node web/tests/kbd-e2e.playwright.mjs`.
 
 **Symptom:** Doom8088 reports `W_GetNumForName: DPPISTOL not found` on
 the very first WAD lump lookup. Smoke programs (zork, montezuma)
-unaffected. Looks like WAD loading broke or `repe cmpsw` is wrong —
+unaffected. Looks like WAD loading broke or `repe cmpsw` is wrong -
 both red herrings.
 
 **Root cause:** `kiln/patterns/shift.mjs::emitShift_D0` (group `D0 /r`,
 shift/rotate r/m8 by 1) implemented SHL (reg=4), SHR (5), SAR (7), RCL
-(2), RCR (3) — but not ROL (0) or ROR (1). They fell through to
+(2), RCR (3) - but not ROL (0) or ROR (1). They fell through to
 `else: var(--__1${regName})`, a no-op. The companion `emitShift_D1`
 (word version) had all 7 cases.
 
@@ -55,7 +55,7 @@ that whole sequence yields 0x6000.
   binary-patching the caller.* I spent hours patching DOOM.EXE's
   memcmp to use a manual byte loop on the assumption `repe cmpsw` was
   broken. A 30-line repe-cmpsw `.COM` test would have ruled cmpsw out
-  in two minutes — the bug was 4 instructions later in the lahf/ror
+  in two minutes - the bug was 4 instructions later in the lahf/ror
   conversion.
 - *Treat instruction-emitter dispatch tables with skepticism.* Ours
   are written as long if-chain expressions; a missing case is silent
@@ -180,9 +180,9 @@ code spanned both zones.
 
 **Fix:** Single contiguous 0-0xA0000 zone.
 
-### Seg-override memory write address (2026-04-13 report — verified gone 2026-06-12)
+### Seg-override memory write address (2026-04-13 report - verified gone 2026-06-12)
 
-**Symptom (as reported):** `CS: POP [0x8633]` (2E 8F 06 33 86) — high
+**Symptom (as reported):** `CS: POP [0x8633]` (2E 8F 06 33 86) - high
 byte of the POP'd word written as 0xF0 instead of 0x00. The original
 repro (`../calcite/programs/bootle.com`) no longer exists.
 **Re-verified in isolation 2026-06-12:** a minimal .COM doing

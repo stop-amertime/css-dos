@@ -1,5 +1,5 @@
 <script>
-  // Problem heading as a DOS error dialog — double border, red tag chip,
+  // Problem heading as a DOS error dialog - double border, red tag chip,
   // dithered TUI drop-shadow (text-mode dialogs shadowed the cells under
   // them with a ▒ halftone, not a solid slab).
   let { tag, children } = $props();

@@ -59,7 +59,7 @@ CSS-DOS/
     base_template.css      v1 CSS skeleton
 
   docs/                  Documentation
-    INDEX.md               Start here — doc map with "when to read" guidance
+    INDEX.md               Start here - doc map with "when to read" guidance
     architecture/          How things work (overview, v3 model, BIOS, calcite)
     reference/             How to do things (testing, debugging, tools, layout)
     debugging/             Bug investigation (workflow, known bugs, debugger API)

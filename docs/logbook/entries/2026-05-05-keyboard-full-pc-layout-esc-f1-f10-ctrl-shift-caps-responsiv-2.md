@@ -1,6 +1,6 @@
-## 2026-05-05 — keyboard: full PC layout (Esc/F1-F10/Ctrl/Shift/Caps + responsive)
+## 2026-05-05 - keyboard: full PC layout (Esc/F1-F10/Ctrl/Shift/Caps + responsive)
 
-Doom8088 uses Ctrl to fire — without it the on-screen keyboard can't
+Doom8088 uses Ctrl to fire - without it the on-screen keyboard can't
 shoot. While in there, brought the on-screen keyboard up to a full PC
 layout (6 rows, 11 cols) and made the screen responsive.
 
@@ -9,7 +9,7 @@ layout (6 rows, 11 cols) and made the screen responsive.
   cabinet just sees scancode in the high byte of `--keyboard`).
   `emitKeyboardRules` writes 56 rules now (was 45); cabinet rebuilds
   pick up `.cpu { &:has(#kb-X:active) { --keyboard: N } }` for each.
-- `web/player/calcite.html` — keyboard rebuilt as an explicit 6-row
+- `web/player/calcite.html` - keyboard rebuilt as an explicit 6-row
   11-col grid:
   - Row 1: Esc | F1–F10
   - Row 2: 1–9 0 Bksp

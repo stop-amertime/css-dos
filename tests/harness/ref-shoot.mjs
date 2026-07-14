@@ -42,10 +42,10 @@ if (mode !== 0x13) {
 }
 
 // Mode 13h: 320x200 palette-indexed at 0xA0000.
-// DAC: 6-bit RGB triples at 0x100000 — 768 bytes. But ref-machine has 1MB RAM
+// DAC: 6-bit RGB triples at 0x100000 - 768 bytes. But ref-machine has 1MB RAM
 // (no out-of-1MB), so DAC won't be there. It would have come via OUT 0x3C9
 // writes which the JS emulator (via PIC?) probably ignores. Fall back to
-// reading port output history — for now use the standard VGA boot palette.
+// reading port output history - for now use the standard VGA boot palette.
 // Actually js8086 has no OUT 0x3C9 dispatch, so DAC writes are no-ops.
 // We need to either: (a) wire OUT 0x3C9 to a side buffer, or (b) just use the
 // hardcoded VGA palette as an approximation.

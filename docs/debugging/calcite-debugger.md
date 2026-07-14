@@ -11,7 +11,7 @@ or the harness pipeline.
 
 When you do drive the debugger, jump straight to
 [Agent-oriented tooling](../../../calcite/docs/debugger.md#agent-oriented-tooling)
-in the calcite docs — it lists the MCP tools added for agentic
+in the calcite docs - it lists the MCP tools added for agentic
 debugging (`inspect_packed_cell`, `compare_paths`, `watchpoint`,
 async `run_until`, multi-session side-by-side diffs) and the
 workflow that goes with them. Harness wrappers for each tool live in
@@ -57,9 +57,9 @@ exploration.
 | `trace_property` | `POST /trace-property` | Trace compiled execution of a property |
 | `dump_ops` | `POST /dump-ops` | Dump raw compiled ops in range |
 | `send_key` | `POST /keyboard` | Set keyboard CSS property |
-| `watchpoint` | — | Block until a memory address takes a value (or max_ticks) |
-| `inspect_packed_cell` | — | Decode a packed memory cell |
-| `run_until` | — | Async run-until-condition with tick ceiling. **No wall-clock cap** — see Budgets in [TESTING.md](../TESTING.md) |
+| `watchpoint` | - | Block until a memory address takes a value (or max_ticks) |
+| `inspect_packed_cell` | - | Decode a packed memory cell |
+| `run_until` | - | Async run-until-condition with tick ceiling. **No wall-clock cap** - see Budgets in [TESTING.md](../TESTING.md) |
 
 ## Typical workflow
 
@@ -82,7 +82,7 @@ curl -X POST localhost:3333/memory -d '{"addr":1024,"len":64}'
 ## When NOT to drive the debugger
 
 For "what's on screen at tick N" against a fresh cabinet, the daemon path is
-the wrong tool — it does ~1500 ticks/s and won't reach late ticks inside a
+the wrong tool - it does ~1500 ticks/s and won't reach late ticks inside a
 2-minute budget. Use `pipeline.mjs fast-shoot` (~375K ticks/s via
 `calcite-cli`) instead. See [TESTING.md](../TESTING.md) and the harness
 README for the budget rule.

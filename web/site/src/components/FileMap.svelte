@@ -1,9 +1,9 @@
 <script>
-  // FileMap — the Sokoban cabinet (~309 MB) drawn to scale, in file
+  // FileMap - the Sokoban cabinet (~309 MB) drawn to scale, in file
   // order. Sizes measured from a real build (see CABINET-ANATOMY.md).
-  // The CPU is a 3px red hairline with a zoom callout — that IS the
+  // The CPU is a 3px red hairline with a zoom callout - that IS the
   // point of the figure.
-  // [label, MB, colour, px width] — px pre-computed for a 680px bar
+  // [label, MB, colour, px width] - px pre-computed for a 680px bar
   const SEGS = [
     { x: 10,  w: 3,   c: '#aa0000' },  // CPU (exaggerated ~4x to be visible)
     { x: 13,  w: 14,  c: '#aa00aa' },  // pixel painter
@@ -17,13 +17,13 @@
   ];
 
   const LEGEND = [
-    { c: '#aa0000', label: 'the CPU — ~0.3 MB' },
-    { c: '#aa00aa', label: 'pixel painter — 6.5 MB' },
-    { c: '#aa5500', label: 'declarations — 32 MB' },
-    { c: '#00aaaa', label: 'memory read — 44 MB' },
-    { c: '#00aa00', label: 'floppy disk — 13 MB' },
-    { c: '#aaaaaa', label: 'staging sweeps (×3) — 43 MB' },
-    { c: '#0000aa', label: 'memory write rules — 171 MB' },
+    { c: '#aa0000', label: 'the CPU - ~0.3 MB' },
+    { c: '#aa00aa', label: 'pixel painter - 6.5 MB' },
+    { c: '#aa5500', label: 'declarations - 32 MB' },
+    { c: '#00aaaa', label: 'memory read - 44 MB' },
+    { c: '#00aa00', label: 'floppy disk - 13 MB' },
+    { c: '#aaaaaa', label: 'staging sweeps (×3) - 43 MB' },
+    { c: '#0000aa', label: 'memory write rules - 171 MB' },
   ];
 </script>
 

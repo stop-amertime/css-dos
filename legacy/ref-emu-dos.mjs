@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// ARCHIVED — 2026-04-18.
+// ARCHIVED - 2026-04-18.
 // Reference 8086 emulator for the microcode-BIOS DOS path (V3 era).
 // Superseded by conformance/ref-muslin.mjs when V4 went back to an
 // assembly BIOS. Not used by any current tool. Kept as a reference.
@@ -77,7 +77,7 @@ for (let i = 0; i < biosBytes.length; i++) {
   memory[BIOS_LINEAR + i] = biosBytes[i];
 }
 
-// IVT is NOT pre-populated — the init stub sets it up at runtime
+// IVT is NOT pre-populated - the init stub sets it up at runtime
 
 // --- Peripherals ---
 const pic = new PIC();

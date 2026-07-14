@@ -1,4 +1,4 @@
-# DOS Shell cart — program provenance
+# DOS Shell cart - program provenance
 
 All binaries are unmodified FreeDOS 1.3 repository packages
 (`ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/1.3/`),

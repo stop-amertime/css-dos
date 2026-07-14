@@ -11,7 +11,7 @@
 // Open the printed URL, e.g.:
 //   http://localhost:8765/?cabinet=/cabinets/calcite/output/bootle-ctest.css
 //
-// Intentionally minimal — no auth, no caching tricks, no WASM. A separate
+// Intentionally minimal - no auth, no caching tricks, no WASM. A separate
 // server exists in calcite/ with more features.
 
 import { createServer } from 'node:http';

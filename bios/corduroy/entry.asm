@@ -1,4 +1,4 @@
-; entry.asm — CSS-BIOS entry point at F000:0000
+; entry.asm - CSS-BIOS entry point at F000:0000
 ;
 ; Layout: this file is first in the linker output so its start lands at
 ; F000:0000 (matching [org 0] convention of current asm BIOS).
@@ -6,7 +6,7 @@
 ; NASM with [bits 16] [org 0]. Produces a COFF/OMF object for wlink.
 
 [bits 16]
-[cpu 8086]      ; refuse 186+ encodings — our CPU core is pure 8086
+[cpu 8086]      ; refuse 186+ encodings - our CPU core is pure 8086
 
 global _start
 global bios_halt
@@ -30,9 +30,9 @@ section _TEXT public align=1 class=CODE use16
 ; The first 18 bytes of _start are a fixed-layout preamble that
 ; doubles as an EMS detection magic block:
 ;
-;   0x00..0x01  short JMP +16 — skip over the magic to real init.
+;   0x00..0x01  short JMP +16 - skip over the magic to real init.
 ;   0x02..0x09  NOP padding (8 bytes).
-;   0x0A..0x11  "EMMXXXX0" — EMS driver name. DOOM8088 (and any
+;   0x0A..0x11  "EMMXXXX0" - EMS driver name. DOOM8088 (and any
 ;               EMS-aware DOS program) detects EMS by reading INT 67h's
 ;               IVT segment and checking offset 0x0A for this magic.
 ;               INT 67h is hooked into BIOS_SEG (= F000) by install_ivt,
@@ -41,7 +41,7 @@ section _TEXT public align=1 class=CODE use16
 ;               handlers.asm.
 ;   0x12+       Real init: stack setup, install_ivt, etc.
 ;
-; This is a faked installation — no real EMS pages. The dispatcher
+; This is a faked installation - no real EMS pages. The dispatcher
 ; returns success for the calls DOOM8088 makes during init, with no
 ; actual backing storage. Without this block, DOOM aborts at "Not
 ; enough XMS available" (DOOM8088's loosely-named EMS check) and
@@ -88,15 +88,15 @@ _start:
     xor ax, ax
     mov es, ax
 
-    ; Call into C. Small model near call — bios_init lives in the same
+    ; Call into C. Small model near call - bios_init lives in the same
     ; code segment (F000) as this stub.
     call bios_init_
 
     ; Hand off. boot_mode (in handlers.asm, patched at build time via
     ; the 'BTMD' anchor) selects between the two paths:
-    ;   0 — direct jump to the kernel the transpiler preloaded at
+    ;   0 - direct jump to the kernel the transpiler preloaded at
     ;       0060:0000 (EDR-DOS, the default; DRBIO convention BL=drive).
-    ;   1 — real bootstrap: INT 19h reads the floppy's boot sector
+    ;   1 - real bootstrap: INT 19h reads the floppy's boot sector
     ;       (LBA 0) to 0000:7C00 and jumps to it (boot.os "msdos4").
     sti
     cmp byte [cs:boot_mode], 0
@@ -108,7 +108,7 @@ _start:
 .bootstrap:
     int 0x19
 
-; Halt routine — unreachable under normal operation, present for debugger
+; Halt routine - unreachable under normal operation, present for debugger
 ; visibility if bios_init ever returns unexpectedly.
 bios_halt:
     cli

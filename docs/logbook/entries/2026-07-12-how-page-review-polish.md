@@ -1,4 +1,4 @@
-# 2026-07-12 — How page: fresh-reader review + copy polish
+# 2026-07-12 - How page: fresh-reader review + copy polish
 
 **LANDED** `72b4e16` (on owner edits `c383aae`).
 

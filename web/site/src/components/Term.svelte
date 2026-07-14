@@ -1,5 +1,5 @@
 <script>
-  // Term — an inline defined word: reads as normal text with a subtle
+  // Term - an inline defined word: reads as normal text with a subtle
   // dotted underline; hovering, tapping or focusing it shows the
   // definition in a small card. The card is position:fixed (anchored
   // off getBoundingClientRect) so the wizard's scroll band can't clip

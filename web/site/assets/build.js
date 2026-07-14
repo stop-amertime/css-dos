@@ -5,7 +5,7 @@
 import { buildCabinetInBrowser } from '/browser-builder/main.mjs';
 import { saveCabinet, purgeCabinets } from '/browser-builder/storage.mjs';
 
-// Cabinets are ephemeral — evict on tab unload so nothing persists across
+// Cabinets are ephemeral - evict on tab unload so nothing persists across
 // browser sessions. `pagehide` fires for both close and bfcache transitions;
 // the purge itself is fire-and-forget (Cache Storage handles the abort).
 window.addEventListener('pagehide', () => { purgeCabinets(); });
@@ -28,10 +28,10 @@ function setStatus(msg) {
 }
 
 // ── Source state: where the bytes for the next build come from ───────────────
-//   'file'   — single .com/.exe via #com-file
-//   'folder' — webkitdirectory upload via #dir-file
-//   'cart'   — a built-in cart from /carts/<name>/, fetched server-side
-//   null     — nothing picked yet
+//   'file'   - single .com/.exe via #com-file
+//   'folder' - webkitdirectory upload via #dir-file
+//   'cart'   - a built-in cart from /carts/<name>/, fetched server-side
+//   null     - nothing picked yet
 let activeSource = null;
 // When activeSource === 'cart', this holds { name, files: [{name,bytes}],
 // program: <parsed program.json or null> }.
@@ -39,7 +39,7 @@ let activeCart = null;
 
 // For folder uploads, derive the on-floppy name from webkitRelativePath.
 // We strip the user-picked folder (first segment) and keep ONE level of
-// subdirectory — mkfat12 supports DATA\FILE.DAT but not deeper nesting.
+// subdirectory - mkfat12 supports DATA\FILE.DAT but not deeper nesting.
 // Deeper paths are flattened into the first subdir to avoid silent data loss.
 function relativeCartName(file) {
   const rel = file.webkitRelativePath || file.name;
@@ -91,7 +91,7 @@ function suggestDefaultRunCommand() {
   }
 }
 
-// ── Cart picker — fetch /_carts.json, render radios, prefill form ────────────
+// ── Cart picker - fetch /_carts.json, render radios, prefill form ────────────
 
 async function loadCartList() {
   let carts = [];
@@ -128,7 +128,7 @@ async function loadCartList() {
     if (ev.target?.name !== 'cart') return;
     const name = ev.target.value;
     if (!name) {
-      // (custom) selected — clear cart state, leave file/folder pickers untouched.
+      // (custom) selected - clear cart state, leave file/folder pickers untouched.
       activeCart = null;
       if (activeSource === 'cart') {
         activeSource = null;
@@ -162,7 +162,7 @@ async function selectCart(name, carts) {
       const res = await fetch(url);
       if (!res.ok) throw new Error(`fetch ${url} failed: ${res.status}`);
       const buf = new Uint8Array(await res.arrayBuffer());
-      // Browser builder accepts at most one subdir level — same as
+      // Browser builder accepts at most one subdir level - same as
       // relativeCartName above. Use backslash join to match the FAT path.
       const onDisk = rel.includes('/') ? rel.replace('/', '\\') : rel;
       return { name: onDisk, bytes: buf };
@@ -238,7 +238,7 @@ $('dir-file').addEventListener('change', () => {
   $('file-name').textContent = `${files.length} file${files.length === 1 ? '' : 's'} from folder`;
   $('start').disabled = false;
   refreshDosOnlyRows();
-  // If the user dropped a folder containing a program.json, absorb it —
+  // If the user dropped a folder containing a program.json, absorb it -
   // matches the cart-picker flow.
   const pj = [...files].find(f => f.name === 'program.json');
   if (pj) {
@@ -308,7 +308,7 @@ $('start').addEventListener('click', async () => {
   $('start').disabled = true;
   setStatus('Building...');
 
-  // Evict any cabinet left over from a previous build before we start — if
+  // Evict any cabinet left over from a previous build before we start - if
   // this build fails partway the player tab must not pick up stale bytes.
   await purgeCabinets();
 
@@ -323,7 +323,7 @@ $('start').addEventListener('click', async () => {
   const preset = radioValue('preset');
   // The Run field is the literal command line CONFIG.SYS hands to
   // COMMAND.COM via /K. Empty = bare prompt. The cart never runs as the
-  // shell directly — that path was deleted on 2026-04-27.
+  // shell directly - that path was deleted on 2026-04-27.
   const runCommand = ($('run-cmd')?.value || '').trim();
   const memorySel = radioValue('memory');
   const isDos = preset !== 'hack';
@@ -335,7 +335,7 @@ $('start').addEventListener('click', async () => {
     memoryOverride.cgaGfx  = $('mem-cgaGfx').checked;
   }
   // Build extraManifest by deep-merging cart program.json under the form's
-  // explicit overrides — so the form always wins over what the cart says.
+  // explicit overrides - so the form always wins over what the cart says.
   // The browser builder will deep-merge this on top of the preset.
   const extraManifest = mergeManifest(cartProgram ?? {}, {
     ...(Object.keys(memoryOverride).length ? { memory: memoryOverride } : {}),
@@ -411,7 +411,7 @@ $('start').addEventListener('click', async () => {
     await saveCabinet(blob);
     new BroadcastChannel('cssdos-bridge').postMessage({ type: 'cabinet-updated', eager });
   } catch (e) {
-    console.error('[build] saveCabinet failed — the player cannot run this cabinet:', e);
+    console.error('[build] saveCabinet failed - the player cannot run this cabinet:', e);
   }
 
   if (document.body.classList.contains('split')) {

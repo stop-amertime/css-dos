@@ -14,7 +14,7 @@
   const TITLES = ['About', 'Build cabinet', 'Play'];
 
   $effect(() => {
-    document.title = nav.atStart ? 'CSS-DOS' : `CSS-DOS — ${TITLES[nav.step - 1]}`;
+    document.title = nav.atStart ? 'CSS-DOS' : `CSS-DOS - ${TITLES[nav.step - 1]}`;
   });
 
   function onkeydown(e) {

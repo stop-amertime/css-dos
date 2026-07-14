@@ -6,7 +6,7 @@ org 0x100
     xor ax, ax
     mov es, ax
 
-    ; === Test 1: REP STOSB — fill 4 bytes at 0x300 with 0xAA ===
+    ; === Test 1: REP STOSB - fill 4 bytes at 0x300 with 0xAA ===
     mov di, 0x300
     mov cx, 4
     mov al, 0xAA
@@ -16,7 +16,7 @@ org 0x100
     mov bx, cx             ; BX = 0 (CX after REP)
     mov si, di             ; SI = 0x304 (DI after REP)
 
-    ; === Test 2: REP STOSW — fill 3 words at 0x310 with 0xBBCC ===
+    ; === Test 2: REP STOSW - fill 3 words at 0x310 with 0xBBCC ===
     mov di, 0x310
     mov cx, 3
     mov ax, 0xBBCC
@@ -24,7 +24,7 @@ org 0x100
     ; Expected: CX=0, DI=0x316
     mov bp, di             ; BP = 0x316
 
-    ; === Test 3: REP MOVSB — copy 4 bytes from 0x300 to 0x320 ===
+    ; === Test 3: REP MOVSB - copy 4 bytes from 0x300 to 0x320 ===
     mov si, 0x300
     mov di, 0x320
     mov cx, 4
@@ -34,7 +34,7 @@ org 0x100
     mov ax, [0x320]        ; AX = 0xAAAA (first two copied bytes)
     mov dx, ax             ; DX = 0xAAAA (save)
 
-    ; === Test 4: REP LODSB — load 3 bytes from 0x300, AL gets last ===
+    ; === Test 4: REP LODSB - load 3 bytes from 0x300, AL gets last ===
     mov si, 0x300
     mov cx, 3
     rep lodsb
@@ -42,7 +42,7 @@ org 0x100
     ; AX high byte is from the STOSW value, low byte = 0xAA
     mov bx, ax             ; BX = AX after LODSB (AL=0xAA)
 
-    ; === Test 5: REP with CX=0 — should skip entirely ===
+    ; === Test 5: REP with CX=0 - should skip entirely ===
     mov cx, 0
     mov di, 0x330
     mov al, 0xFF
@@ -51,7 +51,7 @@ org 0x100
     ; DI should still be 0x330
     mov si, di             ; SI = 0x330
 
-    ; === Test 6: REPE CMPSB — compare matching then mismatching ===
+    ; === Test 6: REPE CMPSB - compare matching then mismatching ===
     ; Set up: 0x340 = "ABCD", 0x350 = "ABXD"
     mov byte [0x340], 'A'
     mov byte [0x341], 'B'
@@ -72,7 +72,7 @@ org 0x100
     ; Store results for trace inspection
     mov dx, cx             ; DX = 1 (remaining CX)
 
-    ; === Test 7: REPNE SCASB — scan for 'C' in "ABCD" at 0x340 ===
+    ; === Test 7: REPNE SCASB - scan for 'C' in "ABCD" at 0x340 ===
     mov di, 0x340
     mov cx, 4
     mov al, 'C'

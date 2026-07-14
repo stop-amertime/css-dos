@@ -18,9 +18,9 @@ What moved into Vite (`web/site/vite.config.js` +
 - dev.mjs's stdin `regen` → `npm run regen` (split-regen + raw-regen).
 
 Consumers migrated / verified against Vite:
-- websmoke (`tests/harness/web-boot.playwright.mjs`) now spawns Vite —
+- websmoke (`tests/harness/web-boot.playwright.mjs`) now spawns Vite -
   **websmoke PASS 3/3** (hello-text, dos-writable, msdos4).
-- kbd-e2e drives the legacy `build.html`, which Vite serves —
+- kbd-e2e drives the legacy `build.html`, which Vite serves -
   **kbd-e2e PASS** (build→ingame + hold-wire chord), so the STATUS
   "needs the legacy dev server" gotcha is deleted, verified not assumed.
 - bench README, CLAUDE.md quick start/worktree notes, building.md,
@@ -29,6 +29,6 @@ Consumers migrated / verified against Vite:
 
 Known semantic differences vs dev.mjs (accepted): unknown paths get
 Vite's SPA fallback (200 index.html, not 404); no gzip in dev
-(localhost; dev.mjs gzipSync'd 300 MB cabinets — strictly worse);
+(localhost; dev.mjs gzipSync'd 300 MB cabinets - strictly worse);
 Vite injects its HMR client into served .html (harmless, kbd-e2e
 proves it).

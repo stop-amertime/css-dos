@@ -1,4 +1,4 @@
-// ensure-fresh.mjs — staleness check + rebuild for built artifacts.
+// ensure-fresh.mjs - staleness check + rebuild for built artifacts.
 //
 // The contract: any consumer of a built artifact (cabinet, prebake bin,
 // calcite-wasm pkg, ...) calls `ensureFresh(spec)` before reading the
@@ -9,7 +9,7 @@
 //
 // This replaces the implicit "agents need to know to run prebake.mjs after
 // editing bios/corduroy/" knowledge with a single primitive. Same shape
-// for cabinets, prebake bins, calcite-wasm — describe inputs once, ensure
+// for cabinets, prebake bins, calcite-wasm - describe inputs once, ensure
 // freshness everywhere.
 //
 // Usage:
@@ -21,13 +21,13 @@
 //     rebuild: 'node builder/build.mjs carts/doom8088 -o tests/bench/cache/doom8088.css',
 //   });
 //
-// Globs use a small in-house matcher (not minimatch — keeps deps small);
+// Globs use a small in-house matcher (not minimatch - keeps deps small);
 // supports `**`, `*`, and literal paths. Files starting with `.` are
 // skipped. mtime resolution is filesystem-dependent; on NTFS it's
 // 100ns precision so this is fine for sub-second rebuilds.
 //
 // `inputs` may also include other ensureFresh specs by name to express
-// transitive deps — e.g. the cabinet depends on `corduroy.bin` which
+// transitive deps - e.g. the cabinet depends on `corduroy.bin` which
 // depends on `bios/corduroy/`. ensureFresh resolves those as a DAG, which
 // means each artifact rebuilds at most once per call.
 
@@ -86,11 +86,11 @@ function walkFiles(dir, pred = () => true, out = []) {
 // Supports literal paths, `path/**` (everything under), `path/*.ext`.
 function expandPattern(pat) {
   const abs = repoPath(pat);
-  // `path/**` — everything under path
+  // `path/**` - everything under path
   if (pat.endsWith('/**')) {
     return walkFiles(repoPath(pat.slice(0, -3)));
   }
-  // `path/*.ext` — files in path matching extension
+  // `path/*.ext` - files in path matching extension
   const lastSlash = pat.lastIndexOf('/');
   const last = lastSlash >= 0 ? pat.slice(lastSlash + 1) : pat;
   if (last.startsWith('*.')) {
@@ -135,7 +135,7 @@ export async function ensureFresh(spec, opts = {}) {
   const filePatterns = [];
   for (const inp of inputs) {
     if (typeof inp === 'string' && REGISTRY.has(inp)) {
-      // Transitive dep — ensure that artifact first.
+      // Transitive dep - ensure that artifact first.
       const sub = REGISTRY.get(inp);
       await ensureFresh(sub, opts);
       filePatterns.push(sub.output);

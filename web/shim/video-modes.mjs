@@ -1,6 +1,6 @@
 // Video-mode decode table for CSS-DOS players.
 //
-// The CSS cabinet doesn't know or care about video modes — the guest
+// The CSS cabinet doesn't know or care about video modes - the guest
 // software writes bytes to VRAM (0xA0000 for Mode 13h, 0xB8000 for text
 // and CGA gfx) and the BIOS stores the active mode byte at BDA 0x0449.
 // This file is what turns that raw state into pixels on the player's
@@ -11,10 +11,10 @@
 // kind:'text'|'mode13'|'cga4'|'cga2' accordingly.
 //
 // Addresses:
-//   0x0449 — BDA video mode byte (what get_video_mode() reads)
-//   0x04F2 — BDA intra-app shadow of the RAW requested mode (before BIOS
+//   0x0449 - BDA video mode byte (what get_video_mode() reads)
+//   0x04F2 - BDA intra-app shadow of the RAW requested mode (before BIOS
 //            remap). Lets the player warn about unimplemented modes.
-//   0x04F3 — kiln shadow of OUT 0x3D9 (CGA palette register). Bits:
+//   0x04F3 - kiln shadow of OUT 0x3D9 (CGA palette register). Bits:
 //              3..0  border colour / gfx-mode colour 0
 //              4     intensity (bright/dim palette)
 //              5     palette set (0=green/red/yellow, 1=cyan/magenta/white)
@@ -29,18 +29,18 @@ export const VGA_PALETTE_U32 = new Uint32Array([
 ]);
 
 // 70 Hz VGA retrace cadence at the 4.77 MHz 8086 timebase. Same constant
-// as kiln/patterns/misc.mjs (CYCLES_PER_FRAME) — used here for blink
+// as kiln/patterns/misc.mjs (CYCLES_PER_FRAME) - used here for blink
 // phases so cursor / attribute-bit-7 blink advance on simulated-time.
 export const CYCLES_PER_FRAME = 68182;
 
-// One entry per renderable mode. Unknown modes are not in the table —
+// One entry per renderable mode. Unknown modes are not in the table -
 // pickMode() returns null and the player falls back to a warning.
 //
 // Fields:
-//   kind     — decoder flavour (see below)
-//   width, height — pixel output geometry
-//   vramAddr — base address the decoder reads
-//   textCols, textRows — only for kind:'text'; drives the font-rasteriser grid.
+//   kind     - decoder flavour (see below)
+//   width, height - pixel output geometry
+//   vramAddr - base address the decoder reads
+//   textCols, textRows - only for kind:'text'; drives the font-rasteriser grid.
 export const MODE_TABLE = {
   0x00: { kind: 'text',   width: 320, height: 400, vramAddr: 0xB8000, textCols: 40, textRows: 25 },
   0x01: { kind: 'text',   width: 320, height: 400, vramAddr: 0xB8000, textCols: 40, textRows: 25 },
@@ -92,13 +92,13 @@ export function pickMode(modeByte) {
 //   palette 0 (bit 5 = 0): 1=green 2=red     3=brown/yellow
 //   palette 1 (bit 5 = 1): 1=cyan  2=magenta 3=light-grey/white
 // In real CGA "brown" becomes "yellow" when the intensity bit flips for
-// colour 3 — we use the same VGA_PALETTE_U32 indices DOSBox picks
+// colour 3 - we use the same VGA_PALETTE_U32 indices DOSBox picks
 // (index 6 = brown, 14 = yellow).
 //
 // Mode 0x05 is bit-identical to 0x04 except the CGA colour-burst signal
 // is disabled; on a composite monitor this collapses the three colours
 // to three shades of grey. On TTL (digital RGB) monitors mode 5 and
-// mode 4 look the same — but games that request mode 5 want the mono
+// mode 4 look the same - but games that request mode 5 want the mono
 // look, so we render mode 5 with a black/dark-grey/light-grey/white
 // palette regardless of the palette-register bits. The background byte
 // (0x04F3 bits 3..0) is honoured in mode 5 just like mode 4.
@@ -165,14 +165,14 @@ export function decodeCga4(vram16k, paletteReg, outRGBA, opts = {}) {
 
 // ---------- CGA mode 0x06 decoder ----------
 //
-// 640×200 at 1 bit per pixel — CGA's "high res" mode. Same even/odd
+// 640×200 at 1 bit per pixel - CGA's "high res" mode. Same even/odd
 // scanline interleave as mode 0x04, and the same 16 KB aperture at
 // 0xB8000 (plane 0 at 0x0000, plane 1 at 0x2000), but now each byte
 // packs 8 pixels (MSB-first, bit 7 = leftmost).
 //
 // Colours: the IBM CGA spec says colour 0 is fixed black and colour 1
 // is white. On a real card the palette register at port 0x3D9 is
-// largely ignored in mode 6 — the low nibble of that register does
+// largely ignored in mode 6 - the low nibble of that register does
 // pick the "foreground" colour on some CGA clones (and on later VGA
 // cards emulating CGA), so we honour bits 3..0 of the palette reg as
 // the colour-1 index. Bits 4/5 are unused. Colour 0 is always black.

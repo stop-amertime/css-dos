@@ -18,7 +18,7 @@ NAME:KIND:SPEC[:gate=NAME][:sample=VAR1,VAR2][:then=ACTION1+ACTION2+...]
 - Field separator is `:`.
 - `sample=` variables are `,`-separated.
 - `then=` actions are `+`-separated (so an action can carry `,` and `:`
-  in its own args — important for `dump=0xB8000,4000,C:\foo.bin`).
+  in its own args - important for `dump=0xB8000,4000,C:\foo.bin`).
 - Numbers are decimal or `0x`-prefixed.
 
 ## Kinds
@@ -32,18 +32,18 @@ NAME:KIND:SPEC[:gate=NAME][:sample=VAR1,VAR2][:then=ACTION1+ACTION2+...]
 | `cond`   | `TEST1[,TEST2…][,repeat]`            | all tests true (see below)           |
 | `halt`   | `addr=A`                             | byte at A becomes non-zero (halts)   |
 
-### `cond` — predicate watches
+### `cond` - predicate watches
 
 A `cond` watch fires when **all** TESTs are true. Three test forms:
 
-- `ADDR=VAL`     — byte at ADDR equals VAL
-- `ADDR!=VAL`    — byte at ADDR does not equal VAL
-- `pattern@BASE:STRIDE:WINDOW=NEEDLE` — NEEDLE bytes appear in the
+- `ADDR=VAL`     - byte at ADDR equals VAL
+- `ADDR!=VAL`    - byte at ADDR does not equal VAL
+- `pattern@BASE:STRIDE:WINDOW=NEEDLE` - NEEDLE bytes appear in the
   WINDOW-byte region starting at BASE, sampled every STRIDE bytes
   (use STRIDE=2 for char-only scans of text VRAM where attrs interleave)
 
 Default behaviour: fire **once**, then disable. Add the literal token
-`repeat` to the test list to switch to **sustain** mode — fires on
+`repeat` to the test list to switch to **sustain** mode - fires on
 every gated poll while the predicate holds, stops re-firing when it
 flips false, re-arms when it flips true again.
 
@@ -110,5 +110,5 @@ ingame:cond:0x3a5af=1,0x3a3c4=0:gate=poll:then=emit+halt
 The CSS-DOS-side bench profiles in `tests/bench/profiles/` are the
 intended top-level consumer. Anything that knows about a *specific
 cabinet's* addresses (Doom's `_g_gamestate`, BDA[0x449]) belongs in
-the profile, not in calcite — calcite stays domain-agnostic per the
+the profile, not in calcite - calcite stays domain-agnostic per the
 cardinal rule.

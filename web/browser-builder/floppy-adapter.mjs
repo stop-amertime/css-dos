@@ -30,10 +30,10 @@ import { resolveFloppySize } from '../../builder/lib/sizes.mjs';
  *                                           open("EMMXXXX0") see EMS as
  *                                           available. Caller must also pass
  *                                           emsdrvBytes; otherwise this throws.
- * @param {string|number} [opts.sizeRequest] Manifest disk.size — 'autofit',
+ * @param {string|number} [opts.sizeRequest] Manifest disk.size - 'autofit',
  *                                           a preset string like '720K', or a
  *                                           number of bytes. Defaults to 'autofit'.
- * @param {number}     [opts.sectorsPerCluster] Manifest disk.sectorsPerCluster —
+ * @param {number}     [opts.sectorsPerCluster] Manifest disk.sectorsPerCluster -
  *                                           minimum cluster size (power of 2).
  *                                           Passed through to buildFat12Image;
  *                                           keeps browser builds in lockstep
@@ -72,7 +72,7 @@ export function buildFloppyInBrowser({
   // instead of dumping raw ESC sequences to VRAM.
   // The shell is always COMMAND.COM /P (permanent); /K runs the cart's
   // command and stays at the prompt afterwards.
-  // SWITCHES=/F skips the ~2s F5/F8 startup delay — we don't need it in the emulator.
+  // SWITCHES=/F skips the ~2s F5/F8 startup delay - we don't need it in the emulator.
   const trimmed = (runCommand ?? '').trim();
   const shellLine = trimmed
     ? `SHELL=\\COMMAND.COM /P /K ${trimmed}\n`
@@ -134,11 +134,11 @@ export function buildFloppyInBrowser({
 }
 
 // Canonical FAT media descriptor per standard floppy size (by total
-// sectors) — mirror of builder/stages/floppy.mjs MEDIA_BYTES.
+// sectors) - mirror of builder/stages/floppy.mjs MEDIA_BYTES.
 const MEDIA_BYTES = { 720: 0xFD, 1440: 0xF9, 2400: 0xF9, 2880: 0xF0, 5760: 0xF0 };
 
 /**
- * Build a bootable MS-DOS 4.00 floppy in the browser — mirror of
+ * Build a bootable MS-DOS 4.00 floppy in the browser - mirror of
  * builder/stages/floppy.mjs buildMsdos4Floppy. See that function for the
  * layout constraints (IO.SYS/MSDOS.SYS must be the first two root
  * entries, AUTOEXEC.BAT synthesis, real MSBOOT boot sector).
@@ -193,7 +193,7 @@ export function buildMsdos4FloppyInBrowser({
       source: `synthesized: ${autoexecContent.trimEnd().replace(/\r\n/g, ' / ')}`,
     });
   } else if (trimmed) {
-    throw new Error('boot.runCommand and a cart-supplied AUTOEXEC.BAT are mutually exclusive under boot.os "msdos4" — put the command in your AUTOEXEC.BAT.');
+    throw new Error('boot.runCommand and a cart-supplied AUTOEXEC.BAT are mutually exclusive under boot.os "msdos4" - put the command in your AUTOEXEC.BAT.');
   }
 
   const contentBytes = layout.reduce((n, f) => n + f.bytes.length, 0);

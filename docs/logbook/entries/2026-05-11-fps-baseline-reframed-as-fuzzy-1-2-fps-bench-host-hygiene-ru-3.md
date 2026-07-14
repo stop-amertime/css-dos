@@ -1,10 +1,10 @@
-## 2026-05-11 — FPS baseline reframed as fuzzy ~1-2 fps; bench-host hygiene rule
+## 2026-05-11 - FPS baseline reframed as fuzzy ~1-2 fps; bench-host hygiene rule
 
 User observed ~1-2 fps in interactive Doom8088 on the merged-master
 build (post `old-kbd` merge), inconsistent with the **1.70 fps**
 "baseline" quoted in STATUS.md and tests/bench/README.md.
 
-Re-read the source — the 1.70 figure was the median of a 3-run
+Re-read the source - the 1.70 figure was the median of a 3-run
 sample whose values were 0.70 / 1.80 / 0.85 (commit `64f1146`). A
 ±2× spread is not a stable baseline; picking the middle reading
 hid the noise. STATUS.md, tests/bench/README.md, and the Open-work

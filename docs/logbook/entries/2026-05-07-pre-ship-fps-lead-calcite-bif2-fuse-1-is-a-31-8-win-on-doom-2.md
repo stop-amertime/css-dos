@@ -1,4 +1,4 @@
-## 2026-05-07 — pre-ship FPS lead: **`CALCITE_BIF2_FUSE=1` is a 31.8 % win on doom-loading**
+## 2026-05-07 - pre-ship FPS lead: **`CALCITE_BIF2_FUSE=1` is a 31.8 % win on doom-loading**
 
 After lead #1 (widen `fuse_loadstate_branch`) was retired (entry
 below), I asked calcite for a **runtime** op-adjacency profile via
@@ -21,31 +21,31 @@ all within ~1 % of each other; 200K ticks each):
 
 `BranchIfNotEqLit2` is **already implemented** (`fuse_diff_slot_bifnel_pairs`
 in `crates/calcite-core/src/compile.rs:3821`, op variant at compile.rs:359),
-but **off by default** — gated behind `CALCITE_BIF2_FUSE` because the
+but **off by default** - gated behind `CALCITE_BIF2_FUSE` because the
 2026-04-30 measurement on the reference cabinet was net wash.
 
 Re-tested on the current doom8088 cabinet:
 
 ```
                      ticks/sec    runMsToInGame   throughput Δ
-baseline (median-3)  142 656      241 872 ms       —
+baseline (median-3)  142 656      241 872 ms       -
 CALCITE_BIF2_FUSE=1  210 155      164 878 ms      +47.3 %
                                   −31.8 % wall
 ```
 
 794 fusions fire on doom8088 (vs 0 baseline, vs 50 for
 `fuse_loadstate_branch`). Smoke 7/7 PASS with `BIF2_FUSE=1`
-(`dos-smoke`, `hello-text`, `cga4/5/6`, `zork1`, `montezuma` —
+(`dos-smoke`, `hello-text`, `cga4/5/6`, `zork1`, `montezuma` -
 107.9 s wall).
 
 **This eclipses the entire pre-ship FPS target in one env-var flip.**
 3 FPS → 4 FPS at the steady-state ratio (ticks/sec moved from 142 K
-to 210 K, a 1.47× — the brief target was "4–5+ FPS", i.e. 1.33–1.67×).
+to 210 K, a 1.47× - the brief target was "4–5+ FPS", i.e. 1.33–1.67×).
 
 The 2026-04-30 net-wash result was specific to the reference
 cabinet's adjacency profile. doom8088 has 794 candidate pairs
 instead of "1330 with BIfNEL2 fusion offset by `pc += 2; continue;`
-cost" — the dispatch savings dominate at this candidate count.
+cost" - the dispatch savings dominate at this candidate count.
 
 **Where it goes from here.** Recommend flipping `CALCITE_BIF2_FUSE`
 to ON-by-default after one more cabinet bench (zork-big or another

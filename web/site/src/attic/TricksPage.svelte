@@ -1,5 +1,5 @@
 <script>
-  // TricksPage — "How it works" sub-page: the recurring workarounds,
+  // TricksPage - "How it works" sub-page: the recurring workarounds,
   // for the curious. Facts from CABINET-ANATOMY.md ("Recurring tricks").
   import '../styles/_fragments/anatomy.css';
   import SignDemo from './SignDemo.svelte';
@@ -57,7 +57,7 @@
   </p>
   <pre class="byte-example"><code>  <span class="tok-num">202</span>  =  1 1 0 0 1 0 1 0
   <span class="tok-num">172</span>  =  1 0 1 0 1 1 0 0
-          <span class="tok-comment">— multiply each column —</span>
+          <span class="tok-comment">- multiply each column -</span>
   <span class="tok-num">136</span>  =  1 0 0 0 1 0 0 0</code></pre>
   <p>
     OR and XOR fall out of the same idea: per bit,

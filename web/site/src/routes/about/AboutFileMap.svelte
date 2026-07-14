@@ -1,12 +1,12 @@
 <script>
-  // The file map — the cabinet bar as a clickable map, the file's
+  // The file map - the cabinet bar as a clickable map, the file's
   // sections as a carousel. The current section lives on the router
-  // (nav.section) so it's addressable — /about/file/clock deep-links.
+  // (nav.section) so it's addressable - /about/file/clock deep-links.
   //
-  // Page anatomy (owner call, 2026-07-12): ONE code pane at the top —
+  // Page anatomy (owner call, 2026-07-12): ONE code pane at the top -
   // coloured border, big header (name + size + code icon, the only
   // place they appear) with the section's real code (TreeView) inside
-  // it — then, after a short gutter, the explanation on the tinted
+  // it - then, after a short gutter, the explanation on the tinted
   // background with no border. The tree data is mapped here so the
   // Section* components carry only the explanation.
   import { fly } from 'svelte/transition';
@@ -48,14 +48,14 @@
     keys: KEYS_TREE, screen: SCREEN_TREE, decl: DECL_TREE,
     memw: MEMW_TREE, memr: MEMR_TREE, disk: DISK_TREE, clock: CLOCK_TREE,
   };
-  // The map page isn't a file section (no bytes, no bar segment) — it
+  // The map page isn't a file section (no bytes, no bar segment) - it
   // gets a header-only code pane and leaves the whole bar lit.
   const MAP_GROUP = { id: 'map', label: 'The whole file', size: '309 MB', c: '#555555' };
   const curGroup = $derived(GROUPS.find((x) => x.id === nav.section) ?? MAP_GROUP);
   const CurSection = $derived(SECTIONS[nav.section]);
   const curTree = $derived(TREES[nav.section] ?? null);
   // First-visit hint: shown on every page of the carousel until the
-  // reader dismisses it (dismissal persists — router.svelte.js).
+  // reader dismisses it (dismissal persists - router.svelte.js).
   const hintLive = $derived(!nav.hintDismissed);
 </script>
 
@@ -91,7 +91,7 @@
 </div>
 
 <style>
-  /* This subpage opts out of the centred prose column — the cabinet
+  /* This subpage opts out of the centred prose column - the cabinet
      bar and anatomy pane want the full width.
 
      The PANE is the scroll container here, not .wiz-scroll: the bar +
@@ -100,7 +100,7 @@
      down to the pane (min-height:0 at every flex level or the column
      refuses to shrink). .wiz-scroll and .learn-step belong to the
      wizard shell, hence :global. The window-body padding also drops
-     here — the default 24/28px ring squeezed the pane. */
+     here - the default 24/28px ring squeezed the pane. */
   :global(.wiz-scroll:has(.subpage-filemap)) {
     overflow-y: hidden;
     display: flex;
@@ -123,7 +123,7 @@
     flex-direction: column;
   }
 
-  /* The scroll container below the bar. No chrome of its own — the
+  /* The scroll container below the bar. No chrome of its own - the
      code pane and explanation carry the colour. margin-top matches
      the connector tick CabinetBar drops onto its top edge. */
   .anatomy-pane {
@@ -136,8 +136,8 @@
     padding-right: 6px;   /* breathing room against the scrollbar */
   }
 
-  /* The code pane: the section's coloured border, one big header —
-     icon, title, size, carousel position — and the real code below a
+  /* The code pane: the section's coloured border, one big header -
+     icon, title, size, carousel position - and the real code below a
      tinted separator. */
   .code-pane {
     border: 2px solid var(--pane-c, var(--edit-black));
@@ -161,7 +161,7 @@
   }
   /* Header text takes the section's colour, darkened: the title a
      lot, the size less so, the icon matching the size (owner call,
-     2026-07-12 — plain black + red beside a coloured border read as
+     2026-07-12 - plain black + red beside a coloured border read as
      random). */
   .code-pane :global(.pane-icon) {
     width: 22px;

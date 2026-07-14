@@ -1,12 +1,12 @@
 // On-page health: can this browser run the player, and what is the
-// engine doing right now? Play.svelte renders both — console-only
+// engine doing right now? Play.svelte renders both - console-only
 // errors are invisible on mobile, which made failures undiagnosable.
 //
 // Two layers:
 // 1. Static capability probe (computed once at load): secure context,
 //    service workers, WASM. Any failure here means the player cannot
 //    work on this browser/host. NOTE deliberately absent:
-//    crossOriginIsolated/SharedArrayBuffer — the engine is
+//    crossOriginIsolated/SharedArrayBuffer - the engine is
 //    single-threaded wasm over postMessage and runs fine without
 //    isolation (verified end-to-end 2026-07-04, see logbook).
 // 2. Live bridge status: the boot shim announces its phase via the
@@ -26,7 +26,7 @@ const hardFailures = [];
 if (!cap.sw) {
   hardFailures.push(cap.secure
     ? 'This browser has no service worker support (some private/incognito modes disable it). The player streams its screen through a service worker.'
-    : 'This page is not served over HTTPS, so service workers are disabled — the player cannot stream frames. Open the site via its https:// address.');
+    : 'This page is not served over HTTPS, so service workers are disabled - the player cannot stream frames. Open the site via its https:// address.');
 }
 if (!cap.wasm) {
   hardFailures.push('This browser has no WebAssembly support, so the Calcite engine cannot run.');
@@ -34,11 +34,11 @@ if (!cap.wasm) {
 
 const softWarnings = [];
 if (!hardFailures.length && cap.deviceMemory && cap.deviceMemory <= 2) {
-  softWarnings.push(`This device reports ~${cap.deviceMemory} GB of RAM — large programs (Doom) may crash the tab. Small carts should still work.`);
+  softWarnings.push(`This device reports ~${cap.deviceMemory} GB of RAM - large programs (Doom) may crash the tab. Small carts should still work.`);
 }
 
 // Bridge status lines that mean something went wrong (calcite-bridge.js
-// postStatus vocabulary — keep in sync with web/shim/calcite-bridge.js).
+// postStatus vocabulary - keep in sync with web/shim/calcite-bridge.js).
 const ERROR_STATUS = /^(boot failed|compile error|engine error|keyboard input broken)/;
 
 class Health {

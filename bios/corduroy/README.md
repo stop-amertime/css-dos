@@ -24,15 +24,15 @@ Since 0.5.0, two boot paths, selected by the build-time-patched
 `boot_mode` byte ('BTMD' anchor in `handlers.asm`, patched by
 `builder/stages/kiln.mjs`):
 
-- `0` (default) — classic direct jump to the preloaded EDR-DOS kernel
+- `0` (default) - classic direct jump to the preloaded EDR-DOS kernel
   at 0060:0000.
-- `1` (`boot.os: "msdos4"` carts) — real **INT 19h** bootstrap: read
+- `1` (`boot.os: "msdos4"` carts) - real **INT 19h** bootstrap: read
   LBA 0 to 0000:7C00, verify 55AA, jump with DL=0. This runs the
   floppy's actual boot sector, which is how real MS-DOS 4.00 boots
   (MSBOOT → MSLOAD → IO.SYS → MSDOS.SYS → COMMAND.COM). INT 13h
   honours the ROM-BIOS register contract (AH=02h/03h preserve
   BX/CX/DX; CF returned via the stacked FLAGS) and AH=08h/15h fail
-  for any drive but 0 — MS-DOS depends on all of it (see
+  for any drive but 0 - MS-DOS depends on all of it (see
   `CHANGELOG.md` 0.5.0).
 
 ### Keyboard (INT 09h / INT 16h)
@@ -40,13 +40,13 @@ Since 0.5.0, two boot paths, selected by the build-time-patched
 Since 0.6.0, INT 09h is modifier-aware: Shift (2A/36), Ctrl (1D) and
 Alt (38) make/break update the BDA shift-flag byte at `0040:0017`
 (live via INT 16h AH=02h/12h) and are never buffered as key events.
-Character keys translate through the flag-selected table — Shift gives
+Character keys translate through the flag-selected table - Shift gives
 uppercase/US symbols, Ctrl gives control codes (Ctrl+C = 0x03, so the
 DOS break shortcut works; Ctrl+Enter = LF, Ctrl+Bksp = DEL), Alt
 buffers ASCII 0 with the scancode preserved. Break codes of normal
 keys are dropped (the ring buffer wants makes only). Combos must
 arrive via the player's hold wire (held modifier make, break deferred
-to hold-off): simultaneous `:active` presses do NOT chord — the
+to hold-off): simultaneous `:active` presses do NOT chord - the
 `--keyboard` wire is single-valued and a second key's make edge never
 fires while another key is down (verified 2026-07-07). Programs that
 hook INT 9 themselves (Prince of Persia, Doom8088) read raw
@@ -70,7 +70,7 @@ player-side UI.
 
 CGA mode 0x04 also needs `memory.cgaGfx: true` in the cart manifest so
 the builder emits the 16 KB aperture at `0xB8000–0xBC000`. Programs
-configure the palette via `OUT 0x3D9, AL` — kiln shadows that byte to
+configure the palette via `OUT 0x3D9, AL` - kiln shadows that byte to
 linear `0x04F3` for the renderer to pick up.
 
 ## Files

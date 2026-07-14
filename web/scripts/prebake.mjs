@@ -80,7 +80,7 @@ function bakeMuslin() {
   runNasm(['-f', 'bin', '-o', bin, asm, '-l', lst]);
   const bytes = readFileSync(bin);
   const listing = readFileSync(lst, 'utf8');
-  // Remove intermediate listing file — not a deliverable
+  // Remove intermediate listing file - not a deliverable
   try { unlinkSync(lst); } catch {}
   const entryOffset = findSymbol(listing, 'bios_init');
   if (entryOffset == null) throw new Error('muslin: could not find bios_init in listing');
@@ -99,7 +99,7 @@ function bakeMuslin() {
 }
 
 function bakeGossamer() {
-  // Gossamer ships as a checked-in .bin — just copy.
+  // Gossamer ships as a checked-in .bin - just copy.
   const src = resolve(repoRoot, 'bios', 'gossamer', 'gossamer.bin');
   const dst = join(prebakeDir, 'gossamer.bin');
   const bytes = readFileSync(src);

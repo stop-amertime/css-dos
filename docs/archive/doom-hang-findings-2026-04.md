@@ -1,6 +1,6 @@
-# Doom8088 hang — what we actually know
+# Doom8088 hang - what we actually know
 
-Session notes. No theories, no plans — just what sampling and reading
+Session notes. No theories, no plans - just what sampling and reading
 source established. Written for the agent who picks this up next.
 
 ## The observed symptom
@@ -19,7 +19,7 @@ source established. Written for the agent who picks this up next.
 
 1. Splash completes by ~tick 100k.
 2. At ~tick 397947 a `REP STOSB` at kernel linear 0x0A5A zeros linear
-   0xD6C..0x2782 (5126 bytes). This is part of kernel decompression —
+   0xD6C..0x2782 (5126 bytes). This is part of kernel decompression -
    zork hits the same STOSB at a similar tick. Not the bug.
 3. CPU continues, eventually lands at CS=0x0105:IP=0x0115 (linear
    0x1165) at tick ~513108.
@@ -28,7 +28,7 @@ source established. Written for the agent who picks this up next.
 5. At tick 514616+ IP is pinned at 0x1730. All registers identical
    tick-to-tick. Zero state changes. `cycleCount` stuck at 9,813,024.
 6. Bytes at linear 0x2780 in the running memory are `C0 11 70 00 FC 83 EC 16 55 ...`.
-   0xC0 is not a valid 8086 opcode — calcite sits on it producing no
+   0xC0 is not a valid 8086 opcode - calcite sits on it producing no
    state change, forever.
 
 ## How we got to `CS=0x0105:0x1730`
@@ -39,7 +39,7 @@ source established. Written for the agent who picks this up next.
 - The far pointer at linear 0x9EFA3 (= CS*16 + 0x8853) reads
   `15 01 05 01` → `0105:0115`.
 - That target matches a DOS device-driver entry. The loaded driver at
-  linear 0x1050 has header `FF FF FF FF 13 80 15 01 20 01 'CON     '` —
+  linear 0x1050 has header `FF FF FF FF 13 80 15 01 20 01 'CON     '` -
   ANSI.SYS's header, with strategy=0x0115 and interrupt=0x0120.
 - So the call is the kernel dispatching into ANSI.SYS's strategy entry.
   Normal kernel code, not runaway. Same mechanism zork uses.
@@ -52,7 +52,7 @@ source established. Written for the agent who picks this up next.
 - From linear 0x1250 to 0x277F (sectors 2..10 of the file), memory
   is **all zero**.
 - Runtime memory at 0x2780 (first byte "past" ANSI.SYS in the load
-  region) has `C0 11 70 00 FC 83 EC ...` — the prologue of some
+  region) has `C0 11 70 00 FC 83 EC ...` - the prologue of some
   other function loaded there, not ANSI.SYS.
 - The driver's jump table at file offset 0xF3 maps command 0 (INIT)
   to offset 0x0BAE. That offset = linear 0x1050 + 0x0BAE = 0x1BFE,
@@ -69,7 +69,7 @@ change to that cell over 550k ticks:
 
 ```
 tick      0: LBA = 0    (initial)
-tick 454278: LBA = 23   (root directory — dataStart=37 on doom; 23 for zork)
+tick 454278: LBA = 23   (root directory - dataStart=37 on doom; 23 for zork)
 tick 473536: LBA = 163  (CONFIG.SYS, cluster 128 → sector 163)
 tick 508355: LBA = 153  (ANSI.SYS, cluster 118 → sector 153)
 tick 510835: LBA = 1    (FAT sector 1)
@@ -86,7 +86,7 @@ of the file is never asked for.
 - `secPerFat = 11` on doom's disk.
 - Compared 11 * 512 bytes of the cache against disk sectors 1..11:
   - FAT sector 0 (at 0x8AC74): all 512 bytes match disk.
-  - FAT sectors 1..10: 480..512/512 bytes differ from disk — mostly
+  - FAT sectors 1..10: 480..512/512 bytes differ from disk - mostly
     not loaded.
 
 The FAT entries for clusters 118..127 (ANSI.SYS's chain) all live in
@@ -122,7 +122,7 @@ still never issues INT 13h for them.
 - Doom still hangs the same way with either NUM_FATS=1 or 2. Not
   the cause.
 
-## The source code for this path is small — we read it all
+## The source code for this path is small - we read it all
 
 - `bios/corduroy/handlers.asm` `.disk_read` (INT 13h AH=02h): pushes
   regs, computes LBA = (cyl*heads + head)*spt + (sector-1), then loops
@@ -140,7 +140,7 @@ still never issues INT 13h for them.
   **Guard works.**
 - Calcite's `read_mem` in `state.rs`: for a positive address in the
   packed range, reads the packed cell and extracts the byte. Does
-  *not* dispatch to `--readDiskByte` — the dispatch happens at CSS
+  *not* dispatch to `--readDiskByte` - the dispatch happens at CSS
   level. This is only relevant for helpers that bypass CSS
   (bulk_copy, debugger reads), not for normal CPU execution.
 
@@ -164,10 +164,10 @@ for the packed cell.
 ## What the double-buffer system does (for completeness)
 
 Per-cell chain (PACK_SIZE=2):
-- `--__0mc632` — execute keyframe: `var(--mc632)`
-- `--__2mc632` — store keyframe: `var(--__0mc632, init)`
-- `--__1mc632` — read buffer: `var(--__2mc632, init)`
-- `--mc632` — cascade of 6 `--applySlot` calls over `--__1mc632`
+- `--__0mc632` - execute keyframe: `var(--mc632)`
+- `--__2mc632` - store keyframe: `var(--__0mc632, init)`
+- `--__1mc632` - read buffer: `var(--__2mc632, init)`
+- `--mc632` - cascade of 6 `--applySlot` calls over `--__1mc632`
 
 Writes in tick N update `--mc632` via the cascade; latch through
 store+execute keyframes; are visible to reads of `--__1mc632` in
@@ -184,7 +184,7 @@ tick N+1. One tick of delay, consistent.
   we have no direct observation of CX or BX during the loop on the
   ANSI.SYS read.
 - What CX (DOS-requested sector count) was when ANSI.SYS sector 1
-  was read — i.e. whether DOS asked for 1 sector or more. Could be
+  was read - i.e. whether DOS asked for 1 sector or more. Could be
   inferred from register state at tick 508355 (the AL at INT 13h
   entry).
 
@@ -193,11 +193,11 @@ tick N+1. One tick of delay, consistent.
 Three flags on `calcite-cli` (already built, in
 `../calcite/target/release/calcite-cli.exe`):
 
-- `--dump-ticks=T1,T2,...` — dump state at multiple ticks in one
+- `--dump-ticks=T1,T2,...` - dump state at multiple ticks in one
   run (no re-parse per sample).
-- `--sample-cells=IDX1,IDX2,...` — compact per-tick output: just
+- `--sample-cells=IDX1,IDX2,...` - compact per-tick output: just
   core regs + listed cells. Combine with `--dump-ticks`.
-- `--watch-cell=IDX1,IDX2,...` — tick-by-tick monitor; prints a
+- `--watch-cell=IDX1,IDX2,...` - tick-by-tick monitor; prints a
   line only when any watched cell changes. `# tick mcIDX... | CS IP`.
 
 Single-cell sampling across 550k ticks runs in ~1–2 minutes.
@@ -214,7 +214,7 @@ Single-cell sampling across 550k ticks runs in ~1–2 minutes.
 
 ## State at compaction
 
-- Repo state: NUM_FATS fix committed? **Not yet — uncommitted as of
+- Repo state: NUM_FATS fix committed? **Not yet - uncommitted as of
   this note.** The disk-geometry work is committed.
 - Doom still hangs.
 - Next promising thread (as of end-of-session): verify empirically

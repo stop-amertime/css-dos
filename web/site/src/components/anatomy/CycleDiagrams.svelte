@@ -1,11 +1,11 @@
 <script>
-  // CycleDiagrams — the three diagrams of the "why four variables"
+  // CycleDiagrams - the three diagrams of the "why four variables"
   // argument, rendered one at a time via the `panel` prop so prose can
   // interleave (SectionClock.svelte):
-  //   panel="self" — a variable referencing itself, banned
-  //   panel="pair" — two variables feeding each other: a cycle of any
+  //   panel="self" - a variable referencing itself, banned
+  //   panel="pair" - two variables feeding each other: a cycle of any
   //                  length is still detected and ignored
-  //   panel="ring" — the machine's answer: a ring of four (--X, courier
+  //   panel="ring" - the machine's answer: a ring of four (--X, courier
   //                  copies _1/_2, and --X-prev) where the two keyframe
   //                  links only conduct during their own quarter of the
   //                  clock lap, so the ring is never fully connected
@@ -14,9 +14,9 @@
   let { panel } = $props();
 
   const KEYFRAMES = [
-    { n: '0%',  name: 'rest',    what: 'nothing runs — a spacer' },
-    { n: '25%', name: 'store',   what: '--X_2 ← --X_1 — every formula reacts and recomputes' },
-    { n: '50%', name: 'rest',    what: 'nothing runs — the recomputation finishes' },
+    { n: '0%',  name: 'rest',    what: 'nothing runs - a spacer' },
+    { n: '25%', name: 'store',   what: '--X_2 ← --X_1 - every formula reacts and recomputes' },
+    { n: '50%', name: 'rest',    what: 'nothing runs - the recomputation finishes' },
     { n: '75%', name: 'execute', what: '--X_1 ← --X' },
   ];
 </script>
@@ -66,7 +66,7 @@
       {/each}
     </div>
     <svg class="cd-ring" viewBox="0 0 360 230" role="img"
-         aria-label="Four boxes in a ring, clockwise: dash dash X, two courier copies X_1 and X_2, and X-prev. The X-to-X_1 and X_1-to-X_2 links light up only during their own keyframe; the links from X_2 to X-prev and X-prev back to X are always on — so the ring is never fully connected.">
+         aria-label="Four boxes in a ring, clockwise: dash dash X, two courier copies X_1 and X_2, and X-prev. The X-to-X_1 and X_1-to-X_2 links light up only during their own keyframe; the links from X_2 to X-prev and X-prev back to X are always on - so the ring is never fully connected.">
       <!-- execute latch: X → X_1, conducts during the 75% keyframe only -->
       <line class="cd-latch cd-exec" x1="130" y1="44" x2="226" y2="44" />
       <polygon class="cd-lhead cd-exec-head" points="234,44 224,39 224,49" />
@@ -152,7 +152,7 @@
     color: #555;
   }
 
-  /* — shared diagram pieces — */
+  /* - shared diagram pieces - */
   .cd-box  { fill: var(--edit-white); stroke: var(--edit-black); stroke-width: 1.5; }
   .cd-name {
     fill: var(--edit-black);
@@ -165,13 +165,13 @@
   .cd-loophead { fill: var(--edit-black); }
   .cd-ban  { stroke: var(--edit-red); stroke-width: 3.5; fill: none; }
 
-  /* — ring links — */
+  /* - ring links - */
   .cd-link { stroke: var(--edit-black); stroke-width: 2; }
   .cd-head { fill: var(--edit-black); }
   .cd-latch { stroke-width: 2.5; }
 
   /* The two latches: frozen (grey, dashed) except during their own
-     quarter of the 3.2s lap — store at 25%, execute at 75%.
+     quarter of the 3.2s lap - store at 25%, execute at 75%.
      0.1%-apart keyframes make the switch effectively instant. */
   .cd-store      { animation: cd-store-on 3.2s infinite; }
   .cd-store-head { animation: cd-store-head-on 3.2s infinite; }
@@ -197,7 +197,7 @@
     75%, 100% { fill: var(--edit-red); }
   }
 
-  /* — beat strip: same walking highlight as TickClock — */
+  /* - beat strip: same walking highlight as TickClock - */
   .cd-beats {
     display: flex;
     flex-direction: column;

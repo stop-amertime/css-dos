@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// TEST HARNESS SHORTCUT — not a machine model.
+// TEST HARNESS SHORTCUT - not a machine model.
 //
 // This file bypasses the normal PC boot sequence (BIOS init, IVT setup via
 // bios_init) and sets up the emulator state directly from outside. It loads
@@ -64,7 +64,7 @@ for (let i = 0; i < biosBin.length; i++) {
 }
 
 // Set up IVT entries. The hack path skips bios_init, so we write the IVT
-// from outside the emulator — reading handler offsets from gossamer.lst
+// from outside the emulator - reading handler offsets from gossamer.lst
 // so we never drift from the BIOS binary. The .lst is assumed to live
 // next to the .bin argument (build/gossamer.bin → build/gossamer.lst).
 const BIOS_SEG = 0xF000;

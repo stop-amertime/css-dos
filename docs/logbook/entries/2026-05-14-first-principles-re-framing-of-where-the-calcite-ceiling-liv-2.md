@@ -1,4 +1,4 @@
-## 2026-05-14 — First-principles re-framing of where the calcite ceiling lives, and a directive for the next agent
+## 2026-05-14 - First-principles re-framing of where the calcite ceiling lives, and a directive for the next agent
 
 User-led re-grounding session after reading the 2026-05-12 per-dispatch-key
 specialisation handoff with a critical eye. The handoff described three
@@ -11,7 +11,7 @@ headroom lives.
 producing the same answers Chrome would. The cardinal rule constrains
 the method (derive speedups from CSS shape, no upstream knowledge), not
 the destination. In the limit, a sufficiently smart calcite compiles
-CSS to native code that does what a hand-written 8086 emulator does —
+CSS to native code that does what a hand-written 8086 emulator does -
 ~1B ticks/sec on a modern desktop CPU. Calcite today does ~400 K
 ticks/sec on the web bench. **Headroom is ~2500×, not the ~250× I
 quoted earlier in the session.** The cardinal rule makes the climb
@@ -30,7 +30,7 @@ per-tick floor for every cabinet, every routine, every workload):
    instead of folded against the outer binding. *Upstream.*
 4. The op stream is interpreted, not compiled to machine code.
    Every op pays a `match`-tag dispatch cost. *Most upstream of all
-   — a multiplier on every other optimisation.*
+   - a multiplier on every other optimisation.*
 5. Slot reads/writes go through bounds-checked `Vec<i64>` indexing.
    *Small but real.*
 6. Write-port machinery is more general than the 8086 needs.
@@ -59,7 +59,7 @@ User correctly flagged the instinct that whole-routine substitution
 feels "too downstream." It is. `__I4D` being 46 % of cycles isn't a
 fact about division; it's a fact about per-guest-instruction overhead
 being so high that any routine running for 210 guest ticks dominates.
-Killing `__I4D` is whack-a-mole — next profile shows the second-hottest
+Killing `__I4D` is whack-a-mole - next profile shows the second-hottest
 routine at 30 % of what's left. Lowering the per-tick floor (items
 1-4 above) kills `__I4D`'s 46 % as a side effect and pays out on every
 cabinet, every routine. Routine substitution is tactical; the upstream
@@ -82,7 +82,7 @@ being used to defer thinking, not to validate a design.
 
 Pick one item from the table above and implement it. Recommended: a
 mid-table item where the work is defined and the impact is real (item
-2, 3, or 1 — pick what your taste tells you is the cleanest win).
+2, 3, or 1 - pick what your taste tells you is the cleanest win).
 
 Rules of engagement, set explicitly by the user:
 

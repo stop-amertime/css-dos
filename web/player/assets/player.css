@@ -1,4 +1,4 @@
-/* player.css — keyboard grid + beveled button look for CSS-DOS player */
+/* player.css - keyboard grid + beveled button look for CSS-DOS player */
 
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -42,7 +42,7 @@ key-board button {
   min-height: 28px;
   line-height: 1;
   text-align: center;
-  /* beveled up — light top/left, dark bottom/right */
+  /* beveled up - light top/left, dark bottom/right */
   border-top:    2px solid #ffffff;
   border-left:   2px solid #ffffff;
   border-right:  2px solid #808080;
@@ -51,7 +51,7 @@ key-board button {
 }
 
 key-board button:active {
-  /* beveled down — invert borders */
+  /* beveled down - invert borders */
   border-top:    2px solid #808080;
   border-left:   2px solid #808080;
   border-right:  2px solid #ffffff;
@@ -65,7 +65,7 @@ key-board button:active {
   gap: 3px;
 }
 
-/* Number row: 1..9,0 — order in HTML is 1..0, so 0 wraps to position 10 */
+/* Number row: 1..9,0 - order in HTML is 1..0, so 0 wraps to position 10 */
 
 /* Wide enter key spans 1 column visually but is larger */
 #kb-enter {

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* build.mjs — orchestrate OpenWatcom build of bios.bin.
+/* build.mjs - orchestrate OpenWatcom build of bios.bin.
 
    Reads bios/toolchain.env, compiles .c/.asm → .obj, links → bios.bin.
    Regenerates logo_data.c from tests/logo.bin if newer. */

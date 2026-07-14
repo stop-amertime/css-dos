@@ -1,4 +1,4 @@
-// Stage 1 — build the BIOS.
+// Stage 1 - build the BIOS.
 //
 // Input:  { flavor: "gossamer" | "muslin" | "corduroy", cacheDir }
 // Output: { bytes, entrySegment, entryOffset, meta }
@@ -34,7 +34,7 @@ function refreshPrebake(flavor, bytes, entrySegment, entryOffset, version) {
 }
 
 // Read a flavor's VERSION file if it has one. Returns null for flavors
-// that aren't versioned yet (gossamer, muslin — add their own VERSION
+// that aren't versioned yet (gossamer, muslin - add their own VERSION
 // files when they grow real changelogs).
 function readFlavorVersion(flavor) {
   const vPath = resolve(repoRoot, 'bios', flavor, 'VERSION');
@@ -62,7 +62,7 @@ function buildGossamer() {
   const bytes = [...readFileSync(bin)];
   const version = readFlavorVersion('gossamer');
   // IVT vectors inside gossamer are set by the transpiler's IVT seeder,
-  // not by an entry stub — the hack path boots directly into the .COM.
+  // not by an entry stub - the hack path boots directly into the .COM.
   refreshPrebake('gossamer', bytes, null, null, version);
   return {
     bytes,
@@ -103,7 +103,7 @@ function buildCorduroy() {
     // The Corduroy build script emits bios.bin under bios/corduroy/build/.
     bytes = [...readFileSync(resolve(repoRoot, 'bios', 'corduroy', 'build', 'bios.bin'))];
   } catch (err) {
-    // No NASM/OpenWatcom on this machine — fall back to the prebaked
+    // No NASM/OpenWatcom on this machine - fall back to the prebaked
     // binary (the same artifact the browser builder always uses).
     const prebaked = join(prebakeDir, 'corduroy.bin');
     const meta = join(prebakeDir, 'corduroy.meta.json');

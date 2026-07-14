@@ -1,4 +1,4 @@
-// wizard.js — visual chrome on top of build.js.
+// wizard.js - visual chrome on top of build.js.
 //
 // This file owns:
 //   * Step navigation (the 3-step strip + Back/Next buttons + arrow keys),
@@ -14,8 +14,8 @@
 //     sub-page on success.
 //   * The "Save cabinet.css" button → proxies to the hidden #download <a>.
 //
-// All real work — fetching /_carts.json, building cabinets, paginating the
-// source viewer, talking to the calcite bridge — still lives in build.js.
+// All real work - fetching /_carts.json, building cabinets, paginating the
+// source viewer, talking to the calcite bridge - still lives in build.js.
 
 (function () {
   'use strict';
@@ -64,7 +64,7 @@
     if (step === BUILD_STEP) renderBuildSub();
     // Only the Play step gets the wide dialog; Learn/Build stay reading-width.
     wizWindow.classList.toggle('play-wide', step === PLAY_STEP);
-    document.title = `CSS-DOS — ${STEP_TITLES[step - 1]}`;
+    document.title = `CSS-DOS - ${STEP_TITLES[step - 1]}`;
     // Back is disabled only at the very start (Learn sub-page 1).
     prevBtn.disabled = (step === LEARN_STEP && sub === 1);
     updateNextGating();
@@ -91,7 +91,7 @@
   }
 
   // Show Build sub-page `buildSub`; update dots. The "Cabinet ready" dot
-  // only appears once a build exists — no jumping ahead to a page with
+  // only appears once a build exists - no jumping ahead to a page with
   // nothing on it.
   function renderBuildSub() {
     buildSub = Math.max(1, Math.min(BUILD_RESULT_SUB, buildSub));
@@ -109,7 +109,7 @@
   }
 
   // A program is "picked" exactly when build.js's own #start button would
-  // allow a build — that's the one place build.js already tracks "do we
+  // allow a build - that's the one place build.js already tracks "do we
   // have bytes to build from" (built-in cart selected, or a custom file/
   // folder actually chosen). Reusing it means this can't drift out of sync
   // with build.js across its several independent selection paths.
@@ -119,7 +119,7 @@
 
   // build.js flips #start.disabled asynchronously (after its cart-file
   // fetch resolves), well after the cart-list `change` event that triggers
-  // it — a plain post-selection call to updateNextGating() would read the
+  // it - a plain post-selection call to updateNextGating() would read the
   // stale (still-disabled) value. Observing the attribute directly catches
   // the moment it actually changes, regardless of how long the fetch took.
   new MutationObserver(updateNextGating)
@@ -158,14 +158,14 @@
       return;
     }
     if (step === BUILD_STEP && buildSub < BUILD_CONFIG_SUB) {
-      if (!cartPicked()) return; // gated — nextBtn is disabled, but belt & braces
+      if (!cartPicked()) return; // gated - nextBtn is disabled, but belt & braces
       buildSub += 1;
       renderBuildSub();
       window.scrollTo({ top: 0, behavior: 'instant' });
       return;
     }
     if (step === BUILD_STEP && buildSub === BUILD_CONFIG_SUB && !buildDone) {
-      return; // gated — build the cabinet first
+      return; // gated - build the cabinet first
     }
     setStep(step + 1);
   }
@@ -195,7 +195,7 @@
   prevBtn.addEventListener('click', goPrev);
   nextBtn.addEventListener('click', goNext);
 
-  // Sub-dot clicks — jump between Learn sub-pages.
+  // Sub-dot clicks - jump between Learn sub-pages.
   $$('#learn-subdots li').forEach((li) => {
     li.addEventListener('click', () => {
       sub = Number(li.dataset.subjump);
@@ -204,7 +204,7 @@
     });
   });
 
-  // Sub-dot clicks — jump between Build sub-pages. Forward jumps respect
+  // Sub-dot clicks - jump between Build sub-pages. Forward jumps respect
   // the same gates as Next (can't skip to Configure with no cart picked,
   // can't skip to Cabinet ready with no build).
   $$('#build-subdots li').forEach((li) => {
@@ -267,12 +267,12 @@
     // Order: manifest order, only the ones the server actually has.
     // Carts under carts/ but absent from window.CARTS (e.g. doom8088-cga4,
     // test-carts, vsync-poll, rogue36) are intentionally NOT shown on the
-    // release landing page — they're dev/regression variants. They remain
+    // release landing page - they're dev/regression variants. They remain
     // available via /build.html, which lists every directory under carts/.
     const serverIds = new Set(serverCarts.map((c) => c.name));
     const ordered = [];
     for (const c of manifest) {
-      // The synthetic "custom" card isn't a server cart — always include it.
+      // The synthetic "custom" card isn't a server cart - always include it.
       if (c.custom) { ordered.push({ meta: c, server: null }); continue; }
       if (serverIds.has(c.id)) ordered.push({ meta: c, server: serverCarts.find((s) => s.name === c.id) });
     }
@@ -300,7 +300,7 @@
       }
       card.appendChild(cover);
 
-      // No per-card name/desc text any more — the cover (box art) speaks for
+      // No per-card name/desc text any more - the cover (box art) speaks for
       // itself, and the selected cart's name + description live in the
       // #cart-detail box below the grid (see selectCartCard).
 
@@ -321,7 +321,7 @@
 
   // The Custom card has no box art. Since the cards no longer carry name/desc
   // text below them, the custom card puts its name + blurb inside the cover
-  // area itself — dashed border, muted fill (styled in wizard.css).
+  // area itself - dashed border, muted fill (styled in wizard.css).
   function makeCustomCover(meta) {
     const wrap = document.createElement('div');
     wrap.className = 'cart-cover-placeholder cart-cover-custom';
@@ -372,7 +372,7 @@
       $('#block-source').hidden = true;
       $('#build-progress-wrap').hidden = true;
       resetProgressUI();
-      $('#build-hint').textContent = 'Selection changed — rebuild.';
+      $('#build-hint').textContent = 'Selection changed - rebuild.';
       if (buildSub === BUILD_RESULT_SUB) buildSub = BUILD_CONFIG_SUB;
       renderBuildSub();
     } else {
@@ -389,7 +389,7 @@
     }[p] || p;
   }
 
-  // CSS.escape polyfill for older Chromes — needed when cart ids contain
+  // CSS.escape polyfill for older Chromes - needed when cart ids contain
   // hyphens (e.g. "prince-of-persia"), which the attribute selector
   // tolerates, but in case of stranger characters.
   function cssEscape(s) {
@@ -452,7 +452,7 @@
   });
 
   // Custom file/folder pick is a third path (independent of the cart-list
-  // radio) that flips build.js's #start.disabled — re-check the gate here
+  // radio) that flips build.js's #start.disabled - re-check the gate here
   // too so Next unlocks the moment a file is actually chosen.
   $('#com-file')?.addEventListener('change', updateNextGating);
   $('#dir-file')?.addEventListener('change', updateNextGating);
@@ -513,7 +513,7 @@
   // single-roundtrip cart loads, and slower ones.
   cartList.addEventListener('change', () => {
     [0, 100, 500, 1500].forEach((ms) => setTimeout(refreshSpecTable, ms));
-    // A new cart always starts in "boot into the program" mode — simplest
+    // A new cart always starts in "boot into the program" mode - simplest
     // and least surprising, and it sidesteps having to guess whether a
     // stale captured default from the *previous* cart is still valid.
     const programRadio = document.querySelector('#boot-mode-group input[value="program"]');
@@ -524,7 +524,7 @@
   // ── Boot-mode radio ─────────────────────────────────────────────────
   //
   // #run-cmd is still the field build.js reads at submit time, but it's
-  // never shown — this 2-option radio drives it instead. "The program"
+  // never shown - this 2-option radio drives it instead. "The program"
   // restores whatever build.js/program.json set as the default run
   // command (captured below, right after each cart load); "DOS shell"
   // clears it to boot to a bare COMMAND.COM prompt.
@@ -586,14 +586,14 @@
       barFill.style.width = '100%';
       barFill.style.background = 'var(--edit-red)';
       pctEl.textContent = 'ERR';
-      buildHint.textContent = 'Build failed — see log.';
+      buildHint.textContent = 'Build failed - see log.';
       buildInFlight = false;
       startBtn.disabled = false;
       updateNextGating();
     }
   }).observe(stages, { childList: true });
 
-  // Watch #result for un-hide — build.js's "we're done" signal.
+  // Watch #result for un-hide - build.js's "we're done" signal.
   new MutationObserver(() => {
     if (resultMarker.hidden) return;
     // build.js sets #size's textContent like "Cabinet: 332.4 MB"
@@ -642,7 +642,7 @@
     e.preventDefault();
     const dl = $('#download');
     if (!dl || !dl.href || dl.href.endsWith('#')) {
-      statusMsg.textContent = 'Nothing to save yet — build a cabinet first.';
+      statusMsg.textContent = 'Nothing to save yet - build a cabinet first.';
       return;
     }
     // Honour the cart-id-based filename if we know it.
@@ -695,6 +695,6 @@
   }
   window.addEventListener('hashchange', applyHash);
 
-  // Kick off — honour the hash, else start at Learn sub-page 1.
+  // Kick off - honour the hash, else start at Learn sub-page 1.
   if (!applyHash()) setStep(1);
 })();

@@ -76,7 +76,7 @@ extern void default_handler(void);
 
 static void install_ivt(void) {
     /* Use a single far pointer to the IVT and write entries with a direct
-       loop — no function calls. The BIOS stack lives at 0x30:0x100 (linear
+       loop - no function calls. The BIOS stack lives at 0x30:0x100 (linear
        0x400), overlapping the tail of the IVT. If we called poke_w() here,
        its pushed return address at linear 0x3FE-0x3FF would collide with
        the IVT entry 0xFF we are writing. Inline writes avoid any push/pop
@@ -103,15 +103,15 @@ static void install_ivt(void) {
     ivt[0x1A * 2] = HANDLER_OFF(int1ah_handler);
     ivt[0x20 * 2] = HANDLER_OFF(int20h_handler);
     ivt[0x21 * 2] = HANDLER_OFF(default_handler);
-    /* INT 2Fh — DOS multiplex / XMS detection. We DON'T hook this
-       currently — when we did, EDR-DOS tried to use our fake XMS driver
+    /* INT 2Fh - DOS multiplex / XMS detection. We DON'T hook this
+       currently - when we did, EDR-DOS tried to use our fake XMS driver
        for kernel init (HMA alloc) and it failed in subtle ways. Real
        XMS support is a TODO. DOOM8088 uses an EMMXXXX0 device-driver
        open() check instead, so a fake INT 2F isn't needed for it. */
-    /* INT 67h — EMS (Expanded Memory Specification). DOOM8088 detects
+    /* INT 67h - EMS (Expanded Memory Specification). DOOM8088 detects
        EMS by `open("EMMXXXX0", O_RDWR)` (a DOS device-driver name
        lookup), not the IVT-segment magic check. The actual EMS
-       function dispatcher is int67h_handler — DOOM may call it after
+       function dispatcher is int67h_handler - DOOM may call it after
        detection, and we want to respond with success so the program
        proceeds. Detection happens via the EMSDRV.SYS device driver
        loaded from CONFIG.SYS (opt-in via boot.ems = true). */
@@ -184,7 +184,7 @@ static void install_pic(void) {
 
 /* Program PIT channel 0 to the standard ~18.2 Hz system tick (mode 3,
    square wave). Real POST uses reload 0 (= 65536); the CSS PIT model
-   treats reload 0 as disarmed, so use 65535 — 18.207 Hz, 0.0015% fast,
+   treats reload 0 as disarmed, so use 65535 - 18.207 Hz, 0.0015% fast,
    invisible at BDA-tick granularity. Without this IRQ 0 never fires
    and the BDA tick count at 0040:006C stays 0 until a program (e.g.
    doom's i_taskmn) arms the PIT itself; the splash pacing and INT 1Ah

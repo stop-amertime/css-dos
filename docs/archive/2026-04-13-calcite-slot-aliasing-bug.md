@@ -8,7 +8,7 @@
 
 `--readMem(1052)` returns 0 instead of 30 (the correct value at memory address 1052) when called from inside the `--memAddr` property's dispatch for `opcode=214, __1uOp=1`. The SAME `--readMem(1052)` works correctly at `uOp=0` and works correctly as a standalone computed property.
 
-This blocks the BIOS INT 09h keyboard handler — the scancode byte gets written to address 1025 instead of 1055, corrupting the BDA keyboard buffer.
+This blocks the BIOS INT 09h keyboard handler - the scancode byte gets written to address 1025 instead of 1055, corrupting the BDA keyboard buffer.
 
 ## The Architecture
 
@@ -32,8 +32,8 @@ Because the branches use compound `and` conditions, `recognise_dispatch` fails a
 ## What the Debugger Shows
 
 Using `/compare-paths` at tick 24 (INT 09h μop 1):
-- **Compiled:** `--memAddr = 1025` (wrong — `1024 + 0 + 1`)  
-- **Interpreted:** `--memAddr = 1055` (correct — `1024 + 30 + 1`)
+- **Compiled:** `--memAddr = 1025` (wrong - `1024 + 0 + 1`)  
+- **Interpreted:** `--memAddr = 1055` (correct - `1024 + 30 + 1`)
 
 The interpreted path evaluates `--readMem(1052)` = 30 correctly. The compiled path evaluates it as 0.
 
@@ -65,7 +65,7 @@ From compile-time logging (ops around index 18456-18485):
 ... (hi byte, combine, etc)
 ```
 
-The ops LOOK correct — `LoadLit(39359, 1052)` sets the slot, `LoadSlot` copies chain, `LoadMem` reads from it. At runtime, if this branch executes, slot 39359 should be 1052 and `LoadMem` should read `state.read_mem(1052) = 30`.
+The ops LOOK correct - `LoadLit(39359, 1052)` sets the slot, `LoadSlot` copies chain, `LoadMem` reads from it. At runtime, if this branch executes, slot 39359 should be 1052 and `LoadMem` should read `state.read_mem(1052) = 30`.
 
 ## Why It Still Fails
 
@@ -97,7 +97,7 @@ All fixes are still in the code (not reverted).
 # Generate the test CSS
 node transpiler/generate-hacky.mjs tests/keyboard-irq.com --mem 1536 -o tests/keyboard-irq.css
 
-# Run with keyboard injection — AX should become 7777 but stays at 97
+# Run with keyboard injection - AX should become 7777 but stays at 97
 calcite-cli --input tests/keyboard-irq.css --ticks 100 --verbose --key-events=50:0x1E61 2>&1 | grep "Tick 59:"
 # Shows memAddr=1025 (wrong, should be 1055)
 
@@ -117,15 +117,15 @@ calcite-debugger --input tests/keyboard-irq.css
   - `compile_inline_dispatch` (~line 920): dispatch table compilation
 - **Calcite evaluator:** `calcite/crates/calcite-core/src/eval.rs`
   - `eval_dispatch_raw` (~line 1591): interpreted readMem dispatch (works correctly)
-- **CSS transpiler:** `CSS-DOS/transpiler/src/patterns/bios.mjs` — BIOS handler μop emitters
-- **Test program:** `CSS-DOS/tests/keyboard-irq.asm` — exercises IRQ 1 → INT 09h → BDA → INT 16h
+- **CSS transpiler:** `CSS-DOS/transpiler/src/patterns/bios.mjs` - BIOS handler μop emitters
+- **Test program:** `CSS-DOS/tests/keyboard-irq.asm` - exercises IRQ 1 → INT 09h → BDA → INT 16h
 
 ## Debugging Infrastructure Available
 
 - **Calcite debugger HTTP API** at localhost:3333:
-  - `POST /keyboard {"value":7777}` — set `--keyboard` CSS property (v3 microcode path)
-  - `GET /compare-paths` — runs one tick both compiled and interpreted, diffs all properties
-  - `POST /tick`, `POST /seek`, `GET /state`, `POST /memory` — standard debugging
+  - `POST /keyboard {"value":7777}` - set `--keyboard` CSS property (v3 microcode path)
+  - `GET /compare-paths` - runs one tick both compiled and interpreted, diffs all properties
+  - `POST /tick`, `POST /seek`, `GET /state`, `POST /memory` - standard debugging
 - **Calcite CLI:** `--key-events=TICK:VALUE,...` flag for keyboard injection in trace/verbose mode
 - **compare.mjs:** `--key-events` flag forwards to both JS ref emulator and calcite
 

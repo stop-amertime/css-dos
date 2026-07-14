@@ -9,7 +9,7 @@
 // page opens, its <img> fetches /_screen/framebuffer.
 //
 // The cabinet itself lives in Cache Storage (written there by the
-// builder) — the bridge reads it from the cache when a viewer connects
+// builder) - the bridge reads it from the cache when a viewer connects
 // or a 'cabinet-updated' broadcast asks for an eager compile. One
 // store, one path: a fresh page load and a mid-session build compile
 // through the same code.
@@ -40,7 +40,7 @@ let initCalcite, CalciteEngine;
 
 let engine = null;
 let fontAtlas = null;
-let running = false;      // tick loop gate — true only while a viewer is watching
+let running = false;      // tick loop gate - true only while a viewer is watching
 let bootPromise;          // assigned below once boot() is kicked off
 let viewerWaiting = false; // a viewer fetched the framebuffer before compile finished
 
@@ -53,7 +53,7 @@ let viewerWaiting = false; // a viewer fetched the framebuffer before compile fi
 const bus = new BroadcastChannel('cssdos-bridge');
 
 // True after a 'cabinet-updated' broadcast until the new cabinet is
-// compiled — the next viewer-connected recompiles from the cache.
+// compiled - the next viewer-connected recompiles from the cache.
 let cabinetPending = false;
 // In-flight compile promise, so simultaneous viewer-connected /
 // cabinet-updated triggers share one compile instead of racing.
@@ -62,12 +62,12 @@ let compileInFlight = null;
 // Single-bridge arbitration (matches the old SW-port replacement
 // semantics: last bridge wins). Every bridge announces itself once at
 // boot; since a broadcast never reaches its own sender, anyone who
-// hears an announcement is an older bridge — it mutes for good.
+// hears an announcement is an older bridge - it mutes for good.
 let muted = false;
 bus.postMessage({ type: 'bridge-takeover' });
 
 
-// Batch pacing — start small (200 cycles) and let the EMA grow
+// Batch pacing - start small (200 cycles) and let the EMA grow
 // batchCount until each tick hits ~TARGET_MS. For dense cabinets the
 // steady state is a few thousand cycles per batch; for sparse ones it
 // walks up to MAX. Hardcoding a large MIN starves the adapter and forces
@@ -90,7 +90,7 @@ let batchMsEma = TARGET_MS;
 // Keyboard input queue, drained by the tickLoop.
 //
 // Why a queue. Two presses arriving within the press-hold window can't
-// be merged into one held key — the cabinet's edge detector only fires
+// be merged into one held key - the cabinet's edge detector only fires
 // `_kbdPress` on a 0→non-zero transition. So if the user mashes LEFT
 // at 5/sec, presses overlap, the second click writes 0x4B00 again
 // while the first is still held, the cabinet sees no edge, and the
@@ -103,13 +103,13 @@ let batchMsEma = TARGET_MS;
 // queued press fires (must be ≥ 1 so the edge detector resets).
 //
 // Queue entries are {op, ...} objects:
-//   {op:'pulse', sel:'kb-x'}   — momentary press. The drainer walks it
+//   {op:'pulse', sel:'kb-x'}   - momentary press. The drainer walks it
 //     through set_pseudo_class_active('active','kb-x',true) → hold N
 //     batches → (...false) → gap M batches.
-//   {op:'holdwire', v:0|1}     — mirror the bridge-owned hold mode
+//   {op:'holdwire', v:0|1}     - mirror the bridge-owned hold mode
 //     onto the cabinet's #kb-holdmode 'checked' pseudo-state (the
 //     --kbdHold wire). The MACHINE does the holding: while the wire is
-//     up it latches key releases (presses accumulate as held keys —
+//     up it latches key releases (presses accumulate as held keys -
 //     chords); when it drops it drains break codes back out. See
 //     kiln/patterns/misc.mjs emitKeyboardWires.
 // The gaps guarantee every make/break lands on its own tick so the
@@ -118,7 +118,7 @@ let batchMsEma = TARGET_MS;
 // The cabinet's `&:has(#SEL:active) { --PROP: V }` and
 // `&:has(#kb-holdmode:checked) { --kbdHold: 1 }` rules produce the
 // values via calcite's input-edge recogniser; the host only flips the
-// gates. (calcite's old `set_keyboard` host API is gone — it was an
+// gates. (calcite's old `set_keyboard` host API is gone - it was an
 // x86-aware side-channel, retired with the keyboard rework.)
 //
 // Driven off tickLoop instead of setTimeout because build.html is a
@@ -130,7 +130,7 @@ let currentActiveSelector = ''; // non-empty while pulsing a pseudo-class edge
 let mousePacing = false;        // current pulse is a mouse cell (mc-N)
 const KEY_HOLD_BATCHES = 8;
 const KEY_GAP_BATCHES = 2;
-// Mouse cells (mc-N pulses) need DETERMINISTIC pacing in GUEST TIME —
+// Mouse cells (mc-N pulses) need DETERMINISTIC pacing in GUEST TIME -
 // i.e. in CYCLES, not ticks: the guest's double-click detector
 // measures the gap between taps on its own clock (Windows 1.01's
 // 500ms window ≈ 2.4M cycles), and one idle tick costs hundreds of
@@ -146,7 +146,7 @@ const MOUSE_GAP_CYCLES = 150_000;
 const MOUSE_PACE_BATCH_TICKS = 1_000;
 // Afterglow: keep the batch clamp on for a beat after a tap finishes.
 // A human double-click's second tap arrives ~250-500ms of WALL time
-// later — with full-size batches the engine free-runs millions of
+// later - with full-size batches the engine free-runs millions of
 // guest cycles in that span and the two button-downs land far outside
 // Windows' double-click window. While throttled, guest time crawls,
 // so the second tap still lands close in guest time.
@@ -154,13 +154,13 @@ const MOUSE_AFTERGLOW_MS = 800;
 let mouseHoldUntil = 0;         // cycleCount stamps while pacing a tap
 let mouseGapUntil = 0;
 let mouseAfterglowUntil = 0;    // performance.now() stamp
-// Hold mode — owned HERE, not by the page. The player's hold key is a
+// Hold mode - owned HERE, not by the page. The player's hold key is a
 // plain submit button (key=kb-hold); each press toggles this flag,
 // queues the wire flip, and re-broadcasts the lamp. The script-free
 // player can't hold state of its own; its lamp <img> streams whatever
 // we broadcast (see emitHoldLamp). Reset alongside the engine.
 let holdMode = false;
-// Trace toggle. Off by default — Playwright tests flip it on via the
+// Trace toggle. Off by default - Playwright tests flip it on via the
 // 'kbd-trace' message type. Logs on (a) message receipt, (b) drainer
 // dispatch, (c) drainer release. Lets you measure click→engine.set_pseudo_class_active
 // latency separate from any cabinet-side delay.
@@ -196,7 +196,7 @@ function setPseudoActive(pseudo, selector, value) {
   } catch (e) {
     if (!pseudoActiveErrorLogged) {
       pseudoActiveErrorLogged = true;
-      console.error('[calcite-bridge] set_pseudo_class_active failed — keyboard input is broken:', e);
+      console.error('[calcite-bridge] set_pseudo_class_active failed - keyboard input is broken:', e);
       postStatus('keyboard input broken: ' + (e?.message || e));
     }
   }
@@ -204,14 +204,14 @@ function setPseudoActive(pseudo, selector, value) {
 
 // ---------- Bootstrap ----------
 
-// Cache-busting canary — bump this when you change this file so you can
+// Cache-busting canary - bump this when you change this file so you can
 // confirm the browser is serving the new version (it appears in the
 // status line and the bridge-info reply).
 const BRIDGE_VERSION = 'bridge-4';
 
 async function boot() {
   postStatus(`bridge boot ${BRIDGE_VERSION}`);
-  // 1. Load WASM — dynamic import from the same path calcite-worker.js
+  // 1. Load WASM - dynamic import from the same path calcite-worker.js
   //    uses, so any module-caching the browser does applies here too.
   const mod = await import('/calcite/pkg/calcite_wasm.js');
   initCalcite = mod.default;
@@ -231,7 +231,7 @@ async function boot() {
 
 // Parse + compile raw cabinet bytes into a CalciteEngine. The ArrayBuffer
 // comes from reading the cached cabinet response (compileCabinetFromCache
-// below) — all off the main thread, no JS-string intermediate.
+// below) - all off the main thread, no JS-string intermediate.
 //
 // The cabinet self-describes its rom-disk: disk bytes are embedded in the
 // cabinet's `--readDiskByte` flat dispatch and calcite recognises the
@@ -288,9 +288,9 @@ async function compileCabinetBytes(arrayBuffer) {
 }
 
 // Read the cabinet from Cache Storage and compile it. The single entry
-// point for every compile trigger — first viewer after a page load
+// point for every compile trigger - first viewer after a page load
 // (rehydration), viewer after a lazy build, eager build, viewer racing
-// an in-flight compile — they all share one promise.
+// an in-flight compile - they all share one promise.
 function compileCabinetFromCache() {
   if (!compileInFlight) {
     compileInFlight = (async () => {
@@ -298,7 +298,7 @@ function compileCabinetFromCache() {
         await bootPromise;
         const blob = await getCabinetBlob();
         if (!blob) {
-          postStatus('no cabinet in Cache Storage — build one first');
+          postStatus('no cabinet in Cache Storage - build one first');
           return;
         }
         cabinetPending = false;
@@ -313,12 +313,12 @@ function compileCabinetFromCache() {
 }
 
 // Reset engine state to power-on, start the tick loop, mark the bridge
-// as actively running. Idempotent — calling twice is harmless.
+// as actively running. Idempotent - calling twice is harmless.
 //
 // `preserveWatches`: when true, skip the engine.reset() inside
 // resetMachine(). engine.reset() drops every registered watch (see
-// calcite-wasm reset()), so the bench path — which registers watches
-// BEFORE starting — must not reset, or the watch registry is empty
+// calcite-wasm reset()), so the bench path - which registers watches
+// BEFORE starting - must not reset, or the watch registry is empty
 // and run_batch_watched degrades to run_batch_silent (no stage
 // detection, run never halts). The engine is already at power-on
 // immediately post-compile (new_from_bytes; nothing has ticked), so
@@ -328,7 +328,7 @@ function compileCabinetFromCache() {
 // does the reset+start; the second is a no-op (running-guard) so it
 // can't double-reset and wipe watches the profile registered after
 // `running-started`. After a real start we broadcast `running-started`
-// on cssdos-bridge-stats — the bench page waits for that before
+// on cssdos-bridge-stats - the bench page waits for that before
 // registering watches, guaranteeing the (single) reset already happened.
 function startRunning(preserveWatches = false) {
   if (running) {
@@ -336,7 +336,7 @@ function startRunning(preserveWatches = false) {
     // framebuffer viewer, bench-run vs viewer-connected). Debug-level:
     // at status level it stuck in the player's status bar looking
     // like an error.
-    postDebug('startRunning called while already running — no-op');
+    postDebug('startRunning called while already running - no-op');
     return;
   }
   postStatus(preserveWatches
@@ -359,7 +359,7 @@ function startRunning(preserveWatches = false) {
 
 
 // Reset the machine to its power-on state. Called on every viewer
-// connection — the engine is already compiled, so this only resets
+// connection - the engine is already compiled, so this only resets
 // runtime state via engine.reset(). Cheap. The CPU restarts at the
 // reset vector; BIOS splash plays; boot proceeds.
 function resetMachine(preserveWatches = false) {
@@ -432,7 +432,7 @@ function tickLoop() {
         if (kbdTraceEnabled) kbdTrace(`[kbd-trace] release wallMs=${performance.now().toFixed(1)} cycle=${cyc}`);
       }
     } else if (cyc >= mouseGapUntil) {
-      // Gap over — fall through to the queue drain THIS pass: waiting
+      // Gap over - fall through to the queue drain THIS pass: waiting
       // one more pass would run a full-size adaptive batch (millions
       // of cycles) between two queued taps and blow the guest's
       // double-click window.
@@ -488,7 +488,7 @@ function tickLoop() {
     // Deterministic mouse pacing: while an mc- pulse (or its trailing
     // gap or afterglow) is in flight, clamp the batch small so the
     // cycle stamps above are checked with fine resolution and guest
-    // time crawls between a double-click's taps — see
+    // time crawls between a double-click's taps - see
     // MOUSE_HOLD_CYCLES / MOUSE_AFTERGLOW_MS.
     const runCount = (mousePacing || performance.now() < mouseAfterglowUntil)
       ? Math.min(batchCount, MOUSE_PACE_BATCH_TICKS)
@@ -536,7 +536,7 @@ function tickLoop() {
 const tickChannel = new MessageChannel();
 tickChannel.port2.onmessage = () => tickLoop();
 
-// 60Hz framebuffer sampler — independent of the tick loop. Reads the
+// 60Hz framebuffer sampler - independent of the tick loop. Reads the
 // current framebuffer, hashes a sparse subsample, and emits a BMP only
 // when the hash changes. Decouples paint cadence from batch cadence
 // (the engine is free to use big batches when nothing visible is
@@ -547,7 +547,7 @@ tickChannel.port2.onmessage = () => tickLoop();
 // ~1Hz in background tabs, but the bridge worker lives in build.html
 // (background). MessageChannel-pumped tick loop bypasses that for tick
 // work. The sampler is paint-only and CAN run slow when backgrounded
-// — that's actually fine (no point painting an invisible tab at 60Hz).
+// - that's actually fine (no point painting an invisible tab at 60Hz).
 const FRAME_SAMPLER_HZ = 30;
 let frameSamplerId = null;
 function startFrameSampler() {
@@ -619,7 +619,7 @@ function buildBmpHeader(w, h) {
   return bmpCachedHeader;
 }
 
-// Debug ring buffer — accumulates short one-line summaries from
+// Debug ring buffer - accumulates short one-line summaries from
 // maybeEmitFrame and flushes them at ~1 Hz via postStatus so you can
 // see exactly what the bridge decided each frame without flooding.
 let _dbgLast = '';
@@ -649,7 +649,7 @@ function traceVideoState(activeMode, reqMode, palReg) {
   }
   if (reqMode !== _lastReqMode && reqMode !== 0) {
     const name = modeName(reqMode);
-    const remapped = reqMode !== activeMode ? ` — REMAPPED (active=0x${activeMode.toString(16)})` : '';
+    const remapped = reqMode !== activeMode ? ` - REMAPPED (active=0x${activeMode.toString(16)})` : '';
     postDebug(`[video @cyc ${cycles.toLocaleString()}] requested → 0x${reqMode.toString(16).padStart(2,'0')} (${name})${remapped}`);
     _lastReqMode = reqMode;
   }
@@ -672,7 +672,7 @@ function maybeEmitFrame() {
 
   const mode = pickMode(modeByte);
   if (!mode) {
-    dbgFrame(`frame: mode=0x${modeByte.toString(16)} pickMode=null — skipping`);
+    dbgFrame(`frame: mode=0x${modeByte.toString(16)} pickMode=null - skipping`);
     return;
   }
   const w = mode.width, h = mode.height;
@@ -725,10 +725,10 @@ function maybeEmitFrame() {
     }
     dbgFrame(`frame: mode=0x${modeByte.toString(16)} kind=text ${mode.textCols}x${mode.textRows} chars=${nonEmpty} row0="${row0}"`);
   } else if (mode.kind === 'text' && !fontAtlas) {
-    dbgFrame(`frame: mode=0x${modeByte.toString(16)} kind=text — SKIPPED (no fontAtlas)`);
+    dbgFrame(`frame: mode=0x${modeByte.toString(16)} kind=text - SKIPPED (no fontAtlas)`);
     return;
   } else {
-    dbgFrame(`frame: mode=0x${modeByte.toString(16)} kind=${mode.kind} — unhandled, skipping`);
+    dbgFrame(`frame: mode=0x${modeByte.toString(16)} kind=${mode.kind} - unhandled, skipping`);
     return;
   }
 
@@ -752,7 +752,7 @@ function maybeEmitFrame() {
 
   frameCount++;
   lastFrameBytes = fileBytes.byteLength;
-  // Broadcast — every open framebuffer stream's SW subscription gets a
+  // Broadcast - every open framebuffer stream's SW subscription gets a
   // copy. BroadcastChannel can't transfer, but the structured clone of
   // a ≤2 MB frame at ≤30 Hz is memcpy noise.
   bus.postMessage({ type: 'frame', bytes: fileBytes.buffer, width: w, height: h, mime: 'image/bmp' });
@@ -774,7 +774,7 @@ function lampBmp(on) {
   if (!bytes) {
     const [r, g, b] = on ? [0x55, 0xFF, 0x55] : [0x00, 0x00, 0x00];
     // buildBmpHeader's single-slot geometry cache flips back on the
-    // next screen frame — a 122-byte rebuild, noise. Full lamp BMPs
+    // next screen frame - a 122-byte rebuild, noise. Full lamp BMPs
     // are cached here, so this runs at most twice.
     const header = buildBmpHeader(LAMP_SIZE, LAMP_SIZE);
     bytes = new Uint8Array(BMP_HEADER_SIZE + LAMP_SIZE * LAMP_SIZE * 4);
@@ -791,7 +791,7 @@ function emitHoldLamp() {
   // postMessage structured-clones the buffer (no transfer), so the
   // cached bytes stay intact. Sent TWICE: Chrome's multipart <img>
   // pipeline only paints part N once part N+1 starts streaming in
-  // (measured 2026-07-07 — the 30Hz screen never notices, a
+  // (measured 2026-07-07 - the 30Hz screen never notices, a
   // rare-frame lamp shows the previous state). The duplicate makes
   // the fresh state paint immediately; the 1 Hz re-emit in
   // startStatsInterval covers every remaining edge (new viewer,
@@ -807,7 +807,7 @@ let lastFrameBytes = 0;
 let statsIntervalId = null;
 
 // Bench-stats channel. Anyone on the same origin can subscribe to
-// 'cssdos-bridge-stats' for 1 Hz samples of cycles/frames/batch — the
+// 'cssdos-bridge-stats' for 1 Hz samples of cycles/frames/batch - the
 // bench page uses this. Publishing it unconditionally is cheap (no
 // listeners = no-op postMessage).
 let benchChannel = null;
@@ -817,13 +817,13 @@ const bridgeStartMs = performance.now();
 function startStatsInterval() {
   if (statsIntervalId) return;
   statsIntervalId = setInterval(() => {
-    // Lamp keepalive — see emitHoldLamp for why re-emitting matters.
+    // Lamp keepalive - see emitHoldLamp for why re-emitting matters.
     emitHoldLamp();
     const delta = frameCount - lastReportFrames;
     lastReportFrames = frameCount;
     const cycles = engine ? (engine.get_state_var('cycleCount') >>> 0) : 0;
     // Recurring 1 Hz runtime stats. Sent as type:'stats' (not 'status') so
-    // the boot shim can keep it out of the console by default — it was the
+    // the boot shim can keep it out of the console by default - it was the
     // main source of per-frame log spam. Verbose mode surfaces it.
     self.postMessage({
       type: 'stats',
@@ -871,7 +871,7 @@ self.onmessage = (ev) => {
     return;
   }
   // Debug peek-var: read a state var by bare name (e.g. 'keyboard' or
-  // 'kbdHeld0'). Used by Playwright tests to verify the hold-wire path —
+  // 'kbdHeld0'). Used by Playwright tests to verify the hold-wire path -
   // a latched key's scancode sits in the kbdHeld* slots while held.
   if (d.type === 'peek-var' && engine && ev.ports && ev.ports[0]) {
     try {
@@ -943,7 +943,7 @@ self.onmessage = (ev) => {
   // Bench-harness watch primitives (calcite-core script layer). Lets
   // tests/bench/profiles/*.mjs register --watch-shaped specs against
   // the engine and drain MeasurementEvents. The player path doesn't
-  // touch any of these — they're purely additive.
+  // touch any of these - they're purely additive.
   if (d.type === 'register-watch' && engine && ev.ports && ev.ports[0]) {
     try {
       const idx = engine.register_watch(d.spec);
@@ -988,7 +988,7 @@ self.onmessage = (ev) => {
     // ever detected, and the run never halts. The engine is already at
     // power-on right after compile (new_from_bytes; nothing ticked), so
     // start WITHOUT resetting and keep the watches. startRunning is
-    // idempotent — if viewer-connected got here first, the second call
+    // idempotent - if viewer-connected got here first, the second call
     // is a no-op via the `running` guard.
     startRunning(/* preserveWatches */ true);
     return;
@@ -1038,7 +1038,7 @@ bus.onmessage = (ev) => {
     // stop ticking and never emit another frame.
     muted = true;
     running = false;
-    postStatus('a newer bridge took over — this one is muted');
+    postStatus('a newer bridge took over - this one is muted');
     return;
   }
   if (muted) return;
@@ -1053,10 +1053,10 @@ bus.onmessage = (ev) => {
     }
   } else if (mm.type === 'kbd-event' && engine) {
     // Player keyboard form submission: `key` is the clicked key.
-    // kb-hold is the hold-mode toggle — flip the mode and mirror it
+    // kb-hold is the hold-mode toggle - flip the mode and mirror it
     // onto the --kbdHold wire NOW. The MACHINE does the holding (kiln
     // emitKeyboardWires): while the wire is up, releases latch (keys
-    // accumulate as held — chords); the moment it drops the machine
+    // accumulate as held - chords); the moment it drops the machine
     // drains the break codes, so turning the mode off releases every
     // held key immediately, no follow-up key press needed.
     const key = String(mm.key || '');
@@ -1069,7 +1069,7 @@ bus.onmessage = (ev) => {
       keyQueue.push({ op: 'pulse', sel: key });
     }
   } else if (mm.type === 'lamp-viewer') {
-    // A player opened the holdlamp stream — (re-)send the current
+    // A player opened the holdlamp stream - (re-)send the current
     // state so the lamp is right from the first paint. Meaningful
     // even with no engine yet: hold mode is simply off.
     emitHoldLamp();
@@ -1079,9 +1079,9 @@ bus.onmessage = (ev) => {
     // New viewer opened the framebuffer stream. Compile from the cache
     // if there's no engine yet (covers a fresh page load rehydrating a
     // previous session's cabinet, a lazy build, and a viewer racing an
-    // in-flight compile — all one path); the viewerWaiting hook in
+    // in-flight compile - all one path); the viewerWaiting hook in
     // compileCabinetBytes starts the run when it's ready. With a live
-    // engine, reset + tick — Play is instant.
+    // engine, reset + tick - Play is instant.
     viewerWaiting = true;
     if (!engine || cabinetPending || compileInFlight) {
       compileCabinetFromCache().catch((e) => postStatus('compile error: ' + (e.message || e)));
@@ -1089,7 +1089,7 @@ bus.onmessage = (ev) => {
       startRunning();
     }
   } else if (mm.type === 'viewer-disconnected') {
-    // No one watching — stop spinning the CPU. The engine is kept
+    // No one watching - stop spinning the CPU. The engine is kept
     // around so a fast reconnect doesn't have to rebuild it, but
     // the next viewer-connected will reset it anyway.
     running = false;

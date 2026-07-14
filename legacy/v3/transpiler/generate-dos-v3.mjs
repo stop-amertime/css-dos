@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-// generate-dos.mjs — CSS-DOS build script
+// generate-dos.mjs - CSS-DOS build script
 //
 // BUILD PIPELINE:
 //
 //   Inputs:
-//     1. BIOS binary    — x86 code placed at F000:0000 (currently: bios/init.asm + microcode stubs)
-//     2. DOS kernel     — dos/bin/kernel.sys, placed at 0060:0000
-//     3. Program .COM   — the program to run (e.g. rogue.com)
-//     4. CONFIG.SYS     — generated, tells DOS which program to SHELL= into
+//     1. BIOS binary    - x86 code placed at F000:0000 (currently: bios/init.asm + microcode stubs)
+//     2. DOS kernel     - dos/bin/kernel.sys, placed at 0060:0000
+//     3. Program .COM   - the program to run (e.g. rogue.com)
+//     4. CONFIG.SYS     - generated, tells DOS which program to SHELL= into
 //
 //   What this script does:
 //     1. Assembles the BIOS binary (NASM)
@@ -52,9 +52,9 @@ const MKFAT12 = resolve(projectRoot, 'tools', 'mkfat12.mjs');
 const CONFIG_SYS = resolve(projectRoot, 'dos', 'config.sys');
 
 // --- Memory layout ---
-const KERNEL_LINEAR = 0x600;     // 0060:0000 — where DOS kernel expects to be loaded
-const DISK_LINEAR = 0xD0000;     // D000:0000 — memory-resident disk image
-const BIOS_LINEAR = 0xF0000;     // F000:0000 — BIOS ROM
+const KERNEL_LINEAR = 0x600;     // 0060:0000 - where DOS kernel expects to be loaded
+const DISK_LINEAR = 0xD0000;     // D000:0000 - memory-resident disk image
+const BIOS_LINEAR = 0xF0000;     // F000:0000 - BIOS ROM
 const BIOS_SEG = 0xF000;
 const BDA_SEG = 0x0040;
 const BDA_BASE = 0x0400;
@@ -73,7 +73,7 @@ let outputFile = null;
 let htmlMode = false;
 let memOverride = null;
 const prune = { gfx: false, textVga: false };
-const dataFiles = []; // [{name, path}] — companion files to include on disk
+const dataFiles = []; // [{name, path}] - companion files to include on disk
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '-o' && i + 1 < args.length) {
@@ -160,7 +160,7 @@ console.log(`  Disk image: ${diskBytes.length} bytes`);
 const kernelBytes = [...readFileSync(KERNEL_SYS)];
 console.log(`  Kernel: ${kernelBytes.length} bytes`);
 
-// --- Step 4: Embedded data (disk only — IVT/BDA/splash done by init stub) ---
+// --- Step 4: Embedded data (disk only - IVT/BDA/splash done by init stub) ---
 const embData = [];
 embData.push({ addr: DISK_LINEAR, bytes: diskBytes });
 
@@ -196,7 +196,7 @@ emitCSS({
   programOffset: KERNEL_LINEAR,  // kernel loaded at 0x600
   initialCS: 0xF000,             // start at BIOS init stub
   initialIP: 0x0000,
-  initialRegs: { SP: 0 },        // hardware reset — BIOS init sets SS:SP
+  initialRegs: { SP: 0 },        // hardware reset - BIOS init sets SS:SP
 }, ws);
 
 ws.end(() => {

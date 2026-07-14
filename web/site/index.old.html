@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CSS-DOS — A computer made of CSS</title>
+  <title>CSS-DOS - A computer made of CSS</title>
   <link rel="icon" href="/assets/css-dos-logo-32x32.png">
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="/assets/site.css">
@@ -34,7 +34,7 @@
     <div class="window-body">
 
       <!-- ============================================ -->
-      <!-- STEP 1 — About (with sub-pages)                  -->
+      <!-- STEP 1 - About (with sub-pages)                  -->
       <!-- Sub-page nav lives in wizard.js: Next walks    -->
       <!-- 1→2→3, then advances the strip to Build.       -->
       <!-- ============================================ -->
@@ -49,7 +49,7 @@
           <li data-subjump="5"><span class="dot"></span> Credits</li>
         </ol>
 
-        <!-- ---------- Learn sub-page 1 — Intro ---------- -->
+        <!-- ---------- Learn sub-page 1 - Intro ---------- -->
         <div class="subpage subpage-intro" data-subpage="1">
           <div class="intro-hero">
             <div class="intro-logo">
@@ -75,7 +75,7 @@
           </div>
         </div>
 
-        <!-- ---------- Learn sub-page 2 — What is CSS? ---------- -->
+        <!-- ---------- Learn sub-page 2 - What is CSS? ---------- -->
         <div class="subpage" data-subpage="2" hidden>
           <h1>What is CSS?</h1>
           <p>
@@ -121,7 +121,7 @@
               </div>
             </div>
 
-            <!-- Function — a real custom @function with a typed parameter -->
+            <!-- Function - a real custom @function with a typed parameter -->
             <div class="css-demo-panel" data-demo-panel="function" hidden>
               <pre class="css-demo-code"><code><span class="tok-at">@function</span> <span class="tok-fn">--double</span>(<span class="tok-prop">--n</span>) {
   <span class="tok-prop">result</span>: <span class="tok-fn">calc</span>(<span class="tok-fn">var</span>(<span class="tok-prop">--n</span>) * 2);
@@ -136,7 +136,7 @@
               </div>
             </div>
 
-            <!-- Branching — real if() switching on a custom property -->
+            <!-- Branching - real if() switching on a custom property -->
             <div class="css-demo-panel" data-demo-panel="branching" hidden>
               <pre class="css-demo-code"><code><span class="tok-sel">.box</span> {
   background-color: <span class="tok-fn">if</span>(
@@ -160,7 +160,7 @@
           </p>
         </div>
 
-        <!-- ---------- Learn sub-page 3 — Why it's strange ---------- -->
+        <!-- ---------- Learn sub-page 3 - Why it's strange ---------- -->
         <div class="subpage" data-subpage="3" hidden>
           <h1>Why is this so strange?</h1>
           <p>
@@ -203,7 +203,7 @@
           </ul>
         </div>
 
-        <!-- ---------- Learn sub-page 4 — The file ---------- -->
+        <!-- ---------- Learn sub-page 4 - The file ---------- -->
         <div class="subpage" data-subpage="4" hidden>
           <h1>The file</h1>
           <p>
@@ -253,7 +253,7 @@
           </div>
         </div>
 
-        <!-- ---------- Learn sub-page 5 — Credits ---------- -->
+        <!-- ---------- Learn sub-page 5 - Credits ---------- -->
         <div class="subpage" data-subpage="5" hidden>
           <h1>Credits &amp; thanks</h1>
           <p>
@@ -294,7 +294,7 @@
       </section>
 
       <!-- ============================================ -->
-      <!-- PARKED — old "How it works" pipeline.         -->
+      <!-- PARKED - old "How it works" pipeline.         -->
       <!-- Out of the flow (no data-step). Kept for       -->
       <!-- salvage; delete once nothing's needed from it. -->
       <!-- ============================================ -->
@@ -405,7 +405,7 @@
       </section>
 
       <!-- ============================================ -->
-      <!-- STEP 2 — Build (pick + config/build + result) -->
+      <!-- STEP 2 - Build (pick + config/build + result) -->
       <!-- Sub-page nav mirrors the About step: dots +    -->
       <!-- .subpage sections. Owned by wizard.js.         -->
       <!-- ============================================ -->
@@ -436,7 +436,7 @@
           <li data-subjump="3" hidden><span class="dot"></span> Cabinet ready</li>
         </ol>
 
-        <!-- ---------- Build sub-page 1 — pick a program ---------- -->
+        <!-- ---------- Build sub-page 1 - pick a program ---------- -->
         <div class="subpage" data-build-subpage="1">
           <!-- decorative card grid; clicks proxy into the hidden #cart-list
                radios build.js owns. -->
@@ -450,7 +450,7 @@
             <div class="cart-detail-desc"></div>
           </div>
 
-          <!-- Custom upload panel — hidden until the "Custom Program" card
+          <!-- Custom upload panel - hidden until the "Custom Program" card
                is selected. wizard.js toggles .custom-panel-open. -->
           <div class="custom-panel" id="custom-panel" hidden>
             <div class="custom-panel-head">Load your own program</div>
@@ -480,7 +480,7 @@
           <input type="file" id="dir-file" webkitdirectory directory multiple>
         </div>
 
-        <!-- ---------- Build sub-page 2 — configure + build ---------- -->
+        <!-- ---------- Build sub-page 2 - configure + build ---------- -->
         <div class="subpage" data-build-subpage="2" hidden>
           <div class="machine-row">
             <div class="machine-photo">
@@ -562,7 +562,7 @@
 
                   <!-- Superseded by #boot-mode-row below: the raw run-command
                        field, permanently hidden. Deliberately NOT id="run-cmd-row"
-                       — that id is what refreshDosOnlyRows() (build.js) toggles
+                       - that id is what refreshDosOnlyRows() (build.js) toggles
                        visible for DOS presets on build.html, which still uses the
                        raw field. #run-cmd itself keeps its id; build.js reads
                        .value from it at submit time regardless of visibility. -->
@@ -588,7 +588,7 @@
 
               <!-- Boot-mode: program.json's default run command vs. a bare
                    DOS shell. Just toggles #run-cmd between the cart's stored
-                   default and empty — same field build.js already reads. -->
+                   default and empty - same field build.js already reads. -->
               <div class="row boot-mode-row" id="boot-mode-row" hidden>
                 <label>Boot into:</label>
                 <div class="radio-group inline" id="boot-mode-group">
@@ -612,7 +612,7 @@
 
               <!-- #stages stays in the DOM (build.js appends one <li> per
                    progress callback; wizard.js's MutationObserver counts
-                   those to pace the bar below) but is never shown — the
+                   those to pace the bar below) but is never shown - the
                    #log pre underneath already mirrors the same messages. -->
               <div id="build-progress-wrap" hidden>
                 <ol id="stages" hidden></ol>
@@ -629,7 +629,7 @@
           </div>
         </div>
 
-        <!-- ---------- Build sub-page 3 — cabinet ready ---------- -->
+        <!-- ---------- Build sub-page 3 - cabinet ready ---------- -->
         <div class="subpage" id="block-source" data-build-subpage="3" hidden>
           <div class="result-row">
             <div class="result-floppy" aria-hidden="true">
@@ -657,7 +657,7 @@
             </div>
           </div>
 
-          <!-- Source viewer — paginated by build.js. Shown directly so
+          <!-- Source viewer - paginated by build.js. Shown directly so
                the cabinet's CSS is visible without a click. -->
           <section id="source-viewer" class="source-viewer-block">
             <h3 class="source-viewer-head">Cabinet source</h3>
@@ -676,7 +676,7 @@
       </section>
 
       <!-- ============================================ -->
-      <!-- STEP 3 — Play                                 -->
+      <!-- STEP 3 - Play                                 -->
       <!-- ============================================ -->
       <section class="step" data-step="3" hidden>
 
@@ -705,7 +705,7 @@
             doing the same work by hand.
           </p>
 
-          <!-- "Is this cheating?" — most of the argument folded away. -->
+          <!-- "Is this cheating?" - most of the argument folded away. -->
           <details class="cheat-box">
             <summary>
               <span class="cheat-q">Is this cheating?</span>
@@ -750,7 +750,7 @@
           </details>
         </div>
 
-        <!-- Two run options — small, side by side. -->
+        <!-- Two run options - small, side by side. -->
         <div class="run-options">
           <a class="run-opt run-raw" id="play-raw-card" href="/player/raw.html" target="_blank" rel="noopener">
             <div class="run-opt-head">Run raw CSS in Chrome</div>
@@ -793,7 +793,7 @@
       <label class="radio">
         <input type="radio" name="cart" value="" checked>
         <span class="marker"></span>
-        <span class="label-text">(custom — load file or folder)</span>
+        <span class="label-text">(custom - load file or folder)</span>
       </label>
     </div>
     <a id="download" download="cabinet.css">download</a>
@@ -801,7 +801,7 @@
     <a id="play-canvas-link" href="/player/calcite-canvas.html" target="_blank">play (canvas)</a>
     <a id="play-raw-link" href="/player/raw.html" target="_blank">play (raw)</a>
     <!-- build.js writes progress into #progress / #result; we keep them
-         present but invisible — the visible UI uses #build-progress-wrap
+         present but invisible - the visible UI uses #build-progress-wrap
          and #block-source instead. -->
     <section id="progress"><pre id="progress-log"></pre></section>
     <section id="result"></section>

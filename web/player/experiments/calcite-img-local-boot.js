@@ -1,7 +1,7 @@
 // player/calcite-img-local-boot.js
 // Same-tab bootstrap for calcite-img.html. Registers the service
 // worker and spawns the calcite driver in this page's process.
-// No coupling to build-simple.html's pipeline — keeps the driver
+// No coupling to build-simple.html's pipeline - keeps the driver
 // from competing with other workers for CPU.
 
 (async function () {
@@ -56,7 +56,7 @@
     // events that the SW forwards.
     //
     // Note: this is same-tab architecture, so we can just punt the
-    // signal straight at the driver — no hop through the SW needed.
+    // signal straight at the driver - no hop through the SW needed.
     // We still create and hand over the SW port above for multipart
     // streaming + /_kbd routing; this second port just kicks the
     // driver into motion.

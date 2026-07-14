@@ -1,4 +1,4 @@
-; gossamer-dos.asm — Gossamer BIOS (DOS variant) for CSS-DOS
+; gossamer-dos.asm - Gossamer BIOS (DOS variant) for CSS-DOS
 ; Loaded at F000:0000 (linear 0xF0000)
 ;
 ; Mirrors the 8088_bios reference layout:
@@ -74,7 +74,7 @@ video_rows          equ 0x84    ; byte - text rows minus 1
 video_char_height   equ 0x85    ; word - character height (points)
 
 ; ============================================================
-; INT 10h — Video Services
+; INT 10h - Video Services
 ; ============================================================
 int10h_handler:
     push ds
@@ -465,7 +465,7 @@ int10h_handler:
 
 .get_display_combo:
     ; AH=1Ah: Get/Set Display Combination Code
-    ; Return VGA color (0x08) — programs use this to detect VGA.
+    ; Return VGA color (0x08) - programs use this to detect VGA.
     cmp bl, 0
     jne .dcc_set
     ; BL=00h: Get DCC
@@ -477,7 +477,7 @@ int10h_handler:
     mov al, 0x1A            ; confirm function supported
     iret
 .dcc_set:
-    ; BL!=0: Set DCC — ignore but confirm
+    ; BL!=0: Set DCC - ignore but confirm
     pop bp
     pop es
     pop ds
@@ -485,7 +485,7 @@ int10h_handler:
     iret
 
 ; ============================================================
-; scroll_up_one — scroll VGA text up by one line
+; scroll_up_one - scroll VGA text up by one line
 ; ============================================================
 scroll_up_one:
     push ds
@@ -520,7 +520,7 @@ scroll_up_one:
     ret
 
 ; ============================================================
-; INT 11h — Equipment List (read from BDA, like reference BIOS)
+; INT 11h - Equipment List (read from BDA, like reference BIOS)
 ; ============================================================
 int11h_handler:
     sti
@@ -532,7 +532,7 @@ int11h_handler:
     iret
 
 ; ============================================================
-; INT 12h — Memory Size (read from BDA, like reference BIOS)
+; INT 12h - Memory Size (read from BDA, like reference BIOS)
 ; ============================================================
 int12h_handler:
     sti
@@ -544,7 +544,7 @@ int12h_handler:
     iret
 
 ; ============================================================
-; INT 13h — Disk Services (memory-resident disk image)
+; INT 13h - Disk Services (memory-resident disk image)
 ; ============================================================
 int13h_handler:
     cmp ah, 0x00
@@ -555,7 +555,7 @@ int13h_handler:
     je .disk_params
     cmp ah, 0x15
     je .disk_type
-    ; Unknown function — return error
+    ; Unknown function - return error
     mov ah, 0x01           ; invalid function
     stc
     iret
@@ -587,7 +587,7 @@ int13h_handler:
     iret
 
 .disk_type:
-    ; AH=15h: Get disk type — floppy without change detection
+    ; AH=15h: Get disk type - floppy without change detection
     mov ah, 0x01
     clc
     iret
@@ -639,7 +639,7 @@ int13h_handler:
     ; Reclaim original count (AL) from stack
     pop cx                 ; cx (saved)
     pop dx                 ; dx (saved)
-    pop ax                 ; ax (saved) — AL = sector count
+    pop ax                 ; ax (saved) - AL = sector count
     xor ah, ah
     mov cx, ax             ; CX = sector count
     push cx                ; preserve original count for return (AL)
@@ -689,7 +689,7 @@ int13h_handler:
     iret
 
 ; ============================================================
-; INT 16h — Keyboard Services (matches reference BIOS contracts)
+; INT 16h - Keyboard Services (matches reference BIOS contracts)
 ; ============================================================
 int16h_handler:
     sti
@@ -720,7 +720,7 @@ int16h_handler:
 .key_wait:
     mov bx, [kbd_buffer_head]
     cmp bx, [kbd_buffer_tail]
-    je .key_wait                ; buffer empty — spin
+    je .key_wait                ; buffer empty - spin
     mov ax, [bx]                ; read (scancode<<8 | ascii) word
     add bx, 2
     cmp bx, [kbd_buffer_end]    ; wrap around ring buffer
@@ -743,7 +743,7 @@ int16h_handler:
     pop bx
     push bp
     mov bp, sp
-    and word [bp+6], 0xFFBF     ; clear ZF — key available
+    and word [bp+6], 0xFFBF     ; clear ZF - key available
     pop bp
     iret
 .ck_empty:
@@ -751,7 +751,7 @@ int16h_handler:
     pop bx
     push bp
     mov bp, sp
-    or word [bp+6], 0x0040      ; set ZF — no key
+    or word [bp+6], 0x0040      ; set ZF - no key
     pop bp
     iret
 
@@ -771,7 +771,7 @@ int16h_handler:
     iret
 
 ; ============================================================
-; INT 1Ah — Timer Services (matches reference BIOS contract)
+; INT 1Ah - Timer Services (matches reference BIOS contract)
 ; ============================================================
 int1ah_handler:
     sti
@@ -813,7 +813,7 @@ int1ah_handler:
     iret
 
 ; ============================================================
-; INT 08h — Timer Tick (IRQ0)
+; INT 08h - Timer Tick (IRQ0)
 ; Increments BDA tick count, checks for midnight, calls INT 1Ch.
 ; We don't have a real PIT, so this won't fire automatically,
 ; but having the handler means any code that triggers INT 08h
@@ -846,7 +846,7 @@ int08h_handler:
     iret
 
 ; ============================================================
-; INT 15h — Miscellaneous System Services (matches reference)
+; INT 15h - Miscellaneous System Services (matches reference)
 ; ============================================================
 int15h_handler:
     sti
@@ -856,12 +856,12 @@ int15h_handler:
     je .sys_config
     cmp ah, 0x88
     je .ext_mem_size
-    ; AH=90h/91h: OS hooks — return success
+    ; AH=90h/91h: OS hooks - return success
     cmp ah, 0x90
     je .os_hook
     cmp ah, 0x91
     je .os_hook
-    ; Unknown function — CF set, AH=86h (like reference)
+    ; Unknown function - CF set, AH=86h (like reference)
     mov ah, 0x86
     push bp
     mov bp, sp
@@ -870,16 +870,16 @@ int15h_handler:
     iret
 
 .kbd_intercept:
-    ; AH=4Fh: Keyboard intercept — just IRET (pass through)
+    ; AH=4Fh: Keyboard intercept - just IRET (pass through)
     iret
 
 .os_hook:
-    ; AH=90h/91h: Device busy/interrupt complete — AH=0, IRET
+    ; AH=90h/91h: Device busy/interrupt complete - AH=0, IRET
     mov ah, 0x00
     iret
 
 .ext_mem_size:
-    ; AH=88h: Extended memory size (above 1MB) — none
+    ; AH=88h: Extended memory size (above 1MB) - none
     xor ax, ax
     push bp
     mov bp, sp
@@ -900,7 +900,7 @@ int15h_handler:
     iret
 
 ; ============================================================
-; INT 19h — Bootstrap (halt in our system)
+; INT 19h - Bootstrap (halt in our system)
 ; ============================================================
 int19h_handler:
     push ds
@@ -911,7 +911,7 @@ int19h_handler:
     jmp int19h_handler
 
 ; ============================================================
-; INT 20h — Program Terminate (halt)
+; INT 20h - Program Terminate (halt)
 ; ============================================================
 int20h_handler:
     push ds
@@ -922,7 +922,7 @@ int20h_handler:
     jmp int20h_handler
 
 ; ============================================================
-; INT 01h — Single-step trap handler
+; INT 01h - Single-step trap handler
 ; Clears TF from stacked FLAGS so execution resumes normally.
 ; ============================================================
 int01h_handler:
@@ -933,14 +933,14 @@ int01h_handler:
     iret
 
 ; ============================================================
-; int_dummy — Dummy interrupt handler (IRET only)
+; int_dummy - Dummy interrupt handler (IRET only)
 ; Matches reference BIOS int_dummy at FF53h.
 ; ============================================================
 int_dummy:
     iret
 
 ; ============================================================
-; default_handler — For unimplemented INTs
+; default_handler - For unimplemented INTs
 ; Returns with CF set to signal "not supported".
 ; ============================================================
 default_handler:
@@ -951,7 +951,7 @@ default_handler:
     iret
 
 ; ============================================================
-; Interrupt vector table — offsets only (segment always F000h)
+; Interrupt vector table - offsets only (segment always F000h)
 ; Matches reference 8088_bios interrupt_table layout exactly.
 ; 32 entries: INT 00h through INT 1Fh.
 ; ============================================================
@@ -990,7 +990,7 @@ interrupt_table:
     dw int_dummy            ; INT 1F - Font (stub)
 
 ; ============================================================
-; BIOS Init — POST entry point
+; BIOS Init - POST entry point
 ; Sets up IVT from interrupt_table, initializes BDA, boots DOS.
 ; ============================================================
 bios_init:
@@ -1239,7 +1239,7 @@ disk_param_table:
     db 0x02                ; head load time / DMA mode
     db 0x25                ; motor off delay (ticks)
     db 0x02                ; bytes per sector (2 = 512)
-    db 0xD4                ; SPT sentinel — builder patches via [0x02, 0xD4, 0x1B]
+    db 0xD4                ; SPT sentinel - builder patches via [0x02, 0xD4, 0x1B]
     db 0x1B                ; gap length
     db 0xFF                ; data length
     db 0x50                ; format gap length

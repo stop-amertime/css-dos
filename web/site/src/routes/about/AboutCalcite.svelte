@@ -1,5 +1,5 @@
 <script>
-  // Calcite — how the file actually runs, and the five
+  // Calcite - how the file actually runs, and the five
   // keeps-it-honest rules.
   import SectionHead from '../../components/SectionHead.svelte';
   import Term from '../../components/Term.svelte';

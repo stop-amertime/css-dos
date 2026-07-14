@@ -1,4 +1,4 @@
-; mode13_gradient.asm — VGA Mode 13h smoke test
+; mode13_gradient.asm - VGA Mode 13h smoke test
 ;
 ; Sets video mode 13h (320x200x256), fills the framebuffer at
 ; 0xA0000 with a diagonal gradient (byte = (x+y) & 15), then exits.
@@ -12,7 +12,7 @@
 ; Build the .com:
 ;   nasm -f bin -o tests/mode13_gradient.com tests/mode13_gradient.asm
 ; To turn a .com like this into a cabinet, wrap it as a hack-preset cart
-; (with graphics memory enabled) and run it through the builder — see
+; (with graphics memory enabled) and run it through the builder - see
 ; docs/hack-path.md.
 ; Render framebuffer:
 ;   calcite --input tests/mode13_gradient.css --ticks 200000 \

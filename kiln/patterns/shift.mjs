@@ -14,50 +14,44 @@ export function emitShift_D1(dispatch) {
   // SAR (reg=7): result = rm >> 1 (signed), CF = old bit 0
   // ROL (reg=0): result = (rm << 1) | (rm >> 15), CF = new bit 0
   // ROR (reg=1): result = (rm >> 1) | (rm << 15), CF = new bit 15
-  // For now implement SHL, SHR, SAR (most commonly used)
+  // Each entry holds the raw result `core`; `wrap` marks the ops whose
+  // register/mem-lo forms mask the core to width via --lowerBytes (the
+  // left-shift family can overflow 16 bits, the right-shift family can't).
+  // reg = wrap ? --lowerBytes(core,16) : core;  memLo = --lowerBytes(core,8);
+  // memHi = --rightShift(reg, 8).
+  const RESULTS = {
+    4: { core: `calc(var(--rmVal16) * 2)`, wrap: true },                                                 // SHL
+    5: { core: `round(down, var(--rmVal16) / 2)`, wrap: false },                                         // SHR
+    7: { core: `calc(round(down, var(--rmVal16) / 2) + --bit(var(--rmVal16), 15) * 32768)`, wrap: false }, // SAR
+    0: { core: `calc(var(--rmVal16) * 2 + --bit(var(--rmVal16), 15))`, wrap: true },                     // ROL
+    1: { core: `calc(round(down, var(--rmVal16) / 2) + --bit(var(--rmVal16), 0) * 32768)`, wrap: false }, // ROR
+    2: { core: `calc(var(--rmVal16) * 2 + var(--_cf))`, wrap: true },                                    // RCL
+    3: { core: `calc(round(down, var(--rmVal16) / 2) + var(--_cf) * 32768)`, wrap: false },              // RCR
+  };
+  const regExpr = ({ core, wrap }) => wrap ? `--lowerBytes(${core}, 16)` : core;
+  const REG_ORDER = [4, 5, 7, 0, 1, 2, 3];
 
   for (let r = 0; r < 8; r++) {
     const regName = REG16[r];
+    const branches = REG_ORDER.map(sub =>
+      `style(--mod: 3) and style(--rm: ${r}) and style(--reg: ${sub}): ${regExpr(RESULTS[sub])}`
+    );
     dispatch.addEntry(regName, 0xD1,
-      `if(` +
-      `style(--mod: 3) and style(--rm: ${r}) and style(--reg: 4): --lowerBytes(calc(var(--rmVal16) * 2), 16); ` +  // SHL
-      `style(--mod: 3) and style(--rm: ${r}) and style(--reg: 5): round(down, var(--rmVal16) / 2); ` +  // SHR
-      `style(--mod: 3) and style(--rm: ${r}) and style(--reg: 7): calc(round(down, var(--rmVal16) / 2) + --bit(var(--rmVal16), 15) * 32768); ` +  // SAR
-      `style(--mod: 3) and style(--rm: ${r}) and style(--reg: 0): --lowerBytes(calc(var(--rmVal16) * 2 + --bit(var(--rmVal16), 15)), 16); ` +  // ROL
-      `style(--mod: 3) and style(--rm: ${r}) and style(--reg: 1): calc(round(down, var(--rmVal16) / 2) + --bit(var(--rmVal16), 0) * 32768); ` +  // ROR
-      `style(--mod: 3) and style(--rm: ${r}) and style(--reg: 2): --lowerBytes(calc(var(--rmVal16) * 2 + var(--_cf)), 16); ` +  // RCL
-      `style(--mod: 3) and style(--rm: ${r}) and style(--reg: 3): calc(round(down, var(--rmVal16) / 2) + var(--_cf) * 32768); ` +  // RCR
-      `else: var(--__1${regName}))`,
+      `if(${branches.join('; ')}; else: var(--__1${regName}))`,
       `Shift D1 → ${regName}`);
   }
 
-  // Memory write: if mod!=3
-  dispatch.addMemWrite(0xD1,
+  // Memory write: if mod!=3 (word, lo at ea, hi at ea+1). Each /reg
+  // branch carries the raw core word; the write side masks/splits it.
+  const memWordBranches = REG_ORDER.map(sub =>
+    `style(--reg: ${sub}): ${RESULTS[sub].core}`
+  );
+  dispatch.addMemWriteWord(0xD1,
     `if(style(--mod: 3): -1; else: var(--ea))`,
-    `if(` +
-    `style(--reg: 4): --lowerBytes(calc(var(--rmVal16) * 2), 8); ` +
-    `style(--reg: 5): --lowerBytes(round(down, var(--rmVal16) / 2), 8); ` +
-    `style(--reg: 7): --lowerBytes(calc(round(down, var(--rmVal16) / 2) + --bit(var(--rmVal16), 15) * 32768), 8); ` +
-    `style(--reg: 0): --lowerBytes(calc(var(--rmVal16) * 2 + --bit(var(--rmVal16), 15)), 8); ` +
-    `style(--reg: 1): --lowerBytes(calc(round(down, var(--rmVal16) / 2) + --bit(var(--rmVal16), 0) * 32768), 8); ` +
-    `style(--reg: 2): --lowerBytes(calc(var(--rmVal16) * 2 + var(--_cf)), 8); ` +
-    `style(--reg: 3): --lowerBytes(calc(round(down, var(--rmVal16) / 2) + var(--_cf) * 32768), 8); ` +
-    `else: 0)`,
-    `Shift D1 → mem lo`);
-  dispatch.addMemWrite(0xD1,
-    `if(style(--mod: 3): -1; else: calc(var(--ea) + 1))`,
-    `if(` +
-    `style(--reg: 4): --rightShift(--lowerBytes(calc(var(--rmVal16) * 2), 16), 8); ` +
-    `style(--reg: 5): --rightShift(round(down, var(--rmVal16) / 2), 8); ` +
-    `style(--reg: 7): --rightShift(calc(round(down, var(--rmVal16) / 2) + --bit(var(--rmVal16), 15) * 32768), 8); ` +
-    `style(--reg: 0): --rightShift(--lowerBytes(calc(var(--rmVal16) * 2 + --bit(var(--rmVal16), 15)), 16), 8); ` +
-    `style(--reg: 1): --rightShift(calc(round(down, var(--rmVal16) / 2) + --bit(var(--rmVal16), 0) * 32768), 8); ` +
-    `style(--reg: 2): --rightShift(--lowerBytes(calc(var(--rmVal16) * 2 + var(--_cf)), 16), 8); ` +
-    `style(--reg: 3): --rightShift(calc(round(down, var(--rmVal16) / 2) + var(--_cf) * 32768), 8); ` +
-    `else: 0)`,
-    `Shift D1 → mem hi`);
+    `if(${memWordBranches.join('; ')}; else: 0)`,
+    `Shift D1 → mem`);
 
-  // Flags: simplified — CF from the shifted-out bit
+  // Flags: simplified - CF from the shifted-out bit
   // RCL/RCR: only CF changes (new CF = shifted-out bit); leave PF/ZF/SF unchanged
   dispatch.addEntry('flags', 0xD1,
     `if(` +
@@ -90,7 +84,7 @@ export function emitShift_D1(dispatch) {
  */
 export function emitShift_D0(dispatch) {
   // Per-shift-type result expression (input is rmVal8). Match the
-  // emitShift_D1 layout — same formulas, just narrowed to 8 bits.
+  // emitShift_D1 layout - same formulas, just narrowed to 8 bits.
   const shl8 = `--lowerBytes(calc(var(--rmVal8) * 2), 8)`;
   const shr8 = `round(down, var(--rmVal8) / 2)`;
   const sar8 = `calc(round(down, var(--rmVal8) / 2) + --bit(var(--rmVal8), 7) * 128)`;
@@ -122,7 +116,7 @@ export function emitShift_D0(dispatch) {
 
   // Flags. SHL/SHR/SAR get the regular 8-bit flag helpers. RCL/RCR
   // touch only CF (new CF = the bit that wrapped). ROL/ROR also touch
-  // only CF — for ROL the new CF = old bit 7 (the bit that wrapped to
+  // only CF - for ROL the new CF = old bit 7 (the bit that wrapped to
   // bit 0); for ROR the new CF = old bit 0 (the bit that wrapped to
   // bit 7). PF/ZF/SF/AF are preserved by all rotates per Intel.
   dispatch.addEntry('flags', 0xD0,
@@ -233,7 +227,7 @@ export function emitShift_D3(dispatch) {
   // sign fill = signBit * (0xFFFF - floor(0xFFFF / pow2CL))
   // = bit15 * (65535 - round(down, 65535 / pow2CL))
   const sar16 = `calc(round(down, var(--rmVal16) / max(1, var(--_pow2CL))) + --bit(var(--rmVal16), 15) * max(0, calc(65535 - round(down, 65535 / max(1, var(--_pow2CL))))))`;
-  // ROL: (val << cl) | (val >> (16-cl))  — both masked to 16 bits
+  // ROL: (val << cl) | (val >> (16-cl))  - both masked to 16 bits
   const rol16 = `--lowerBytes(calc(round(nearest, var(--rmVal16) * var(--_pow2CL)) + round(down, var(--rmVal16) / max(1, var(--_pow2inv16)))), 16)`;
   // ROR: (val >> cl) | (val << (16-cl))
   const ror16 = `--lowerBytes(calc(round(down, var(--rmVal16) / max(1, var(--_pow2CL))) + round(nearest, var(--rmVal16) * var(--_pow2inv16))), 16)`;

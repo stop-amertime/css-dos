@@ -1,10 +1,10 @@
-## 2026-05-07 — pre-ship FPS bottleneck survey
+## 2026-05-07 - pre-ship FPS bottleneck survey
 
 Survey done in service of the pre-ship perf push (current
 steady-state Doom8088 ~3 FPS, target 4–5+). Five untried leads
 written up in
 [`docs/agent-briefs/2026-05-07-pre-ship-fps-leads.md`](../agent-briefs/2026-05-07-pre-ship-fps-leads.md),
-ranked by leverage/risk. No code change yet — this is reconnaissance
+ranked by leverage/risk. No code change yet - this is reconnaissance
 the next perf agent picks up.
 
 Headline finding: the comment at calcite
@@ -13,7 +13,7 @@ Headline finding: the comment at calcite
 three windows (cold start, loading, in-game) via
 `calcite-bench --restore … --profile`: **0.8 % at all three**. The
 unfused `LoadSlot + LoadState + LoadLit + Cmp + Branch` chain
-dominates instead — widening `fuse_loadstate_branch` to handle the
+dominates instead - widening `fuse_loadstate_branch` to handle the
 real shape is the top-pick lead. **Op mix is virtually identical
 across stages** (LoadSlot 28 %, BranchIfNotEqLit 21–22 %,
 LoadState 10 %), so a flat per-tick win lands the same percentage

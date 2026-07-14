@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// pipeline.mjs — single unified entrypoint for the agentic test harness.
+// pipeline.mjs - single unified entrypoint for the agentic test harness.
 //
 // Subcommands:
 //
@@ -39,7 +39,7 @@
 // guessing.
 //
 // Failure: subcommands exit non-zero on any error. The stdout JSON still
-// parses — it has `{ok: false, error: "..."}` — so automation doesn't crash
+// parses - it has `{ok: false, error: "..."}` - so automation doesn't crash
 // trying to parse a half-dump.
 
 import { spawn } from 'node:child_process';
@@ -67,7 +67,7 @@ function log(msg) { process.stderr.write(`[pipeline] ${msg}\n`); }
 
 function die(code, result) {
   // When stdout is a pipe (e.g. run.mjs wrapping us), write() is async and
-  // process.exit() drops whatever hasn't flushed — a multi-MB JSON line
+  // process.exit() drops whatever hasn't flushed - a multi-MB JSON line
   // (dos-smoke dumps ~110K memory cells) gets truncated mid-key and the
   // wrapper sees "produced no JSON". Exit from the write callback instead,
   // which fires only after the pipe has accepted the whole payload.
@@ -293,12 +293,12 @@ async function cmdShoot({ args, flags }) {
 // Same I/O contract as `shoot` but bypasses calcite-debugger and drives
 // calcite-cli directly. Hundreds of times faster for late-tick screenshots
 // because there's no per-tick delta logging or chunked-IPC seek. Use this
-// for "what's on screen at tick N?" against a fresh cabinet — it's the
+// for "what's on screen at tick N?" against a fresh cabinet - it's the
 // only option that fits inside a 2-minute budget for boot-completion ticks.
 //
 // Trade-off: no daemon means each invocation pays the ~2s parse+compile cost.
 // For multiple ticks against the same cabinet, the slow-path daemon will
-// eventually win out — but only after several samples.
+// eventually win out - but only after several samples.
 
 async function cmdFastShoot({ args, flags }) {
   const [cssPath] = args;
@@ -360,7 +360,7 @@ async function cmdFull({ args, flags }) {
   const buildMs = performance.now() - t0;
 
   // Phase 2-4: own a child debugger. For `full` we always use a fresh
-  // child — it's the "one-shot check, nothing left behind" command.
+  // child - it's the "one-shot check, nothing left behind" command.
   log(`[2/4] load ${cssPath}`);
   const t1 = performance.now();
   const dbg = await DebuggerClient.spawnChild({ cssPath, session });
@@ -417,7 +417,7 @@ async function cmdBaselineVerify({ args, flags }) {
     maxPhashDistance: flagInt(flags, 'phash-distance', 4),
   });
   const failed = results.filter(r => r.anyFail);
-  // Report is more useful than ok-or-not — always provide both.
+  // Report is more useful than ok-or-not - always provide both.
   die(allOk ? 0 : 3, {
     ok: allOk,
     cabinet: resolve(cssPath),
@@ -528,7 +528,7 @@ async function main() {
   }
 }
 
-const USAGE = `pipeline.mjs — CSS-DOS agentic test harness
+const USAGE = `pipeline.mjs - CSS-DOS agentic test harness
 
 Usage:
   node tests/harness/pipeline.mjs <subcommand> [args...] [flags...]
@@ -541,18 +541,18 @@ Subcommands:
     Flags: --wall-ms=N --max-ticks=N --stall-rate=F --stall-seconds=N
            --until-cs=0xXXXX --until-tick=N --until-program-entered
   shoot <cabinet>         Screenshot at current/specified tick (slow path,
-                          via calcite-debugger; ~1500 ticks/s — fine for
+                          via calcite-debugger; ~1500 ticks/s - fine for
                           early ticks, times out for boot-completion ticks).
     Flags: --tick=N --mode=0xXX --out=path
   fast-shoot <cabinet>    Screenshot via calcite-cli (~375k ticks/s). The
                           right tool for "what's on screen at tick N"
-                          against a fresh cabinet — runs to N, dumps VRAM,
+                          against a fresh cabinet - runs to N, dumps VRAM,
                           rasterises, exits. Boots to A:\> (~3M ticks) in
-                          ~10s. No daemon — pays parse+compile each call.
+                          ~10s. No daemon - pays parse+compile each call.
     Flags: --tick=N (required) --wall-ms=N (default 120000) --out=path
   diff <cabinet>          Compile vs interp path diff at current tick.
   full <cart>             Build + load + run + shot all in one.
-  fulldiff <cabinet>      Delegate to fulldiff.mjs — streaming calcite-vs-ref
+  fulldiff <cabinet>      Delegate to fulldiff.mjs - streaming calcite-vs-ref
                           divergence finder. Flags: --max-ticks=N --skip=N --stop-at=all
   triage <cabinet>        Run fulldiff and emit verdict + next-steps.
   consistency <cabinet> --tick=N
@@ -580,7 +580,7 @@ All subcommands print a single line of JSON to stdout on exit,
 
 Default mode (no --daemon): the harness spawns its own calcite-debugger
 child per command, loads the cabinet, does its work, and terminates.
-Self-contained — no orphan processes, but pays the parse+compile cost
+Self-contained - no orphan processes, but pays the parse+compile cost
 each time (usually 1-10s).
 
 Daemon mode (--daemon --port=PORT): reuse the user's long-running

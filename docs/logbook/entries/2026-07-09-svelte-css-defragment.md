@@ -14,14 +14,14 @@ dropped (unreferenced anywhere): `#stages`/`.log-pre` (build-progress),
 
 `cabinet-bar.css` kept (slimmed): `.hint-overlay` + `.anatomy-pane` are
 rendered by `routes/About.svelte` as siblings of `<CabinetBar>`, not
-inside its own template, so they can't be scoped there — everything
+inside its own template, so they can't be scoped there - everything
 else CabinetBar draws is now in `CabinetBar.svelte`'s `<style>`.
 
 Left alone per brief: `about.css`, `anatomy.css`, `build.css`,
 `play.css`, `UNPLACED.css` (multi-consumer), `pipeline.css` (dead, no
-importer — out of scope, not deleted).
+importer - out of scope, not deleted).
 
 Verified via Playwright screenshot diff (fresh tab, zero console
 errors) across home/about-why/how/file/faqs/build/build-configure/play,
 including Foldable open state, the `fold-bg` variant, and the
-`.foldable.advanced` external-theme variant — all pixel-identical.
+`.foldable.advanced` external-theme variant - all pixel-identical.

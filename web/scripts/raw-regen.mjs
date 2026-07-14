@@ -5,12 +5,12 @@
 // ONLY differences: the <img> screen becomes a 320x200 = 64000-element
 // CSS pixel grid, the cabinet loads as a real stylesheet, .window gains
 // .clock and .window-body gains .motherboard + .cpu (both classes, one
-// element — nested under .clock, see step 2) to host the cabinet's
+// element - nested under .clock, see step 2) to host the cabinet's
 // machine, and the label reads RAW.
 //
 // In principle Chrome evaluates the cabinet and the pixel painter
 // (kiln/pixels.mjs) drives #p0..#p63999 from the Mode 13h framebuffer.
-// In practice Chrome hangs/crashes on the cabinet's size — the point of
+// In practice Chrome hangs/crashes on the cabinet's size - the point of
 // the "raw" player. calcite.html runs the same machine at speed.
 //
 //   node web/scripts/raw-regen.mjs
@@ -35,7 +35,7 @@ function pixelGrid() {
 }
 
 const gridStyle = `  <style>
-    /* AUTOGEN raw-player pixel grid — replaces the calcite <img>. */
+    /* AUTOGEN raw-player pixel grid - replaces the calcite <img>. */
     .screen-grid {
       display: grid;
       grid-template-columns: repeat(${W}, 2px);
@@ -69,8 +69,8 @@ html = html.replace(
 
 // (2) Host the machine: .clock on .window, the machine element on its
 //     child .window-body. The machine element carries BOTH cabinet
-//     classes — .motherboard (chipset, memory, plumbing) and .cpu
-//     (decode + register tables) — one element, one computed style.
+//     classes - .motherboard (chipset, memory, plumbing) and .cpu
+//     (decode + register tables) - one element, one computed style.
 //     .clock must be an ANCESTOR, never the same element: the
 //     motherboard's `animation: store…, execute…` shorthand would
 //     cascade-clobber .clock's anim-play (the clock never ticks), and
@@ -98,7 +98,7 @@ html = html.replace('</head>', `${gridStyle}</head>`);
 
 // (6) Hold a key: calcite's #kb-hold is a submit button (the bridge
 //     owns the mode and streams the lamp img). The raw player has no
-//     bridge — swap in the pure-CSS form: a label toggling the hidden
+//     bridge - swap in the pure-CSS form: a label toggling the hidden
 //     #kb-holdmode checkbox, which IS the cabinet's --kbdHold wire
 //     (`&:has(#kb-holdmode:checked)`). The machine latches key
 //     releases while it is up and drains them when it drops; the
@@ -107,8 +107,8 @@ html = html.replace('</head>', `${gridStyle}</head>`);
   const btnRe = /<!-- Hold-mode toggle:[\s\S]*?<button id="kb-hold"[\s\S]*?<\/button>/;
   if (!btnRe.test(html)) throw new Error('raw-regen: calcite #kb-hold button not found');
   html = html.replace(btnRe,
-    `<input type="checkbox" id="kb-holdmode" class="kb-state" aria-label="Hold Mode: while on, pressed keys stay held (chords) — tap a held key again to release just that key; toggle off to release everything">`
-    + `<label id="kb-hold" class="kb-key kb-mod" for="kb-holdmode" title="Hold Mode: while on, pressed keys stay held (chords) — tap a held key again to release just that key; tap again to turn off and release everything"></label>`);
+    `<input type="checkbox" id="kb-holdmode" class="kb-state" aria-label="Hold Mode: while on, pressed keys stay held (chords) - tap a held key again to release just that key; toggle off to release everything">`
+    + `<label id="kb-hold" class="kb-key kb-mod" for="kb-holdmode" title="Hold Mode: while on, pressed keys stay held (chords) - tap a held key again to release just that key; tap again to turn off and release everything"></label>`);
 }
 // (7) Drop the SW-heartbeat iframe: the raw player uses no service
 //     worker streams, and without a dev server the refresh loop would
@@ -121,7 +121,7 @@ html = html.replace('</head>', `${gridStyle}</head>`);
 // (8) Mouse grid: calcite.html fills its 80×25 #mc-N surface with an
 //     inline script (file-size sanity); the raw player is script-free,
 //     so expand the 2000 buttons statically. Real :active on these
-//     buttons IS the cabinet's pointing surface — no bridge needed.
+//     buttons IS the cabinet's pointing surface - no bridge needed.
 {
   const gridRe = /<form class="mouse-grid"[^>]*><\/form>\n\s*<script>[\s\S]*?<\/script>/;
   if (!gridRe.test(html)) throw new Error('raw-regen: mouse-grid form + script not found');

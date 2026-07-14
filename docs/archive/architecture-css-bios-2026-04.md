@@ -1,22 +1,22 @@
 # CSS-BIOS
 
 The BIOS is implemented as **microcode** in `transpiler/src/patterns/bios.mjs`.
-There are no assembly files for the handlers — each BIOS interrupt handler is a
+There are no assembly files for the handlers - each BIOS interrupt handler is a
 set of CSS calc() expressions emitted by the transpiler.
 
 ## How it works
 
 The BIOS ROM at F000:0000 contains:
-1. An **init stub** (`bios/init.asm`) — real x86 code that sets up IVT, BDA,
+1. An **init stub** (`bios/init.asm`) - real x86 code that sets up IVT, BDA,
    VGA splash, and jumps to the kernel
 2. Tiny **3-byte stubs**: `[0xD6, routineID, 0xCF]` for each handled interrupt
 
 When the CPU executes `INT xxh`:
 1. It vectors through the IVT to one of the 3-byte stubs
-2. Opcode 0xD6 is the BIOS sentinel — calcite and Chrome dispatch on the
+2. Opcode 0xD6 is the BIOS sentinel - calcite and Chrome dispatch on the
    routine ID byte to run the appropriate microcode handler
 3. The handler executes as a uOp sequence (same machinery as CPU instructions)
-4. On retirement, the IRET (0xCF) byte is never reached — handlers fold IRET
+4. On retirement, the IRET (0xCF) byte is never reached - handlers fold IRET
    into their retirement uOp (pop IP, CS, FLAGS in one step)
 
 ## Handler table
@@ -25,7 +25,7 @@ When the CPU executes `INT xxh`:
 |-----------|---------|--------|
 | INT 08h | Timer tick (increments BDA tick counter at 0x046C) | Working |
 | INT 09h | Keyboard (reads `:active` buttons, stuffs BDA ring buffer) | Working |
-| INT 10h | Video services | Partial — see below |
+| INT 10h | Video services | Partial - see below |
 | INT 11h | Equipment list (reads BDA 0x0410) | Working |
 | INT 12h | Memory size (returns 640 in AX) | Working |
 | INT 13h | Disk I/O (reads from memory-mapped disk image) | Working |
@@ -55,17 +55,17 @@ The handler dispatches on DL to separate floppy (DL < 0x80) from hard disk
 (DL >= 0x80) calls. All hard disk calls return CF=1 (no hard drives).
 
 Key floppy subfunctions:
-- AH=00h: Reset — returns CF=0
-- AH=02h: Read sectors — byte-copy loop using biosSrc/biosDst/biosCnt state vars
-- AH=08h: Get parameters — returns 1.44MB geometry (79 cyl, 18 sec/track, 1 head)
-- AH=15h: Get disk type — returns AH=1 (floppy, no change detect)
-- AH=16h: Disk change — returns CF=0 (not changed)
+- AH=00h: Reset - returns CF=0
+- AH=02h: Read sectors - byte-copy loop using biosSrc/biosDst/biosCnt state vars
+- AH=08h: Get parameters - returns 1.44MB geometry (79 cyl, 18 sec/track, 1 head)
+- AH=15h: Get disk type - returns AH=1 (floppy, no change detect)
+- AH=16h: Disk change - returns CF=0 (not changed)
 
 ## Dual implementation
 
 Every handler exists in two places:
-1. **CSS microcode** — `transpiler/src/patterns/bios.mjs` (uOp sequences)
-2. **JS reference** — `tools/lib/bios-handlers.mjs` (imperative JS)
+1. **CSS microcode** - `transpiler/src/patterns/bios.mjs` (uOp sequences)
+2. **JS reference** - `tools/lib/bios-handlers.mjs` (imperative JS)
 
 The JS version is the source of truth for behavior. The CSS version must
 match exactly. Conformance testing catches discrepancies.
@@ -82,7 +82,7 @@ If a handler held at uOp > 0, IRET would restart at uOp 0 (not the held uOp).
 
 ## Folded IRET
 
-All handlers fold IRET into their final retirement uOp — they pop IP, CS,
+All handlers fold IRET into their final retirement uOp - they pop IP, CS,
 FLAGS from the stack and adjust SP in one uOp. This avoids a multi-uOp IRET
 sequence that would corrupt the decode pipeline (popping IP changes `--__1IP`
 on the next tick, causing opcode fetch from the wrong address).

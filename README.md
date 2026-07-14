@@ -37,7 +37,7 @@ Claude churned out much of the mechanical work, helped me keep track, write good
 
 I find AI writing to be cringe-inducing and bland. I'm typing this myself. All the copy on this website is edited by me personally with a real keyboard word-by-word, with only proofreading and mistake-fixing by Claude.
 
-Claude could never have figured the project out on its own, but it was immensely helpful. Claude lacked the intuition to contribute reliably on a conceptual level, although it had its moments — the writable shadow-disk, and <img> tag hack in Calcite, among others were Claude’s idea. However, this project is an unusual one, taking Claude well out of distribution, and it often took a laughably inept path through implementations and needed constant shepherding. But what it lacked in smarts, it made up for in being able to spew out menial code at a rate that far surpasses mine, like a slightly dim intern with the speed of the Flash.
+Claude could never have figured the project out on its own, but it was immensely helpful. Claude lacked the intuition to contribute reliably on a conceptual level, although it had its moments - the writable shadow-disk, and <img> tag hack in Calcite, among others were Claude’s idea. However, this project is an unusual one, taking Claude well out of distribution, and it often took a laughably inept path through implementations and needed constant shepherding. But what it lacked in smarts, it made up for in being able to spew out menial code at a rate that far surpasses mine, like a slightly dim intern with the speed of the Flash.
 
 As a long-time tinkerer and coder, I do miss the romantic thrill of cobbling code together by hand, rolling the dice on it, and feeling that pay-off (or letdown). Perhaps this is the mindset of an old fogey, but there’s something about creating with your own two hands that’s lost when you order a minion to do it for you, no matter how beautiful the end product. The ideas are mostly mine, but I didn’t execute them.
 
@@ -56,10 +56,10 @@ Until then, I hope for the restraint to use tools to reach higher places, not to
 ### How is performance?
 
 A browser evaluates all of this at roughly **two instructions per
-second** — three weeks to boot DOS, if it didn’t freeze first. So the
+second** - three weeks to boot DOS, if it didn’t freeze first. So the
 sibling project [**Calcite**](https://github.com/stop-amertime/calcite),
 a JIT compiler for computational CSS (Rust → WebAssembly), runs the
-same file **200,000× faster** — without adding, changing, or removing
+same file **200,000× faster** - without adding, changing, or removing
 a single byte of it, and bound by the project’s cardinal rule: it must
 produce exactly what a spec-compliant browser would, byte for byte.
 [Why that isn’t cheating →](https://css-dos.ahmedamer.co.uk/#about/calcite)
@@ -69,7 +69,7 @@ produce exactly what a spec-compliant browser would, byte for byte.
 
 A **cart** (folder or zip) contains a DOS program. The **builder** takes
 a cart, picks a **BIOS**, assembles a **floppy**, feeds it to **Kiln**
-(the transpiler), and produces a **cabinet** — a self-contained `.css`
+(the transpiler), and produces a **cabinet** - a self-contained `.css`
 file. You play a cabinet in Chrome via the **player**, or fast via
 Calcite.
 

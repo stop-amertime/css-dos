@@ -32,14 +32,14 @@ wmake -h clean all SINGLEFILE=1 VERSION=20250427 GIT_REV=72ae65f
    `getblk`, `fdosrw`, `locate_buffer`, `div32`).
 3. **Beware the old FreeDOS map**: git history contains
    `dos/bin/kwc8616.map` (deleted in `d60f8af`) from a FreeDOS-kernel
-   era. Its symbols do NOT match the EDR-DOS kernel — don't use it.
+   era. Its symbols do NOT match the EDR-DOS kernel - don't use it.
 
 ### EDR-DOS source
 
 Cloned at `../edrdos/` (from `SvarDOS/edrdos` on GitHub). Key files:
-- `drdos/fdos.equ` — DDSC (DPB), BCB (buffer control block) field offsets
-- `drdos/header.asm` — SDA (Swap Data Area), internal_data, device headers
-- `drbio/config.asm` — boot-time device driver chain initialization
+- `drdos/fdos.equ` - DDSC (DPB), BCB (buffer control block) field offsets
+- `drdos/header.asm` - SDA (Swap Data Area), internal_data, device headers
+- `drbio/config.asm` - boot-time device driver chain initialization
 
 ### Ralf Brown's Interrupt List
 

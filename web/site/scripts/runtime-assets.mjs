@@ -6,7 +6,7 @@
 // The SAME table drives dev and prod:
 //   - dev  (vite.config.js configureServer): serve these paths off disk.
 //   - prod (vite.config.js closeBundle):     copy them into dist/.
-// So dev and prod fetch byte-identical URLs from one list — no divergence.
+// So dev and prod fetch byte-identical URLs from one list - no divergence.
 //
 // Each entry is [urlPath, srcAbsDir]. urlPath is the root-absolute prefix
 // the browser fetches; srcAbsDir is where the files live on disk.
@@ -107,7 +107,7 @@ export function cartsIndex() {
 
 // COOP/COEP for dev parity with header-capable hosts. OPTIONAL: nothing in
 // the live path uses SharedArrayBuffer (single-threaded wasm, postMessage
-// transport — verified 2026-07-04); kept for a possible wasm-threads future.
+// transport - verified 2026-07-04); kept for a possible wasm-threads future.
 export const COI_HEADERS = {
   'Cross-Origin-Opener-Policy': 'same-origin',
   'Cross-Origin-Embedder-Policy': 'require-corp',

@@ -1,4 +1,4 @@
-// cpu-coverage.js — which opcodes each register table has a row for,
+// cpu-coverage.js - which opcodes each register table has a row for,
 // measured from sokoban.css (2026-07-03). Extraction: slice the CPU
 // region, bound each table at the next table's start (flags ends at
 // --halt, byte 285,403), collect distinct style(--opcode: N) matches.

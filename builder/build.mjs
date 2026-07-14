@@ -1,14 +1,14 @@
 #!/usr/bin/env node
-// CSS-DOS builder — orchestrates the four stages to turn a cart into a cabinet.
+// CSS-DOS builder - orchestrates the four stages to turn a cart into a cabinet.
 //
 //   cart (folder or zip) → build.mjs → cabinet (.css)
 //
 // Pipeline:
-//   1. resolveCart       — find the cart, parse program.json, discover files
-//   2. resolveManifest   — merge preset + manifest, validate, fill defaults
-//   3. buildBios         — Gossamer / Muslin / Corduroy
-//   4. buildFloppy       — FAT12 image (DOS carts only)
-//   5. runKiln           — emit CSS to output stream
+//   1. resolveCart       - find the cart, parse program.json, discover files
+//   2. resolveManifest   - merge preset + manifest, validate, fill defaults
+//   3. buildBios         - Gossamer / Muslin / Corduroy
+//   4. buildFloppy       - FAT12 image (DOS carts only)
+//   5. runKiln           - emit CSS to output stream
 //
 // Usage:
 //   node builder/build.mjs <cart-path> [-o output.css] [--cache-dir path]
@@ -145,7 +145,7 @@ async function main() {
     if (!raw) throw new Error('hack cart missing boot.raw');
     programBytes = [...readFileSync(resolve(cart.root, raw))];
   } else if ((manifest.boot?.os ?? 'edrdos') !== 'msdos4') {
-    // msdos4 carts preload nothing — DOS boots from the floppy's own
+    // msdos4 carts preload nothing - DOS boots from the floppy's own
     // boot sector (IO.SYS/MSDOS.SYS are on the disk, see stages/floppy.mjs).
     kernelBytes = [...readFileSync(resolve(repoRoot, 'dos', 'bin', 'kernel.sys'))];
   }
@@ -212,18 +212,18 @@ async function main() {
   // Chrome/calcite; the sidecars exist so the reference emulator and
   // other debug tools can reconstruct the same 1 MB memory image
   // *without* re-running the builder or re-parsing 150 MB of CSS.
-  //   <cabinet>.bios.bin      — raw BIOS bytes that ended up in the cabinet
+  //   <cabinet>.bios.bin      - raw BIOS bytes that ended up in the cabinet
   //                             (after patchBiosMemSize / patchBiosStackSeg
   //                              for corduroy). This is the BIOS the CSS
   //                              contains, not the pristine pre-patch one.
-  //   <cabinet>.disk.bin      — floppy image (FAT12), DOS preset only
-  //   <cabinet>.program.bin   — .COM bytes, hack preset only
-  //   <cabinet>.meta.json     — same payload as the harness-header JSON,
+  //   <cabinet>.disk.bin      - floppy image (FAT12), DOS preset only
+  //   <cabinet>.program.bin   - .COM bytes, hack preset only
+  //   <cabinet>.meta.json     - same payload as the harness-header JSON,
   //                             in case a reader doesn't want to scrape
   //                             the cabinet.
   const cabinetBase = resolve(outputPath).replace(/\.css$/, '');
   // Post-runKiln: corduroy's bios.bytes has been mutated by
-  // patchBiosMemSize / patchBiosStackSeg — those are the bytes that ended
+  // patchBiosMemSize / patchBiosStackSeg - those are the bytes that ended
   // up in the cabinet, so those are what the ref emulator should see.
   writeFileSync(`${cabinetBase}.bios.bin`, Buffer.from(bios.bytes));
   if (floppy) writeFileSync(`${cabinetBase}.disk.bin`, Buffer.from(floppy.bytes));

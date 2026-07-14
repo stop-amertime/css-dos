@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// web-boot.playwright.mjs — boot a cabinet through the REAL web path and
+// web-boot.playwright.mjs - boot a cabinet through the REAL web path and
 // assert a text sentinel appears on screen.
 //
 // Exists because every other gate (smoke/writable/msdos) drives
@@ -19,7 +19,7 @@
 //     For carts that leave text mode (e.g. windows101, mode 6).
 //
 // --engine=vendored (default): force the vendored web/vendor/calcite-pkg
-//   bundle — the artifact the site ships — even if a built sibling
+//   bundle - the artifact the site ships - even if a built sibling
 //   calcite repo is present. --engine=sibling: normal dev-server
 //   resolution (fresh sibling build if present), for pre-vendor testing.
 //
@@ -37,7 +37,7 @@ try {
   pw = await import('playwright');
 } catch {
   const dir = process.env.PLAYWRIGHT_DIR;
-  if (!dir) throw new Error('playwright not found — install it or set PLAYWRIGHT_DIR');
+  if (!dir) throw new Error('playwright not found - install it or set PLAYWRIGHT_DIR');
   const fallback = new URL('index.js', `file:///${dir.replace(/\\/g, '/')}/`).href;
   pw = (await import(fallback)).default ?? (await import(fallback));
 }
@@ -84,10 +84,10 @@ const link = resolve(tmpDir, `web-boot-${basename(cabinet)}`);
 rmSync(link, { force: true });
 symlinkSync(cabinet, link);
 
-// Dev server (Vite — the one dev server; web/site/vite.config.js serves the
+// Dev server (Vite - the one dev server; web/site/vite.config.js serves the
 // player, /tmp/ cabinets, and the calcite pkg). engine=vendored points
 // CALCITE_REPO into the void so the pkg resolution falls back to
-// web/vendor/calcite-pkg — the bundle the site ships is the one under test.
+// web/vendor/calcite-pkg - the bundle the site ships is the one under test.
 const env = { ...process.env, PORT: String(port) };
 if (engine === 'vendored') env.CALCITE_REPO = resolve(tmpDir, 'nonexistent-force-vendored-pkg');
 const viteBin = resolve(REPO_ROOT, 'web', 'site', 'node_modules', 'vite', 'bin', 'vite.js');
@@ -169,7 +169,7 @@ try {
     }
 
     // compile-done rides the bench BroadcastChannel, not the worker
-    // port — key off the '(ready)' status instead.
+    // port - key off the '(ready)' status instead.
     if (!started && s.some((m) => m.includes('(ready)'))) {
       started = true;
       compileMs = Date.now() - t0;
@@ -198,7 +198,7 @@ try {
     }
 
     // Graphics sentinel: BDA mode byte matches AND the CGA framebuffer
-    // has real ink — proves the program switched mode and drew.
+    // has real ink - proves the program switched mode and drew.
     if (started && gfxSentinel != null) {
       const gfx = await page.evaluate(async () => {
         const peek = (addr, len) => new Promise((res) => {

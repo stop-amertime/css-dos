@@ -3,13 +3,13 @@
 **This is the single source of truth for project status.** Every agent MUST
 read this before starting work and MUST update it before finishing.
 
-Last updated: 2026-04-19 (session 12 — partial eliza/keyboard investigation, inconclusive)
+Last updated: 2026-04-19 (session 12 - partial eliza/keyboard investigation, inconclusive)
 
 ---
 
 ## Current status
 
-**Session 11 — repo-wide restructure for release readiness.** All
+**Session 11 - repo-wide restructure for release readiness.** All
 top-level paths renamed; vocabulary pinned down (cart / cabinet / floppy /
 Kiln / builder / Gossamer / Muslin / Corduroy / player). New `builder/`
 orchestrator replaces the three `generate-*.mjs` scripts. New
@@ -91,37 +91,37 @@ Unverified.
 Doom8088 is the driving target. Items 1-5 are its blockers. Items 6+ are
 parallel/follow-on work.
 
-1. **INT 13h hard disk rejection** — kernel currently probes hard disks
+1. **INT 13h hard disk rejection** - kernel currently probes hard disks
    and gets floppy geometry, which happens to work. Proper rejection
-   (DL >= 0x80 → CF=1) causes a stall after the version string — the
+   (DL >= 0x80 → CF=1) causes a stall after the version string - the
    kernel hits a timeout loop that requires real PIT ticks. With the PIT
    now actually firing (PR #24 + the follow-ups below), should self-unblock.
-2. **Rom-disk WAD validation** — retest Zork+FROTZ (~284 KB), then
+2. **Rom-disk WAD validation** - retest Zork+FROTZ (~284 KB), then
    attempt Doom8088's processed WAD (hundreds of KB). Confirms calcite's
    flat-array dispatch scales to larger disks.
-3. **Build + boot Doom8088 end-to-end** — compile upstream with
+3. **Build + boot Doom8088 end-to-end** - compile upstream with
    `-march=i8088 -nosound -noxms -noems`, pack the WAD + EXE into a
    DOS-corduroy cart, boot through the C BIOS. All known CSS-side
    blockers (#25/#26/#27/#28) now resolved; next unknown is whatever
    Doom hits at runtime.
-4. **More programs** — rogue and other DOS programs.
+4. **More programs** - rogue and other DOS programs.
 
 Recently completed (session 11c, 2026-04-18):
-- **#25 C BIOS INT 09h handler** — `bios/corduroy/handlers.asm` now has
+- **#25 C BIOS INT 09h handler** - `bios/corduroy/handlers.asm` now has
   `int09h_handler` (reads port 0x60, packs scancode+ASCII into BDA ring
   buffer via an in-ROM scancode2ascii LUT, acks port 0x61 bit 7, EOIs,
   IRETs). `bios_init.c` installs IVT[9], and the interrupt_table entry
-  was flipped from int_dummy. Still TODO in muslin.asm — corduroy only.
-- **#26 EOI on INT 08h** — tick handler now sends `OUT 0x20, 0x20`
+  was flipped from int_dummy. Still TODO in muslin.asm - corduroy only.
+- **#26 EOI on INT 08h** - tick handler now sends `OUT 0x20, 0x20`
   before IRET. Same EOI added to the new INT 09h handler.
-- **#27 Break scancodes on release** — kiln's `emitIRQCompute` now emits
+- **#27 Break scancodes on release** - kiln's `emitIRQCompute` now emits
   `--_kbdPress`, `--_kbdRelease`, `--_kbdEdge` (OR of both), and
   `--_kbdPort60` (returns `prevKeyboard_scancode | 0x80` on release ticks,
   current scancode otherwise). Port 0x60 IN paths in `emitIO` read
   `--_kbdPort60`. Verified via per-tick trace: pressing raises IRQ 1
   with picPending=2; releasing raises IRQ 1 with picPending=2 (and prev
   scancode now readable with the break-bit set).
-- **#28 Conformance diff** — ran `tools/compare.mjs` on keyboard-irq +
+- **#28 Conformance diff** - ran `tools/compare.mjs` on keyboard-irq +
   timer-irq against `tools/peripherals.mjs`. Two compare.mjs bugs fixed:
   (a) stale v3 `uOp === 0` check now falls back to 0 for v4's single-
   cycle model; (b) calcite's ANSI screen-clear prefix stripped from the
@@ -132,33 +132,33 @@ Recently completed (session 11c, 2026-04-18):
   First 5-15 instructions of both tests match tick-for-tick with the
   reference. Subsequent divergence is structural (ref's INT 16h spins
   while CSS really delivers IRQ 1; ref's PIT advances by 1 per
-  instruction while CSS advances by cycleCount/4 — issue #28 flagged
+  instruction while CSS advances by cycleCount/4 - issue #28 flagged
   this as the expected divergence shape).
 
 ## Recent decisions
 
-- **skipMicrocodeBios for assembly BIOS builds** — `emitCSS()` was
+- **skipMicrocodeBios for assembly BIOS builds** - `emitCSS()` was
   unconditionally registering opcode 0xD6 microcode BIOS handlers even when
   the assembly BIOS is used (no 0xD6 stubs in ROM). This caused the kernel
   crash. `build.mjs` now passes `skipMicrocodeBios: true`. (2026-04-14)
-- **Kernel is EDR-DOS, not FreeDOS** — the map file `kwc8616.map` is for
+- **Kernel is EDR-DOS, not FreeDOS** - the map file `kwc8616.map` is for
   FreeDOS and doesn't match kernel.sys. The `../edrdos/` source is correct.
   kernel.sys = kernel-edrdos.sys = kernel-svardos.sys (same hash). (2026-04-14)
-- **Batched write slots for REP string ops** — added 32 write slots that only
+- **Batched write slots for REP string ops** - added 32 write slots that only
   activate during REP MOVSB/MOVSW/STOSB/STOSW. Each memory byte checks all
   32 slots. CSS grows ~5x but calcite optimizes via HashMap lookups. This is
   the pragmatic middle ground between v2's 6 parallel slots (all instructions)
   and v3's 1 slot (too slow for boot). (2026-04-13)
-- **pit.mjs reload=0 fix** — real PIT treats reload=0 as 65536. CSS PIT was
+- **pit.mjs reload=0 fix** - real PIT treats reload=0 as 65536. CSS PIT was
   treating it as "off". Fixed by adding `_pitEffectiveReload` property and
   checking `pitMode` instead of `pitReload` for the "not active" guard. (2026-04-13)
-- **Revived assembly BIOS for DOS boot** — the microcode BIOS (bios.mjs) was
+- **Revived assembly BIOS for DOS boot** - the microcode BIOS (bios.mjs) was
   architecturally cleaner but didn't boot. The old gossamer assembly BIOS did
   boot on the v2 CSS. Copied to `bios/css-emu-bios.asm`. (2026-04-13)
-- **Hard disk probe bug** — INT 13h must check DL >= 0x80 and return CF=1 for
+- **Hard disk probe bug** - INT 13h must check DL >= 0x80 and return CF=1 for
   all hard disk calls. Without this, the kernel builds a corrupt DDSC chain
   from floppy parameters and loops forever. (2026-04-13)
-- **C BIOS is the long-term plan** — Claude can't reliably read/write x86
+- **C BIOS is the long-term plan** - Claude can't reliably read/write x86
   assembly. OpenWatcom C targeting 8086 is the plan for a maintainable BIOS.
   Assembly BIOS is the interim solution. (2026-04-13)
 
@@ -178,7 +178,7 @@ Recently completed (session 11c, 2026-04-18):
 - Session 11d reconnected `run-web.bat` → `builder/build.mjs` via the
   CLI launcher. `run.bat`, `run-js.bat`, and `serve.mjs` are still the
   old generator shape and remain deferred.
-- Other prior uncommitted work from earlier sessions — unchanged by this
+- Other prior uncommitted work from earlier sessions - unchanged by this
   session.
 
 ---
@@ -187,7 +187,7 @@ Recently completed (session 11c, 2026-04-18):
 
 Newest entries first. See `docs/logbook/PROTOCOL.md` for how to write entries.
 
-### 2026-04-19 — Session 12: keyboard-in-eliza partial investigation (inconclusive)
+### 2026-04-19 - Session 12: keyboard-in-eliza partial investigation (inconclusive)
 
 **What brought this on:** user reported keyboard doesn't work in COMMAND.COM
 or ELIZA.EXE. Bootle's keyboard does work. Another agent had suggested adding
@@ -201,7 +201,7 @@ session should pick up where this one stopped.
 **What was ruled out (with evidence):**
 
 - **Not a 186/286/386 opcode gap.** Disassembled ELIZA.EXE and unpacked
-  COMMAND.COM (it's UPX-packed SVARCOM — copyright string confirms). Both
+  COMMAND.COM (it's UPX-packed SVARCOM - copyright string confirms). Both
   are pure 8086. Every 0xC1 byte in eliza is either a FAR-pointer operand
   (9A C1 02 88 00 = CALL FAR 0088:02C1) or a ModR/M byte inside 8086
   reg-reg forms (8B C1 = MOV AX, CX, etc.). Zero 0xC0/0xC1 shift-imm
@@ -248,7 +248,7 @@ session should pick up where this one stopped.
   FAR call at entry once relocated).
 
 - **RESPONSE.DAT contents are NOT in memory.** Scanning all addressable
-  memory for `"Don't you believe"` (first bytes of RESPONSE.DAT — it's a
+  memory for `"Don't you believe"` (first bytes of RESPONSE.DAT - it's a
   3443-byte text file of eliza responses) returned zero hits. The
   filename string "RESPONSE" IS in memory (linear 0x1A24 and 0x8A8B4),
   so eliza at least has the name. The file's contents have not been
@@ -257,7 +257,7 @@ session should pick up where this one stopped.
 - **Eliza only uses INT 21h for I/O.** Searched ELIZA.EXE for CD xx
   patterns: 20× INT 21h, 0× INT 16h, 0× INT 10h. Input path uses AH=06h
   (direct console I/O) and AH=3Fh (read from handle). Also AH=3Dh
-  (open file, via `MOV AX, 0x3D00` at img offset 0x0F76) — confirmed by
+  (open file, via `MOV AX, 0x3D00` at img offset 0x0F76) - confirmed by
   disassembly of that site, which does a correct `INT 21h; JC 0xFE9`
   error check.
 
@@ -283,11 +283,11 @@ probably never reaches an INT 21h input call.
    eliza data-structure issue. **Do this test first.** I built the .COM
    file (at `/tmp/echo_test/ECHO.COM`, also copied to
    `C:/Users/.../AppData/Local/Temp/echo_test/ECHO.COM`) but never
-   actually ran it in the debugger — session interrupted.
+   actually ran it in the debugger - session interrupted.
 
 2. Log the sequence of INT 21h calls eliza makes from boot onward,
    including AH, DS:DX (filename / buffer), and return AX + carry.
-   The new `/run-until` debugger endpoint (added this session — see
+   The new `/run-until` debugger endpoint (added this session - see
    below) makes this tractable: repeatedly `run-until int_num=33`,
    snapshot the regs, step 1, continue. Expected: find the AH=3Dh open
    call for RESPONSE.DAT, see if it returns CF=0 and a valid handle,
@@ -306,7 +306,7 @@ probably never reaches an INT 21h input call.
   polling. Location: `calcite-debugger/src/main.rs` (uncommitted in
   calcite repo as of end-of-session).
 
-**Mistakes made this session — read before starting debugging:**
+**Mistakes made this session - read before starting debugging:**
 
 - Spent too long on byte-counting / disassembly of raw EXE files before
   running any actual execution test. The 186-opcode question was worth
@@ -328,22 +328,22 @@ probably never reaches an INT 21h input call.
 
 **Files potentially relevant to inspect:**
 
-- `bios/corduroy/handlers.asm` — INT 21h goes through DOS, not here,
+- `bios/corduroy/handlers.asm` - INT 21h goes through DOS, not here,
   but INT 13h disk reads do. If RESPONSE.DAT fails to load, the FAT12
   driver inside the kernel is going via INT 13h which is here.
-- `kiln/patterns/misc.mjs` — port I/O, emitIO, PIC/PIT state.
+- `kiln/patterns/misc.mjs` - port I/O, emitIO, PIC/PIT state.
   Unlikely relevant but where the keyboard port plumbing lives.
 - `kiln/patterns/stack.mjs` and the DOS INT 21h path inside EDR-DOS
-  kernel (`../edrdos/` source) — where AH=3Dh/3Fh are implemented.
+  kernel (`../edrdos/` source) - where AH=3Dh/3Fh are implemented.
 
 **Build artefacts from this session:**
 
 - `/tmp/eliza_fresh.css` (also at `C:/Users/.../AppData/Local/Temp/eliza_fresh.css`)
-  — 480 MB fresh eliza cart built via current `builder/build.mjs` with
+  - 480 MB fresh eliza cart built via current `builder/build.mjs` with
   dos-corduroy preset.
-- `C:/Users/.../AppData/Local/Temp/echo_test/ECHO.COM` — 21-byte test
+- `C:/Users/.../AppData/Local/Temp/echo_test/ECHO.COM` - 21-byte test
   program. Not yet run.
-- `/tmp/echo_test.css` — built cart wrapping ECHO.COM with dos-corduroy.
+- `/tmp/echo_test.css` - built cart wrapping ECHO.COM with dos-corduroy.
   Not yet run.
 
 **Not checked this session:**
@@ -360,7 +360,7 @@ probably never reaches an INT 21h input call.
   with a separate Watcom runtime segment. The segment model alone could
   be relevant (relocations, segment register assumptions).
 
-### 2026-04-18 — Session 11d: launcher tidy-up, builder defaults, preset tracking
+### 2026-04-18 - Session 11d: launcher tidy-up, builder defaults, preset tracking
 
 **What:** Post-big-rename housekeeping. The calcite launcher was still
 invoking `transpiler/generate-dos.mjs` (gone since session 11b), so every
@@ -370,20 +370,20 @@ crept in wrong. Default DOS BIOS is now Corduroy (user request).
 
 **CSS-DOS changes:**
 
-- `.gitignore` — removed blanket `*.json`. It was swallowing `builder/presets/*.json`
+- `.gitignore` - removed blanket `*.json`. It was swallowing `builder/presets/*.json`
   so fresh checkouts couldn't resolve any DOS preset. Replaced with focused
   `*-trace.json` / `trace-*.json` / `ref-trace.json` rules plus `.claude/`.
-- `builder/presets/{dos-muslin,dos-corduroy,hack}.json` — now tracked.
+- `builder/presets/{dos-muslin,dos-corduroy,hack}.json` - now tracked.
   Also dropped `"autorun": null` from the two DOS presets so auto-detection
   fires when a cart has exactly one `.com`/`.exe` (the explicit null was
   satisfying the `=== undefined` check at `config.mjs:40` and preventing
   auto-run, always landing at a COMMAND.COM prompt).
-- `builder/lib/cart.mjs` — `resolveCart` accepts a bare `.com`/`.exe`. It
+- `builder/lib/cart.mjs` - `resolveCart` accepts a bare `.com`/`.exe`. It
   copies the file into a scratch temp dir and runs the normal cart pipeline
   from there. Uniform handling; no special `hack-cart-only` path.
-- `builder/lib/config.mjs` — default preset flipped from `dos-muslin` to
+- `builder/lib/config.mjs` - default preset flipped from `dos-muslin` to
   `dos-corduroy`. Muslin stays available via `"preset": "dos-muslin"`.
-- `tools/mkfat12.mjs` — root directory bumped from 16 entries (1 sector)
+- `tools/mkfat12.mjs` - root directory bumped from 16 entries (1 sector)
   to 224 (14 sectors, standard 1.44 MB floppy). Sokoban's 84 files plus
   KERNEL.SYS/CONFIG.SYS/COMMAND.COM overflowed the old 16. BPB's
   RootEntries field is derived from the same constant, so the kernel
@@ -391,15 +391,15 @@ crept in wrong. Default DOS BIOS is now Corduroy (user request).
 
 **Calcite changes (sibling repo):**
 
-- `crates/calcite-cli/src/menu.rs` — `resolve_to_css` now invokes
+- `crates/calcite-cli/src/menu.rs` - `resolve_to_css` now invokes
   `../CSS-DOS/builder/build.mjs` instead of the gone `generate-dos.mjs`.
   `Entry::Program` replaces `{ exec, siblings }` with `{ cart, is_dir }`.
   Subdirectories under `programs/` now surface as one entry each (was
   one entry per .com/.exe inside, duplicating carts with multiple
   runnables). Dropped the old `calc-mem.mjs` invocation and the
-  `--data`/`--mem` flags — `builder/build.mjs` discovers files from the
+  `--data`/`--mem` flags - `builder/build.mjs` discovers files from the
   cart folder itself.
-- `tools/serve-web.mjs` — tightened `Cache-Control` to match
+- `tools/serve-web.mjs` - tightened `Cache-Control` to match
   `serve.py`: `no-store, no-cache, must-revalidate, max-age=0` + `Pragma: no-cache`.
 
 **Known limits / deferred:**
@@ -407,13 +407,13 @@ crept in wrong. Default DOS BIOS is now Corduroy (user request).
 - COMMAND.COM doesn't work under either BIOS. Muslin boots EDR-DOS and
   reaches the prompt but COMMAND.COM itself isn't usable; Corduroy prints
   "Bad or missing command interpreter" earlier. Not investigated this
-  session — auto-detect for single-runnable carts sidesteps it entirely
+  session - auto-detect for single-runnable carts sidesteps it entirely
   (autorun set, COMMAND.COM never loaded).
 - `calcite/run.bat`, `run-js.bat`, `serve.mjs` (from the session 11b
   deferred list) still reference old paths. This session only unblocked
   the `run-web.bat` path.
 
-### 2026-04-18 — Session 11c: Doom8088 blockers #25/#26/#27/#28
+### 2026-04-18 - Session 11c: Doom8088 blockers #25/#26/#27/#28
 
 **What:** Closed out all four open Doom8088-blocking issues identified in
 PR #24. The C BIOS (corduroy) now installs a real INT 09h handler and
@@ -424,19 +424,19 @@ conformance and fixed. `tools/compare.mjs` updated for v4.
 
 **Files touched:**
 
-- `bios/corduroy/handlers.asm` — added `int09h_handler` (read 0x60, pack
+- `bios/corduroy/handlers.asm` - added `int09h_handler` (read 0x60, pack
   scancode+ASCII via new in-ROM `scancode2ascii` LUT, push into BDA ring
   buffer, ack port 0x61 bit 7, EOI, IRET); added `OUT 0x20, 0x20` before
   IRET in `int08h_handler`; flipped interrupt_table entry for INT 09h
   from `int_dummy` to `int09h_handler`; added `global int09h_handler`.
-- `bios/corduroy/bios_init.c` — added extern, `#pragma aux`, and IVT
+- `bios/corduroy/bios_init.c` - added extern, `#pragma aux`, and IVT
   install line for `int09h_handler`.
-- `kiln/patterns/misc.mjs` — `emitIRQCompute()` now emits `--_kbdPress`,
+- `kiln/patterns/misc.mjs` - `emitIRQCompute()` now emits `--_kbdPress`,
   `--_kbdRelease`, `--_kbdEdge` (OR of both), and `--_kbdPort60` (break
-  scancode on release). `emitIO()` — port 0x21 IN now returns
+  scancode on release). `emitIO()` - port 0x21 IN now returns
   `--picMask` for all four IN shapes (0xE4/0xE5/0xEC/0xED); port 0x60
   IN now reads `--_kbdPort60` instead of the raw keyboard high byte.
-- `tools/compare.mjs` — trace parser strips ANSI prefix and locates
+- `tools/compare.mjs` - trace parser strips ANSI prefix and locates
   `[{` anywhere in the line (calcite's single-array output can be
   preceded by a screen-clear escape); `--screen-interval=0` added to
   the calcite invocation to suppress ANSI mid-trace; `advanceToIP`
@@ -469,7 +469,7 @@ scancode | 0x80). Rogue cart still builds cleanly (regression check).
 **Still open / deferred:**
 
 - Muslin (default DOS BIOS) still has `int_dummy` for INT 09h and no
-  EOI in INT 08h. Not blocking Doom — Doom ships with its own ISRs —
+  EOI in INT 08h. Not blocking Doom - Doom ships with its own ISRs -
   but any DOS program that relies on BIOS keyboard IRQ while running
   under Muslin will hit the same #25 + #26 shape. Separate issue when
   relevant; not opening now.
@@ -477,13 +477,13 @@ scancode | 0x80). Rogue cart still builds cleanly (regression check).
   `--_kbdPort60`-synthesized break word). Doom uses byte-wide reads,
   so this is fine; noting for the next program that cares.
 - `ref-muslin.mjs` hasn't been updated for the new port-0x21 IN
-  semantics — if someone diffs against it they may see a mismatch in
+  semantics - if someone diffs against it they may see a mismatch in
   the PIC-mask read. ref-hack.mjs also untouched.
 
-### 2026-04-18 — Session 11b: the big rename (repo-wide restructure)
+### 2026-04-18 - Session 11b: the big rename (repo-wide restructure)
 
 **What:** Repo-wide tidy-up for release readiness. No functional code
-changed — this session is pure restructuring, renaming, and doc-writing.
+changed - this session is pure restructuring, renaming, and doc-writing.
 Happened on the `big-rename` branch; see `CHANGELOG.md` for the full
 move list.
 
@@ -507,12 +507,12 @@ from what was legacy. With release approaching, this became blocking.
    partial / aspirational so follow-up agents know what needs plumbing
    (disk.size, disk.writable, memory knobs on hack carts, sub-640K
    conventional).
-3. **Filesystem audit** via subagent before moving anything — caught
+3. **Filesystem audit** via subagent before moving anything - caught
    several files I hadn't known about (three kernel variants, a SvarDOS
    distribution dir, debris at repo root, the critical
    `tools/lib/bios-symbols.mjs`).
 4. **Moves + deletes.** One atomic branch: see CHANGELOG. No
-   deprecation shims — pre-release, no external callers.
+   deprecation shims - pre-release, no external callers.
 5. **New builder.** `builder/build.mjs` orchestrates three stages
    (`bios.mjs`, `floppy.mjs`, `kiln.mjs`) plus cart resolution and
    preset merging in `builder/lib/`. Three presets: `dos-muslin`,
@@ -529,7 +529,7 @@ from what was legacy. With release approaching, this became blocking.
 
 - `calcite/run.bat` / `run-web.bat` / `run-js.bat` / `serve.mjs` still
   reference old paths. These need full refactors, not just path
-  updates — holding until the v1 release is over.
+  updates - holding until the v1 release is over.
 - Aspirational schema fields need implementation: `disk.size`,
   `disk.writable` (INT 13h write path), `memory.gfx`/`textVga` on hack,
   sub-640K DOS memory.
@@ -540,7 +540,7 @@ from what was legacy. With release approaching, this became blocking.
 **Not touched:** `tests/`, `docs/logbook/*`, `docs/plans/*`,
 `docs/superpowers/*`, Calcite repo, `icons/`. V4 architecture, rom-disk
 mechanism, flat-array fast path all unchanged.
-### 2026-04-18 — Session 11a: Doom8088 readiness audit; starting hardware IRQ work
+### 2026-04-18 - Session 11a: Doom8088 readiness audit; starting hardware IRQ work
 
 **What:** Audited CSS-DOS against Doom8088's runtime requirements and
 identified the concrete remaining work. Updated "What's next" to make
@@ -549,7 +549,7 @@ underlies all the IRQ work.
 
 **Doom8088 requirements (summary, source: upstream github.com/FrenkelS/Doom8088):**
 - CPU: default build targets i286 (gcc-ia16 `CPU=i286`), but an i8088 variant
-  exists (`-march=i8088`) that emits pure 8086 ISA — matches V4 patterns.
+  exists (`-march=i8088`) that emits pure 8086 ISA - matches V4 patterns.
 - Input: installs a custom **INT 09h handler** (`I_KeyboardISR`), reads port
   0x60 directly, clears with port 0x61 (bit 7 toggle), EOIs with `OUT 0x20, 0x20`.
   Does NOT use INT 16h for gameplay.
@@ -561,7 +561,7 @@ underlies all the IRQ work.
   variant (`bmda.sh`, framebuffer 0xB000). Text variants are simplest for
   first-run validation; Mode 13h is the "real" experience.
 - Memory: ~450 KB conventional. EMS/XMS are **optional** (`-noems`, `-noxms`).
-- Disk: WAD loaded via `fopen`/`fread` (INT 21h file I/O) — rom-disk path
+- Disk: WAD loaded via `fopen`/`fread` (INT 21h file I/O) - rom-disk path
   handles this.
 - Sound: PC speaker only (port 0x61 toggling, PIT channel 2). Disable
   with `-nosound`.
@@ -584,16 +584,16 @@ Gaps (Doom8088 blockers):
   derives a tick countdown from it.
 - No INT 09h on keyboard edge. `--keyboard` updates via :active but no
   IRQ is raised.
-- No port 0x20/0x21/0x40-0x43/0x61 OUT handlers — `emitIO()` in misc.mjs
+- No port 0x20/0x21/0x40-0x43/0x61 OUT handlers - `emitIO()` in misc.mjs
   makes all OUT a no-op.
-- No palette register writes (port 0x3C8/0x3C9) — Doom's damage-flash
+- No palette register writes (port 0x3C8/0x3C9) - Doom's damage-flash
   palette changes would be silent. Acceptable for first validation.
 
-**Historical note:** V3 had all of this — `legacy/v3/transpiler/src/patterns/pit.mjs`
+**Historical note:** V3 had all of this - `legacy/v3/transpiler/src/patterns/pit.mjs`
 and `irq.mjs` (via 0xF1 sentinel opcode). V3 was abandoned because the
 μOp sequencer had unrelated bugs that prevented boot. The PIT/IRQ designs
 themselves were sound. V4 port: same state and port-decode logic, but
-single-cycle (no μOp split) — mirror what the V4 0xCD handler does in
+single-cycle (no μOp split) - mirror what the V4 0xCD handler does in
 one tick with 8 write slots.
 
 **Stale-doc check:** Issue #6 ("Road to DOS games") still captures the
@@ -602,16 +602,16 @@ open with a scope-update comment rather than rewrite.
 
 **Delivered this session (3 commits on `claude/doom8088-readiness-check-6BRWJ`):**
 
-Phase 1 — port decode + state vars (`5afa52e`):
+Phase 1 - port decode + state vars (`5afa52e`):
 - New STATE_VARS in template.mjs: picMask (init 0xFF), picPending,
   picInService, pitMode, pitReload, pitCounter, pitWriteState.
 - emitIO() in patterns/misc.mjs dispatches OUT 0x20/0x21/0x40/0x43
   to the right state var per port. Non-specific EOI on OUT 0x20 uses
   the `(x & (x-1))` trick to clear the lowest in-service bit.
 - Dispatch entries fall through to `var(--__1NAME)` (hold) for
-  unrelated ports — the entry fires per-opcode, so the hold is explicit.
+  unrelated ports - the entry fires per-opcode, so the hold is explicit.
 
-Phase 2 — PIT countdown + picPending edge (`27c972a`):
+Phase 2 - PIT countdown + picPending edge (`27c972a`):
 - emit-css.mjs learns per-register customDefaults so pitCounter/picPending
   can opt into tick/edge expressions instead of default hold.
 - --_pitTicks (cycleCount/4 delta), --_pitDecrement (×2 in mode 3),
@@ -621,8 +621,8 @@ Phase 2 — PIT countdown + picPending edge (`27c972a`):
   expression (an OUT to port 0x21 must not stall the PIT).
 - picPending default ORs --_pitFired into bit 0. No IRQ delivery yet.
 
-Phase 3 — IRQ delivery + keyboard edge (`4bd502e`):
-- Single-cycle "sentinel" override, parallel to TF. No 0xF1 opcode —
+Phase 3 - IRQ delivery + keyboard edge (`4bd502e`):
+- Single-cycle "sentinel" override, parallel to TF. No 0xF1 opcode -
   the override fires on the instruction-boundary tick, reusing slot 0-5
   memory writes for the FLAGS/CS/IP push while register dispatches land
   the new IVT values.
@@ -642,17 +642,17 @@ Phase 3 — IRQ delivery + keyboard edge (`4bd502e`):
 **Known limits / follow-ups:**
 1. Only IRQs 0 and 1 wired (no lowestBit helper). Sufficient for Doom8088.
 2. --_kbdEdge fires only on press. Doom8088 reads break codes (high-bit
-   set) on release to track held keys — without those, WASD held-movement
+   set) on release to track held keys - without those, WASD held-movement
    breaks. Next session: inject break scancode on keyboard→0 transitions,
    or expose released-key snapshot in --_kbdRelease.
-3. No palette port 0x3C8/0x3C9 writes — Mode 13h damage-flash is silent.
-4. No validation yet that a build actually runs — the transpiler emits
+3. No palette port 0x3C8/0x3C9 writes - Mode 13h damage-flash is silent.
+4. No validation yet that a build actually runs - the transpiler emits
    correct-shaped CSS, but no conformance diff has been run (`gossamer.bin`
    not present in this checkout). Running the `keyboard-irq.asm` test
    through `compare.mjs` is the next logical step; it exercises OUT 0x21
    and INT 16h round-trip via the BDA buffer.
 
-### 2026-04-15 — Session 10: rom-disk end-to-end working; calcite fast path + CLI menu
+### 2026-04-15 - Session 10: rom-disk end-to-end working; calcite fast path + CLI menu
 
 **What:** Bootle boots end-to-end through the rom-disk window. Verified
 live in calcite with keyboard + framebuffer rendering.
@@ -696,10 +696,10 @@ Everything actually doing the work landed in session 9's `1f21f76`.
 - Commit calcite-side work (separate repo, separate checkpoint).
 - Merge `feature/rom-disk` → master once Zork is green.
 
-### 2026-04-14 — Session 9: rom-disk implementation on feature branch
+### 2026-04-14 - Session 9: rom-disk implementation on feature branch
 
 **What:** Implemented the rom-disk plan on a feature branch. Disk bytes no
-longer baked into 8086 memory — they live at CSS addresses outside the 1 MB
+longer baked into 8086 memory - they live at CSS addresses outside the 1 MB
 space and are accessed through a 512-byte window at 0xD0000 controlled by
 an LBA register at linear 0x4F0.
 
@@ -707,27 +707,27 @@ Also committed the V4 session 7/8 work as commit `8c407d9` on master before
 branching (previously all uncommitted).
 
 **Commits:**
-- master `8c407d9` — "V4 architecture: restore single-cycle..." (bundles all
+- master `8c407d9` - "V4 architecture: restore single-cycle..." (bundles all
   prior V4 work including the assembly BIOS revival, batched write slots,
   skipMicrocodeBios flag, session 6/7/8 work that was uncommitted in the
   working tree).
-- feature/rom-disk `1f21f76` — "WIP: rom-disk — disk bytes outside 1MB..."
+- feature/rom-disk `1f21f76` - "WIP: rom-disk - disk bytes outside 1MB..."
   (rom-disk implementation + `extended186.mjs` 80186 patterns file).
 
 **Files touched (rom-disk branch only):**
-- `bios/css-emu-bios.asm` — `DISK_SEG = 0xD000`; new `disk_lba equ 0x4F0`;
+- `bios/css-emu-bios.asm` - `DISK_SEG = 0xD000`; new `disk_lba equ 0x4F0`;
   `.disk_read` rewritten to write LBA word to physical [0x4F0] then
   `REP MOVSW` 256 words from 0xD000:0000 → ES:DI, LBA++, sector count--.
-  Used `xor ax,ax; mov ds,ax` for absolute segment (not BDA_SEG — see
+  Used `xor ax,ax; mov ds,ax` for absolute segment (not BDA_SEG - see
   BDA offset pitfall below).
-- `transpiler/src/emit-css.mjs` — added `emitReadDiskByteStreaming` that
+- `transpiler/src/emit-css.mjs` - added `emitReadDiskByteStreaming` that
   emits `@function --readDiskByte(--idx <integer>)` with one
   `style(--idx: N): byte;` branch per non-zero disk byte. Window addresses
   0xD0000–0xD01FF dispatch to
   `--readDiskByte(calc((m1264 + m1265*256) * 512 + off))`.
-- `transpiler/src/memory.mjs` — disk window excluded from stored memory;
+- `transpiler/src/memory.mjs` - disk window excluded from stored memory;
   0x4F0/0x4F1 are normal writable RAM inside the conventional zone.
-- `transpiler/generate-dos.mjs` — `DISK_LINEAR = 0xD0000`; disk bytes passed
+- `transpiler/generate-dos.mjs` - `DISK_LINEAR = 0xD0000`; disk bytes passed
   through `opts.diskBytes` instead of `embData`. Added `--args` flag so
   CONFIG.SYS can run `FROTZ ZORK1.Z3` etc.
 
@@ -740,19 +740,19 @@ The rom-disk-plan.md has been clarified.
 
 **Two-parameter dispatch OOM:** The plan sketched
 `--readDiskByte(--lba, --off)`. Calcite's dispatch compiler cross-products
-parameter domains before pruning — a first bootle build with this shape
+parameter domains before pruning - a first bootle build with this shape
 OOM'd trying to allocate 48 GB during compile. Switched to single parameter
 `--idx = lba*512 + off`. Composition happens at the dispatch site
 (`calc((...) * 512 + off)`), so only the ~N disk-byte branches exist, not
 an N×M matrix.
 
 **Single-param still froze calcite (fixed):** With the ~68K single-parameter
-branches from bootle's disk, calcite parsed in 4.5s but froze in compile —
+branches from bootle's disk, calcite parsed in 4.5s but froze in compile -
 `compile_dispatch_call` iterated every entry and compiled a full `Vec<Op>`
 per entry. The rom-disk-plan doc previously claimed calcite flattens this
 to a byte array, but that code was aspirational. Fixed in calcite (separate
 repo, uncommitted there): wired up the pre-existing-but-unreachable
-`Op::DispatchFlatArray` op — the fast path fires when a dispatch has
+`Op::DispatchFlatArray` op - the fast path fires when a dispatch has
 ≤1 parameter, all entries are i32 literals, and key span ≤10M. Now:
 **bootle parse 4.7s, compile 29s, 1 tick in 74µs**; all 88 calcite tests
 pass. This is a generic CSS optimization (no x86 knowledge) and respects
@@ -763,11 +763,11 @@ produces a 457 MB CSS file at `calcite/output/bootle-romdisk.css`.
 Verified: one `@function --readDiskByte` definition, 512 window dispatch
 branches at 0xD0000–0xD01FF, LBA composition uses linear 0x4F0 (not 0x8F0),
 first disk bytes `EB 3C 90` match the FAT12 boot sector signature. Boot-
-level validation in calcite/Chrome not yet performed — blocked on calcite
+level validation in calcite/Chrome not yet performed - blocked on calcite
 flat-array work.
 
 **Also included in feature branch:** `transpiler/src/patterns/extended186.mjs`
-(previously untracked) — 80186+ instruction patterns (MUL/DIV imm, PUSH imm,
+(previously untracked) - 80186+ instruction patterns (MUL/DIV imm, PUSH imm,
 ENTER/LEAVE, INS/OUTS) needed for modern DOS toolchain output.
 
 **Also included on master in 8c407d9:** debris files `gossamer-dos.asm`
@@ -778,14 +778,14 @@ and `gossamer-dos.lst` at repo root (legacy build artifacts), plus
 
 **What:** Catalogued every difference between V2 (cc97447, boots) and V3
 (current, doesn't boot). Concluded the v3 μOp microcode architecture was
-the root cause of the boot failure — not the BIOS, not the INT 13h handler.
+the root cause of the boot failure - not the BIOS, not the INT 13h handler.
 Built V4: the v2 single-cycle architecture with all useful v3 improvements
 ported and boot-verified one at a time.
 
 **Why μOps were abandoned:** The v3 rewrite converted every multi-write
 instruction (INT, PUSH, CALL, MOV to memory, etc.) from single-cycle with
 6 parallel write slots to multi-cycle with 1 write slot and a μOp state
-machine. This introduced massive complexity — hand-coded state machines for
+machine. This introduced massive complexity - hand-coded state machines for
 dozens of instructions, changed stack address calculations, removed TF
 support, required every IP emitter to manually include `+ var(--prefixLen)`.
 Testing proved v3 can't boot even with the original v2 BIOS, confirming the
@@ -806,11 +806,11 @@ Testing proved v3 can't boot even with the original v2 BIOS, confirming the
 - μOp sequencer and all multi-cycle instruction rewrites
 - PIT/PIC/IRQ hardware emulation (needs cycleCount-based PIT, not μOps)
 - Microcode BIOS handlers (opcode 0xD6 dispatch)
-- INT 13h hard disk rejection (causes stall — needs PIT to resolve timeout)
+- INT 13h hard disk rejection (causes stall - needs PIT to resolve timeout)
 
 **INT 13h investigation:** Adding `cmp dl, 0x80; jae .no_drive` causes the
 kernel to take a different init path that stalls after printing the version
-string. This happens in both V3 and V4 — it's not a μOp bug. The likely
+string. This happens in both V3 and V4 - it's not a μOp bug. The likely
 cause: the kernel's F5/F8 option key prompt has a timeout that requires
 real BDA tick advancement via PIT/INT 08h. The auto-incrementing INT 1Ah
 hack advances ticks on INT 1Ah calls but the timeout loop may not call
@@ -819,18 +819,18 @@ skips this code path entirely and boots fine.
 
 **File changes:**
 - V3 microcode files archived to `legacy/v3/`
-- `transpiler/src/emit-css.mjs` — v4 single-cycle architecture (8 slots)
-- `transpiler/src/template.mjs` — keyboard, cycleCount, SP fix
-- `transpiler/src/memory.mjs` — contiguous zones, NUM_WRITE_SLOTS, prune
-- `transpiler/src/cycle-counts.mjs` — new: real 8086 cycle costs
-- `transpiler/src/decode.mjs` — v2 decode (no IRQ sentinel override)
-- `transpiler/generate-dos.mjs` — v4 build (no microcode, uses bios/ path)
-- `bios/css-emu-bios.asm` — v4 BIOS (v2 base + INT 10h/16h improvements)
-- `transpiler/src/patterns/shift.mjs` — OF computation for shift-by-CL
-- All pattern files — v2 single-cycle (no μOp parameters)
-- `calcite/run.bat` — updated to use `generate-dos.mjs`
+- `transpiler/src/emit-css.mjs` - v4 single-cycle architecture (8 slots)
+- `transpiler/src/template.mjs` - keyboard, cycleCount, SP fix
+- `transpiler/src/memory.mjs` - contiguous zones, NUM_WRITE_SLOTS, prune
+- `transpiler/src/cycle-counts.mjs` - new: real 8086 cycle costs
+- `transpiler/src/decode.mjs` - v2 decode (no IRQ sentinel override)
+- `transpiler/generate-dos.mjs` - v4 build (no microcode, uses bios/ path)
+- `bios/css-emu-bios.asm` - v4 BIOS (v2 base + INT 10h/16h improvements)
+- `transpiler/src/patterns/shift.mjs` - OF computation for shift-by-CL
+- All pattern files - v2 single-cycle (no μOp parameters)
+- `calcite/run.bat` - updated to use `generate-dos.mjs`
 
-### 2026-04-14 — Session 7: Boot crash fixed (opcode 0xD6 collision), extensive boot investigation
+### 2026-04-14 - Session 7: Boot crash fixed (opcode 0xD6 collision), extensive boot investigation
 
 **What:** Found and fixed the boot crash at `CALL FAR [SS:1000]`. Also
 conducted extensive investigation of the boot sequence, fixed SP overflow,
@@ -857,10 +857,10 @@ Added `& 0xFFFF` clamp. `build.mjs` and `generate-dos.mjs` now pass
 **How the crash was found:**
 - Debugger watchpoint on address 0x97750 (SS:0x1000 at crash time) found the
   bad data written at tick ~39923 during a REP MOVSB kernel relocation copy
-- The source data was already wrong — the kernel's code segment (TGROUP) and
+- The source data was already wrong - the kernel's code segment (TGROUP) and
   data segment (DGROUP) overlap after relocation, so code bytes appear where
   function pointer stubs should be
-- This bad data exists in BOTH v2 and v3 — it's a pre-existing issue, not the
+- This bad data exists in BOTH v2 and v3 - it's a pre-existing issue, not the
   crash cause
 - The crash happened because v3 reached a code path that dereferences
   `lock_bios` (called from `device_driver` in bdevio.asm) while v2 did not
@@ -870,9 +870,9 @@ Added `& 0xFFFF` clamp. `build.mjs` and `generate-dos.mjs` now pass
 **V2 verification:** Checked out v2 transpiler at commit cc97447 into a git
 worktree (`/tmp/css-dos-v2`). Built v2 CSS with `generate-dos.mjs`. Loaded
 in current calcite debugger. V2 CSS boots to bootle.com (hearts on screen).
-V2 CSS also has bad data at SS:0x1000 (`18 19 1A 1B`) — same as v3. V2 just
+V2 CSS also has bad data at SS:0x1000 (`18 19 1A 1B`) - same as v3. V2 just
 never hits the code path that reads it. V2's `emit-css.mjs` did not import
-or call `emitAllBiosHandlers` — that function didn't exist in v2.
+or call `emitAllBiosHandlers` - that function didn't exist in v2.
 
 **Kernel identity confirmed:** kernel.sys is EDR-DOS (SvarDOS build),
 identified by boot message "Enhanced DR-DOS kernel 20250427 (rev 72ae65f)".
@@ -888,20 +888,20 @@ rejection (DL >= 0x80), AH=16h (disk change), and REP MOVSW disk read
 BDA ring buffer.
 
 **Current state after fix:** The crash no longer occurs. The kernel prints
-its version string (it did before the fix too — the crash happened after
-that point). The kernel is now stuck after the version string — not booting
+its version string (it did before the fix too - the crash happened after
+that point). The kernel is now stuck after the version string - not booting
 to the program. The cause of the stall is unknown. V2 CSS boots all the way
 to the program without PIT or timer interrupts, so whatever blocks v3 now
 is a separate issue that needs investigation.
 
 **Infrastructure added:**
-- Calcite debugger: `/watchpoint` endpoint — ticks forward until a memory
+- Calcite debugger: `/watchpoint` endpoint - ticks forward until a memory
   byte changes, reports tick and full CPU state at the change point
-- `tools/ref-asm-bios.mjs` — JS reference emulator using the assembly BIOS
+- `tools/ref-asm-bios.mjs` - JS reference emulator using the assembly BIOS
   with no INT interception
 - QEMU installed on the system for future hardware emulation testing
 
-### 2026-04-13 — Session 6: Batched write slots, boot crash investigation, PIT fixes
+### 2026-04-13 - Session 6: Batched write slots, boot crash investigation, PIT fixes
 
 **What:** Added 32 batched write slots for REP string ops (MOVSB/MOVSW/
 STOSB/STOSW), making boot tracing practical. Rewrote INT 13h disk read to
@@ -933,7 +933,7 @@ substitutes 65536 when pitReload is 0. Changed "not active" guards to check
 (mode 3, reload 0x0000) and PIC IRQ 0/1 unmask to bios_init. Also added
 EOI (`OUT 0x20, 0x20`) to INT 08h handler. Reverted because timer
 interrupts during early kernel init (before CLI) caused the kernel version
-string to stop appearing. The EOI fix itself is correct — just needs to be
+string to stop appearing. The EOI fix itself is correct - just needs to be
 re-added when PIT is safely enabled.
 
 **Boot crash investigation:** The kernel prints its version string, does
@@ -949,10 +949,10 @@ ticks never advance (PIT not programmed, IRQ 0 masked).
 **Key insight:** The boot failure is NOT caused by batching or PIT. It's a
 pre-existing issue in the kernel's init sequence. The function pointer at
 SS:1000 targets memory that was never written to. Next step: debug why
-that pointer targets zeros — either the kernel failed to write code there,
+that pointer targets zeros - either the kernel failed to write code there,
 or something about the BIOS/memory layout is wrong.
 
-### 2026-04-13 — Session 5: Assembly BIOS revival, hard disk fix, boot trace tool
+### 2026-04-13 - Session 5: Assembly BIOS revival, hard disk fix, boot trace tool
 
 **What:** Revived the old gossamer assembly BIOS as `bios/css-emu-bios.asm`.
 Created `transpiler/build.mjs` as a clean build script. Found and fixed a
@@ -976,14 +976,14 @@ file opens → disk reads).
 
 **Current state after fix:** Boot gets through BIOS init, kernel version
 string, device driver init, file opens, and disk reads (INT 13h). It has
-not been confirmed where it ultimately stalls — v3 tick speed makes testing
+not been confirmed where it ultimately stalls - v3 tick speed makes testing
 slow (REP MOVSW with CX=30000 takes 30000+ ticks).
 
 **Key decision:** Long-term BIOS should be rewritten in C (OpenWatcom)
 because Claude can't reliably reason about x86 assembly. The assembly BIOS
 is an interim solution.
 
-### 2026-04-13 — Session 4: BIOS gap fixes (INT 1Ah, INT 10h CR/LF)
+### 2026-04-13 - Session 4: BIOS gap fixes (INT 1Ah, INT 10h CR/LF)
 
 **What:** Fixed two BIOS gaps documented in `docs/kernel-boot-sequence.md`:
 1. INT 1Ah AH=00h now reads BDA tick counter (0x046C/0x046E) instead of
@@ -1000,15 +1000,15 @@ visible characters corrupts the display and cursor position.
 **Also attempted (reverted):** PIT programming in init.asm, pit.mjs
 reload=0→65536 fix, INT 08h/09h IRET. All four changes together caused
 a regression (kernel version string stopped appearing). Root cause not
-identified — these need to be added incrementally with testing.
+identified - these need to be added incrementally with testing.
 
 **Key finding:** The F5/F8 loop still blocks boot because the PIT doesn't
 fire (not programmed, IRQ 0 masked). The INT 1Ah fix alone is necessary
-but not sufficient — the BDA ticks must actually advance via INT 08h.
+but not sufficient - the BDA ticks must actually advance via INT 08h.
 
-### 2026-04-13 — Session 3: BIOS init stub + handler gaps
+### 2026-04-13 - Session 3: BIOS init stub + handler gaps
 
-**What:** Created `bios/init.asm` — real x86 init code that runs at F000:0000.
+**What:** Created `bios/init.asm` - real x86 init code that runs at F000:0000.
 Populates IVT, BDA, VGA splash, then JMP FAR to kernel. Added missing BIOS
 handler subfunctions needed by drbio (INT 13h hard disk probes, INT 1Ah RTC
 time/date, INT 16h shift flags, INT 10h set video mode). Rewrote
@@ -1024,11 +1024,11 @@ guard pattern works: check `DL >= 128` and return CF=1 for all hard disk calls.
 
 **Blocked on:** Seg-override decode bug at instruction 3740.
 
-### 2026-04-13 — Session 2: IRET fix + new BIOS handlers + DOS path rewrite
+### 2026-04-13 - Session 2: IRET fix + new BIOS handlers + DOS path rewrite
 
 **What:** Fixed folded IRET corruption (collapsed all pops into single
 retirement uOp). Added INT 08h, 11h, 12h, 13h, 15h, 19h handlers. Rewrote
-generate-dos.mjs — no more gossamer-dos.asm dependency. Fixed memory gap bug
+generate-dos.mjs - no more gossamer-dos.asm dependency. Fixed memory gap bug
 (split conventional memory zones causing unmapped gap at kernel relocation
 target). Created compare-dos.mjs conformance tool.
 
@@ -1039,7 +1039,7 @@ changed `--__1IP` on next tick, causing opcode fetch from wrong address.
 Multi-uOp writes need careful ordering because each uOp's writes become visible
 to subsequent uOps via the double buffer.
 
-### 2026-04-13 — Session 1: Calcite slot aliasing bug fix + INT 09h working
+### 2026-04-13 - Session 1: Calcite slot aliasing bug fix + INT 09h working
 
 **What:** Found and fixed calcite compiler bug: slot compactor aliased LoadMem
 destination with Dispatch destination inside nested dispatch tables. The
@@ -1050,7 +1050,7 @@ instead of nested Dispatch.
 **Why:** `--readMem(1052)` returned 0 instead of 30 when called from inside
 branching if(style()) expressions, breaking INT 09h keyboard handler.
 
-**Key finding:** The calcite debugger's `/compare-paths` is essential — it
+**Key finding:** The calcite debugger's `/compare-paths` is essential - it
 showed compiled=1025 vs interpreted=1055 for memAddr, pinpointing the compiled
 path as the source. The `/trace-property` endpoint (added this session) traces
 every op execution in the compiled path.

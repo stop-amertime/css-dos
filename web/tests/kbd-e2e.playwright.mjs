@@ -10,7 +10,7 @@
 // see logbook 2026-06-12). This test exists so that can't recur.
 //
 // NOT part of `node --test` (no .test. in the name): it needs the dev
-// server (npm run dev — Vite serves the legacy build.html this test
+// server (npm run dev - Vite serves the legacy build.html this test
 // drives) on :5173 and system Chrome, builds the doom8088 cabinet
 // in-browser, and takes ~2 minutes.
 //
@@ -26,7 +26,7 @@ try {
   pw = await import('playwright');
 } catch {
   const dir = process.env.PLAYWRIGHT_DIR;
-  if (!dir) throw new Error('playwright not found — install it or set PLAYWRIGHT_DIR');
+  if (!dir) throw new Error('playwright not found - install it or set PLAYWRIGHT_DIR');
   const fallback = new URL('index.js', `file:///${dir.replace(/\\/g, '/')}/`).href;
   pw = (await import(fallback)).default ?? (await import(fallback));
 }
@@ -45,7 +45,7 @@ const SYS_CHROME = CHROME_CANDIDATES.find((p) => existsSync(p));
 // BASE env override: if another server already holds :5173, start yours
 // elsewhere (PORT=5273 npm run dev) and point BASE at it.
 const BASE = process.env.BASE || 'http://localhost:5173';
-// Doom8088 sentinels (linear addresses, docs/logbook/STATUS.md — re-derive
+// Doom8088 sentinels (linear addresses, docs/logbook/STATUS.md - re-derive
 // from the .map if the doom8088 cart or memory layout changes).
 const G_GAMESTATE = 0x3a3c4, G_MENUACTIVE = 0x3ac62, G_USERGAME = 0x3a5af;
 const t0 = Date.now();
@@ -110,7 +110,7 @@ await buildPage.evaluate(() => {
   // unresolved promise leaves page.evaluate pending, and a pending
   // evaluate racing the player's viewer-connect can die with a spurious
   // "execution context destroyed" (seen on headless Linux). Bounded
-  // promises + the try/catch below make each poll independently safe —
+  // promises + the try/catch below make each poll independently safe -
   // the waitFor loops just retry a second later.
   window.__peek = (addr, len) => new Promise((resolve) => {
     const ch = new MessageChannel();
@@ -177,20 +177,20 @@ if (!userGame) {
 // Loading → in-game (gamestate 0 = GS_LEVEL).
 const ingame = await waitFor('ingame (gamestate=LEVEL)', async () => (await peekByte(G_GAMESTATE)) === 0 && (await peekByte(G_USERGAME)) === 1, 180000, 2000);
 
-// Hold-wire phase: hold mode is a bridge-owned toggle — #kb-hold is a
+// Hold-wire phase: hold mode is a bridge-owned toggle - #kb-hold is a
 // plain submit key whose press flips the cabinet's --kbdHold wire
 // immediately. While the wire is up the MACHINE suppresses key release
 // edges and latches each released key's scancode into the kbdHeld*
-// slots — pressing LEFT, CTRL, ALT builds a chord (three makes, no
+// slots - pressing LEFT, CTRL, ALT builds a chord (three makes, no
 // breaks). Clicking #kb-hold again drops the wire and the machine
-// drains the slots back out as break codes ON ITS OWN — asserting the
+// drains the slots back out as break codes ON ITS OWN - asserting the
 // 2026-07-07 fix: no follow-up key press is needed to release.
 // The hold key's lamp dot is an <img> fed by the bridge's
 // /_screen/holdlamp stream. Assert on ELEMENT SCREENSHOTS (compositor
 // truth): in-page canvas drawImage of a multipart <img> returns a
 // stale frame (multi-frame image sources draw their first/previous
 // frame), so a pixel readback lies even while the display is correct.
-// Read the dot's CENTRE pixel from the screenshot — corner pixels mix
+// Read the dot's CENTRE pixel from the screenshot - corner pixels mix
 // with the button background (hover/AA) and aren't stable.
 const lampCenter = async () =>
   pngCenterPixel(await player.locator('#kb-hold .kb-lamp').screenshot());
@@ -211,7 +211,7 @@ if (ingame) {
   const wireIdle = (await peekVar('keyboard')) === 0; // pulses pass through 0; the HOLD is in the slots
   log(`chord latched: LEFT=${left} CTRL=${ctrl} ALT=${alt} keyboard idle=${wireIdle}`);
   // Per-key un-hold (2026-07-13): tapping a HELD key again, with the
-  // wire still up, delivers its break code and clears just that slot —
+  // wire still up, delivers its break code and clears just that slot -
   // the other held keys stay latched. Tap CTRL again: slot 1 clears,
   // LEFT (slot 0) and ALT (slot 2) survive.
   await player.click('#kb-ctrl');
@@ -219,7 +219,7 @@ if (ingame) {
     (await peekVar('kbdHeld1')) === 0, 20000);
   const othersKept = (await peekVar('kbdHeld0')) === 75 && (await peekVar('kbdHeld2')) === 56;
   log(`per-key un-hold: CTRL cleared=${unheld} LEFT+ALT kept=${othersKept}`);
-  await player.click('#kb-hold');       // hold mode off — must drain with NO further key press
+  await player.click('#kb-hold');       // hold mode off - must drain with NO further key press
   const drained = await waitFor('kbdHeld slots drained (no follow-up key)', async () =>
     (await peekVar('kbdHeld0')) === 0 && (await peekVar('kbdHeld1')) === 0 && (await peekVar('kbdHeld2')) === 0, 20000);
   const lampOff = await waitFor('hold lamp back off (black on display)', lampDark, 15000);

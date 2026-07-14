@@ -1,8 +1,8 @@
 <script>
-  // FAQs — a stack of Foldables under the opening title. Each Foldable
+  // FAQs - a stack of Foldables under the opening title. Each Foldable
   // carries a stable `id` so it's a deep-link target: '/about/faqs/<id>'
   // opens that fold and scrolls to it (see nav.faqAnchor in
-  // router.svelte.js) — e.g. <a href="/about/faqs/ai">the AI FAQ</a>.
+  // router.svelte.js) - e.g. <a href="/about/faqs/ai">the AI FAQ</a>.
   import Foldable from '../../components/Foldable.svelte';
   import Term from '../../components/Term.svelte';
   import { nav } from '../../lib/router.svelte.js';
@@ -15,7 +15,7 @@
       el.open = true;
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-    nav.faqAnchor = null; // one-shot — don't re-fire on the next render
+    nav.faqAnchor = null; // one-shot - don't re-fire on the next render
   });
 </script>
 
@@ -154,7 +154,7 @@
     max-width: 680px;
     margin-inline: auto;
   }
-  /* Foldable's own 16px stack margin is the spacing here — the old
+  /* Foldable's own 16px stack margin is the spacing here - the old
      fragment's 10px override was losing the cascade and never rendered. */
   .faq-list { margin-top: 20px; max-width: 660px; }
 </style>

@@ -8,12 +8,12 @@
      Params:
        css=<path>   stylesheet to load (default ../../../doom8088.css,
                     i.e. a cabinet sitting in the repo root)
-       dom=0        parse-only — no machine DOM (the original experiment)
+       dom=0        parse-only - no machine DOM (the original experiment)
        grid=0       machine DOM but no 64,000-pixel screen grid
-     The machine DOM is .clock > .cpu > #grid (<i id=p0>..<i id=p63999>) —
+     The machine DOM is .clock > .cpu > #grid (<i id=p0>..<i id=p63999>) -
      nested, not raw.html's same-element form (see note in the script).
      Clock is 400ms/4 phases, so
-     ~2.5 instructions/sec — the point is watching style recalc, not boot. -->
+     ~2.5 instructions/sec - the point is watching style recalc, not boot. -->
 <html>
 <head>
 <meta charset="utf-8">
@@ -42,7 +42,7 @@
 <body>
 <h1>huge CSS eval test</h1>
 <div id="target">target: (resolving…)</div>
-<div id="heartbeat">heartbeat: —</div>
+<div id="heartbeat">heartbeat: -</div>
 <div id="regs">regs: (waiting for onload)</div>
 <div id="log"></div>
 <div id="machine"></div>
@@ -64,7 +64,7 @@ document.getElementById('target').textContent =
   `target: ${cssUrl}  (machine DOM: ${withDom ? 'yes' : 'no'}, pixel grid: ${withDom && withGrid ? 'yes' : 'no'})`;
 
 // --- Machine DOM ----------------------------------------------------------
-// NOTE: deliberately NOT raw.html's `class="clock cpu"` same-element form —
+// NOTE: deliberately NOT raw.html's `class="clock cpu"` same-element form -
 // there .cpu's `animation: store…, execute…` shorthand clobbers .clock's
 // anim-play on the same element and the clock never ticks (verified with a
 // minimal repro). Nesting .cpu inside .clock makes both animations live and
@@ -95,7 +95,7 @@ if (withDom) {
 
 // --- Heartbeat: liveness + register sampling -----------------------------
 // If the main thread is blocked (recalc churning) this stops ticking.
-// Register reads force a style recalc themselves — that's the point.
+// Register reads force a style recalc themselves - that's the point.
 let lastBeat = t0;
 let sheetLoaded = false;
 const REGS = ['--__0IP', '--__0CS', '--__0AX', '--__0cycleCount', '--__0halt'];
@@ -104,7 +104,7 @@ setInterval(() => {
   const gap = now - lastBeat;
   lastBeat = now;
   let s = `heartbeat: ${((now - t0) / 1000).toFixed(1)}s elapsed`;
-  if (gap > 1500) s += ` — main thread was BLOCKED for ${(gap / 1000).toFixed(1)}s`;
+  if (gap > 1500) s += ` - main thread was BLOCKED for ${(gap / 1000).toFixed(1)}s`;
   if (performance.memory) {
     s += ` | JS heap ${(performance.memory.usedJSHeapSize / 1048576).toFixed(0)} MB`;
   }
@@ -126,9 +126,9 @@ link.rel = 'stylesheet';
 link.href = cssUrl;
 
 link.onload = () => {
-  log('link.onload fired — stylesheet parsed', 'ok');
+  log('link.onload fired - stylesheet parsed', 'ok');
   sheetLoaded = true;
-  // Time to the first frame actually painted with the new sheet — the
+  // Time to the first frame actually painted with the new sheet - the
   // initial full style recalc over the machine DOM lands before this.
   const recalcT = performance.now();
   requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -136,7 +136,7 @@ link.onload = () => {
         + `(includes initial full recalc${withDom ? ' of the machine DOM' : ''})`, 'ok');
   }));
 };
-link.onerror = () => log('link.onerror fired — Chrome refused/failed to load it', 'bad');
+link.onerror = () => log('link.onerror fired - Chrome refused/failed to load it', 'bad');
 document.head.appendChild(link);
 log('link appended to <head>; waiting…', 'info');
 </script>

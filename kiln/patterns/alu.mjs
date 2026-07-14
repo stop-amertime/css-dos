@@ -33,6 +33,7 @@ const ALU_OPS = {
     flagsFn16: (dst, src) => `calc(--orFlags16(${dst}, ${src}) + --and(var(--__1flags), 1808))`,
     flagsFn8:  (dst, src) => `calc(--orFlags8(${dst}, ${src}) + --and(var(--__1flags), 1808))`,
     writesResult: true,
+    wordWrite: true,
   },
   ADC: {
     base: 0x10,
@@ -57,6 +58,7 @@ const ALU_OPS = {
     flagsFn16: (dst, src) => `calc(--andFlags16(${dst}, ${src}) + --and(var(--__1flags), 1808))`,
     flagsFn8:  (dst, src) => `calc(--andFlags8(${dst}, ${src}) + --and(var(--__1flags), 1808))`,
     writesResult: true,
+    wordWrite: true,
   },
   SUB: {
     base: 0x28,
@@ -73,11 +75,10 @@ const ALU_OPS = {
     flagsFn16: (dst, src) => `calc(--xorFlags16(${dst}, ${src}) + --and(var(--__1flags), 1808))`,
     flagsFn8:  (dst, src) => `calc(--xorFlags8(${dst}, ${src}) + --and(var(--__1flags), 1808))`,
     writesResult: true,
+    wordWrite: true,
   },
   CMP: {
     base: 0x38,
-    resultExpr16: null, // no writeback
-    resultExpr8: null,
     flagsFn16: (dst, src) => `calc(--subFlags16(${dst}, ${src}) + --and(var(--__1flags), 1792))`,
     flagsFn8:  (dst, src) => `calc(--subFlags8(${dst}, ${src}) + --and(var(--__1flags), 1792))`,
     writesResult: false,
@@ -89,6 +90,11 @@ const ALU_OPS = {
  */
 function emitALU(dispatch, op) {
   const { base, resultExpr16, resultExpr8, flagsFn16, flagsFn8, writesResult } = ALU_OPS[op];
+  // wordWrite: the memory result is a bare 16-bit value that can be
+  // written as one word slot (lo at --ea, hi at --ea+1). The logic ops
+  // qualify; the arithmetic ops wrap in --lowerBytes(..., 16) and must
+  // write two bytes (see the memory-write branch below).
+  const wordWrite = ALU_OPS[op].wordWrite === true;
 
   // --- base+1: r/m16, reg16 (d=0, w=1) ---
   const op1 = base + 1;
@@ -100,15 +106,26 @@ function emitALU(dispatch, op) {
         `if(style(--mod: 3) and style(--rm: ${r}): ${res16}; else: var(--__1${REG16[r]}))`,
         `${op} r/m16, reg16 → ${REG16[r]}`);
     }
-    // Memory write (word)
-    dispatch.addMemWrite(op1,
-      `if(style(--mod: 3): -1; else: var(--ea))`,
-      `--lowerBytes(${res16}, 8)`,
-      `${op} r/m16, reg16 → mem lo`);
-    dispatch.addMemWrite(op1,
-      `if(style(--mod: 3): -1; else: calc(var(--ea) + 1))`,
-      `--rightShift(${res16}, 8)`,
-      `${op} r/m16, reg16 → mem hi`);
+    // Memory write (word): lo at --ea, hi at --ea+1. The logic ops
+    // (OR/AND/XOR) return a bare 16-bit result, so the whole word writes
+    // as one width=2 slot. The arithmetic ops (ADD/ADC/SBB/SUB) wrap their
+    // result in --lowerBytes(..., 16); splitting that wrapped word into
+    // lo/hi bytes would double-wrap, so they stay two byte writes.
+    if (wordWrite) {
+      dispatch.addMemWriteWord(op1,
+        `if(style(--mod: 3): -1; else: var(--ea))`,
+        res16,
+        `${op} r/m16, reg16 → mem`);
+    } else {
+      dispatch.addMemWrite(op1,
+        `if(style(--mod: 3): -1; else: var(--ea))`,
+        `--lowerBytes(${res16}, 8)`,
+        `${op} r/m16, reg16 → mem lo`);
+      dispatch.addMemWrite(op1,
+        `if(style(--mod: 3): -1; else: calc(var(--ea) + 1))`,
+        `--rightShift(${res16}, 8)`,
+        `${op} r/m16, reg16 → mem hi`);
+    }
   }
   dispatch.addEntry('IP', op1, `calc(var(--__1IP) + 2 + var(--modrmExtra))`, `${op} r/m16, reg16`);
   dispatch.addEntry('flags', op1, flagsFn16('var(--rmVal16)', 'var(--regVal16)'), `${op} r/m16, reg16 flags`);
@@ -185,7 +202,7 @@ function emitALU(dispatch, op) {
 }
 
 /**
- * TEST r/m, reg (0x84-0x85) — special case, only 2 opcodes, no d bit
+ * TEST r/m, reg (0x84-0x85) - special case, only 2 opcodes, no d bit
  */
 function emitTEST_rm_reg(dispatch) {
   // 0x85: TEST r/m16, reg16

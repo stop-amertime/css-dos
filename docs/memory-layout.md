@@ -21,7 +21,7 @@ For a hack cart (`"preset": "hack"`):
 | Zone | Linear range | Purpose |
 |---|---|---|
 | Conventional RAM | `0x0000–<memory.conventional>` | IVT, BDA, .COM at `0x100`, stack |
-| VGA text | `0xB8000–0xB8FA0` | Always included today (no knob yet — follow-up) |
+| VGA text | `0xB8000–0xB8FA0` | Always included today (no knob yet - follow-up) |
 | BIOS ROM | `0xF0000+` | Always included |
 
 ## The rom-disk window
@@ -44,7 +44,7 @@ Muslin's `INT 13h` handler:
 
 Because reads all live on a single-parameter, dense, literal-only
 dispatch, Calcite compiles it to a single `Vec<i32>` lookup via its
-`DispatchFlatArray` op. The limit is Calcite's 10 M-entry span — about
+`DispatchFlatArray` op. The limit is Calcite's 10 M-entry span - about
 10 MB of rom-disk. Bootle (tiny) and Zork+FROTZ (~284 KB) are well
 within.
 
@@ -64,7 +64,7 @@ before addressing the LBA register. Don't use `BDA_SEG`.
 ## Platform registers: keep them inside 0x4F0–0x4FF
 
 Kiln's memory-mapped platform registers all live in the BDA
-intra-application area, **linear 0x4F0–0x4FF** — the only low-memory
+intra-application area, **linear 0x4F0–0x4FF** - the only low-memory
 range no real DOS component touches:
 
 | Linear | Width | What | Direction |
@@ -72,9 +72,9 @@ range no real DOS component touches:
 | `0x4F0–0x4F1` | word | Rom-disk LBA latch (cell `--__1mc632`) | guest writes, kiln disk window reads |
 | `0x4F2` | byte | Requested-video-mode shadow (Corduroy INT 10h AH=00h) | guest writes, host renderer reads |
 | `0x4F3` | byte | CGA palette-register shadow (kiln `OUT 0x3D9`) | guest writes, host renderer reads |
-| `0x4F4–0x4F5` | word | Keyboard bridge — guest reads return `--__1keyboard` | guest reads (Gossamer INT 16h) |
+| `0x4F4–0x4F5` | word | Keyboard bridge - guest reads return `--__1keyboard` | guest reads (Gossamer INT 16h) |
 
-Each register owns its address exclusively — don't overlap a
+Each register owns its address exclusively - don't overlap a
 write-shadow with a read-bridge even though their directions differ
 (the aliasing is invisible until some new consumer reads the "wrong"
 side).
@@ -85,13 +85,13 @@ inter-application communication area, and MS-DOS's boot sector
 (MSBOOT) hardcodes 0x500 as its root-directory sector buffer. The
 guest wrote the dir sector there, but reads came back as keyboard
 state (the readMem arms shadowed the RAM cells), so MS-DOS 4.00
-failed with "Non-System disk" — on calcite only, since the JS ref
+failed with "Non-System disk" - on calcite only, since the JS ref
 machine doesn't model the bridge. EDR-DOS never noticed for months
 because it doesn't use 0x500. Anything memory-mapped outside
 0x4F0–0x4FF is a collision waiting for a guest that uses that byte.
 
 Related: Corduroy writes a halt flag to linear `0x504` on fatal
-errors. That is a **write-only convention** — nothing reads it (the
+errors. That is a **write-only convention** - nothing reads it (the
 `--halt` property is driven by the HLT opcode alone), so guest data
 landing on 0x504 (as MS-DOS dir loads do) is harmless.
 
@@ -102,45 +102,45 @@ image becomes ordinary packed memory cells at `DISK_SHADOW_LINEAR =
 0x200000` (outside the 1 MB guest space, same trick as the DAC
 shadow). Cell `@property` initial values are the factory floppy, so
 writes live for the lifetime of the tab and a reload resets to
-factory. No cross-session persistence — deliberate v1 decision.
+factory. No cross-session persistence - deliberate v1 decision.
 
 Mechanics (all in `kiln/emit-css.mjs`, gated on `writableDisk`):
 
-- **Reads** — `--readDiskByte(idx)` arms stop being literals; each arm
+- **Reads** - `--readDiskByte(idx)` arms stop being literals; each arm
   reads its shadow cell: `style(--idx: N): mod(var(--__1mc<C>), 256)`
   with `C = (0x200000 + N) / 2`. Every byte gets an arm (free sectors
   must read back after a write).
-- **Writes** — per write slot, two derived props:
+- **Writes** - per write slot, two derived props:
   `--_dskInN` (1 iff `memAddrN` is inside the 0xD0000 window) and
   `--_dskOffN` (`lba*512 + (memAddrN - 0xD0000)` inside, −1 outside).
   Disk cells run the normal `--applySlot` cascade keyed on
   `--_dskOffN` with **disk-local** cell indices; RAM cells keep
   `--memAddrN` untouched.
-- **BIOS** — Corduroy INT 13h AH=03h mirrors AH=02h with the copy
+- **BIOS** - Corduroy INT 13h AH=03h mirrors AH=02h with the copy
   reversed (`REP MOVSW` into the window per sector, LBA++); AH=04h
   verify always succeeds.
 
 **The 1e6 precision rule.** Chrome stores computed numeric custom
-properties with only ~6 significant digits — any computed value
+properties with only ~6 significant digits - any computed value
 ≥ 1,000,000 silently loses precision (verified in Chromium, LOGBOOK
 2026-07-06; an idealised spec evaluator would be exact, but the
 cardinal rule's reference is what Chrome actually computes). That is
 why the shadow's high base appears only in property NAMES and literal
 arm keys, never in a computed value: disk offsets (`--_dskOffN`,
 `--readDiskByte` keys) stay < diskLen. Corollary: on disks over
-~1 MB, reads/writes beyond byte index 999,999 are Chrome-imprecise —
+~1 MB, reads/writes beyond byte index 999,999 are Chrome-imprecise -
 a bound **shared with rom mode** (rom `--readDiskByte` keys are
 `lba*512+off` too, and `--memAddrN` at DAC addresses ≥ 0x100000 has
 the same exposure). Calcite evaluates these exactly either way. Keep
 writable carts on ≤ 720K floppies to stay inside the
 everything-agrees region.
 
-Cost: one packed cell per disk byte pair — a 360K floppy adds ~184K
+Cost: one packed cell per disk byte pair - a 360K floppy adds ~184K
 cells (~120 MB of CSS text; measured end-to-end the shadow costs
 ~0.42 MB of cabinet per KB of floppy). Game carts must leave
 `writable` off. Second hard bound besides the precision rule:
 **the whole cabinet must stay under ~536 MB** (V8's max string
-length — Chrome silently fails to load anything bigger; STATUS
+length - Chrome silently fails to load anything bigger; STATUS
 gotcha 2026-07-07). A 720K writable floppy already breaks this;
 msdos4 ships 480K (custom geometry) for that reason.
 
@@ -170,6 +170,6 @@ addresses. For each address, Kiln emits:
   lookups anywhere.
 - Store and execute keyframe entries that double-buffer the byte.
 
-That pattern — per-byte property + dispatch branches — is why
+That pattern - per-byte property + dispatch branches - is why
 cabinets are hundreds of megabytes of CSS. The size is the price of
 modeling 640K of RAM as 640K of CSS properties.

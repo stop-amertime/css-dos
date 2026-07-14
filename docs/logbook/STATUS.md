@@ -11,24 +11,24 @@ first, then log it. Last verified: 2026-06-12.
 
 ## Release bar (what "done" means)
 
-1. **Calcite must be generic — the gate.** No upstream knowledge in
+1. **Calcite must be generic - the gate.** No upstream knowledge in
    calcite (no x86 / DOS / Doom / cabinet awareness). This is the
    non-negotiable ship condition.
-2. **Performance — improve if possible, NOT a gate.** Faster is
+2. **Performance - improve if possible, NOT a gate.** Faster is
    better; slow-but-honest ships, fast-but-cheating does not.
 
 These two fight each other, and that tension *was* the project's
 central problem. As of 2026-06-10 the gate is met for the rep path
 (see below); the tension still applies to every future optimisation.
 
-## The ship-blocker — RESOLVED 2026-06-10
+## The ship-blocker - RESOLVED 2026-06-10
 
 The rep_fast_forward cheat is gone from calcite `main` (merge
 `cc729b2`; descriptor-driven generic rep path, zero literal
-cabinet-property names — tested with a `--pc_y`/`--zorch` cabinet).
+cabinet-property names - tested with a `--pc_y`/`--zorch` cabinet).
 Genericity residue: **NONE in code** since 2026-06-12
 (`column_drawer_fast_forward` deleted, `788389d`; release-audit
-sweep clean — the cardinal rule holds tree-wide). LODS-shape `Full`
+sweep clean - the cardinal rule holds tree-wide). LODS-shape `Full`
 commit still refuses loudly (unreached by any current cart, proven
 by A/B). Full verification numbers: calcite log 2026-06-09/10/12 +
 LOGBOOK same dates (byte-identical A/B, smoke 7/7, doom-all medians
@@ -37,31 +37,31 @@ inside the ±1% gate).
 ## Active work (detail in `../plans/`; done/dead → LOGBOOK only)
 
 1. **Release cleanup (2026-06-12, in progress).** Cart re-cut state:
-   the re-cut is landed on master (working tree clean — see Git
-   state); owner paused further cart deletions — zork1 +
+   the re-cut is landed on master (working tree clean - see Git
+   state); owner paused further cart deletions - zork1 +
    prince-of-persia stay for now. Replacements verified booting via fast-shoot:
    rogue1_0 (title + name prompt), pop1_4 (PoP title; needed the
    INT 10h AH=1Ah BIOS fix, sound drivers renamed `.BAK`, two
-   press-any-key dialogs at boot — see LOGBOOK 2026-06-12).
+   press-any-key dialogs at boot - see LOGBOOK 2026-06-12).
    pop1_4 verified **in-game** 2026-07-05 (runs/jumps/falls, several
    landings): the speaker thud on the kid's first landing was killing
-   IRQ 0 — OUT 0x43 now decodes PIT channel-select (LOGBOOK 2026-07-05).
+   IRQ 0 - OUT 0x43 now decodes PIT channel-select (LOGBOOK 2026-07-05).
    Smoke set runs 6 carts while montezuma is deleted on disk.
    Final lineup, smoke-list update + website presentation pass are
-   owner-collab. (Website itself now a Svelte 5 static app — see
+   owner-collab. (Website itself now a Svelte 5 static app - see
    below.)
 2. **Programs cart line (2026-07-06).** Stage 1 LANDED
-   (`carts/dos-shell`, cover-less site card — LOGBOOK 2026-07-06).
-   **Stage 2 LANDED same day: session-writable disk** —
+   (`carts/dos-shell`, cover-less site card - LOGBOOK 2026-07-06).
+   **Stage 2 LANDED same day: session-writable disk** -
    `disk.writable` shadow cells + Corduroy 0.4.0 INT 13h AH=03h/04h
    + calcite windowed packed backing (LOGBOOK
    2026-07-06-writable-disk-stage2; calcite log same date).
    dos-shell is now writable (EDIT can save); reload = factory
    floppy. New regression gate: `node tests/harness/run.mjs
-   writable`. **Keep writable carts ≤ 720K** — Chrome rounds
+   writable`. **Keep writable carts ≤ 720K** - Chrome rounds
    computed numeric custom properties to ~6 significant digits
    (memory-layout.md "1e6 precision rule"). **Stage 3 LANDED same
-   day: real MS-DOS 4.00 boots** — `carts/msdos4` via
+   day: real MS-DOS 4.00 boots** - `carts/msdos4` via
    `boot.os: "msdos4"` + Corduroy 0.5.0 INT 19h bootstrap; DIR via
    keyboard verified on calcite; new gate `node tests/harness/run.mjs
    msdos` (LOGBOOK 2026-07-06-msdos4-boot-stage3). Keyboard MMIO
@@ -71,14 +71,14 @@ inside the ±1% gate).
    toolset (FreeDOS EDIT + authentic ATTRIB/MODE/XCOPY/COMP/EXE2BIN)
    and a boxart cover. Floppy shrunk 720K → 480K (custom geometry)
    after the 720K writable cabinet hit **Chrome's V8 max-string cap
-   (~536 MB — see Gotchas)**; ~100K free on disk. 2026-07-07:
+   (~536 MB - see Gotchas)**; ~100K free on disk. 2026-07-07:
    `gfx: true` restored the BIOS boot splash (it previously drew into
-   the pruned Mode 13h zone — invisible); cabinet now ~467 MB, msdos
+   the pruned Mode 13h zone - invisible); cabinet now ~467 MB, msdos
    gate PASS. Owner decided msdos4 **supersedes dos-shell on the
    site**: dos-shell's display block removed (cart kept, buildable).
    Plan file deleted (all 3 stages shipped). **Site regression fixed
    2026-07-07:** msdos4 failed on the site with `compile error:
-   unreachable` — stale vendored wasm (see Gotchas); re-vendored from
+   unreachable` - stale vendored wasm (see Gotchas); re-vendored from
    calcite `2f0d012`, web boot verified (LOGBOOK 2026-07-07).
    **Writable-cabinet wasm compile wall FIXED same day** (calcite
    `AddrOffset` fast-path, calcite `3f788c4` + log): msdos4 web
@@ -87,10 +87,10 @@ inside the ±1% gate).
    measures the compile/run split (LOGBOOK
    2026-07-07-msdos4-compile-wall). Re-vendored to the site same day
    (`f160144`, websmoke 3/3 PASS).
-   (Website Svelte 5 port itself LANDED 2026-07-01 — see LOGBOOK
+   (Website Svelte 5 port itself LANDED 2026-07-01 - see LOGBOOK
    + `web/site/README.md`; old `build.html`/`split.html` kept for
    the two legacy Playwright harnesses.)
-3. **Raw player paintable — LANDED 2026-06-30.** `raw.html` now
+3. **Raw player paintable - LANDED 2026-06-30.** `raw.html` now
    mirrors `calcite.html` chrome (derived by `raw-regen.mjs`) with a
    64,000-element CSS pixel grid in place of the `<img>`; new
    `kiln/pixels.mjs` paints each pixel from VRAM (proven in real
@@ -99,7 +99,7 @@ inside the ±1% gate).
    not just Mode 13h (LOGBOOK 2026-07-12). Inert in the calcite
    path. **Open assessment:** the painter is ALWAYS emitted
    (+14.3 MB fixed per cabinet since the text/CGA painters; was
-   7.0) —
+   7.0) -
    calcite compile-only bench not yet run (deferred; was
    a concurrent session). Escape hatch if compile time regresses: a
    build flag gating `emitPixelPaintRules()` (~5 lines). See LOGBOOK
@@ -109,29 +109,29 @@ inside the ±1% gate).
    WRITE.EXE via injected keys; `writeLoadMs` is the headline).
    3-run baseline medians (`docs/benches/windows-all-2026-07-13-
    baseline-run{1,2,3}.json`): writeLoad **36.8 s**, toExecutive
-   49.9 s, 89K t/s — **captured on a 2-3× DEGRADED host** (the
-   documented flapping state; don't compare these walls cross-day —
+   49.9 s, 89K t/s - **captured on a 2-3× DEGRADED host** (the
+   documented flapping state; don't compare these walls cross-day -
    ticks are the durable part: writeLoad 2.96M, toExecutive 4.79M).
    Profiling (op counts, host-independent): windows-sans-mouse =
    doom exactly at 1,755 ops/tick; **the serial-mouse machine adds
-   +463 ops/tick (+26%) always-on** — mouse measured ≈1.8× on
+   +463 ops/tick (+26%) always-on** - mouse measured ≈1.8× on
    writeLoad in a same-day A/B; painters only +90 ops/tick.
    Identity guards on the mouse wires LANDED (−50 ops/tick, ticks
-   byte-identical, gates PASS — LOGBOOK
+   byte-identical, gates PASS - LOGBOOK
    2026-07-13-mouse-wire-guards); remaining work (healthy-host
    re-baseline, wasm wall attribution, full quiescence restructure)
    → `../plans/2026-07-13-windows-mouse-perf.md`. Enabler: calcite
    `fa1dc81` (`at` watches now fire on wasm). LOGBOOK
    2026-07-13-windows-all-bench + 2026-07-13-windows-perf-profiling.
-5. **Per-dispatch-key specialisation** — structurally upstream of
+5. **Per-dispatch-key specialisation** - structurally upstream of
    all perf work; probed on the branch 2026-05-12 (not on `main`).
    Plan: `../plans/2026-05-12-per-dispatch-key-specialisation.md`.
-   (Also parked: **`__I4D` routine substitution** — DEPRIORITISED
+   (Also parked: **`__I4D` routine substitution** - DEPRIORITISED
    2026-06-09: the 46% figure was guest-cycle-weighted; by ticks
    `__I4D` is ~22% and the EDR-DOS kernel is ~49% of doomLoad. Plan:
    `../plans/2026-05-12-routine-semantic-substitution.md`.)
 (doomLoad kernel-side fix RESOLVED 2026-06-11 via
-`disk.sectorsPerCluster` — moved to LOGBOOK 2026-06-11; open
+`disk.sectorsPerCluster` - moved to LOGBOOK 2026-06-11; open
 follow-ups there: apply SPC to zork-big / prince-of-persia,
 per-read syscall overhead.)
 
@@ -146,22 +146,22 @@ per-read syscall overhead.)
   `worktree-cabinet-anatomy-doc` About teaching rebuild + fonts) are
   both landed. The main checkout is back **on `master`** (was parked
   on the stale ancestor branch `web/build-boxart-cards`) and its
-  working tree is clean — the 2026-06-12 licensing re-cut is no
+  working tree is clean - the 2026-06-12 licensing re-cut is no
   longer pending there. CSS-DOS worktree branches `3slot`,
   `packed-memory`, `rep-generic`, `calcite-v2-rewrite` and the
   boxart branch have **zero commits off master** (worktrees prunable,
   owner-supervised). Deliberately NOT merged:
-  `worktree-calcite-v2` — 3 stale logbook commits about the reverted
+  `worktree-calcite-v2` - 3 stale logbook commits about the reverted
   S1.2/S1.3 calcite stream; merging would resurrect dead claims.
 - **calcite** `main` == `origin/main` == **`4d8d597`** (2026-07-05
   calcite-cli --press-events batching, on `10d7b0f` 2026-07-03
-  console-diagnostics deletion, on `c728187` — 2026-06-12
-  compile-wall work: 6 commits `6228955`…`4b107d1` + logs — see
-  LOGBOOK compile-wall row; on top of `788389d` —
+  console-diagnostics deletion, on `c728187` - 2026-06-12
+  compile-wall work: 6 commits `6228955`…`4b107d1` + logs - see
+  LOGBOOK compile-wall row; on top of `788389d` -
   column_drawer dead-code deletion 2026-06-12, on top of `854867d`
-  — short dense dispatch chains `f2c8615` + log, on top of `9ecc6de`
-  — copy-elim pass `967ddad` + its wasm compile-cost fix, on top of
-  `92af379` / merge `cc729b2` which landed `feat/rep-generic` — the
+  - short dense dispatch chains `f2c8615` + log, on top of `9ecc6de`
+  - copy-elim pass `967ddad` + its wasm compile-cost fix, on top of
+  `92af379` / merge `cc729b2` which landed `feat/rep-generic` - the
   rep_fast_forward cheat removal + merge-review fixes; see
   ship-blocker section). Branch `feat/rep-generic` (`b2dc52d`, on
   origin) is now merged; its worktree
@@ -169,21 +169,21 @@ per-read syscall overhead.)
 - Genericity work safe on `origin/feat/calcite-genericity`
   (`3592bf0`), byte-identical local↔origin. The keyboard rework
   commit `baf3086` (:active pseudo-input model) is an ancestor of
-  calcite `main` — verified 2026-06-12; the old
+  calcite `main` - verified 2026-06-12; the old
   `feat/keyboard-pseudo-input` branch no longer exists.
   `feat/retire-keyboard` (`a05d85c`) retained intact, also on
   origin. The player-side full keyboard UI, lost in the 2026-05
   reverts, was restored 2026-06-12 (LOGBOOK).
 - **No loss risk remaining (as of 2026-05-18):** the only at-risk
   branches `calcite-v2` (`432c131`) / `calcite-v2-rewrite`
-  (`3745e3c`) — dead compiler-rewrite experiments — were pushed to
+  (`3745e3c`) - dead compiler-rewrite experiments - were pushed to
   `origin/archive/calcite-v2{,-rewrite}`. Everything else local is a
   stale pointer to already-merged work.
-- **Deferred git cleanup (NOT done — needs owner triage):** 7 calcite
+- **Deferred git cleanup (NOT done - needs owner triage):** 7 calcite
   worktrees under `.claude/worktrees/` each have uncommitted changes
   (2–33 files); pruning any destroys that work. `worktree-rep-3b`
   (`645f497`, on `origin/worktree-rep-3b`) was an alternative
-  rep_fast_forward phase-3b applier — **superseded by the 2026-06-10
+  rep_fast_forward phase-3b applier - **superseded by the 2026-06-10
   merge** of `feat/rep-generic`; now a pruning candidate, but the
   stale worktree/branch removal is its own supervised task, not a
   docs-session action.
@@ -195,17 +195,17 @@ per-read syscall overhead.)
 
 ## Working state
 
-**Working carts:** in flux — the 2026-06-12 licensing re-cut is
+**Working carts:** in flux - the 2026-06-12 licensing re-cut is
 removing/replacing several (see Active work #1). Doom8088 in-game on
 web + cli; zork-big (2.88 MB), command-bare, shelltest, smoke set
 unaffected. **windows101** (2026-07-13): real Windows 1.01 on msdos4
-boot, CGA mode 6 — Executive + app launch verified native and web;
+boot, CGA mode 6 - Executive + app launch verified native and web;
 needs `SETVER3.COM` (in-cart TSR: Win 1.01's app loader gates on DOS
 2.x/3.x version report). Same day: **clickable via the new serial
-mouse** (`input.mouse` — 8250 UART @ COM1 in emitted CSS + `#mc-N`
+mouse** (`input.mouse` - 8250 UART @ COM1 in emitted CSS + `#mc-N`
 tap grid in both players; e2e
 `node web/tests/mouse-e2e.playwright.mjs`). LOGBOOK 2026-07-13.
-Windows menus need Hold Mode — Win 1.x menus only stay open while
+Windows menus need Hold Mode - Win 1.x menus only stay open while
 the button is held, so the hold switch also latches the mouse button
 (hold on → tap title → tap item → hold off; menu bar = the SECOND
 text row, row 0 is the caption). Same fix landed serial packet
@@ -221,7 +221,7 @@ cycles too so double-clicks fit Windows' window. LOGBOOK
 `node tests/harness/run.mjs msdos` (MS-DOS 4.00 boot e2e) +
 `node tests/harness/run.mjs windows` (Windows 1.01 boot + key-launch) +
 `node tests/harness/run.mjs websmoke` (same boots through the real
-web path against the **vendored** wasm — the only gate that runs the
+web path against the **vendored** wasm - the only gate that runs the
 engine the site ships; mandatory after re-vendoring or landing
 engine-behaviour changes).
 
@@ -234,14 +234,14 @@ Post FAT-cluster fix (`disk.sectorsPerCluster: 32` for doom8088,
 LOGBOOK 2026-06-11). Single healthy-host run
 (`docs/benches/doom-all-2026-06-11-spc32-run1.json`); the host
 flapped healthy↔3×-degraded that day, so a clean 3-run median is
-still owed — but ticks are deterministic (boot→ingame 13.5–13.7M on
+still owed - but ticks are deterministic (boot→ingame 13.5–13.7M on
 every run/transport) and within-state wall pairs agree to ±1%.
 **NOTE 2026-07-06:** the splash-hold BIOS change (LOGBOOK) adds
-~+750K boot ticks to every Corduroy cabinet — measured same day by
+~+750K boot ticks to every Corduroy cabinet - measured same day by
 the writable-disk 3-run medians (`docs/benches/
 doom-all-2026-07-06-writable-disk-run{1,2,3}.json`): boot→ingame now
 **14.32–14.34M ticks**, engine-run wall 30.2 s, doomLoad 19.6 s,
-463.8K t/s, compile 4.65 s — all inside the cross-day ±3% band vs
+463.8K t/s, compile 4.65 s - all inside the cross-day ±3% band vs
 the 2026-06-11 numbers below once the +750K is accounted for.
 tick-benchmarks.md milestone constants remain stale.
 
@@ -260,26 +260,26 @@ comparable. History: 2026-06-10 baseline (pre-cluster-fix) 70.5 s /
 2026-05-08 79.7 s / 423 K / 68.5. The 2026-06-11 short-dense-chains
 calcite change (~+3–5% t/s) is also in these numbers.
 
-Steady-state FPS: fuzzy **~1-2 fps** band (±2× run noise — never
+Steady-state FPS: fuzzy **~1-2 fps** band (±2× run noise - never
 quote a single FPS number). Wall and ticks/sec are stable to ±3%
 when the host is healthy (it ran 3×-degraded for stretches of
-2026-06-10/11 — sanity-check ticks/s before trusting any wall).
+2026-06-10/11 - sanity-check ticks/s before trusting any wall).
 **doomLoad is now ~67% of engine-run** (was 86%); the rest of it is
 per-read syscall overhead + Doom's own load code. BIF2 fusion is a
 real but modest +4-8% web win (the 2026-05-07 +47% figure was a
-CLI-bench artefact against a regressed baseline — do not quote it).
+CLI-bench artefact against a regressed baseline - do not quote it).
 
 Quote 3-run web medians for any perf claim. Required reading before
 benching: [`tests/bench/README.md`](../../tests/bench/README.md)
 (canonical profiles, the `--headed` rule, the "why FPS is noisy"
-rule). Check no other agent is benching first — concurrent benches
+rule). Check no other agent is benching first - concurrent benches
 make both runs' numbers garbage.
 
 ## Boot sequence + sentinels (Doom8088)
 
 Stages: `text_drdos` → `text_doom` → `title` → `menu`
 (`_g_menuactive=1`) → `loading` (`_g_usergame=1`) → `ingame`
-(`_g_gamestate=GS_LEVEL`). "Ticks running" ≠ pass — peek the globals
+(`_g_gamestate=GS_LEVEL`). "Ticks running" ≠ pass - peek the globals
 or use the bench.
 
 | Symbol | Linear | Notes |
@@ -287,9 +287,9 @@ or use the bench.
 | `_g_gamestate` | 0x3a3c4 | 0=LEVEL 1=INTER 2=FINALE 3=DEMOSCREEN |
 | `_g_menuactive` | 0x3ac62 | bool |
 | `_g_usergame` | 0x3a5af | latches at G_InitNew (durable signal) |
-| `_g_gameaction` | 0x3ac5e | TRANSIENT — wrong sentinel for gating |
+| `_g_gameaction` | 0x3ac5e | TRANSIENT - wrong sentinel for gating |
 
-Re-derive from the `.map` on any kiln/builder rebuild — offsets
+Re-derive from the `.map` on any kiln/builder rebuild - offsets
 shift with anything that moves data.
 
 ## Gotchas
@@ -298,23 +298,23 @@ shift with anything that moves data.
   2^29−24 bytes): the browser load path materialises the CSS as one
   JS string, so a bigger cabinet *silently never loads* in Chrome.
   Discovered 2026-07-07 when the 720K-writable msdos4 cabinet hit
-  562 MB. Writable shadow costs ~0.42 MB per KB of floppy — size
+  562 MB. Writable shadow costs ~0.42 MB per KB of floppy - size
   writable floppies to keep total cabinet ≤ ~500 MB.
 - **The browser runs the *vendored* engine** (`web/vendor/
-  calcite-pkg/`), not calcite `main` — every native gate (smoke /
+  calcite-pkg/`), not calcite `main` - every native gate (smoke /
   writable / msdos) drives calcite-cli and stays green while the
   site's wasm is stale. A cabinet that needs newer engine work fails
   in-browser as `compile error: unreachable` (Rust panic = wasm
   trap). `npm run revendor` re-syncs it (copies the sibling pkg,
-  stamps `VENDOR-INFO.json`, runs websmoke — fails if the bundle
+  stamps `VENDOR-INFO.json`, runs websmoke - fails if the bundle
   doesn't boot); dev servers + site prod build warn when a sibling
   `../calcite/web/pkg` differs by hash from the vendored bundle.
   Bit msdos4 2026-07-07 (LOGBOOK). Gate:
   `node tests/harness/run.mjs websmoke` boots rom + writable +
   msdos4 cabinets in headless Chromium against the vendored bundle.
-- Don't run the player interactively to "check if loaded" — build or
+- Don't run the player interactively to "check if loaded" - build or
   use a measurement tool.
-- Don't trust the visible halt opcode — the CPU was redirected
+- Don't trust the visible halt opcode - the CPU was redirected
   upstream; trace back.
 - Test a suspected primitive in isolation before binary-patching
   downstream.
@@ -323,18 +323,18 @@ shift with anything that moves data.
 - Don't accumulate defensive fixes whose root cause you can't
   reproduce.
 - The legacy `tools/fulldiff.mjs` / `compare-dos.mjs` / `ref-dos.mjs`
-  scripts were deleted (both repos) — `tests/harness/pipeline.mjs
+  scripts were deleted (both repos) - `tests/harness/pipeline.mjs
   fulldiff` is the fulldiff path. `tools/compare.mjs` (gossamer
   conformance shortcut) still exists and works.
 - Docs claiming work "landed" may mean *on a branch*, not on `main`.
   Verify against code/git before trusting a status claim.
-- The bench injects keys via `setvar_pulse` watch actions — it does
+- The bench injects keys via `setvar_pulse` watch actions - it does
   NOT exercise the player's real input path (on-screen key → SW →
   bridge → `set_pseudo_class_active`). A dead player keyboard keeps
   every bench green (it did, 5-28→6-12). Real-path coverage:
   `node web/tests/kbd-e2e.playwright.mjs` against the ONE dev server
   (`npm run dev`; Vite serves the legacy `build.html` the test
-  drives — the separate legacy server was retired 2026-07-12). If
+  drives - the separate legacy server was retired 2026-07-12). If
   :5173 is busy: `PORT=5273 npm run dev` and
   `BASE=http://localhost:5273` the test. Same story for the mouse:
   `node web/tests/mouse-e2e.playwright.mjs` covers the real click

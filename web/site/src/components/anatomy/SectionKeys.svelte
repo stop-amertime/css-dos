@@ -1,5 +1,5 @@
 <script>
-  // The keyboard section — 4 KB of :active key rules.
+  // The keyboard section - 4 KB of :active key rules.
   import KeyboardDemo from '../KeyboardDemo.svelte';
   import Callout from '../Callout.svelte';
   import CodeCss from '../CodeCss.svelte';

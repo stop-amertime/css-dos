@@ -63,7 +63,7 @@ in isolation):
 | Edit                           | Rebuild                                                    | Command                                                                   |
 |--------------------------------|------------------------------------------------------------|---------------------------------------------------------------------------|
 | `carts/<name>/`                | Cabinet                                                    | `node builder/build.mjs carts/<name> -o tests/bench/cache/<name>.css`     |
-| `kiln/`, `builder/`            | All cabinets that reference them                           | (same — rebuild whichever cabinet you care about)                         |
+| `kiln/`, `builder/`            | All cabinets that reference them                           | (same - rebuild whichever cabinet you care about)                         |
 | `bios/corduroy/`               | `web/prebake/corduroy.bin` (then any cabinet using it)     | `node web/scripts/prebake.mjs corduroy`                                   |
 | `bios/gossamer/` or `muslin/`  | Equivalent prebake bin                                     | `node web/scripts/prebake.mjs <flavor>`                                   |
 | `../calcite/crates/calcite-core/`, `calcite-cli/` | Native CLI                              | `cargo build --release -p calcite-cli --manifest-path ../calcite/Cargo.toml` |
@@ -75,21 +75,21 @@ in isolation):
 Editing source ≠ the browser sees the new code. The browser caches at
 multiple layers:
 
-- **HTTP cache** — the dev server sets `no-store`, so this is fine.
-- **Cache Storage** — the player's service worker stashes `/cabinet.css`
+- **HTTP cache** - the dev server sets `no-store`, so this is fine.
+- **Cache Storage** - the player's service worker stashes `/cabinet.css`
   here. Stale cabinet → stale game.
-- **Service Worker** — itself cached by the browser.
-- **WASM module cache** — the browser caches compiled WebAssembly.
-- **Calcite's load-time compile cache** — in-memory, per-tab. Refreshing
+- **Service Worker** - itself cached by the browser.
+- **WASM module cache** - the browser caches compiled WebAssembly.
+- **Calcite's load-time compile cache** - in-memory, per-tab. Refreshing
   the tab is enough.
 
 The dev server exposes two endpoints to deal with these:
 
-- **`http://localhost:5173/_status`** — JSON of what the server is
+- **`http://localhost:5173/_status`** - JSON of what the server is
   currently serving (commits, file mtimes, hashes).
-- **`http://localhost:5173/_reset`** — wipe `web/pkg/` + `web/prebake/`
+- **`http://localhost:5173/_reset`** - wipe `web/pkg/` + `web/prebake/`
   on the server side, rebuild both from HEAD.
-- **`http://localhost:5173/_clear`** — visit in browser; tiny page that
+- **`http://localhost:5173/_clear`** - visit in browser; tiny page that
   unregisters the SW + clears Cache Storage + reloads.
 
 The right reset sequence after a cross-cutting calcite change:
@@ -107,7 +107,7 @@ make-shaped. But:
   staleness logic (kiln rebuilds opaquely; cargo handles its own
   staleness). Make adds redundant tracking.
 - The set of artifacts is small (<10) and rarely grows.
-- The bench harness is the primary consumer and is itself JS — calling
+- The bench harness is the primary consumer and is itself JS - calling
   `ensureArtifact()` from JS is one line; shelling out to `make
   cabinet:doom8088` is no clearer.
 - A make-graph would be authoritative duplication: the cargo invocation

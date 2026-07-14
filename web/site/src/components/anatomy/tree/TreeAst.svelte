@@ -1,5 +1,5 @@
 <script>
-  // TreeAst — the ONE renderer for every node of the anatomy Tree View
+  // TreeAst - the ONE renderer for every node of the anatomy Tree View
   // (see tools/extract-tree-data.mjs for the node model):
   //   section  editorial label row, [+]/[-] folds its children; with
   //            `boxed: true` its children render inside one tinted
@@ -11,18 +11,18 @@
   //   decl/if/branch/value  the real dispatch AST, rendered as indented
   //            Prism-highlighted code whose indentation IS the tree.
   // Collapsing happens ONLY at nodes the extraction tool carved with a
-  // `folded` flag — every other node is plain, always-visible code with
+  // `folded` flag - every other node is plain, always-visible code with
   // no toggle. `folded: true` = starts collapsed; the flag's presence is
   // what makes a node togglable at all.
   //
-  // Display rules (display logic only — the data stays fully decomposed):
+  // Display rules (display logic only - the data stays fully decomposed):
   //   - a branch whose only child is a leaf value renders on one line
   //     ("style(--_tf: 1): var(--__1AX);") IF the joined line fits the
   //     line budget; past that it splits at the child boundary instead,
   //     because a clean two-line split reads better than a mid-expression
   //     wrap.
   //   - a folded node shows its own token, a dim "…", then its comment
-  //     (the comment is the row's description — it stays visible).
+  //     (the comment is the row's description - it stays visible).
   //   - an if's real closing text (trailer) prints back at its own indent.
   //   - code lines are <pre> elements: the wizard's inline-code white
   //     chip rule (global.css `.window.wizard :not(pre) > code`) is
@@ -33,11 +33,11 @@
   import DosSpinner from '../../DosSpinner.svelte';
 
   // forceSplit: set by the PARENT when this node sits in a run of
-  // same-shaped siblings where any member exceeds the line budget —
+  // same-shaped siblings where any member exceeds the line budget -
   // uniform lists wrap together (see runForcedKeys below).
   // budget: chars that fit one row, MEASURED by TreeView from the
   // container's real width; each nesting level passes down a bit less.
-  // rowLimit: for `run` nodes only — how many rows the PARENT's weighted
+  // rowLimit: for `run` nodes only - how many rows the PARENT's weighted
   // page cursor allots this run. The parent owns the "(N more…)" button;
   // a run given a rowLimit never draws its own.
   let { node, forceSplit = false, budget = 80, rowLimit = null } = $props();
@@ -46,7 +46,7 @@
 
   let open = $state(!node.folded);
   // PER-RUN reveal cursors: every comment-delimited run paginates
-  // independently — a Kiln comment is a page break, so a run's first rows
+  // independently - a Kiln comment is a page break, so a run's first rows
   // are always on show and can never drown behind an earlier run's
   // "(N more…)" (owner 2026-07-12; this restores the round-2 behaviour the
   // 07-11 shared cursor replaced, which clumped every later run's comment
@@ -58,7 +58,7 @@
 
   // PROGRESSIVE DISCLOSURE: a node with `lazy: { ref, count }` has its
   // children in paged JSON chunks (see lazy.js / extract-tree-data.mjs).
-  // The first page loads when the node is first opened — or on mount for
+  // The first page loads when the node is first opened - or on mount for
   // non-foldable lazy nodes, which only mount once an ancestor fold opened,
   // so nothing is fetched for parts of the tree the reader never visits.
   // Further pages ride the "(N more…)" button.
@@ -69,7 +69,7 @@
   const isSection = $derived(node.kind === 'section');
   const isBlock = $derived(node.kind === 'block');
   const isNote = $derived(node.kind === 'note');
-  // root: the invisible container each section skeleton exports — no line
+  // root: the invisible container each section skeleton exports - no line
   // of its own, children render directly (with runs/pagination/lazy).
   const isRoot = $derived(node.kind === 'root');
   // run: a losslessly compressed uniform stretch (template + columns; see
@@ -126,7 +126,7 @@
   const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   // Blocks render whole, as ONE <code> (white-space: pre-wrap shows the
-  // real newlines) — splitting Prism's output per line breaks multiline
+  // real newlines) - splitting Prism's output per line breaks multiline
   // tokens: a "/* ... \n ... */" comment is a single span, and cutting
   // it mid-token leaves unclosed markup that strips the continuation
   // lines' styling.
@@ -134,7 +134,7 @@
 
   // One-line rule for AST nodes, generalised to SINGLE-PATH CHAINS: a node
   // whose only-child path runs straight to a leaf joins onto one line,
-  // trailers included — so a whole one-liner source rule
+  // trailers included - so a whole one-liner source rule
   // ("&:has(#kb-0:active) { --keyboard: 2864; }") reads as the one line it
   // is in the file. A lazy node is never a leaf (it must mount to fetch);
   // a mid-chain comment bails (it needs its own column).
@@ -157,7 +157,7 @@
       rest: [...codes.slice(1), ...closers].join(' '),
     };
   }
-  // Comment length doesn't count toward the budget — comments render as
+  // Comment length doesn't count toward the budget - comments render as
   // their own right-aligned flex column, not inline after the code.
   const chain = $derived(
     (isSection || isBlock || isNote || isRoot || isRun) ? null
@@ -178,7 +178,7 @@
 
   // A row whose only child is a leaf value that just didn't fit the
   // line budget is a WRAPPED CONTINUATION, not a deeper structural
-  // level — it renders indented but without the tint step or the
+  // level - it renders indented but without the tint step or the
   // dashed guide (those mean "you've descended into nesting"). The
   // continuation line soft-wraps within its own code box, so its own
   // wrap aligns under its own first character. (Deeper chains that miss
@@ -190,7 +190,7 @@
 
   // The node's own visual line: its own token, dim ellipsis when
   // folded. A one-lined child value renders in its OWN flex box
-  // (valueHtml) — so if the browser soft-wraps it, the continuation
+  // (valueHtml) - so if the browser soft-wraps it, the continuation
   // aligns to the VALUE's start (end of the condition), not the row
   // start, at any viewport width. The trailing comment is its own
   // non-shrinkable flex item at the line's right edge.
@@ -212,7 +212,7 @@
   });
   // A value is structurally one level deeper than its condition. When it
   // SHARES the line it shows that as an .ast-depth chip; on its own line
-  // the .ast-continuation container carries the same tint step instead —
+  // the .ast-continuation container carries the same tint step instead -
   // never both (that double-highlighted split values). Hidden while a
   // carved one-line row is folded.
   const valueHtml = $derived(
@@ -225,7 +225,7 @@
   );
 
   // Children render in RUNS delimited by standalone comment nodes: the
-  // comment is always visible and each run paginates independently — so
+  // comment is always visible and each run paginates independently - so
   // a comment Kiln plants at a type boundary in a long list (or before a
   // lone interesting node at the end of 500 twins) can never drown
   // behind a single flat "(N more…)".
@@ -245,7 +245,7 @@
     return out;
   });
   // WEIGHTED page cursor: a `run` node stands for `count` real rows, so it
-  // spends that many rows of its run's page budget — "(N more…)" totals
+  // spends that many rows of its run's page budget - "(N more…)" totals
   // count every real row, not wire nodes.
   const weightOf = (c) => (c.kind === 'run' ? c.count : 1);
   // Rows this run reveals given `limit` rows of its own cursor.
@@ -278,7 +278,7 @@
   }
 
   // RUN UNIFORMITY (wrap): within a run, rows sharing a code shape (text
-  // with numbers masked — "style(--opcode: #):" / "--mc#:") wrap
+  // with numbers masked - "style(--opcode: #):" / "--mc#:") wrap
   // together: if any same-shaped sibling exceeds the line budget, they
   // all split. No per-row layout lottery in a list of like rows.
   const maskKey = (n) =>
@@ -397,14 +397,14 @@
 <style>
   /* One visual line of the tree: a fixed [+]/[-] gutter (kept on every
      line so code columns stay aligned whether or not a row folds) and the
-     line's content — wrapped continuations align after the gutter. Code
+     line's content - wrapped continuations align after the gutter. Code
      lines are <pre> elements so the wizard's inline-code white-chip rule
-     (global.css `.window.wizard :not(pre) > code`) skips them by design —
+     (global.css `.window.wizard :not(pre) > code`) skips them by design -
      reset the pre defaults here. */
   .ast-line {
     display: flex;
     /* wrap-reverse: the first flex line sits at the BOTTOM, so the only
-       item allowed to wrap (the comment — everything else has basis 0 or
+       item allowed to wrap (the comment - everything else has basis 0 or
        is rigid) stacks ABOVE the code line when the row gets tight,
        instead of both squeezing side by side. When it fits, one line. */
     flex-wrap: wrap-reverse;
@@ -418,11 +418,11 @@
     font-size: inherit;
     line-height: inherit;
   }
-  /* The fold toggle: a drawn [+]/[-] box, EGA cyan (#00aaaa — EGA colour 3,
+  /* The fold toggle: a drawn [+]/[-] box, EGA cyan (#00aaaa - EGA colour 3,
      the interactable accent; the palette's --edit-cyan is BRIGHT cyan 11,
      unreadable on this light pane). Every line keeps the slot so code
      columns align; only foldable rows draw the box. */
-  /* The empty slot is width-only — giving it a fixed HEIGHT makes its
+  /* The empty slot is width-only - giving it a fixed HEIGHT makes its
      baseline its bottom edge (empty box + baseline alignment), which
      pushed glyphless lines' text down ~7px and made wrapped continuations
      look detached from their parent row. Only the drawn foldable box
@@ -452,7 +452,7 @@
     align-self: flex-end;
     margin-top: 0;
   }
-  /* WebVGA's glyph metrics sit slightly off true center in the box —
+  /* WebVGA's glyph metrics sit slightly off true center in the box -
      per-state padding nudges (padding moves the character, not the box):
      '+' (closed) rides high, '-' (open) leans left. */
   .ast-line.is-foldable .tree-glyph:not(.is-open) { padding-top: 3px; }
@@ -463,7 +463,7 @@
   }
   /* Code boxes get flex-basis 0 (not content size): with wrap-reverse
      enabled, an item whose hypothetical size overflows the line would
-     wrap to the line ABOVE — basis 0 means code can never trigger that;
+     wrap to the line ABOVE - basis 0 means code can never trigger that;
      it stays on its line and absorbs leftover width, wrapping internally.
      Only the comment (basis auto, flex none) can wrap up. */
   .ast-line code {
@@ -476,7 +476,7 @@
   /* A one-lined row's value gets its own box taking the remaining width:
      if it soft-wraps, the continuation aligns to the VALUE's start (the
      end of the condition), not the row start. The condition box beside it
-     is RIGID — a condition is an atomic label and must never wrap; the
+     is RIGID - a condition is an atomic label and must never wrap; the
      value column absorbs all the squeeze. */
   .ast-line code.ast-cond {
     flex: none;
@@ -488,7 +488,7 @@
     margin-left: 1ch;
   }
   /* Trailing row comments: their own NON-shrinkable flex item at the
-     line's right edge — an annotation column. Never compresses (that
+     line's right edge - an annotation column. Never compresses (that
      orphaned "*​/" onto its own line); the code column yields instead.
      Baseline-aligned, so on a wrapped code row it sits at the top right. */
   .ast-line .ast-comment {
@@ -501,7 +501,7 @@
   .ast-line.is-foldable:hover { background: rgba(0, 0, 0, 0.05); }
 
   /* Dim elision marker on folded rows. Injected via {@html}, not the
-     template — global. */
+     template - global. */
   :global(.ast-ellipsis) { color: #999; }
 
   /* Editorial section label rows. */
@@ -521,7 +521,7 @@
   }
   /* A wrapped continuation (a branch's over-budget value on its own line):
      one structural level deeper, so it gets the SAME one-step tint as an
-     .ast-children container at its depth — consistent with inline values,
+     .ast-children container at its depth - consistent with inline values,
      which show the same step via the .ast-depth chip. No guide (it's a
      single value, not a child list). */
   .ast-continuation {
@@ -531,7 +531,7 @@
        separating the pair from the next row. */
     margin-bottom: 4px;
   }
-  /* These chains span recursive TreeAst instances — each `.ast-children`
+  /* These chains span recursive TreeAst instances - each `.ast-children`
      past the first is produced by a nested instance of this same
      component, not this template, so Svelte's static CSS-usage prover
      can't connect them across the component boundary. :global from the
@@ -553,16 +553,16 @@
 
   /* Structural depth shows even INLINE: a branch's value is one level
      deeper than its condition, so it carries the next tint step as a
-     text-hugging chip (an inner span — the value's flex box stretches to
+     text-hugging chip (an inner span - the value's flex box stretches to
      fill the row, so the box itself can't carry the colour). Same chain
      arithmetic as .ast-children, one rung deeper. clone keeps the chip's
      padding on each fragment when it wraps. */
-  /* Chip colours run TWO rungs deeper than their row's background — a
+  /* Chip colours run TWO rungs deeper than their row's background - a
      small text chip needs real contrast where a large container area can
      afford a subtle step. */
   /* .ast-depth itself is {@html}-injected (never literal in any
      template), and every .ast-children past the first spans a nested
-     TreeAst instance (see the background chain above) — both make the
+     TreeAst instance (see the background chain above) - both make the
      chain unprovable by Svelte's static usage check, so it's global
      from .ast-children on. Only .tree-ast (this template's own boxed
      div) stays scoped. */
@@ -579,7 +579,7 @@
   .tree-ast :global(.ast-children .ast-children .ast-children .ast-children .ast-children .ast-depth) { background: #b2bad3; }
 
   /* A boxed section's children pane: ONE tinted box per real file region
-     (the @function cluster, the .cpu rule, the @property blocks) —
+     (the @function cluster, the .cpu rule, the @property blocks) -
      .byte-example supplies the WebVGA font and Prism palette; this
      override swaps its border for the tint. */
   .ast-children.tree-ast {
@@ -592,7 +592,7 @@
     overflow-x: visible;
   }
 
-  /* Pagination: "(N more…)" as a real button — same cyan interactable
+  /* Pagination: "(N more…)" as a real button - same cyan interactable
      language as the fold boxes. */
   .tree-more {
     margin: 3px 0;
@@ -615,7 +615,7 @@
   /* Editorial lines that are NOT source text: the truncation `note` rows
      the extraction tool plants where a giant uniform run was capped, and
      the transient loading indicator. Styled clearly as annotation, not
-     code — italic, dim. */
+     code - italic, dim. */
   .ast-line .ast-note {
     font-style: italic;
     color: #666;
@@ -627,7 +627,7 @@
     .ast-line .tree-glyph { width: 22px; }
     /* On a phone-width pane, comments ALWAYS stack above their line
        (flex-basis 100% = never shares a line; wrap-reverse puts its line
-       on top) instead of even attempting inline — no per-row layout
+       on top) instead of even attempting inline - no per-row layout
        lottery on narrow screens. */
     .ast-line .ast-comment { flex: 0 1 100%; padding-left: 0; }
   }

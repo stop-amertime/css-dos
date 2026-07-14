@@ -1,4 +1,4 @@
-## 2026-05-01 — keyboard latch: port 0x60 holds break code until ISR services it
+## 2026-05-01 - keyboard latch: port 0x60 holds break code until ISR services it
 
 Three coupled bugs in the keyboard input path, all surfacing on
 doom8088 because it's the only cart that hooks INT 09h directly
@@ -50,7 +50,7 @@ changes in Kiln:
 3. Updated `_kbdPort60` to fall through to `__1kbdScancodeLatch`.
 
 Verified via Playwright diagnostic: `_g_usergame` flips to 1 at
-t=55.9 s — DOOM accepted "New Game" from menu.
+t=55.9 s - DOOM accepted "New Game" from menu.
 
 Files: `kiln/template.mjs`, `kiln/emit-css.mjs`,
 `kiln/patterns/misc.mjs`, `web/shim/calcite-bridge.js`,
@@ -59,6 +59,6 @@ from before this date are invalidated (state-var ordering changed).
 
 Cardinal-rule check: the latch is generic CSS-side keyboard-controller
 modelling. Any cabinet whose CSS sets `--keyboard` and reads
-`_kbdPort60` benefits — the rule is "scancode is level-readable
+`_kbdPort60` benefits - the rule is "scancode is level-readable
 until the next edge", which is what real PC kbd hardware does. No
 upstream knowledge encoded.

@@ -1,4 +1,4 @@
-; Thorough BCD instruction tests — edge cases and flag verification
+; Thorough BCD instruction tests - edge cases and flag verification
 org 0x100
 
 ; ---- DAA edge cases ----

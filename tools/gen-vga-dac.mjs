@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// gen-vga-dac.mjs — emit the IBM VGA default 256-entry DAC palette as a
+// gen-vga-dac.mjs - emit the IBM VGA default 256-entry DAC palette as a
 // flat 768-byte binary (R,G,B triples, 6-bit values 0..63).
 //
 // Layout (matches the IBM VGA BIOS circa 1987 and DOSBox/QEMU defaults):
@@ -70,7 +70,7 @@ for (let i = 0; i < 16; i++) {
 // 3 lightness levels × 3 saturations × 24 hues = 216 entries.
 // Each hue is one of 24 points around the RGB colour wheel, encoded as
 // a (r,g,b) triple in [0, 63]. Hues go R, R-Y, Y, Y-G, G, G-C, C, C-B, B,
-// B-M, M, M-R (12 primary + 12 intermediates) — we interpolate 24 stops.
+// B-M, M, M-R (12 primary + 12 intermediates) - we interpolate 24 stops.
 // Three lightness tiers and three saturation tiers. Saturation is the
 // "floor" added to off-channels; we clamp it so it never crosses the
 // lightness ceiling (otherwise high-sat dark entries collapse to grey).

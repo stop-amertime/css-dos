@@ -22,7 +22,7 @@ a memory-mapped window controlled by an LBA register.
 The LBA register lives at **linear 0x4F0** (reachable as segment:offset
 `0x0000:0x04F0`). This is inside the standard BDA "intra-application
 communications area" (0x4F0–0x4FF). Note: accessing it as
-`0x0040:0x04F0` (BDA_SEG base) would be WRONG — that resolves to linear
+`0x0040:0x04F0` (BDA_SEG base) would be WRONG - that resolves to linear
 0x8F0, which lives inside the loaded kernel and would corrupt it. Use
 `xor ax,ax; mov ds,ax; mov [0x4F0], ...` in the BIOS handler.
 
@@ -39,22 +39,22 @@ INT 13h AH=02h handler:
 
 The CSS engine satisfies each window read by dispatching into a disk-data
 table keyed on the current LBA. Programs using normal file I/O (INT 21h)
-work automatically — DOS calls INT 13h, which uses the window.
+work automatically - DOS calls INT 13h, which uses the window.
 
 ## What changes in the codebase
 
 Implemented on `feature/rom-disk`:
 
-- `bios/css-emu-bios.asm` — `DISK_SEG = 0xD000`, `disk_lba equ 0x4F0`,
+- `bios/css-emu-bios.asm` - `DISK_SEG = 0xD000`, `disk_lba equ 0x4F0`,
   `.disk_read` rewritten: per-sector, writes LBA word to physical [0x4F0]
   then `REP MOVSW` 256 words from `0xD000:0000` to `ES:DI`, LBA++.
-- `transpiler/src/emit-css.mjs` — emits `@function --readDiskByte(--idx)`
+- `transpiler/src/emit-css.mjs` - emits `@function --readDiskByte(--idx)`
   with one `style(--idx: N): byte;` branch per non-zero disk byte; the
   window addresses 0xD0000–0xD01FF dispatch to
   `--readDiskByte(calc((m1264 + m1265*256) * 512 + off))`.
-- `transpiler/src/memory.mjs` — disk window excluded from stored memory
+- `transpiler/src/memory.mjs` - disk window excluded from stored memory
   (dispatch-only, no `--mN` properties for those addresses).
-- `transpiler/generate-dos.mjs` — disk bytes threaded through `opts.diskBytes`
+- `transpiler/generate-dos.mjs` - disk bytes threaded through `opts.diskBytes`
   instead of `embData`; `DISK_LINEAR = 0xD0000`.
 
 Note: the original plan sketched a two-parameter `--readDiskByte(--lba, --off)`.
@@ -65,14 +65,14 @@ parameter domains, which OOM'd on the two-parameter form.
 ## What it unlocks
 
 Doom8088 (~1.5 MB total), Wolfenstein 3D, Commander Keen, Sierra adventure
-games — anything that uses normal INT 21h file I/O.
+games - anything that uses normal INT 21h file I/O.
 
 ## Key design insight
 
 CSS-DOS doesn't have physical RAM. Memory is a sparse map of integer addresses
 to bytes. The 1MB limit is purely a property of the 8086's segment:offset
 addressing (tops out at 0xFFFFF). We can put disk bytes at any CSS address
-(e.g., 0x100000+) — the 8086 can't `mov` to them directly, but the BIOS
+(e.g., 0x100000+) - the 8086 can't `mov` to them directly, but the BIOS
 handler (which is emitted by the generator and knows where the data lives)
 bridges the gap by copying through the window.
 
@@ -108,7 +108,7 @@ linear 0x4F0 / 0x4F1.
 A 1.3 MB WAD = ~1.3 million dispatch branches. Valid CSS, but:
 
 - Chrome can't evaluate it at usable speed.
-- **Calcite's existing dispatch compiler doesn't flatten this case** —
+- **Calcite's existing dispatch compiler doesn't flatten this case** -
   it compiles each branch as a full expression with its own `Vec<Op>`,
   which freezes compile for ~68K+ branches (bootle) and is projected to
   be unusable for Zork (284 KB → ~280K branches) or Doom (~1.5M).
@@ -117,4 +117,4 @@ The plan calls for calcite to detect the pattern "single-parameter dispatch
 where every entry is an integer literal" and compile to a flat `Vec<i32>`
 with a single `DispatchFlatArray` op. This is generic CSS optimization
 (no x86 knowledge), consistent with the cardinal rule. Work in
-progress — `feature/rom-disk` is blocked on this.
+progress - `feature/rom-disk` is blocked on this.

@@ -1,8 +1,8 @@
 <script>
-  // RamWrite — how a memory write works when nothing can write.
+  // RamWrite - how a memory write works when nothing can write.
   // SplitPane: left, the one formula every byte of RAM is defined by
   // (pseudocode); right, six bytes, a MOV button, and a feed that
-  // replays the browser re-evaluating each byte's formula — every one
+  // replays the browser re-evaluating each byte's formula - every one
   // comes out unchanged except the write's target.
   import SplitPane from './SplitPane.svelte';
   import { onDestroy } from 'svelte';
@@ -103,7 +103,7 @@
     margin: 16px 0;
   }
 
-  /* — left pane: the formula — */
+  /* - left pane: the formula - */
   .ram-formula {
     margin: 0;
     padding: 12px 16px;
@@ -123,7 +123,7 @@
   .ram-formula code { background: none; border: none; padding: 0; }
   /* .tok-* colours come from global.css. */
 
-  /* — right pane: cells + button + feed — */
+  /* - right pane: cells + button + feed - */
   .ram-try {
     display: flex;
     flex-direction: column;

@@ -1,4 +1,4 @@
-; tests/bulk-fill.asm — CSS bulk-fill semantics smoke test.
+; tests/bulk-fill.asm - CSS bulk-fill semantics smoke test.
 ;
 ; Writes the bulk-op scratch region directly (as if an INT 2F handler
 ; had run). Then halts. The CSS memory-cell range-predicate clause should

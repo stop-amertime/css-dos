@@ -15,16 +15,16 @@
 ## File Structure
 
 **New files:**
-- `transpiler/src/patterns/bios.mjs` — BIOS microcode μop emitters (INT 09h, 10h, 16h, 1Ah, 20h)
-- `tools/lib/bios-handlers.mjs` — JS reference BIOS handler functions (INT 09h, 10h, 16h, 1Ah, 20h)
-- `tests/keyboard-irq.asm` — Test program: keyboard IRQ → BDA buffer → INT 16h read
+- `transpiler/src/patterns/bios.mjs` - BIOS microcode μop emitters (INT 09h, 10h, 16h, 1Ah, 20h)
+- `tools/lib/bios-handlers.mjs` - JS reference BIOS handler functions (INT 09h, 10h, 16h, 1Ah, 20h)
+- `tests/keyboard-irq.asm` - Test program: keyboard IRQ → BDA buffer → INT 16h read
 
 **Modified files:**
-- `tools/peripherals.mjs` — Update `KeyboardController` to accept full `(scancode<<8)|ascii` words, return scancode from port 0x60
-- `tools/compare.mjs` — Wire `int_handler` hook, add keyboard event injection
-- `transpiler/src/template.mjs` — Add `kbdLast` state var, add `--keyboard` `@property` declaration
-- `transpiler/src/emit-css.mjs` — Add keyboard computed properties, update `picPending` default, update `irqActive` for μop 0 holds, wire BIOS emitters
-- `transpiler/src/patterns/irq.mjs` — Fix `_irqEffective` to respect PIC in-service priority
+- `tools/peripherals.mjs` - Update `KeyboardController` to accept full `(scancode<<8)|ascii` words, return scancode from port 0x60
+- `tools/compare.mjs` - Wire `int_handler` hook, add keyboard event injection
+- `transpiler/src/template.mjs` - Add `kbdLast` state var, add `--keyboard` `@property` declaration
+- `transpiler/src/emit-css.mjs` - Add keyboard computed properties, update `picPending` default, update `irqActive` for μop 0 holds, wire BIOS emitters
+- `transpiler/src/patterns/irq.mjs` - Fix `_irqEffective` to respect PIC in-service priority
 
 ---
 
@@ -46,7 +46,7 @@ export function emitPicVectorProperties() {
     // Conservative: if picInService != 0, no IRQs fire. This matches the 8259A's
     // default mode where a lower-priority IRQ cannot preempt a higher-priority one.
     `  --_irqEffective: if(style(--__1picInService: 0): --and(var(--__1picPending), --not(var(--__1picMask))); else: 0);`,
-    // _irqNum: lowest set bit of _irqEffective (for acknowledge — which bit to move)
+    // _irqNum: lowest set bit of _irqEffective (for acknowledge - which bit to move)
     `  --_irqNum: --lowestBit(var(--_irqEffective));`,
     // _irqBit: bitmask for the IRQ being acknowledged
     `  --_irqBit: --pow2(var(--_irqNum));`,
@@ -209,7 +209,7 @@ export function createBiosHandlers(memory, pic, kbd, getRegs, setRegs) {
       const head = memory[BDA_BASE + 0x1A] | (memory[BDA_BASE + 0x1B] << 8);
       const tail = memory[BDA_BASE + 0x1C] | (memory[BDA_BASE + 0x1D] << 8);
       if (head === tail) {
-        // Buffer empty — in the reference emulator, we can't truly block.
+        // Buffer empty - in the reference emulator, we can't truly block.
         // Return false to let the program's own spin loop handle it.
         // The program will re-issue INT 16h on the next iteration.
         return false;
@@ -229,10 +229,10 @@ export function createBiosHandlers(memory, pic, kbd, getRegs, setRegs) {
       const head = memory[BDA_BASE + 0x1A] | (memory[BDA_BASE + 0x1B] << 8);
       const tail = memory[BDA_BASE + 0x1C] | (memory[BDA_BASE + 0x1D] << 8);
       if (head === tail) {
-        // Empty — set ZF
+        // Empty - set ZF
         setRegs({ flags: regs.flags | 0x0040 });
       } else {
-        // Key available — clear ZF, peek into AX
+        // Key available - clear ZF, peek into AX
         const ascii = memory[BDA_BASE + head];
         const scancode = memory[BDA_BASE + head + 1];
         setRegs({ al: ascii, ah: scancode, flags: regs.flags & ~0x0040 });
@@ -385,7 +385,7 @@ export function createBiosHandlers(memory, pic, kbd, getRegs, setRegs) {
     if (regs.ah === 0x00) {
       // AH=00h: get tick count (use PIT counter as proxy)
       // In a real PC this reads the BIOS tick counter at BDA 0x006C.
-      // For now, return 0 — the PIT counter is the authoritative time source.
+      // For now, return 0 - the PIT counter is the authoritative time source.
       setRegs({ cx: 0, dx: 0, al: 0 });
       return true;
     }
@@ -469,7 +469,7 @@ const cpu = Intel8086(
 );
 ```
 
-Wait — the CPU is created before `int_handler` exists. We need to create a wrapper:
+Wait - the CPU is created before `int_handler` exists. We need to create a wrapper:
 
 ```javascript
 let int_handler = null;
@@ -568,7 +568,7 @@ A test program that exercises the full keyboard path: unmask IRQ 1, wait for a k
 - [ ] **Step 1: Write the test program**
 
 ```nasm
-; keyboard-irq.asm — Test keyboard IRQ → BDA buffer → INT 16h path
+; keyboard-irq.asm - Test keyboard IRQ → BDA buffer → INT 16h path
 ; Unmasked IRQ 1, waits for a key via INT 16h AH=00h, stores AX, halts.
 ; When run with --key-events=50:0x1E61,100:0 the expected result is AX=0x1E61.
 
@@ -762,7 +762,7 @@ sentinel (0xF1) which keeps its existing behavior."
 
 ## BIOS Dispatch Architecture Note
 
-All BIOS handlers share opcode 0xD6 (214). The existing dispatch system (`addEntry`, `addMemWrite`) allows one expression per `(opcode, uOp)` slot. Multiple handlers sharing the same opcode need **q1-guarded composite expressions** — e.g., `if(style(--q1: 9): int09h_addr; style(--q1: 16): int10h_addr; else: -1)` for `--memAddr`.
+All BIOS handlers share opcode 0xD6 (214). The existing dispatch system (`addEntry`, `addMemWrite`) allows one expression per `(opcode, uOp)` slot. Multiple handlers sharing the same opcode need **q1-guarded composite expressions** - e.g., `if(style(--q1: 9): int09h_addr; style(--q1: 16): int10h_addr; else: -1)` for `--memAddr`.
 
 Two approaches:
 1. **Composite emitter:** `emitAllBiosHandlers` builds one combined expression per μop slot, merging all handlers' contributions. More complex but uses existing dispatch API.
@@ -772,9 +772,9 @@ Resolve this at implementation time. The μop semantics in each task are correct
 
 ---
 
-## Task 7: BIOS Microcode Emitter — Scaffold + INT 20h
+## Task 7: BIOS Microcode Emitter - Scaffold + INT 20h
 
-Create the BIOS microcode emitter module. BIOS handlers use opcode 0xD6 (214) with a routine ID in `--q1` and subfunction in `--AH`. Start with INT 20h (halt) — the simplest handler — to validate the dispatch plumbing.
+Create the BIOS microcode emitter module. BIOS handlers use opcode 0xD6 (214) with a routine ID in `--q1` and subfunction in `--AH`. Start with INT 20h (halt) - the simplest handler - to validate the dispatch plumbing.
 
 **Files:**
 - Create: `transpiler/src/patterns/bios.mjs`
@@ -788,7 +788,7 @@ Create the BIOS microcode emitter module. BIOS handlers use opcode 0xD6 (214) wi
 //
 // BIOS handlers use a different opcode (0xD6) from the IRQ delivery
 // sentinel (0xF1) to avoid dispatch table conflicts. 0xD6 is the
-// undocumented SALC instruction on real 8086 — no program uses it.
+// undocumented SALC instruction on real 8086 - no program uses it.
 //
 // ROM layout at each handler address: [0xD6, routineID, 0xCF]
 //   0xD6 = BIOS sentinel opcode (triggers handler μop dispatch)
@@ -800,7 +800,7 @@ Create the BIOS microcode emitter module. BIOS handlers use opcode 0xD6 (214) wi
 
 export const BIOS_OPCODE = 0xD6;  // 214 decimal
 
-// Routine IDs — one per BIOS interrupt
+// Routine IDs - one per BIOS interrupt
 export const ROUTINE_IDS = {
   INT_09H: 0x09,
   INT_10H: 0x10,
@@ -899,7 +899,7 @@ buildBiosRom() generates ROM bytes and IVT entries."
 
 ---
 
-## Task 8: BIOS Microcode — INT 09h (Keyboard → BDA Buffer)
+## Task 8: BIOS Microcode - INT 09h (Keyboard → BDA Buffer)
 
 Implement the INT 09h handler as a μop sequence: read scancode/ASCII from `--keyboard`, stuff into BDA ring buffer, send EOI.
 
@@ -913,7 +913,7 @@ The INT 09h handler needs these μops:
 - μop 1: Read BDA tail pointer from 0x041C. Write `--_kbdAscii` at BDA+tail.
 - μop 2: Write `--_kbdScancode` at BDA+tail+1.
 - μop 3: Compute new tail (tail+2, wrap at 0x3E→0x1E), write to 0x041C.
-- μop 4: EOI — clear lowest in-service bit in picInService. Retire.
+- μop 4: EOI - clear lowest in-service bit in picInService. Retire.
 
 The "skip to EOI on release" uses a conditional uOp advance: when `_kbdScancode == 0`, μop 0 jumps to the EOI μop.
 
@@ -940,7 +940,7 @@ export function emitINT09h(dispatch) {
   const bufAddr = `calc(1024 + ${tail})`;
 
   // μop 0: write ASCII byte at BDA+tail (if scancode != 0)
-  // If key release (scancode == 0), this write is harmless — we skip to EOI via uOp advance.
+  // If key release (scancode == 0), this write is harmless - we skip to EOI via uOp advance.
   dispatch.addMemWrite(OP,
     bufAddr,
     `var(--_kbdAscii)`,
@@ -957,7 +957,7 @@ export function emitINT09h(dispatch) {
   // In CSS: newTail = if(tail + 2 >= 0x3E, 0x1E, tail + 2)
   //       = if(tail >= 0x3C, 0x1E, tail + 2)
   const newTail = `if(style(--_kbdBufFull: 1): ${KBD_BUF_START}; else: calc(${tail} + 2))`;
-  // _kbdBufFull: computed property — 1 when tail + 2 >= KBD_BUF_END
+  // _kbdBufFull: computed property - 1 when tail + 2 >= KBD_BUF_END
   // We'll need to emit this as a computed property. For now, use inline:
   // Actually, we can use: min(1, max(0, sign(tail + 2 - KBD_BUF_END + 1)))
   // When tail + 2 >= 0x3E: sign(tail + 2 - 0x3E + 1) = sign(tail - 0x3B) >= 0 if tail >= 0x3C
@@ -975,7 +975,7 @@ export function emitINT09h(dispatch) {
     `--rightShift(${newTailExpr}, 8)`,
     `INT 09h: write new tail hi`, 3);
 
-  // μop 4: EOI — clear lowest in-service bit
+  // μop 4: EOI - clear lowest in-service bit
   dispatch.addEntry('picInService', OP,
     `if(style(--q1: ${RID}) and style(--__1uOp: 4): --and(var(--__1picInService), --not(--pow2(--lowestBit(var(--__1picInService))))); else: var(--__1picInService))`,
     `INT 09h: EOI`, 4);
@@ -996,9 +996,9 @@ export function emitINT09h(dispatch) {
 }
 ```
 
-Wait — this won't work. The dispatch `addEntry` for `picInService` would conflict with the IRQ sentinel's entries (which also write `picInService` at opcode 241). But BIOS uses opcode 214, so there's no conflict. Good.
+Wait - this won't work. The dispatch `addEntry` for `picInService` would conflict with the IRQ sentinel's entries (which also write `picInService` at opcode 241). But BIOS uses opcode 214, so there's no conflict. Good.
 
-However, there's a problem with `setCustomUopAdvance` — this sets the advance for the entire opcode 214, but multiple BIOS handlers share the same opcode. The uOp advance needs to dispatch on `--q1` (routine ID) to select the right advance for each handler. This means the custom advance must be a single expression that covers all BIOS handlers.
+However, there's a problem with `setCustomUopAdvance` - this sets the advance for the entire opcode 214, but multiple BIOS handlers share the same opcode. The uOp advance needs to dispatch on `--q1` (routine ID) to select the right advance for each handler. This means the custom advance must be a single expression that covers all BIOS handlers.
 
 The `setCustomUopAdvance` API takes one expression per opcode. We'll need to build a combined expression that dispatches on `--q1` first, then on `--__1uOp`.
 
@@ -1053,13 +1053,13 @@ export function emitINT09h(dispatch) {
 }
 ```
 
-Hmm, but the `addMemWrite` and `addEntry` calls can't share a `(opcode, uOp)` slot across different BIOS handlers. INT 09h μop 0 writes to one address; INT 10h μop 0 writes to a different address. Both use opcode 214 μop 0. The dispatch has one `--memAddr` and one `--memVal` per `(opcode, uOp)` — they'd collide.
+Hmm, but the `addMemWrite` and `addEntry` calls can't share a `(opcode, uOp)` slot across different BIOS handlers. INT 09h μop 0 writes to one address; INT 10h μop 0 writes to a different address. Both use opcode 214 μop 0. The dispatch has one `--memAddr` and one `--memVal` per `(opcode, uOp)` - they'd collide.
 
 This is the same fundamental problem as the opcode conflict, but at the sub-dispatch level. Each BIOS handler needs its own μop sequence, but they all share opcode 214.
 
 The solution: the memory write expressions must include `--q1` guards. Instead of a flat `addrExpr`, we need `if(style(--q1: 9): int09_addr; style(--q1: 16): int10_addr; ...)`.
 
-This means we can't use `addMemWrite` directly — it throws on duplicate `(opcode, uOp)`. We need a mechanism for BIOS handlers to share the same opcode+uOp slot with q1-guarded expressions.
+This means we can't use `addMemWrite` directly - it throws on duplicate `(opcode, uOp)`. We need a mechanism for BIOS handlers to share the same opcode+uOp slot with q1-guarded expressions.
 
 This is starting to look like it needs a different dispatch mechanism for BIOS handlers. Rather than trying to shoe-horn everything into the existing addEntry/addMemWrite API, we should probably emit the BIOS handler dispatch as a standalone computed property block (like PIT and irqActive are), bypassing the dispatch table entirely.
 
@@ -1069,7 +1069,7 @@ Let me reconsider the whole approach and write it up properly. The plan file has
 
 The exact CSS expressions involve reading BDA tail pointer via `--readMem`, computing buffer address, writing scancode/ASCII, advancing tail with wrap, and sending EOI. The conditional skip-to-EOI on key release uses the custom uOp advance mechanism.
 
-**Note:** Multiple BIOS handlers sharing opcode 214 need q1-guarded expressions in their memory write slots. This is handled by building composite expressions in `emitAllBiosHandlers` that dispatch on `--q1` first. Implementation detail to be resolved at coding time — the structure above captures the μop semantics correctly.
+**Note:** Multiple BIOS handlers sharing opcode 214 need q1-guarded expressions in their memory write slots. This is handled by building composite expressions in `emitAllBiosHandlers` that dispatch on `--q1` first. Implementation detail to be resolved at coding time - the structure above captures the μop semantics correctly.
 
 - [ ] **Step 2: Register in emitAllBiosHandlers**
 
@@ -1102,7 +1102,7 @@ Key release (scancode=0) skips buffer insert."
 
 ---
 
-## Task 9: BIOS Microcode — INT 16h (Keyboard Read)
+## Task 9: BIOS Microcode - INT 16h (Keyboard Read)
 
 Implement INT 16h AH=00h (blocking read) and AH=01h (non-blocking peek). AH=00h uses the μop 0 hold mechanism; AH=01h folds IRET into its retirement to set ZF correctly.
 
@@ -1125,23 +1125,23 @@ The AH dispatch adds another dimension: `style(--AH: 0)` vs `style(--AH: 1)`.
 
 - [ ] **Step 2: Test AH=00h with keyboard-irq.asm**
 
-Same test as Task 8 — the program uses INT 16h AH=00h.
+Same test as Task 8 - the program uses INT 16h AH=00h.
 
 - [ ] **Step 3: Write an AH=01h test**
 
 ```nasm
-; keyboard-peek.asm — Test INT 16h AH=01h (non-blocking peek)
+; keyboard-peek.asm - Test INT 16h AH=01h (non-blocking peek)
 org 0x100
     sti
     in al, 0x21
     and al, 0xFD
     out 0x21, al
 
-    ; Peek — should set ZF (no key yet)
+    ; Peek - should set ZF (no key yet)
     mov ah, 0x01
     int 0x16
     jnz .has_key    ; should NOT jump
-    ; ZF was set — good. Now wait for a key to arrive...
+    ; ZF was set - good. Now wait for a key to arrive...
     ; (key injected at cycle 50)
 
 .wait:
@@ -1150,7 +1150,7 @@ org 0x100
     jz .wait        ; loop until key available
 
 .has_key:
-    ; Key available — read it
+    ; Key available - read it
     mov ah, 0x00
     int 0x16
     mov [result], ax
@@ -1171,14 +1171,14 @@ AH=01h peeks buffer, sets ZF via folded IRET."
 
 ---
 
-## Task 10: BIOS Microcode — INT 10h (Video) and Trivial Handlers
+## Task 10: BIOS Microcode - INT 10h (Video) and Trivial Handlers
 
 Implement INT 10h (AH=0Eh teletype first, then other subfunctions) and the trivial handlers (INT 1Ah, INT 20h already done).
 
 **Files:**
 - Modify: `transpiler/src/patterns/bios.mjs`
 
-- [ ] **Step 1: Add emitINT10h — AH=0Eh (teletype output)**
+- [ ] **Step 1: Add emitINT10h - AH=0Eh (teletype output)**
 
 This is the most complex handler. μop sequence:
 - Read cursor position from BDA (0x0450/0x0451)
@@ -1192,14 +1192,14 @@ Start with printable character output only (no scroll). Scroll can be added as a
 
 These are 2-3 μop handlers each. Straightforward BDA reads/writes.
 
-- [ ] **Step 3: Add emitINT1Ah — AH=00h (tick count)**
+- [ ] **Step 3: Add emitINT1Ah - AH=00h (tick count)**
 
 Read PIT counter. 2 μops.
 
 - [ ] **Step 4: Test with a hello-world program that uses INT 10h AH=0Eh**
 
 ```nasm
-; hello.asm — Print "HI" via INT 10h teletype, then halt
+; hello.asm - Print "HI" via INT 10h teletype, then halt
 org 0x100
     mov ah, 0x0E
     mov al, 'H'
@@ -1221,7 +1221,7 @@ INT 1Ah: tick count. All handlers use opcode 0xD6 dispatch."
 
 ---
 
-## Task 11: HTML Template — Keyboard Buttons
+## Task 11: HTML Template - Keyboard Buttons
 
 Add the `<key-board>` element with `:active` button mappings to the HTML template. Each button sets `--keyboard` to `(scancode<<8)|ascii`.
 
@@ -1280,7 +1280,7 @@ Covers digits, letters A-Z, Enter, Space, Escape."
 Run the full keyboard-irq test program through both the reference emulator and Calcite, verifying the complete path: button press → `--keyboard` → IRQ 1 → INT 09h → BDA buffer → INT 16h → program sees key.
 
 **Files:**
-- No new files — uses existing test infrastructure
+- No new files - uses existing test infrastructure
 
 - [ ] **Step 1: Generate CSS for keyboard-irq test**
 
@@ -1327,15 +1327,15 @@ Full path validated: :active → --keyboard → IRQ 1 → INT 09h → BDA → IN
 
 Option (a) is simplest: 0xF1 stays as the IRQ delivery sentinel (triggered by irqActive), 0xF2 is the BIOS handler sentinel (fetched from ROM). No dispatch conflicts. The generator places `[0xF2, routineID, 0xCF]` at each handler address (0xF2 = sentinel, routineID = which handler, 0xCF = IRET fallback).
 
-But wait — 0xF2 is REPNE prefix on a real 8086. We can't use it if any program might legitimately use REPNE. However, 0xF2 only appears in ROM at BIOS handler addresses, never in user code. And the CSS dispatch already handles REPNE as a prefix (it modifies `--prefixLen`, not as an opcode). So if 0xF2 is fetched as an opcode (not a prefix), there's no existing handler for it — it falls through to unknown opcode. We could add it as the BIOS sentinel.
+But wait - 0xF2 is REPNE prefix on a real 8086. We can't use it if any program might legitimately use REPNE. However, 0xF2 only appears in ROM at BIOS handler addresses, never in user code. And the CSS dispatch already handles REPNE as a prefix (it modifies `--prefixLen`, not as an opcode). So if 0xF2 is fetched as an opcode (not a prefix), there's no existing handler for it - it falls through to unknown opcode. We could add it as the BIOS sentinel.
 
-Actually, this won't work either. The prefix detection in the decode pipeline treats 0xF2 and 0xF3 as prefix bytes unconditionally — it sets `--prefixLen` and `--opcode` becomes the next byte. The BIOS 0xF2 in ROM would be consumed as a REPNE prefix, and the routine ID byte would become the opcode.
+Actually, this won't work either. The prefix detection in the decode pipeline treats 0xF2 and 0xF3 as prefix bytes unconditionally - it sets `--prefixLen` and `--opcode` becomes the next byte. The BIOS 0xF2 in ROM would be consumed as a REPNE prefix, and the routine ID byte would become the opcode.
 
 Let me reconsider. Option (c) is actually fine: BIOS entries use opcode 241 but are conditional on both `--q1` (routine ID) AND `irqActive` being 0. The IRQ sentinel entries are conditional on irqActive being 1 (or rather, they fire first in the priority chain because irqActive triggers them).
 
 The real key: when `irqActive=1`, the opcode override forces 0xF1 regardless of what's in memory. The μop sequence is the IRQ delivery (6 μops). When `irqActive=0` and the CPU naturally fetches 0xF1 from ROM, the same opcode fires, but the IRQ sentinel entries should NOT match (because they're about IRQ delivery, not BIOS handling).
 
-Currently, the IRQ sentinel entries are UNCONDITIONALLY keyed on opcode 241. They don't check irqActive. This means they fire for BOTH cases — which is wrong for BIOS handlers.
+Currently, the IRQ sentinel entries are UNCONDITIONALLY keyed on opcode 241. They don't check irqActive. This means they fire for BOTH cases - which is wrong for BIOS handlers.
 
 The fix: make IRQ sentinel entries conditional on `irqActive=1`, and BIOS handler entries conditional on `irqActive=0`. This requires the dispatch system to support conditions beyond just opcode and uOp.
 

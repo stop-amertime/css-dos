@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""png-to-vga — quantize a PNG to the CGA-16 palette and emit a raw .bin.
+"""png-to-vga - quantize a PNG to the CGA-16 palette and emit a raw .bin.
 
 Each output byte is a palette index (0-15) for one pixel, row by row.
 Matches CGA_PALETTE in calcite-core/src/state.rs.

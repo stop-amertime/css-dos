@@ -1,4 +1,4 @@
-# 2026-07-09 — FINDING: what Chrome actually does with a 316 MB cabinet
+# 2026-07-09 - FINDING: what Chrome actually does with a 316 MB cabinet
 
 Measured headless Chromium on doom8088.css via the new
 `web/player/experiments/huge-css-test.html` (open via file://; params
@@ -7,7 +7,7 @@ Measured headless Chromium on doom8088.css via the new
 - **Parse via `<link>`: ~6 s, no crash.** The ~536 MB V8 string cap is
   fetch-path-only; the native CSS parser doesn't care.
 - **First style resolution of one bare `.cpu` div: ~310 s** of hard
-  main-thread block — then it *completes*: registers read tick-0 values
+  main-thread block - then it *completes*: registers read tick-0 values
   (`CS=0xF000 IP=0 cycleCount=0`). The 64K-pixel grid adds nothing; the
   block is the custom-property avalanche itself.
 - **With a live clock the tab wedges forever** (recalc ≫ 400 ms clock

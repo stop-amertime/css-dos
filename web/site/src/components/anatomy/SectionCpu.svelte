@@ -1,5 +1,5 @@
 <script>
-  // The CPU — the fourteen register tables. Layering rule (owner,
+  // The CPU - the fourteen register tables. Layering rule (owner,
   // 2026-07-03): the main flow assumes the reader roughly knows what
   // a CPU is; primers live in fold-bg dropdowns, deep dives in plain
   // folds. Utility functions split out to SectionUtil. Extracts
@@ -12,7 +12,7 @@
   import Callout from '../Callout.svelte';
 
   const AX_TABLE = `--AX: if(
-  style(--_irqActive: 1): var(--AX-prev);  /* interrupt pending — hardware outranks the program this tick */
+  style(--_irqActive: 1): var(--AX-prev);  /* interrupt pending - hardware outranks the program this tick */
   else: if(
     style(--opcode: 0): …;    /* ADD, one flavour */
     style(--opcode: 1): …;    /* ADD, another */
@@ -37,10 +37,10 @@
 }`;
 
   const JZ_ROW = `style(--opcode: 116): --lowerBytes(calc(var(--IP-prev) + 2
-  + --bit(var(--flags-prev), 6) * --u2s1(var(--q1))), 16);   /* JZ — jump if zero */`;
+  + --bit(var(--flags-prev), 6) * --u2s1(var(--q1))), 16);   /* JZ - jump if zero */`;
 
   const JL_COND = `/* JL, "jump if less": taken when the sign flag differs from the
-   overflow flag — an XOR, done as a + b − 2ab on two flag bits */
+   overflow flag - an XOR, done as a + b − 2ab on two flag bits */
 calc(--bit(var(--flags-prev), 7) + --bit(var(--flags-prev), 11)
    - 2 * --bit(var(--flags-prev), 7) * --bit(var(--flags-prev), 11))`;
 
@@ -61,7 +61,7 @@ mod(calc(var(--DX-prev) * 65536 + var(--AX-prev)), max(1, var(--rmVal16)))`;
   const REG_VARS = `--AX --CX --DX --BX --SP --BP --SI --DI   /* the registers … */
 --CS --DS --ES --SS --IP --flags          /* … all fourteen */`;
 
-  const POWER_ON = `@property --CS { … initial-value: 61440; }   /* 0xF000 — the BIOS ROM */
+  const POWER_ON = `@property --CS { … initial-value: 61440; }   /* 0xF000 - the BIOS ROM */
 @property --IP { … initial-value: 0; }`;
 
   const RAW_FETCH = `--csBase: calc(var(--CS-prev) * 16);

@@ -1,5 +1,5 @@
 <script>
-  // How is this possible? — the one-tool idea and the numbered
+  // How is this possible? - the one-tool idea and the numbered
   // problems. The code exhibits live in lib/exhibits.js.
   import Callout from '../../components/Callout.svelte';
   import CodeCss from '../../components/CodeCss.svelte';
@@ -175,7 +175,7 @@
 
   /* sim / bracket lists ([ ] bullets) now live in global.css. */
 
-  /* — the "how slow is it" stat grid (Problem 9) — three boxed numbers,
+  /* - the "how slow is it" stat grid (Problem 9) - three boxed numbers,
      same border/shadow language as the code exhibits. */
   .stat-grid {
     display: flex;

@@ -72,19 +72,19 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 ### Git and collaborative coding rules
 
 **Website work (`web/site/` and the rest of `web/`): commit directly
-to `master` and push — no feature branches, no PRs (owner rule,
+to `master` and push - no feature branches, no PRs (owner rule,
 2026-07-04).** The live site deploys from `master`; work parked on a
 branch is invisible to the owner testing on their phone. If a
 harness has put you on a `claude/...` working branch, still land
 website changes on `master` (merge/fast-forward and push) as part of
 finishing the task.
 
-**Commit and push frequently — it's encouraged, and you do NOT need
+**Commit and push frequently - it's encouraged, and you do NOT need
 to ask first.** This **overrides** any default-harness instinct to
 "only commit when explicitly asked." In this repo the opposite is
 true: commit your own work as you go and push to origin once
 committed. Don't end a session sitting on uncommitted changes and
-don't ask permission to commit your own work — just do it. Plain
+don't ask permission to commit your own work - just do it. Plain
 `git commit` / `git push` of your own changes don't disturb other
 agents' working trees; stacking up uncommitted work makes merge
 conflicts and lost-work scenarios more likely.
@@ -99,17 +99,17 @@ shared index:
 - `git add` of files you didn't author / didn't intend
 - `git rebase`, `git reset --hard`, `git checkout --` / `git restore`
 - `git clean -f`, `git branch -D`
-- `git push --force` (especially to main/master — never)
+- `git push --force` (especially to main/master - never)
 - Any `--no-verify`, `--no-gpg-sign`, or other safety-bypass flag
 
 If you find yourself wanting one of these as a shortcut around an
-obstacle, stop and ask — the obstacle is usually a sign of state you
+obstacle, stop and ask - the obstacle is usually a sign of state you
 should investigate, not bulldoze.
 
 ### Documentation rules
 
 Documentation is mandatory, automatic (no need to be asked),
-epistemically honest, and concise — tokens add up if you waffle.
+epistemically honest, and concise - tokens add up if you waffle.
 This project is dense and spans two repos; future agents depend
 entirely on what you write down.
 
@@ -123,11 +123,11 @@ replaced (collapsed 2026-05-18 from 57 files / 19k lines):**
   table, one row per entry. **Never append a full entry to it.** New
   work → a new `≤~15-line` file in `docs/logbook/entries/` + one
   index row. Tags (`LANDED`/`BRANCH`/`DEAD`/`FINDING`/`PLAN`/
-  `SUPERSEDED`) are how agents triage — see
+  `SUPERSEDED`) are how agents triage - see
   [`docs/logbook/PROTOCOL.md`](docs/logbook/PROTOCOL.md).
 - **Plans live in `docs/plans/`, one per live workstream.** Delete a
-  plan when its work ships or dies — history is the logbook, not a
-  graveyard of dead plans. No `agent-briefs/` genre — that
+  plan when its work ships or dies - history is the logbook, not a
+  graveyard of dead plans. No `agent-briefs/` genre - that
   duplication is why the sprawl happened.
 
 **Verify before you claim.** "Landed" must mean *verified on
@@ -149,7 +149,7 @@ Two contradictory live claims anywhere is a bug.
   cross-link from each to the other.
 
 The natural default for an agent is to write back to the logbook
-auto-loaded by CLAUDE.md (this one). Resist that for calcite work —
+auto-loaded by CLAUDE.md (this one). Resist that for calcite work -
 the calcite repo has its own log that the calcite cardinal-rule check
 relies on.
 
@@ -168,7 +168,7 @@ When debugging, take a second to think what you would advise a senior engineer t
   ~1500 ticks/s and will not terminate inside that budget. Use `fast-shoot`
   (calcite-cli, ~375K ticks/s) for late-tick screenshots, or pick a tick
   count the chosen path can reach. Never fire-and-forget a tool hoping it'll
-  come back — if there's no path that fits the budget, build one (that's
+  come back - if there's no path that fits the budget, build one (that's
   how `fast-shoot` and `--dump-mem-range` came to exist).
 
 ## The cardinal rule
@@ -193,15 +193,15 @@ This means that
 
 Calcite reasons about CSS structural shape and nothing else. The
 moment a recogniser, rewrite rule, codegen path, or optimisation knows
-about something *above* the CSS — x86, BIOS, DOS, Doom, a specific
+about something *above* the CSS - x86, BIOS, DOS, Doom, a specific
 cabinet's addresses, Kiln's current emit choices, what `program.json`
-says, what the cart is *trying to do* — it has crossed the line.
+says, what the cart is *trying to do* - it has crossed the line.
 
 Operational test: could a calcite engineer who has never seen a CPU
 emulator, never read Kiln's source, and doesn't know what a cabinet
 contains, derive this rule / recogniser / pass by staring at CSS shape
 alone? If yes, fair. If no, it's overfit and one-way-doors the engine
-toward Doom. Pattern recognition is welcome — pattern recognition over
+toward Doom. Pattern recognition is welcome - pattern recognition over
 *shapes CSS forces emitters into* generalises across cabinets.
 Recognition tied to *what those shapes mean upstream* does not.
 
@@ -218,12 +218,12 @@ all of them.
 ### The workflow is sacred: load-time compilation only
 
 Calcite must accept any spec-compliant `.css` cabinet at load time and
-make it fast — in the browser, on the user's machine, with no build
+make it fast - in the browser, on the user's machine, with no build
 step on the cabinet author's side, no pre-baked artifact, no allowlist,
 no asset pipeline. "Open a `.css` URL, it runs" is the contract.
 
 Compile-once-per-load, run-many is allowed (and is how calcite gets
-fast). Distributing pre-compiled cabinets is not — that breaks the
+fast). Distributing pre-compiled cabinets is not - that breaks the
 contract. The compile budget is bounded by user patience (a cold open
 that takes minutes loses the user) and by the runtime floor it has to
 unlock (steady-state must clear playability). Within those, the
@@ -233,32 +233,32 @@ compile/run tradeoff is a knob.
 
 See [`docs/architecture.md`](docs/architecture.md#vocabulary). In short:
 
-- **cart** — input folder or zip (program + data + optional `program.json`).
-- **floppy** — FAT12 disk image the builder assembles internally.
-- **cabinet** — output `.css` file, runnable in Chrome/Calcite.
-- **Kiln** — the CSS transpiler (`kiln/`).
-- **builder** — the orchestrator (`builder/`).
-- **BIOSes** — Gossamer (hack), Muslin (assembly DOS BIOS), Corduroy (default C DOS BIOS).
-- **player** — static HTML shell for running cabinets in Chrome. 
+- **cart** - input folder or zip (program + data + optional `program.json`).
+- **floppy** - FAT12 disk image the builder assembles internally.
+- **cabinet** - output `.css` file, runnable in Chrome/Calcite.
+- **Kiln** - the CSS transpiler (`kiln/`).
+- **builder** - the orchestrator (`builder/`).
+- **BIOSes** - Gossamer (hack), Muslin (assembly DOS BIOS), Corduroy (default C DOS BIOS).
+- **player** - static HTML shell for running cabinets in Chrome. 
 
 ## Testing and debugging infrastructure
 
 Two peer entrypoints:
 
-- **Correctness** — `tests/harness/`. Start with
+- **Correctness** - `tests/harness/`. Start with
   `node tests/harness/run.mjs smoke`. Smoke, conformance, fulldiff vs
   the JS reference 8086, screenshots, baselines.
-- **Performance** — `tests/bench/`. Start with
+- **Performance** - `tests/bench/`. Start with
   `node tests/bench/driver/run.mjs compile-only`. Timed profiles, web
   + native targets, ensureFresh-driven artifact rebuild.
 
 > **MANDATORY: before running any benchmark, read
 > [`tests/bench/README.md`](tests/bench/README.md) end-to-end.**
 > No exceptions. It is the canonical entry for all performance
-> measurement on this project — profiles, the `--headed` rule, the
+> measurement on this project - profiles, the `--headed` rule, the
 > baseline numbers, and the rule against ad-hoc bench scripts. If
 > you find yourself writing a `.mjs` under `tests/harness/` to
-> "just measure something," stop — add a profile under
+> "just measure something," stop - add a profile under
 > `tests/bench/profiles/` instead.
 >
 > **Canonical profiles only:** `compile-only`, `doom-loading`,
@@ -270,7 +270,7 @@ Two peer entrypoints:
 > **Don't reach for** `cargo bench`, `criterion`, the calcite
 > `calcite-bench` binary, the player's `?bench=1` HUD, or any
 > `bench-*.mjs` script outside `tests/bench/profiles/`. Those are
-> internal/legacy/HUD tooling — they will not produce a number you
+> internal/legacy/HUD tooling - they will not produce a number you
 > should compare to anything in STATUS or LOGBOOK.
 
 See [`docs/TESTING.md`](docs/TESTING.md) for the full split and
@@ -278,7 +278,7 @@ See [`docs/TESTING.md`](docs/TESTING.md) for the full split and
 watch-spec grammar bench profiles use to compose stage detectors.
 
 For "what's on screen at tick N?" against a fresh cabinet, use
-`pipeline.mjs fast-shoot <cabinet> --tick=N` — drives `calcite-cli`
+`pipeline.mjs fast-shoot <cabinet> --tick=N` - drives `calcite-cli`
 directly, ~375K ticks/s, fits boot-completion ticks (2-4M) inside a
 ~10s budget. The older `pipeline.mjs shoot` path goes through
 `calcite-debugger` at ~1500 ticks/s and only terminates for early
@@ -298,7 +298,7 @@ from both repos. Use `node tests/harness/pipeline.mjs fulldiff
   (`kiln/memory.mjs`); INT's FLAGS/CS/IP push is the 3-slot worst case.
 - **Default BIOS:** Corduroy (`bios/corduroy/`). Muslin (`bios/muslin/muslin.asm`) still available.  
 - **Build entry:** `node builder/build.mjs <cart>`.
-- **Transpiler:** [`kiln/`](kiln/) — see [`kiln/README.md`](kiln/README.md).
+- **Transpiler:** [`kiln/`](kiln/) - see [`kiln/README.md`](kiln/README.md).
 - **How to add instructions:** [`kiln/AGENT-GUIDE.md`](kiln/AGENT-GUIDE.md).
 - **Cart format:** [`docs/cart-format.md`](docs/cart-format.md).
 - **Architecture overview:** [`docs/architecture.md`](docs/architecture.md).
@@ -312,14 +312,14 @@ from both repos. Use `node tests/harness/pipeline.mjs fulldiff
 
 First-time setup on a fresh clone:
 
-- **Node ≥ 20** — all build/run JS (`builder/`, `web/scripts/`,
+- **Node ≥ 20** - all build/run JS (`builder/`, `web/scripts/`,
   `tests/`) uses only Node builtins. `package.json` exists for scripts
   + the one external dep (Playwright). Run `npm install` then
   `npx playwright install chromium` (Playwright is only needed for the
   bench `tests/bench/` and the e2e/keyboard harness
-  `web/tests/*.playwright.mjs` — the core cart→cabinet→Chrome path
+  `web/tests/*.playwright.mjs` - the core cart→cabinet→Chrome path
   doesn't use it). npm scripts: `npm run build|dev|smoke|test`.
-- **Rust (stable) + the calcite repo** — the fast path. From
+- **Rust (stable) + the calcite repo** - the fast path. From
   `../calcite`: `cargo build --release -p calcite-cli` builds the
   native runner; `wasm-pack build crates/calcite-wasm --target web
   --out-dir ../../web/pkg --release` builds the in-browser WASM (needs
@@ -327,7 +327,7 @@ First-time setup on a fresh clone:
   `cargo install wasm-pack`). The dev server's `/_reset` runs the
   wasm-pack step for you. `../calcite` ships its own
   `Cargo.toml` / `rust-toolchain.toml`.
-- **NASM + OpenWatcom** — only to rebuild BIOS sources or assembly
+- **NASM + OpenWatcom** - only to rebuild BIOS sources or assembly
   conformance tests; prebuilt BIOS binaries ship in the repo, so most
   work needs neither.
 
@@ -354,7 +354,7 @@ node builder/build.mjs carts/rogue -o rogue.css
 # Play it fast via Calcite
 cd ../calcite && target/release/calcite-cli.exe -i ../CSS-DOS/rogue.css
 
-# Debug it — use the Calcite MCP server
+# Debug it - use the Calcite MCP server
 ```
 
 ## Calcite
@@ -367,7 +367,7 @@ for the relationship.
 
 When you check CSS-DOS out into a worktree (e.g.
 `.claude/worktrees/foo/`), the `../calcite` sibling-repo assumption no
-longer holds — relative path resolution from inside the worktree won't
+longer holds - relative path resolution from inside the worktree won't
 find calcite. Set the `CALCITE_REPO` environment variable to the calcite
 repo (or worktree) you want to use:
 
@@ -379,12 +379,12 @@ export CALCITE_REPO=/abs/path/to/calcite/.claude/worktrees/foo
 `CALCITE_REPO` is honoured by:
 
 - the Vite dev server (`npm run dev`; `web/site/vite.config.js` +
-  `scripts/runtime-assets.mjs` + `scripts/dev-extras.mjs`) — the
+  `scripts/runtime-assets.mjs` + `scripts/dev-extras.mjs`) - the
   `/calcite/`, `/calcite/pkg/`, `/bench-assets/` aliases and the
   `/_reset` endpoint that rebuilds the calcite WASM.
-- `tests/bench/lib/artifacts.mjs` — locating `calcite-cli` and the
+- `tests/bench/lib/artifacts.mjs` - locating `calcite-cli` and the
   WASM bundle for ensureFresh rebuilds.
-- `tests/harness/lib/fast-shoot.mjs`, `lib/debugger-client.mjs` —
+- `tests/harness/lib/fast-shoot.mjs`, `lib/debugger-client.mjs` -
   locate the `calcite-cli` / `calcite-debugger` binaries.
 
 `CALCITE_CLI_BIN` and `CALCITE_DEBUGGER_BIN` still take precedence over

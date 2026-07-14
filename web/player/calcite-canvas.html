@@ -193,7 +193,7 @@
     const stats = document.getElementById('stats');
     const warningsEl = document.getElementById('warnings');
 
-    // Diagnostic warnings — each (kind, value) shown once.
+    // Diagnostic warnings - each (kind, value) shown once.
     const shownWarnings = new Set();
     function showWarning(kind, value, html, consoleMsg) {
       const key = `${kind}:${value}`;
@@ -241,7 +241,7 @@
     // Three modes:
     //   sim:   paint on simulated 70 Hz vsync (cycleCount crosses CYCLES_PER_FRAME)
     //   wall:  paint on real 70 Hz wall clock (~14.3 ms between paints)
-    //   turbo: paint every worker batch (previous behaviour — max visibility)
+    //   turbo: paint every worker batch (previous behaviour - max visibility)
     // URL `?vsync=sim|wall|turbo` overrides the default. Default is sim.
     const VSYNC_MODES = ['sim', 'wall', 'turbo'];
     const vsyncParam = new URLSearchParams(location.search).get('vsync');
@@ -323,8 +323,8 @@
             showWarning(
               'opcode',
               data.haltCode,
-              `<strong>Unknown opcode ${op}.</strong> This program uses a CPU instruction CSS-DOS's 8086 core doesn't implement — most likely it requires a 286/386/486. Execution is halted.`,
-              `Unknown opcode ${op} — program requires a CPU newer than 8086.`,
+              `<strong>Unknown opcode ${op}.</strong> This program uses a CPU instruction CSS-DOS's 8086 core doesn't implement - most likely it requires a 286/386/486. Execution is halted.`,
+              `Unknown opcode ${op} - program requires a CPU newer than 8086.`,
             );
           }
           // Unsupported video mode detection. We get two signals from the
@@ -335,11 +335,11 @@
           //     AH=00h call; in practice no BIOS implements this yet, so
           //     the byte is always 0. Until a BIOS writes it, we treat
           //     `req === 0` as "no request observed" and skip remap
-          //     warnings — otherwise every program that uses the default
+          //     warnings - otherwise every program that uses the default
           //     80×25 text mode (i.e. never calls INT 10h AH=00h) trips
           //     a spurious "requested 0x00, got 0x03" warning.
           // Modes the player can render correctly. 0x00 is CGA 40×25
-          // mono text — identical buffer layout to 0x01, so the BIOS
+          // mono text - identical buffer layout to 0x01, so the BIOS
           // normalises 0x00 → 0x01 and we render them the same way.
           const SUPPORTED_MODES = new Set([0x01, 0x03, 0x13]);
           const MODE_ALIASES = { 0x00: 0x01 };
@@ -349,7 +349,7 @@
           // target for X. Only warn on meaningful mismatches.
           const reqAlias = MODE_ALIASES[req] ?? req;
           // Require req to be truthy AND different from got AND not an alias
-          // target. Truthy check (`req`) keeps 0 out — see comment above.
+          // target. Truthy check (`req`) keeps 0 out - see comment above.
           if (req && req !== got && reqAlias !== got) {
             const rHex = '0x' + req.toString(16).padStart(2, '0').toUpperCase();
             const gHex = '0x' + (got ?? 0).toString(16).padStart(2, '0').toUpperCase();
@@ -357,7 +357,7 @@
               'vmode-remap',
               req,
               `<strong>Video mode ${rHex}</strong> (${videoModeName(req)}) was remapped to ${gHex} (${videoModeName(got)}) by the BIOS. CSS-DOS currently implements 40×25 text (0x01), 80×25 text (0x03), and VGA Mode 13h (0x13). Rendering will likely be wrong.`,
-              `Program requested video mode ${rHex} (${videoModeName(req)}) — remapped to ${gHex} (${videoModeName(got)}).`,
+              `Program requested video mode ${rHex} (${videoModeName(req)}) - remapped to ${gHex} (${videoModeName(got)}).`,
             );
           } else if (got != null && !SUPPORTED_MODES.has(got)) {
             const gHex = '0x' + got.toString(16).padStart(2, '0').toUpperCase();
@@ -388,7 +388,7 @@
 
           // Paint-mode gate. Decides whether this
           // tick-result should trigger a canvas repaint. In all modes we
-          // still *have* the VRAM bytes — we just choose not to blit.
+          // still *have* the VRAM bytes - we just choose not to blit.
           //   sim:   paint on simulated 70 Hz (cycleCount frame bucket changed)
           //   wall:  paint on real 70 Hz (>= 1000/70 ms since last paint)
           //   turbo: paint every batch

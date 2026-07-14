@@ -1,32 +1,7 @@
 // Stack operations: PUSH/POP reg16, PUSH/POP segreg, PUSHF, POPF
 
 import { REG16 } from './regs.mjs';
-
-// Stack-write address: SS*16 + (SP - offset) wrapped to 16 bits.
-// SP is a 16-bit register on x86; when a PUSH at SP=0 decrements first,
-// the resulting offset MUST be 0xFFFE, not -2. Without the wrap the
-// address calc gives `SS*16 - 2` (one byte before the segment) instead
-// of `SS*16 + 0xFFFE` (one word at the top of the segment), which
-// silently misroutes the write into the previous segment. UPX-packed
-// programs and any DOS EXEC of an .EXE with `SP=0x0000` in the header
-// (e.g. DOOM8088) hit this on the very first push of the new stack.
-//
-// The +65536 keeps `mod()` input non-negative — same idiom alu.mjs
-// uses for DEC/SUB wrap.
-function stackWriteAddr(offset) {
-  return `calc(var(--__1SS) * 16 + --lowerBytes(calc(var(--__1SP) - ${offset} + 65536), 16))`;
-}
-
-// SP = (SP - 2) wrapped to 16 bits — same reason: SP is unsigned 16-bit
-// per x86, and downstream address calcs read --__1SP literally. Storing
-// a negative value here would re-bug subsequent stack accesses.
-function spDecBy(n) {
-  return `--lowerBytes(calc(var(--__1SP) - ${n} + 65536), 16)`;
-}
-
-function spIncBy(n) {
-  return `--lowerBytes(calc(var(--__1SP) + ${n}), 16)`;
-}
+import { stackWriteAddr, spDecBy, spIncBy, stackReadWord } from './stack-addr.mjs';
 
 /**
  * PUSH reg16 (0x50-0x57)
@@ -48,15 +23,24 @@ export function emitPUSH_reg(dispatch) {
       ? spDecBy(2)
       : `var(--__1${reg})`;
 
-    // Memory write: low byte at SS:SP-2, high byte at SS:SP-1
-    dispatch.addMemWrite(opcode,
-      stackWriteAddr(2),
-      `--lowerBytes(${pushVal}, 8)`,
-      `PUSH ${reg} lo`);
-    dispatch.addMemWrite(opcode,
-      stackWriteAddr(1),
-      `--rightShift(${pushVal}, 8)`,
-      `PUSH ${reg} hi`);
+    // Memory write: word, lo byte at SS:SP-2, hi byte at SS:SP-1.
+    // PUSH SP's value is already --lowerBytes(..., 16)-wrapped; a word
+    // write would double-wrap the hi byte, so it stays two byte writes.
+    if (r === 4) {
+      dispatch.addMemWrite(opcode,
+        stackWriteAddr(2),
+        `--lowerBytes(${pushVal}, 8)`,
+        `PUSH ${reg} lo`);
+      dispatch.addMemWrite(opcode,
+        stackWriteAddr(1),
+        `--rightShift(${pushVal}, 8)`,
+        `PUSH ${reg} hi`);
+    } else {
+      dispatch.addMemWriteWord(opcode,
+        stackWriteAddr(2),
+        pushVal,
+        `PUSH ${reg}`);
+    }
 
     // IP += 1
     dispatch.addEntry('IP', opcode, `calc(var(--__1IP) + 1)`, `PUSH ${reg}`);
@@ -74,7 +58,7 @@ export function emitPOP_reg(dispatch) {
 
     // Read from stack
     dispatch.addEntry(reg, opcode,
-      `--read2(calc(var(--__1SS) * 16 + var(--__1SP)))`,
+      stackReadWord(),
       `POP ${reg}`);
 
     // SP += 2 (but if we're popping into SP, the popped value wins)
@@ -83,35 +67,33 @@ export function emitPOP_reg(dispatch) {
         spIncBy(2),
         `POP ${reg} (SP+=2)`);
     }
-    // For POP SP (0x5C), SP gets the popped value directly (already handled above)
 
     // IP += 1
     dispatch.addEntry('IP', opcode, `calc(var(--__1IP) + 1)`, `POP ${reg}`);
   }
 }
 
+// Segment-register stack opcodes: PUSH at the listed opcode, POP one higher
+// (0x06/0x07 ES, 0x0E/0x0F CS, 0x16/0x17 SS, 0x1E/0x1F DS).
+const SEG_STACK = [
+  { opcode: 0x06, reg: 'ES' },
+  { opcode: 0x0E, reg: 'CS' },
+  { opcode: 0x16, reg: 'SS' },
+  { opcode: 0x1E, reg: 'DS' },
+];
+
 /**
  * PUSH segreg (0x06=ES, 0x0E=CS, 0x16=SS, 0x1E=DS)
  */
 export function emitPUSH_seg(dispatch) {
-  const segs = [
-    { opcode: 0x06, reg: 'ES' },
-    { opcode: 0x0E, reg: 'CS' },
-    { opcode: 0x16, reg: 'SS' },
-    { opcode: 0x1E, reg: 'DS' },
-  ];
-  for (const { opcode, reg } of segs) {
+  for (const { opcode, reg } of SEG_STACK) {
     dispatch.addEntry('SP', opcode,
       spDecBy(2),
       `PUSH ${reg} (SP-=2)`);
-    dispatch.addMemWrite(opcode,
+    dispatch.addMemWriteWord(opcode,
       stackWriteAddr(2),
-      `--lowerBytes(var(--__1${reg}), 8)`,
-      `PUSH ${reg} lo`);
-    dispatch.addMemWrite(opcode,
-      stackWriteAddr(1),
-      `--rightShift(var(--__1${reg}), 8)`,
-      `PUSH ${reg} hi`);
+      `var(--__1${reg})`,
+      `PUSH ${reg}`);
     dispatch.addEntry('IP', opcode, `calc(var(--__1IP) + 1)`, `PUSH ${reg}`);
   }
 }
@@ -120,15 +102,10 @@ export function emitPUSH_seg(dispatch) {
  * POP segreg (0x07=ES, 0x0F=CS, 0x17=SS, 0x1F=DS)
  */
 export function emitPOP_seg(dispatch) {
-  const segs = [
-    { opcode: 0x07, reg: 'ES' },
-    { opcode: 0x0F, reg: 'CS' },
-    { opcode: 0x17, reg: 'SS' },
-    { opcode: 0x1F, reg: 'DS' },
-  ];
-  for (const { opcode, reg } of segs) {
+  for (const { opcode: pushOpcode, reg } of SEG_STACK) {
+    const opcode = pushOpcode + 1;
     dispatch.addEntry(reg, opcode,
-      `--read2(calc(var(--__1SS) * 16 + var(--__1SP)))`,
+      stackReadWord(),
       `POP ${reg}`);
     dispatch.addEntry('SP', opcode,
       spIncBy(2),
@@ -144,14 +121,10 @@ export function emitPUSHF(dispatch) {
   dispatch.addEntry('SP', 0x9C,
     spDecBy(2),
     `PUSHF (SP-=2)`);
-  dispatch.addMemWrite(0x9C,
+  dispatch.addMemWriteWord(0x9C,
     stackWriteAddr(2),
-    `--lowerBytes(var(--__1flags), 8)`,
-    `PUSHF lo`);
-  dispatch.addMemWrite(0x9C,
-    stackWriteAddr(1),
-    `--rightShift(var(--__1flags), 8)`,
-    `PUSHF hi`);
+    `var(--__1flags)`,
+    `PUSHF`);
   dispatch.addEntry('IP', 0x9C, `calc(var(--__1IP) + 1)`, `PUSHF`);
 }
 

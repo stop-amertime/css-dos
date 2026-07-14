@@ -1,11 +1,11 @@
 > **INTERPRETATION CORRECTED 2026-06-09:** cycle-weighting answers
-> "where do guest cycles go", not "where does calcite wall go" — wall
+> "where do guest cycles go", not "where does calcite wall go" - wall
 > follows ticks. By tick-share (verified against the burst samples,
 > no aliasing artefact): kernel 0x55 = 48.6%, `__I4D` = 22.3%. The
 > raw data, LOAD_SEG resolution and pipeline notes below remain
 > valid. See `2026-06-09-doomload-tick-weighted-heatmap-kernel-is-the-lion.md`.
 
-## 2026-05-11 — doomLoad cycle-weighted heatmap: `__I4D` (32-bit divide) is the lion
+## 2026-05-11 - doomLoad cycle-weighted heatmap: `__I4D` (32-bit divide) is the lion
 
 **Measurement.** Added a `cycles` column to calcite-cli's
 `--sample-cs-ip` output (reads the cabinet's `cycleCount` state-var
@@ -21,15 +21,15 @@ cycles:
 
 | Segment | cycles% | count% | Resolved to |
 |---|---:|---:|---|
-| **0x2D96** | **46.1 %** | 22.3 % | **Watcom `__I4D` — 32-bit signed integer divide** (libc helper, 0xD3 = 211 bytes). |
-| **0x26EF** | **24.2 %** | 5.3 %  | **`r_draw_TEXT` at offset 0xBB6** — column/span renderer inner loops. |
+| **0x2D96** | **46.1 %** | 22.3 % | **Watcom `__I4D` - 32-bit signed integer divide** (libc helper, 0xD3 = 211 bytes). |
+| **0x26EF** | **24.2 %** | 5.3 %  | **`r_draw_TEXT` at offset 0xBB6** - column/span renderer inner loops. |
 | 0x55       | 17.6 %    | 48.6 % | EDR-DOS kernel (below DOOM LOAD_SEG). "67.8 %" claim was a count-weighted sampling artefact. |
-| 0x2BC2     | 5.3 %     | 9.2 %  | `st_stuff_TEXT` — status bar drawing. |
-| 0x1122     | 2.1 %     | 7.3 %  | Below DOOM LOAD_SEG — EDR-DOS / DOS area. |
+| 0x2BC2     | 5.3 %     | 9.2 %  | `st_stuff_TEXT` - status bar drawing. |
+| 0x1122     | 2.1 %     | 7.3 %  | Below DOOM LOAD_SEG - EDR-DOS / DOS area. |
 
 **How segments were resolved.** DOOM8088 source is at
 `../Doom8088/`; Watcom map at `../Doom8088/WC16/DOOM16WC.map`
-(map 2026-04-25 19:36, cart EXE 2026-04-26 00:36 — same build
+(map 2026-04-25 19:36, cart EXE 2026-04-26 00:36 - same build
 day). LOAD_SEG derived from a known landmark: CS=0x2D96 has hot
 IPs 0x27–0x53; map shows `i4d` at link-relative offset 0x16948
 (paragraph 0x1694, offset 0x08 within the `0fd5:` code group).
@@ -47,7 +47,7 @@ segment are listed lower in the map.
 
 **Shape of the lion (`__I4D`).** IPs 0x27–0x53 hit roughly
 equally (top 20 IPs all 2.0–2.7 % each). That's the bit-shift
-loop body inside the divide routine — 8086's `DIV` is only
+loop body inside the divide routine - 8086's `DIV` is only
 16-bit, so 32-bit signed division is a software bit-loop of
 ~32–33 iterations over a ~6–10-byte body. The flat histogram
 across ~45 bytes of IP space is exactly that body cycling.
@@ -63,10 +63,10 @@ perf doc speculated.
 
 **Three corrections to the perf docs:**
 
-1. Segment 0x55 is **not** 67.8 % of doomLoad — that was the
+1. Segment 0x55 is **not** 67.8 % of doomLoad - that was the
    *count* of samples, not weighted by cycles. By cycles it's
    17.6 %, and it's **EDR-DOS kernel**, not "DOOM zone-walk".
-2. Segment 0x2D96 is **not** "Corduroy BIOS dispatch" — Corduroy
+2. Segment 0x2D96 is **not** "Corduroy BIOS dispatch" - Corduroy
    is at runtime F000. It's `__I4D`.
 3. The biggest single doomLoad optimisation target is **the libc
    divide routine**, not DOOM application code, not BIOS, not
@@ -79,7 +79,7 @@ perf doc speculated.
   exit.
 - Cardinal-rule-clean: a calcite recogniser for "tight
   bit-shift self-loop with counter exit" would fire on any
-  other libc's 32-bit divide on any cabinet — no DOOM- or
+  other libc's 32-bit divide on any cabinet - no DOOM- or
   Watcom-specific knowledge needed.
 - Alternative: whole-function semantic substitution.
   Pattern-recognise the 211-byte routine's CSS body as a unit,
@@ -92,7 +92,7 @@ attempt (deleted 2026-05-05) targeted this exact code. Failed
 because per-tick detection cost exceeded savings. The
 affine-loop plan's compile-time-keyed detection design fixes
 that failure mode. Hot IPs cluster across pages 0x1400 (39.9 %),
-0x1500 (46.5 %), 0x1600 (9.7 %) — a function with multiple
+0x1500 (46.5 %), 0x1600 (9.7 %) - a function with multiple
 inner loops spanning ~768 bytes. Land `i4d` first to build
 confidence in the compile-time-keyed detection pattern, then
 revisit `r_draw`.
@@ -108,7 +108,7 @@ revisit `r_draw`.
   `tick,cs,ip,sp,cycles,burst_id` (was 5 columns).
 - **Standing analyser
   `tests/harness/analyse-cs-ip-samples.mjs` does NOT yet
-  consume the new column** — it still reads the 5-column
+  consume the new column** - it still reads the 5-column
   schema. Update it before re-running automated analysis.
   Current cycle-weighted analysis was ad-hoc awk.
 - **Raw data retained.** `tmp/sampler/cold.csv` = full
@@ -118,7 +118,7 @@ revisit `r_draw`.
   ingame-halt watches from `tests/bench/profiles/doom-loading.mjs`
   and `--sample-cs-ip=600,1000,100`.
 - **Cycle reconciliation check.** Sum of cycle deltas in window
-  938 M; final `cycleCount` − first sample ≈ 1.04 G — discrepancy
+  938 M; final `cycleCount` − first sample ≈ 1.04 G - discrepancy
   is the first wide-single's leading delta from before the
   window started. Within reason.
 
@@ -133,10 +133,10 @@ revisit `r_draw`.
    (single induction variable, side-effect bounded, exits via
    `BranchIfNotEqLit`)?
 2. **Pick recogniser granularity:**
-   - *Per-iter affine fast-forward* — the existing plan at
+   - *Per-iter affine fast-forward* - the existing plan at
      `docs/plans/2026-05-01-affine-loop-fastforward.md`. Wins
      on any libc divide on any cabinet.
-   - *Function-level semantic substitution* — bigger payoff,
+   - *Function-level semantic substitution* - bigger payoff,
      much narrower applicability. Still cardinal-rule-clean
      if the recogniser only reads CSS shape.
 3. **Measure trip-count distribution first** (plan's step 3).
@@ -165,7 +165,7 @@ revisit `r_draw`.
   advanced in bulk by `rep_fast_forward` (and possibly other
   bulk paths). If a bulk op completes between two wide
   singles, the delta is attributed to whichever segment we
-  *caught* the second sample in — not where the cycles were
+  *caught* the second sample in - not where the cycles were
   actually spent. Spot-check by comparing the cycle-weighted
   heatmap against a per-burst variant (bursts are tick-by-tick
   so they don't suffer this).

@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// revendor-calcite.mjs — sync web/vendor/calcite-pkg/ from a built sibling
+// revendor-calcite.mjs - sync web/vendor/calcite-pkg/ from a built sibling
 // calcite repo, stamp provenance, and prove the result boots real cabinets.
 //
 // The vendored bundle is the engine the site SHIPS (a plain clone runs
 // with no Rust toolchain), so promoting a new engine into it is a
-// deliberate, committed act — this script makes that act one command
+// deliberate, committed act - this script makes that act one command
 // instead of a README cp-block that nobody runs (LOGBOOK 2026-07-07:
 // the site broke because the vendor went stale while every native gate
 // stayed green).
@@ -16,7 +16,7 @@
 //
 // Calcite repo location: CALCITE_REPO env, else ../calcite.
 // Writes VENDOR-INFO.json (calcite commit, dirty flag, date, file hashes)
-// next to the bundle — machine-readable provenance instead of a hash
+// next to the bundle - machine-readable provenance instead of a hash
 // buried in README prose.
 
 import { spawnSync } from 'node:child_process';
@@ -49,7 +49,7 @@ const git = (...args) => {
 };
 
 if (!existsSync(calciteRoot)) {
-  log(`calcite repo not found at ${calciteRoot} — set CALCITE_REPO`);
+  log(`calcite repo not found at ${calciteRoot} - set CALCITE_REPO`);
   process.exit(1);
 }
 
@@ -65,13 +65,13 @@ if (flags.has('--build')) {
 }
 
 if (!existsSync(resolve(pkgDir, 'calcite_wasm.js'))) {
-  log(`no built pkg at ${pkgDir} — run with --build, or build it in the calcite repo first`);
+  log(`no built pkg at ${pkgDir} - run with --build, or build it in the calcite repo first`);
   process.exit(1);
 }
 
 const commit = git('rev-parse', '--short', 'HEAD');
 const dirty = git('status', '--porcelain') !== '';
-if (dirty) log('WARNING: calcite working tree is dirty — vendoring an uncommitted engine');
+if (dirty) log('WARNING: calcite working tree is dirty - vendoring an uncommitted engine');
 
 let changed = 0;
 const hashes = {};
@@ -101,7 +101,7 @@ writeFileSync(resolve(vendorDir, 'VENDOR-INFO.json'), JSON.stringify({
 log(`stamped VENDOR-INFO.json (calcite ${commit}${dirty ? '-dirty' : ''})`);
 
 if (flags.has('--skip-websmoke')) {
-  log('websmoke SKIPPED — do not ship this without running: node tests/harness/run.mjs websmoke');
+  log('websmoke SKIPPED - do not ship this without running: node tests/harness/run.mjs websmoke');
   process.exit(0);
 }
 
@@ -113,7 +113,7 @@ const gate = spawnSync(process.execPath,
   [resolve(repoRoot, 'tests', 'harness', 'run.mjs'), 'websmoke'],
   { cwd: repoRoot, stdio: 'inherit' });
 if (gate.status !== 0) {
-  log('websmoke FAILED — the vendored bundle does not boot; do not commit');
+  log('websmoke FAILED - the vendored bundle does not boot; do not commit');
   process.exit(2);
 }
-log('done — commit web/vendor/calcite-pkg/ (bundle + VENDOR-INFO.json)');
+log('done - commit web/vendor/calcite-pkg/ (bundle + VENDOR-INFO.json)');

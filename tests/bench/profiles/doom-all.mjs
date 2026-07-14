@@ -1,4 +1,4 @@
-// tests/bench/profiles/doom-all.mjs — combined Doom8088 bench.
+// tests/bench/profiles/doom-all.mjs - combined Doom8088 bench.
 //
 // Runs both `doom-loading` and `doom-ingame-fps` against a single
 // boot, since the in-game-FPS profile already pays the full boot
@@ -11,7 +11,7 @@
 //
 // The single small profiles (`doom-loading`, `doom-ingame-fps`)
 // remain valid and are useful when you only want one number quickly.
-// `doom-all` is the right choice when you want all of them — runs in
+// `doom-all` is the right choice when you want all of them - runs in
 // the same wall time as `doom-ingame-fps` alone.
 //
 // Web target only; CLI has no /_screen/framebuffer consumer so FPS is
@@ -183,7 +183,7 @@ export async function run(host) {
   bridge.postMessage({ type: 'bench-stop' });
   host.log(`done: ${framesChanged} frames in ${(measureMs/1000).toFixed(1)}s = ${ingameFps.toFixed(2)} fps`);
 
-  // Substep deltas — wall ms spent in each phase. The page-side runner
+  // Substep deltas - wall ms spent in each phase. The page-side runner
   // adds compileMs separately (it captures the compile-done broadcast
   // before the profile runs). Phases here:
   //

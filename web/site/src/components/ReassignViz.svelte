@@ -1,5 +1,5 @@
 <script>
-  // ReassignViz — "in any other language, a variable can change later":
+  // ReassignViz - "in any other language, a variable can change later":
   // x = 2, then an arrow labelled "later…", then x = 4. Small standalone
   // proof-of-concept, styled like the other About widgets (box + shadow).
 </script>

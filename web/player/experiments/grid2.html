@@ -210,9 +210,9 @@
     // size we allocate, which in turn drives the worker's text-rasteriser
     // canvas check.
     const MODE_GEOMETRY = {
-      0x00: { width: 320, height: 400, textCols: 40, textRows: 25 }, // CGA 40×25 mono — same layout as 0x01
+      0x00: { width: 320, height: 400, textCols: 40, textRows: 25 }, // CGA 40×25 mono - same layout as 0x01
       0x01: { width: 320, height: 400, textCols: 40, textRows: 25 }, // CGA 40×25 → 320×400
-      0x02: { width: 640, height: 400, textCols: 80, textRows: 25 }, // CGA 80×25 mono — same layout as 0x03
+      0x02: { width: 640, height: 400, textCols: 80, textRows: 25 }, // CGA 80×25 mono - same layout as 0x03
       0x03: { width: 640, height: 400, textCols: 80, textRows: 25 }, // CGA 80×25 → 640×400
       0x07: { width: 720, height: 400, textCols: 80, textRows: 25 }, // MDA 80×25 mono (slightly wider, same glyph size)
       0x13: { width: 320, height: 200 },                              // Mode 13h
@@ -232,8 +232,8 @@
     const classToColor = new Uint32Array(PALETTE_SIZE);
     // Shared framebuffer: allocated here, handed to worker once.
     // Two views over the same SAB:
-    //   gfxSharedView  — Uint8Array, used by fallback path / byte access
-    //   gfxShared32    — Uint32Array, used by the paint loop so each pixel
+    //   gfxSharedView  - Uint8Array, used by fallback path / byte access
+    //   gfxShared32    - Uint32Array, used by the paint loop so each pixel
     //                    is ONE load+compare instead of four.
     //                    Endianness doesn't matter for "did this pixel
     //                    change" since both sides of the compare use the
@@ -242,16 +242,16 @@
     let gfxShared32 = null;
     // Worker stamps each tick-result with a u32 xor-fold checksum of the
     // framebuffer. When it matches the last one we painted, we can skip
-    // the 64,000-pixel scan entirely — nothing moved, nothing to do.
+    // the 64,000-pixel scan entirely - nothing moved, nothing to do.
     let lastPaintedChecksum = -1;
-    // Scale factor per mode — Mode 13h uses 2x, text modes use 1x because
+    // Scale factor per mode - Mode 13h uses 2x, text modes use 1x because
     // the pixel canvas is already 640×400 (2x the old 13h canvas) so each
     // pixel div is one screen pixel. Keeps the player window roughly the
     // same size regardless of mode.
     function pixelScaleFor(w, h) {
       return (w >= 640 || h >= 400) ? 1 : 2;
     }
-    // Rebuild the pixel grid at (w, h). Idempotent — safe to call on mode
+    // Rebuild the pixel grid at (w, h). Idempotent - safe to call on mode
     // switch. Tears down any previous grid DOM and structural <style>
     // tags we added, then reallocates the SAB. `vramAddr` is the guest
     // memory address the worker should read from (0xA0000 for Mode 13h,
@@ -273,7 +273,7 @@
       // using `1fr auto`) collapses to ~58 px wide because the browser
       // walks the giant grid when resolving flexible track widths.
       gridEl.style.contain = 'strict';
-      // Structural CSS — sizes the pixels, sets a baseline black.
+      // Structural CSS - sizes the pixels, sets a baseline black.
       structuralStyleEl = document.createElement('style');
       structuralStyleEl.textContent =
         `#screen-grid>i{display:block;width:${sx}px;height:${sy}px;background:#000}`;
@@ -335,7 +335,7 @@
           gfxShared32 = null;
         }
       } else {
-        console.warn('[CSS-DOS] not crossOriginIsolated — framebuffer will use transfer path');
+        console.warn('[CSS-DOS] not crossOriginIsolated - framebuffer will use transfer path');
       }
     }
     // Resize the pixel canvas to match a video mode. No-op if the current
@@ -354,7 +354,7 @@
       // Text modes read VRAM from 0xB8000; Mode 13h from 0xA0000.
       const vramAddr = (mode === 0x13) ? 0xA0000 : 0xB8000;
       buildGrid(geom.width, geom.height, vramAddr);
-      // Frame-accounting reset — stale lastPaintedChecksum would cause the
+      // Frame-accounting reset - stale lastPaintedChecksum would cause the
       // first frame of the new mode to be suppressed as "unchanged".
       lastPaintedFrame = -1;
       lastPaintedChecksum = -1;
@@ -375,12 +375,12 @@
         worker.postMessage({ type: 'setFont', font: buf });
         console.log('[CSS-DOS] font loaded (4096 bytes) and sent to worker');
       } catch (e) {
-        console.warn('[CSS-DOS] font load failed — text modes will not pixel-render:', e.message);
+        console.warn('[CSS-DOS] font load failed - text modes will not pixel-render:', e.message);
       }
     }
 
     // Obtain (or assign) a class slot for a pixel u32 (as read from the
-    // Uint32Array view of the framebuffer). The key is the raw u32 — we
+    // Uint32Array view of the framebuffer). The key is the raw u32 - we
     // never decompose into R/G/B until we need to write a CSS color, and
     // at that point we know the alpha byte is always 0xFF so we can
     // ignore it. Endianness is irrelevant for the Map key; it only
@@ -399,7 +399,7 @@
       // Unpack assuming little-endian (Chrome on x86/ARM): byte 0 = R,
       // byte 1 = G, byte 2 = B, byte 3 = A. If we're ever wrong about
       // that, the Map compare still works (symmetric), and only the
-      // displayed color would be wrong — trivially verifiable.
+      // displayed color would be wrong - trivially verifiable.
       const r =  u32         & 0xFF;
       const g = (u32 >>>  8) & 0xFF;
       const b = (u32 >>> 16) & 0xFF;
@@ -413,7 +413,7 @@
     const stats = document.getElementById('stats');
     const warningsEl = document.getElementById('warnings');
 
-    // Diagnostic warnings — each (kind, value) shown once.
+    // Diagnostic warnings - each (kind, value) shown once.
     const shownWarnings = new Set();
     function showWarning(kind, value, html, consoleMsg) {
       const key = `${kind}:${value}`;
@@ -521,18 +521,18 @@
     // rAF callbacks). The worker keeps the CPU fed even during heavy
     // paints.
     //
-    // Tuning: 8 ms per chunk is a common "interactive" budget — matches
+    // Tuning: 8 ms per chunk is a common "interactive" budget - matches
     // our batch TARGET_MS and leaves room for other main-thread work.
     // CHUNK_PX is an initial guess (16k pixels ≈ 12 ms paint on
     // measured hardware); adapt if needed.
     const CHUNK_PX = 16000;
     let paintState = null;  // { data, src32, offset, n, simFrame, changed, startMs }
 
-    // Core paint routine — starts a new paint or cancels/replaces the
+    // Core paint routine - starts a new paint or cancels/replaces the
     // in-flight one. Called by both rafPaint and the turbo scheduler.
     // Set of video modes the grid has a pixel-canvas for. Populated by
     // setVideoMode() as modes are encountered. doPaint() only blits when
-    // the current mode is in this set — for anything else the grid stays
+    // the current mode is in this set - for anything else the grid stays
     // hidden and the HTML-string fallback renders into #output.
     const pixelModes = new Set();
     function doPaint() {
@@ -548,7 +548,7 @@
         src32 = new Uint32Array(data.gfxBytes);
       }
       if (!src32) return;
-      // Guest frame cadence — advances every CYCLES_PER_FRAME simulated
+      // Guest frame cadence - advances every CYCLES_PER_FRAME simulated
       // cycles regardless of video mode. Text-mode frames get the same
       // vsync-gated paint behaviour as Mode 13h frames.
       const simFrame = Math.floor((data.cycles || 0) / CYCLES_PER_FRAME);
@@ -560,7 +560,7 @@
         return;
       }
       // Start (or restart) a chunked paint. If paintState was from an
-      // older frame, we abandon it — the new framebuffer supersedes it.
+      // older frame, we abandon it - the new framebuffer supersedes it.
       paintState = {
         data, src32, simFrame,
         offset: 0,
@@ -573,7 +573,7 @@
 
     // Chunk worker for an in-flight paint. Does CHUNK_PX pixels then
     // either finishes or reschedules itself via MessageChannel (runs as
-    // a macrotask — Chrome processes the worker's pending messages
+    // a macrotask - Chrome processes the worker's pending messages
     // between our chunks).
     const paintChannel = new MessageChannel();
     paintChannel.port2.onmessage = () => continuePaint();
@@ -595,7 +595,7 @@
       }
       p.offset = end;
       if (end < p.n) {
-        // Yield to the event loop. postMessage posts a macrotask —
+        // Yield to the event loop. postMessage posts a macrotask -
         // unlike queueMicrotask it lets Chrome drain worker messages.
         paintChannel.port1.postMessage(0);
         return;
@@ -610,7 +610,7 @@
       paintState = null;
     }
 
-    // Stats window — advances paintCount into fps once per wall second.
+    // Stats window - advances paintCount into fps once per wall second.
     function updateFps(nowWall) {
       if (lastStatsWallMs === 0) lastStatsWallMs = nowWall;
       const dt = nowWall - lastStatsWallMs;
@@ -621,7 +621,7 @@
       }
     }
 
-    // rAF driver — used by sim mode. Painted cadence capped at display
+    // rAF driver - used by sim mode. Painted cadence capped at display
     // refresh (usually 60 Hz), which is exactly what sim wants: vsync
     // alignment with a hardware-like frame clock.
     function rafPaint(nowWall) {
@@ -630,7 +630,7 @@
       if (vsyncMode === 'sim') doPaint();
     }
 
-    // MessageChannel-driven micro-scheduler — used by turbo mode. Fires
+    // MessageChannel-driven micro-scheduler - used by turbo mode. Fires
     // as fast as the main thread can drain its task queue (typically
     // 200–1000 Hz vs rAF's 60 Hz). Trade-off: burns CPU, but that's the
     // point of turbo.
@@ -642,7 +642,7 @@
       }
     };
     function startTurboIfNeeded() {
-      // Kick the loop whenever turbo becomes active. Idempotent —
+      // Kick the loop whenever turbo becomes active. Idempotent -
       // posting while the loop is already running just queues one more
       // tick, which is fine.
       if (vsyncMode === 'turbo') turboChannel.port1.postMessage(0);
@@ -654,7 +654,7 @@
           engineReady = true;
           video = data.video || { text: null, gfx: null };
           // Grid geometry is driven by the first tick-result's videoMode,
-          // not the cabinet's declared gfx region — lets setVideoMode() own
+          // not the cabinet's declared gfx region - lets setVideoMode() own
           // the pixel-canvas shape even when the cabinet declared only a
           // text region or neither. Font load happens in parallel with the
           // first few ticks; worst case the first paint falls through to
@@ -692,8 +692,8 @@
             showWarning(
               'opcode',
               data.haltCode,
-              `<strong>Unknown opcode ${op}.</strong> This program uses a CPU instruction CSS-DOS's 8086 core doesn't implement — most likely it requires a 286/386/486. Execution is halted.`,
-              `Unknown opcode ${op} — program requires a CPU newer than 8086.`,
+              `<strong>Unknown opcode ${op}.</strong> This program uses a CPU instruction CSS-DOS's 8086 core doesn't implement - most likely it requires a 286/386/486. Execution is halted.`,
+              `Unknown opcode ${op} - program requires a CPU newer than 8086.`,
             );
           }
           // Unsupported video mode detection. We get two signals from the
@@ -704,11 +704,11 @@
           //     AH=00h call; in practice no BIOS implements this yet, so
           //     the byte is always 0. Until a BIOS writes it, we treat
           //     `req === 0` as "no request observed" and skip remap
-          //     warnings — otherwise every program that uses the default
+          //     warnings - otherwise every program that uses the default
           //     80×25 text mode (i.e. never calls INT 10h AH=00h) trips
           //     a spurious "requested 0x00, got 0x03" warning.
           // Modes the player can render correctly. 0x00 is CGA 40×25
-          // mono text — identical buffer layout to 0x01, so the BIOS
+          // mono text - identical buffer layout to 0x01, so the BIOS
           // normalises 0x00 → 0x01 and we render them the same way.
           const SUPPORTED_MODES = new Set([0x01, 0x03, 0x13]);
           const MODE_ALIASES = { 0x00: 0x01 };
@@ -718,7 +718,7 @@
           // target for X. Only warn on meaningful mismatches.
           const reqAlias = MODE_ALIASES[req] ?? req;
           // Require req to be truthy AND different from got AND not an alias
-          // target. Truthy check (`req`) keeps 0 out — see comment above.
+          // target. Truthy check (`req`) keeps 0 out - see comment above.
           if (req && req !== got && reqAlias !== got) {
             const rHex = '0x' + req.toString(16).padStart(2, '0').toUpperCase();
             const gHex = '0x' + (got ?? 0).toString(16).padStart(2, '0').toUpperCase();
@@ -726,7 +726,7 @@
               'vmode-remap',
               req,
               `<strong>Video mode ${rHex}</strong> (${videoModeName(req)}) was remapped to ${gHex} (${videoModeName(got)}) by the BIOS. CSS-DOS currently implements 40×25 text (0x01), 80×25 text (0x03), and VGA Mode 13h (0x13). Rendering will likely be wrong.`,
-              `Program requested video mode ${rHex} (${videoModeName(req)}) — remapped to ${gHex} (${videoModeName(got)}).`,
+              `Program requested video mode ${rHex} (${videoModeName(req)}) - remapped to ${gHex} (${videoModeName(got)}).`,
             );
           } else if (got != null && !SUPPORTED_MODES.has(got)) {
             const gHex = '0x' + got.toString(16).padStart(2, '0').toUpperCase();
@@ -762,7 +762,7 @@
           // legacy path); we just stash the metadata for rafPaint() to
           // read on the next compositor frame.
           lastTickForPaint = data;
-          // HTML-string fallback — only used for modes we can't pixel-render.
+          // HTML-string fallback - only used for modes we can't pixel-render.
           // If the guest is in a pixel mode, the grid shows the rasterised
           // output and #output stays hidden.
           if (!isPixelMode && data.screen != null) {

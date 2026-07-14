@@ -1,5 +1,5 @@
 <script>
-  // About — the wizard's first step. A thin shell: the sub-page dots
+  // About - the wizard's first step. A thin shell: the sub-page dots
   // plus one component per sub-page (routes/about/). All copy and
   // page-specific styling lives in those components.
   import { nav } from '../lib/router.svelte.js';

@@ -4,7 +4,7 @@
      navigation dispatches a fetch event to the service worker, which
      resets Chrome's ~30s SW idle-kill timer. Without it the SW dies
      while the user just watches (frame broadcasts are not events!) and
-     the screen + hold-lamp multipart streams die with it — the player
+     the screen + hold-lamp multipart streams die with it - the player
      freezes until reload. Same-URL meta refresh replaces the history
      entry, so this never pollutes the back button. Zero <script>,
      like everything else in the player. -->

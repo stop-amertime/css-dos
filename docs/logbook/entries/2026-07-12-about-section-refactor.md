@@ -1,9 +1,9 @@
-# 2026-07-12 — About section full refactor (structure only, look unchanged)
+# 2026-07-12 - About section full refactor (structure only, look unchanged)
 
 `About.svelte` (1,400 lines) split into a thin shell + seven
 `routes/about/About*.svelte` subpage components; the 375-line
 AND/cell-plumbing exhibit strings moved to `lib/exhibits.js` (shared
-with SectionClock — was duplicated). Fragment CSS dissolved:
+with SectionClock - was duplicated). Fragment CSS dissolved:
 `about.css`/`anatomy.css`/`UNPLACED.css`/`cabinet-bar.css`/
 `tree-view.css` deleted; rules moved into the owning components'
 scoped `<style>` blocks (pane → AboutFileMap, callout → Callout,

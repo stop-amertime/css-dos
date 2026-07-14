@@ -1,11 +1,11 @@
 /* web/site/assets/site.css
-   MS-DOS EDIT.COM TUI look — full-blue background, gray dialogs with
+   MS-DOS EDIT.COM TUI look - full-blue background, gray dialogs with
    black drop shadow, sticky top menu bar + bottom F-key status line.
 
    Reference: icons/ms-dos-edit-2025-01-21_01-08-05-original-size.png. */
 
 /* "Web437 IBM VGA 8x16" from VileR's Oldschool PC Font Pack v2.2,
-   CC BY-SA 4.0 — https://int10h.org/oldschool-pc-fonts/ — self-hosted;
+   CC BY-SA 4.0 - https://int10h.org/oldschool-pc-fonts/ - self-hosted;
    license + attribution in /player/fonts/. The font is metric-locked to
    an 8x16 grid; the page uses 16-px line-height to keep glyphs crisp.
    font-display:block prevents the FOUT-into-fallback that would
@@ -111,7 +111,7 @@ body {
 .status-line .skey { color: var(--edit-black); }
 .status-line .skey b { font-weight: normal; color: var(--edit-red); }
 
-/* ── Dialog "window" — flat gray panel with a 1-char black drop shadow ── */
+/* ── Dialog "window" - flat gray panel with a 1-char black drop shadow ── */
 /*
    EDIT.COM dialogs sit on the blue desktop with a hard black shadow
    offset by one character cell (8x16 px). Border is drawn by the font
@@ -121,7 +121,7 @@ body {
 .window {
   background: var(--edit-gray);
   color: var(--edit-black);
-  /* Drop shadow — offset is ~1/4 of the dialog edge thickness so the
+  /* Drop shadow - offset is ~1/4 of the dialog edge thickness so the
      shadow visibly tucks under the panel rather than floating away. */
   box-shadow: 6px 6px 0 var(--edit-black);
   border: 1px solid var(--edit-black);
@@ -147,7 +147,7 @@ body {
   padding: 16px 16px 8px;
 }
 
-/* ── Group box — a simple inset frame with a label notch on top ── */
+/* ── Group box - a simple inset frame with a label notch on top ── */
 .group {
   border: 1px solid var(--edit-black);
   padding: 16px 12px 8px;
@@ -180,7 +180,7 @@ body {
   border: none;
   /* Bigger than 1 cell tall so the dialog buttons read as "buttons"
      and the drop shadow has somewhere to overlap. EDIT.COM's OK/Cancel
-     are roughly 1.5x taller than a cell — same here. */
+     are roughly 1.5x taller than a cell - same here. */
   padding: 4px 16px;
   min-height: 24px;
   line-height: 16px;
@@ -190,7 +190,7 @@ body {
   text-decoration: none;
   text-align: center;
   user-select: none;
-  /* Drop shadow — small offset so the shadow visibly tucks under the
+  /* Drop shadow - small offset so the shadow visibly tucks under the
      button (overlapping by ~2/3 of the offset). 16px tall + 12px shadow
      = the shadow ends 4px past the button edge. */
   box-shadow: 4px 4px 0 var(--edit-black);
@@ -218,14 +218,14 @@ body {
   outline: none;
 }
 
-/* The accelerator letter — colored red, EDIT-style. */
+/* The accelerator letter - colored red, EDIT-style. */
 .btn .hot { color: var(--edit-red); }
 
-/* File-input label styled as a button — the actual input is hidden. */
+/* File-input label styled as a button - the actual input is hidden. */
 .file-label { cursor: pointer; }
 input[type="file"] { display: none; }
 
-/* ── Inputs — sunken white "type-here" rectangles inside the dialog ── */
+/* ── Inputs - sunken white "type-here" rectangles inside the dialog ── */
 .field {
   background: var(--edit-white);
   color: var(--edit-black);
@@ -357,7 +357,7 @@ select.field { min-width: 220px; }
 #stages li.done::before { content: '\2713 '; }
 #stages li.stage-error { color: var(--edit-red); font-weight: bold; }
 
-/* Raw build log — looks like the kernel scrollback in DOS. */
+/* Raw build log - looks like the kernel scrollback in DOS. */
 .log-pre {
   font-family: inherit;
   font-size: 16px;
@@ -372,7 +372,7 @@ select.field { min-width: 220px; }
   padding: 4px 8px;
 }
 
-/* ── Source viewer — terminal black/green, like a `TYPE` redirect ── */
+/* ── Source viewer - terminal black/green, like a `TYPE` redirect ── */
 .pager-info {
   color: var(--edit-black);
   margin-bottom: 4px;

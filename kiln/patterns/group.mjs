@@ -2,11 +2,12 @@
 // These use the reg field of ModR/M to select the sub-operation.
 
 // Wrap logic flag expressions to preserve AF (bit 4) from previous tick.
-// On 8086, AF is undefined for AND/OR/XOR — real hardware preserves it.
+// On 8086, AF is undefined for AND/OR/XOR - real hardware preserves it.
 // Wrap logic flag expressions to preserve AF+TF+IF+DF from previous tick.
 const pKeep = (flagExpr, mask = 1808) => `calc(${flagExpr} + --and(var(--__1flags), ${mask}))`;
 
 import { REG16, SPLIT_REGS } from './regs.mjs';
+import { stackWriteAddr as sa, spDecBy } from './stack-addr.mjs';
 
 /**
  * Group 0xFE: byte operations on r/m8
@@ -14,11 +15,6 @@ import { REG16, SPLIT_REGS } from './regs.mjs';
  * reg=1: DEC r/m8
  */
 export function emitGroup_FE(dispatch) {
-  // Both INC and DEC write to r/m8, which is either a register or memory.
-  // The result depends on reg field:
-  //   reg=0: rm + 1 (INC)
-  //   reg=1: rm - 1 (DEC)
-  // For register destinations (mod=11):
   for (const { reg: regName, lowIdx, highIdx } of SPLIT_REGS) {
     dispatch.addEntry(regName, 0xFE,
       `if(` +
@@ -56,18 +52,9 @@ export function emitGroup_FE(dispatch) {
  * reg=7: IDIV r/m16 (signed: AX = DX:AX / r/m16, DX = DX:AX % r/m16)
  */
 export function emitGroup_F7(dispatch) {
-  // This is complex because different sub-ops write different registers.
-  // DIV (reg=6): AX = quotient, DX = remainder
-  // MUL (reg=4): DX:AX = AX * src
-  // NEG (reg=3): r/m = 0 - r/m, sets flags
-  // NOT (reg=2): r/m = ~r/m, no flag change
-  // TEST (reg=0): r/m & imm16, flags only
-
   // IMUL uses pre-computed decode properties: --_imulProd16, --_sAX, --_sRM16
   const imulProd16 = `var(--_imulProd16)`;
 
-  // AX: DIV writes quotient, MUL writes low product, IMUL writes low product,
-  // IDIV writes signed quotient, NEG/NOT may write if rm=0
   dispatch.addEntry('AX', 0xF7,
     `if(` +
     `style(--reg: 6): round(down, calc((var(--__1DX) * 65536 + var(--__1AX)) / max(1, var(--rmVal16)))); ` +
@@ -79,8 +66,7 @@ export function emitGroup_F7(dispatch) {
     `else: var(--__1AX))`,
     `Group F7 AX`);
 
-  // DX: DIV writes remainder, MUL writes high product, IMUL writes high product,
-  // IDIV writes signed remainder
+  // DX: DIV/IDIV remainder, MUL/IMUL high product, NEG/NOT if rm=DX
   dispatch.addEntry('DX', 0xF7,
     `if(` +
     `style(--reg: 6): mod(calc(var(--__1DX) * 65536 + var(--__1AX)), max(1, var(--rmVal16))); ` +
@@ -104,15 +90,13 @@ export function emitGroup_F7(dispatch) {
       `Group F7 ${regName}`);
   }
 
-  // Memory writes for NEG/NOT when mod!=3
-  dispatch.addMemWrite(0xF7,
+  // Memory write for NEG/NOT when mod!=3 (word: lo at ea, hi at ea+1).
+  // The value is a per-/reg dispatch over the un-split word; the write
+  // side splits it into lo/hi bytes.
+  dispatch.addMemWriteWord(0xF7,
     `if(style(--mod: 3): -1; style(--reg: 3): var(--ea); style(--reg: 2): var(--ea); else: -1)`,
-    `if(style(--reg: 3): --lowerBytes(calc(0 - var(--rmVal16) + 65536), 8); style(--reg: 2): --lowerBytes(--not(var(--rmVal16)), 8); else: 0)`,
-    `Group F7 NEG/NOT → mem lo`);
-  dispatch.addMemWrite(0xF7,
-    `if(style(--mod: 3): -1; style(--reg: 3): calc(var(--ea) + 1); style(--reg: 2): calc(var(--ea) + 1); else: -1)`,
-    `if(style(--reg: 3): --rightShift(--lowerBytes(calc(0 - var(--rmVal16) + 65536), 16), 8); style(--reg: 2): --rightShift(--not(var(--rmVal16)), 8); else: 0)`,
-    `Group F7 NEG/NOT → mem hi`);
+    `if(style(--reg: 3): calc(0 - var(--rmVal16) + 65536); style(--reg: 2): --not(var(--rmVal16)); else: 0)`,
+    `Group F7 NEG/NOT → mem`);
 
   // Flags: MUL/IMUL set CF+OF based on upper half; DIV/IDIV undefined
   // MUL CF=OF: DX != 0 → bit at 0 and 11
@@ -203,12 +187,91 @@ export function emitGroup_F6(dispatch) {
 
 // (--incFlags8 / --decFlags8 live in kiln/patterns/flags.mjs, emitted by
 // emitFlagFunctions. A stale never-called duplicate here was removed
-// 2026-07-12 during the file-map reorg — it had drifted to a different AF
+// 2026-07-12 during the file-map reorg - it had drifted to a different AF
 // computation than the live copy.)
 
-/**
- * Register all group opcodes.
- */
+// The immediate-form ALU group (0x80/0x82/0x81/0x83) sub-operation table.
+// reg=0:ADD, 1:OR, 2:ADC, 3:SBB, 4:AND, 5:SUB, 6:XOR, 7:CMP - all read the
+// r/m operand as dst and the decoded immediate as src. Only CMP is
+// write-less (flags-only). `w` picks 8- vs 16-bit widths; `imm` is the src
+// token (immByte / immWord / sign-extended immByte); `ovf` is the borrow
+// bias added before masking (256 or 65536). Logic ops use the width-suffixed
+// helper (--or8 vs --or); flag helpers are always suffixed (--addFlags8/16).
+function aluSubOps(w, imm) {
+  const rm = `var(--rmVal${w})`;
+  const ovf = w === 8 ? 256 : 65536;
+  const L = w === 8 ? '8' : '';          // logic-op helper suffix
+  const F = `${w}`;                       // flag-helper suffix
+  const lb = (e) => `--lowerBytes(${e}, ${w})`;
+  return [
+    { reg: 0, name: 'ADD', result: lb(`calc(${rm} + ${imm})`),                       flags: pKeep(`--addFlags${F}(${rm}, ${imm})`, 1792),               writes: true },
+    { reg: 1, name: 'OR',  result: `--or${L}(${rm}, ${imm})`,                         flags: pKeep(`--orFlags${F}(${rm}, ${imm})`),                      writes: true },
+    { reg: 2, name: 'ADC', result: lb(`calc(${rm} + ${imm} + var(--_cf))`),          flags: pKeep(`--adcFlags${F}(${rm}, ${imm}, var(--_cf))`, 1792),    writes: true },
+    { reg: 3, name: 'SBB', result: lb(`calc(${rm} - ${imm} - var(--_cf) + ${ovf})`), flags: pKeep(`--sbbFlags${F}(${rm}, ${imm}, var(--_cf))`, 1792),    writes: true },
+    { reg: 4, name: 'AND', result: `--and${L}(${rm}, ${imm})`,                        flags: pKeep(`--andFlags${F}(${rm}, ${imm})`),                     writes: true },
+    { reg: 5, name: 'SUB', result: lb(`calc(${rm} - ${imm} + ${ovf})`),              flags: pKeep(`--subFlags${F}(${rm}, ${imm})`, 1792),               writes: true },
+    { reg: 6, name: 'XOR', result: `--xor${L}(${rm}, ${imm})`,                        flags: pKeep(`--xorFlags${F}(${rm}, ${imm})`),                     writes: true },
+    { reg: 7, name: 'CMP', result: null,                                              flags: pKeep(`--subFlags${F}(${rm}, ${imm})`, 1792),               writes: false },
+  ];
+}
+
+// Shared emitter for the immediate-form ALU groups. The register-write and
+// memory-write SHAPE depends on width: byte writes merge into a 16-bit reg
+// (--mergelow/high) and take a single mem slot; word writes assign the reg
+// directly and split the mem write into lo/hi slots. `label` carries the
+// exact per-opcode comment text so emitted output stays byte-identical.
+function emitGroupALU(dispatch, { opcode, subOps, w, immLen, label }) {
+  const writing = subOps.filter(s => s.writes);
+
+  if (w === 8) {
+    for (const { reg: regName, lowIdx, highIdx } of SPLIT_REGS) {
+      const branches = [];
+      for (const { reg: subReg, result } of writing) {
+        branches.push(`style(--mod: 3) and style(--rm: ${lowIdx}) and style(--reg: ${subReg}): --mergelow(var(--__1${regName}), ${result})`);
+        branches.push(`style(--mod: 3) and style(--rm: ${highIdx}) and style(--reg: ${subReg}): --mergehigh(var(--__1${regName}), ${result})`);
+      }
+      dispatch.addEntry(regName, opcode,
+        `if(${branches.join('; ')}; else: var(--__1${regName}))`,
+        label.reg(regName));
+    }
+
+    const memBranches = writing.map(s => `style(--reg: ${s.reg}): ${s.result}`);
+    dispatch.addMemWrite(opcode,
+      `if(style(--mod: 3): -1; style(--reg: 7): -1; else: var(--ea))`,
+      `if(${memBranches.join('; ')}; else: 0)`,
+      label.mem);
+  } else {
+    for (let r = 0; r < 8; r++) {
+      const branches = writing.map(s =>
+        `style(--mod: 3) and style(--rm: ${r}) and style(--reg: ${s.reg}): ${s.result}`
+      );
+      dispatch.addEntry(REG16[r], opcode,
+        `if(${branches.join('; ')}; else: var(--__1${REG16[r]}))`,
+        label.reg(REG16[r]));
+    }
+
+    const memLoBranches = writing.map(s => `style(--reg: ${s.reg}): --lowerBytes(${s.result}, 8)`);
+    dispatch.addMemWrite(opcode,
+      `if(style(--mod: 3): -1; style(--reg: 7): -1; else: var(--ea))`,
+      `if(${memLoBranches.join('; ')}; else: 0)`,
+      label.memLo);
+    const memHiBranches = writing.map(s => `style(--reg: ${s.reg}): --rightShift(${s.result}, 8)`);
+    dispatch.addMemWrite(opcode,
+      `if(style(--mod: 3): -1; style(--reg: 7): -1; else: calc(var(--ea) + 1))`,
+      `if(${memHiBranches.join('; ')}; else: 0)`,
+      label.memHi);
+  }
+
+  const flagBranches = subOps.map(s => `style(--reg: ${s.reg}): ${s.flags}`);
+  dispatch.addEntry('flags', opcode,
+    `if(${flagBranches.join('; ')}; else: var(--__1flags))`,
+    label.flags);
+
+  dispatch.addEntry('IP', opcode,
+    `calc(var(--__1IP) + 2 + var(--modrmExtra) + ${immLen})`,
+    label.ip);
+}
+
 /**
  * Group 0x80: ALU r/m8, imm8
  * Group 0x82: same as 0x80
@@ -218,55 +281,18 @@ export function emitGroup_F6(dispatch) {
  * immByte is the immediate operand after ModR/M+disp.
  */
 export function emitGroup_80(dispatch) {
-  // Result expressions for each sub-operation (8-bit)
-  // All read rmVal8 as dst, immByte as src
-  const subOps = [
-    { reg: 0, name: 'ADD', result: `--lowerBytes(calc(var(--rmVal8) + var(--immByte)), 8)`, flags: pKeep(`--addFlags8(var(--rmVal8), var(--immByte))`, 1792), writes: true },
-    { reg: 1, name: 'OR',  result: `--or8(var(--rmVal8), var(--immByte))`, flags: pKeep(`--orFlags8(var(--rmVal8), var(--immByte))`), writes: true },
-    { reg: 2, name: 'ADC', result: `--lowerBytes(calc(var(--rmVal8) + var(--immByte) + var(--_cf)), 8)`, flags: pKeep(`--adcFlags8(var(--rmVal8), var(--immByte), var(--_cf))`, 1792), writes: true },
-    { reg: 3, name: 'SBB', result: `--lowerBytes(calc(var(--rmVal8) - var(--immByte) - var(--_cf) + 256), 8)`, flags: pKeep(`--sbbFlags8(var(--rmVal8), var(--immByte), var(--_cf))`, 1792), writes: true },
-    { reg: 4, name: 'AND', result: `--and8(var(--rmVal8), var(--immByte))`, flags: pKeep(`--andFlags8(var(--rmVal8), var(--immByte))`), writes: true },
-    { reg: 5, name: 'SUB', result: `--lowerBytes(calc(var(--rmVal8) - var(--immByte) + 256), 8)`, flags: pKeep(`--subFlags8(var(--rmVal8), var(--immByte))`, 1792), writes: true },
-    { reg: 6, name: 'XOR', result: `--xor8(var(--rmVal8), var(--immByte))`, flags: pKeep(`--xorFlags8(var(--rmVal8), var(--immByte))`), writes: true },
-    { reg: 7, name: 'CMP', result: null, flags: pKeep(`--subFlags8(var(--rmVal8), var(--immByte))`, 1792), writes: false },
-  ];
-
-  // For opcodes 0x80 and 0x82 (same behavior)
+  const subOps = aluSubOps(8, `var(--immByte)`);
   for (const opcode of [0x80, 0x82]) {
-    // Register writes: each 16-bit register can be destination when mod=11
-    for (const { reg: regName, lowIdx, highIdx } of SPLIT_REGS) {
-      const branches = [];
-      for (const { reg: subReg, result, writes } of subOps) {
-        if (!writes) continue;
-        branches.push(`style(--mod: 3) and style(--rm: ${lowIdx}) and style(--reg: ${subReg}): --mergelow(var(--__1${regName}), ${result})`);
-        branches.push(`style(--mod: 3) and style(--rm: ${highIdx}) and style(--reg: ${subReg}): --mergehigh(var(--__1${regName}), ${result})`);
-      }
-      dispatch.addEntry(regName, opcode,
-        `if(${branches.join('; ')}; else: var(--__1${regName}))`,
-        `Group ${opcode.toString(16)} r/m8,imm8 → ${regName}`);
-    }
-
-    // Memory write for non-CMP sub-ops when mod!=3
-    const memBranches = subOps.filter(s => s.writes).map(s =>
-      `style(--reg: ${s.reg}): ${s.result}`
-    );
-    dispatch.addMemWrite(opcode,
-      `if(style(--mod: 3): -1; style(--reg: 7): -1; else: var(--ea))`,
-      `if(${memBranches.join('; ')}; else: 0)`,
-      `Group ${opcode.toString(16)} r/m8,imm8 → mem`);
-
-    // Flags: all sub-ops set flags
-    const flagBranches = subOps.map(s =>
-      `style(--reg: ${s.reg}): ${s.flags}`
-    );
-    dispatch.addEntry('flags', opcode,
-      `if(${flagBranches.join('; ')}; else: var(--__1flags))`,
-      `Group ${opcode.toString(16)} flags`);
-
-    // IP: 2 + modrmExtra + 1 (for the immediate byte)
-    dispatch.addEntry('IP', opcode,
-      `calc(var(--__1IP) + 2 + var(--modrmExtra) + 1)`,
-      `Group ${opcode.toString(16)}`);
+    const hex = opcode.toString(16);
+    emitGroupALU(dispatch, {
+      opcode, subOps, w: 8, immLen: 1,
+      label: {
+        reg: (regName) => `Group ${hex} r/m8,imm8 → ${regName}`,
+        mem: `Group ${hex} r/m8,imm8 → mem`,
+        flags: `Group ${hex} flags`,
+        ip: `Group ${hex}`,
+      },
+    });
   }
 }
 
@@ -275,52 +301,16 @@ export function emitGroup_80(dispatch) {
  * reg=0:ADD, 1:OR, 2:ADC, 3:SBB, 4:AND, 5:SUB, 6:XOR, 7:CMP
  */
 export function emitGroup_81(dispatch) {
-  const subOps = [
-    { reg: 0, name: 'ADD', result: `--lowerBytes(calc(var(--rmVal16) + var(--immWord)), 16)`, flags: pKeep(`--addFlags16(var(--rmVal16), var(--immWord))`, 1792), writes: true },
-    { reg: 1, name: 'OR',  result: `--or(var(--rmVal16), var(--immWord))`, flags: pKeep(`--orFlags16(var(--rmVal16), var(--immWord))`), writes: true },
-    { reg: 2, name: 'ADC', result: `--lowerBytes(calc(var(--rmVal16) + var(--immWord) + var(--_cf)), 16)`, flags: pKeep(`--adcFlags16(var(--rmVal16), var(--immWord), var(--_cf))`, 1792), writes: true },
-    { reg: 3, name: 'SBB', result: `--lowerBytes(calc(var(--rmVal16) - var(--immWord) - var(--_cf) + 65536), 16)`, flags: pKeep(`--sbbFlags16(var(--rmVal16), var(--immWord), var(--_cf))`, 1792), writes: true },
-    { reg: 4, name: 'AND', result: `--and(var(--rmVal16), var(--immWord))`, flags: pKeep(`--andFlags16(var(--rmVal16), var(--immWord))`), writes: true },
-    { reg: 5, name: 'SUB', result: `--lowerBytes(calc(var(--rmVal16) - var(--immWord) + 65536), 16)`, flags: pKeep(`--subFlags16(var(--rmVal16), var(--immWord))`, 1792), writes: true },
-    { reg: 6, name: 'XOR', result: `--xor(var(--rmVal16), var(--immWord))`, flags: pKeep(`--xorFlags16(var(--rmVal16), var(--immWord))`), writes: true },
-    { reg: 7, name: 'CMP', result: null, flags: pKeep(`--subFlags16(var(--rmVal16), var(--immWord))`, 1792), writes: false },
-  ];
-
-  for (let r = 0; r < 8; r++) {
-    const branches = subOps.filter(s => s.writes).map(s =>
-      `style(--mod: 3) and style(--rm: ${r}) and style(--reg: ${s.reg}): ${s.result}`
-    );
-    dispatch.addEntry(REG16[r], 0x81,
-      `if(${branches.join('; ')}; else: var(--__1${REG16[r]}))`,
-      `Group 81 r/m16,imm16 → ${REG16[r]}`);
-  }
-
-  // Memory writes (word)
-  const memLoBranches = subOps.filter(s => s.writes).map(s =>
-    `style(--reg: ${s.reg}): --lowerBytes(${s.result}, 8)`
-  );
-  dispatch.addMemWrite(0x81,
-    `if(style(--mod: 3): -1; style(--reg: 7): -1; else: var(--ea))`,
-    `if(${memLoBranches.join('; ')}; else: 0)`,
-    `Group 81 r/m16,imm16 → mem lo`);
-  const memHiBranches = subOps.filter(s => s.writes).map(s =>
-    `style(--reg: ${s.reg}): --rightShift(${s.result}, 8)`
-  );
-  dispatch.addMemWrite(0x81,
-    `if(style(--mod: 3): -1; style(--reg: 7): -1; else: calc(var(--ea) + 1))`,
-    `if(${memHiBranches.join('; ')}; else: 0)`,
-    `Group 81 r/m16,imm16 → mem hi`);
-
-  const flagBranches = subOps.map(s =>
-    `style(--reg: ${s.reg}): ${s.flags}`
-  );
-  dispatch.addEntry('flags', 0x81,
-    `if(${flagBranches.join('; ')}; else: var(--__1flags))`,
-    `Group 81 flags`);
-
-  dispatch.addEntry('IP', 0x81,
-    `calc(var(--__1IP) + 2 + var(--modrmExtra) + 2)`,
-    `Group 81`);
+  emitGroupALU(dispatch, {
+    opcode: 0x81, subOps: aluSubOps(16, `var(--immWord)`), w: 16, immLen: 2,
+    label: {
+      reg: (regName) => `Group 81 r/m16,imm16 → ${regName}`,
+      memLo: `Group 81 r/m16,imm16 → mem lo`,
+      memHi: `Group 81 r/m16,imm16 → mem hi`,
+      flags: `Group 81 flags`,
+      ip: `Group 81`,
+    },
+  });
 }
 
 /**
@@ -332,53 +322,16 @@ export function emitGroup_83(dispatch) {
   // But we need unsigned 16-bit for the operation: (immByte >= 128) ? immByte | 0xFF00 : immByte
   // In CSS: immByte + bit(immByte, 7) * 65280
   const sext = `calc(var(--immByte) + --bit(var(--immByte), 7) * 65280)`;
-
-  const subOps = [
-    { reg: 0, name: 'ADD', result: `--lowerBytes(calc(var(--rmVal16) + ${sext}), 16)`, flags: pKeep(`--addFlags16(var(--rmVal16), ${sext})`, 1792), writes: true },
-    { reg: 1, name: 'OR',  result: `--or(var(--rmVal16), ${sext})`, flags: pKeep(`--orFlags16(var(--rmVal16), ${sext})`), writes: true },
-    { reg: 2, name: 'ADC', result: `--lowerBytes(calc(var(--rmVal16) + ${sext} + var(--_cf)), 16)`, flags: pKeep(`--adcFlags16(var(--rmVal16), ${sext}, var(--_cf))`, 1792), writes: true },
-    { reg: 3, name: 'SBB', result: `--lowerBytes(calc(var(--rmVal16) - ${sext} - var(--_cf) + 65536), 16)`, flags: pKeep(`--sbbFlags16(var(--rmVal16), ${sext}, var(--_cf))`, 1792), writes: true },
-    { reg: 4, name: 'AND', result: `--and(var(--rmVal16), ${sext})`, flags: pKeep(`--andFlags16(var(--rmVal16), ${sext})`), writes: true },
-    { reg: 5, name: 'SUB', result: `--lowerBytes(calc(var(--rmVal16) - ${sext} + 65536), 16)`, flags: pKeep(`--subFlags16(var(--rmVal16), ${sext})`, 1792), writes: true },
-    { reg: 6, name: 'XOR', result: `--xor(var(--rmVal16), ${sext})`, flags: pKeep(`--xorFlags16(var(--rmVal16), ${sext})`), writes: true },
-    { reg: 7, name: 'CMP', result: null, flags: pKeep(`--subFlags16(var(--rmVal16), ${sext})`, 1792), writes: false },
-  ];
-
-  for (let r = 0; r < 8; r++) {
-    const branches = subOps.filter(s => s.writes).map(s =>
-      `style(--mod: 3) and style(--rm: ${r}) and style(--reg: ${s.reg}): ${s.result}`
-    );
-    dispatch.addEntry(REG16[r], 0x83,
-      `if(${branches.join('; ')}; else: var(--__1${REG16[r]}))`,
-      `Group 83 r/m16,sximm8 → ${REG16[r]}`);
-  }
-
-  // Memory writes
-  const memLoBranches = subOps.filter(s => s.writes).map(s =>
-    `style(--reg: ${s.reg}): --lowerBytes(${s.result}, 8)`
-  );
-  dispatch.addMemWrite(0x83,
-    `if(style(--mod: 3): -1; style(--reg: 7): -1; else: var(--ea))`,
-    `if(${memLoBranches.join('; ')}; else: 0)`,
-    `Group 83 → mem lo`);
-  const memHiBranches = subOps.filter(s => s.writes).map(s =>
-    `style(--reg: ${s.reg}): --rightShift(${s.result}, 8)`
-  );
-  dispatch.addMemWrite(0x83,
-    `if(style(--mod: 3): -1; style(--reg: 7): -1; else: calc(var(--ea) + 1))`,
-    `if(${memHiBranches.join('; ')}; else: 0)`,
-    `Group 83 → mem hi`);
-
-  const flagBranches = subOps.map(s =>
-    `style(--reg: ${s.reg}): ${s.flags}`
-  );
-  dispatch.addEntry('flags', 0x83,
-    `if(${flagBranches.join('; ')}; else: var(--__1flags))`,
-    `Group 83 flags`);
-
-  dispatch.addEntry('IP', 0x83,
-    `calc(var(--__1IP) + 2 + var(--modrmExtra) + 1)`,
-    `Group 83`);
+  emitGroupALU(dispatch, {
+    opcode: 0x83, subOps: aluSubOps(16, sext), w: 16, immLen: 1,
+    label: {
+      reg: (regName) => `Group 83 r/m16,sximm8 → ${regName}`,
+      memLo: `Group 83 → mem lo`,
+      memHi: `Group 83 → mem hi`,
+      flags: `Group 83 flags`,
+      ip: `Group 83`,
+    },
+  });
 }
 
 /**
@@ -414,9 +367,9 @@ export function emitGroup_FF(dispatch) {
     `if(` +
     `style(--reg: 0) and style(--mod: 3) and style(--rm: 4): --lowerBytes(calc(var(--rmVal16) + 1), 16); ` +
     `style(--reg: 1) and style(--mod: 3) and style(--rm: 4): --lowerBytes(calc(var(--rmVal16) - 1 + 65536), 16); ` +
-    `style(--reg: 2): --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16); ` +
-    `style(--reg: 3): --lowerBytes(calc(var(--__1SP) - 4 + 65536), 16); ` +
-    `style(--reg: 6): --lowerBytes(calc(var(--__1SP) - 2 + 65536), 16); ` +
+    `style(--reg: 2): ${spDecBy(2)}; ` +
+    `style(--reg: 3): ${spDecBy(4)}; ` +
+    `style(--reg: 6): ${spDecBy(2)}; ` +
     `else: var(--__1SP))`,
     `Group FF SP`);
 
@@ -435,16 +388,16 @@ export function emitGroup_FF(dispatch) {
   // CALL FAR indirect (reg=3): push CS (slots 0-1), push return IP (slots 2-3)
   // PUSH (reg=6): push the r/m value (slots 0-1)
 
-  const ssBase = `var(--__1SS) * 16`;
   const retIP = `calc(var(--__1IP) + var(--prefixLen) + 2 + var(--modrmExtra))`;
-  // Wrap SP-K to 16 bits before adding to SS*16 — same SP=0 wrap fix as
-  // stack.mjs / control.mjs. Critical when reg=2/3/6 (CALL/PUSH variants)
-  // pushes onto a fresh stack with SP=0, e.g. EDR-DOS exec'ing an .EXE
-  // whose header sets SP=0x0000 (DOOM8088 hits this).
-  const sa = (k) => `calc(${ssBase} + --lowerBytes(calc(var(--__1SP) - ${k} + 65536), 16))`;
+  // sa(k) wraps SP-K to 16 bits (see stack-addr.mjs). Critical when
+  // reg=2/3/6 (CALL/PUSH variants) pushes onto a fresh stack with SP=0,
+  // e.g. EDR-DOS exec'ing an .EXE whose header sets SP=0x0000 (DOOM8088
+  // hits this).
 
-  // Slot 0: INC/DEC mem lo, CALL near push lo, CALL FAR push CS lo, PUSH push lo
-  dispatch.addMemWrite(0xFF,
+  // Slot 0 (word): INC/DEC mem, CALL near push ret, CALL FAR push CS,
+  // PUSH push value. Address is a per-/reg dispatch; the un-split word
+  // value dispatches on the same /reg and the write side splits lo/hi.
+  dispatch.addMemWriteWord(0xFF,
     `if(` +
     `style(--mod: 3) and style(--reg: 0): -1; ` +
     `style(--mod: 3) and style(--reg: 1): -1; ` +
@@ -455,44 +408,19 @@ export function emitGroup_FF(dispatch) {
     `style(--reg: 6): ${sa(2)}; ` +
     `else: -1)`,
     `if(` +
-    `style(--reg: 0): --lowerBytes(calc(var(--rmVal16) + 1), 8); ` +
-    `style(--reg: 1): --lowerBytes(calc(var(--rmVal16) - 1 + 65536), 8); ` +
-    `style(--reg: 2): --lowerBytes(${retIP}, 8); ` +
-    `style(--reg: 3): --lowerBytes(var(--__1CS), 8); ` +
-    `style(--reg: 6): --lowerBytes(var(--rmVal16), 8); ` +
+    `style(--reg: 0): calc(var(--rmVal16) + 1); ` +
+    `style(--reg: 1): calc(var(--rmVal16) - 1 + 65536); ` +
+    `style(--reg: 2): ${retIP}; ` +
+    `style(--reg: 3): var(--__1CS); ` +
+    `style(--reg: 6): var(--rmVal16); ` +
     `else: 0)`,
-    `Group FF mem/push lo`);
+    `Group FF mem/push`);
 
-  // Slot 1: INC/DEC mem hi, CALL near push hi, CALL FAR push CS hi, PUSH push hi
-  dispatch.addMemWrite(0xFF,
-    `if(` +
-    `style(--mod: 3) and style(--reg: 0): -1; ` +
-    `style(--mod: 3) and style(--reg: 1): -1; ` +
-    `style(--reg: 0): calc(var(--ea) + 1); ` +
-    `style(--reg: 1): calc(var(--ea) + 1); ` +
-    `style(--reg: 2): ${sa(1)}; ` +
-    `style(--reg: 3): ${sa(1)}; ` +
-    `style(--reg: 6): ${sa(1)}; ` +
-    `else: -1)`,
-    `if(` +
-    `style(--reg: 0): --rightShift(--lowerBytes(calc(var(--rmVal16) + 1), 16), 8); ` +
-    `style(--reg: 1): --rightShift(--lowerBytes(calc(var(--rmVal16) - 1 + 65536), 16), 8); ` +
-    `style(--reg: 2): --rightShift(${retIP}, 8); ` +
-    `style(--reg: 3): --rightShift(var(--__1CS), 8); ` +
-    `style(--reg: 6): --rightShift(var(--rmVal16), 8); ` +
-    `else: 0)`,
-    `Group FF mem/push hi`);
-
-  // Slots 2-3: CALL FAR indirect push return IP (only reg=3 uses these)
-  dispatch.addMemWrite(0xFF,
+  // Slot 1 (word): CALL FAR indirect push return IP (only reg=3 uses it).
+  dispatch.addMemWriteWord(0xFF,
     `if(style(--reg: 3): ${sa(4)}; else: -1)`,
-    `if(style(--reg: 3): --lowerBytes(${retIP}, 8); else: 0)`,
-    `Group FF CALL FAR push IP lo`);
-
-  dispatch.addMemWrite(0xFF,
-    `if(style(--reg: 3): ${sa(3)}; else: -1)`,
-    `if(style(--reg: 3): --rightShift(${retIP}, 8); else: 0)`,
-    `Group FF CALL FAR push IP hi`);
+    `if(style(--reg: 3): ${retIP}; else: 0)`,
+    `Group FF CALL FAR push IP`);
 
   // Flags: INC/DEC set flags (preserving CF), others don't
   dispatch.addEntry('flags', 0xFF,
@@ -503,7 +431,7 @@ export function emitGroup_FF(dispatch) {
     `Group FF flags`);
 
   // IP: CALL near/JMP near use rmVal16, CALL FAR/JMP FAR also use rmVal16.
-  // rmVal16 is an absolute address — subtract prefixLen to cancel the
+  // rmVal16 is an absolute address - subtract prefixLen to cancel the
   // automatic calc(... + prefixLen) wrapper that emitRegisterDispatch adds.
   dispatch.addEntry('IP', 0xFF,
     `if(` +

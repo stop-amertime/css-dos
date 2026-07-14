@@ -1,5 +1,5 @@
 <script>
-  // How it works — the technical story, in reading order. Facts from
+  // How it works - the technical story, in reading order. Facts from
   // CABINET-ANATOMY.md (sizes, mechanisms) and real cabinet exhibits;
   // register and copy rules per ABOUT-SCRIPT.md.
   import '../styles/_fragments/about.css';
@@ -264,7 +264,7 @@
         that can touch it.
       </p>
       <pre class="byte-example"><code><span class="tok-prop">--AX</span>: if(
-  style(<span class="tok-prop">--_irqActive</span>: <span class="tok-num">1</span>): var(<span class="tok-prop">--snapshot-AX</span>);  <span class="tok-comment">/* interrupt pending — hardware outranks the program this tick */</span>
+  style(<span class="tok-prop">--_irqActive</span>: <span class="tok-num">1</span>): var(<span class="tok-prop">--snapshot-AX</span>);  <span class="tok-comment">/* interrupt pending - hardware outranks the program this tick */</span>
   else: if(
     style(<span class="tok-prop">--opcode</span>: <span class="tok-num">0</span>): &hellip;;    <span class="tok-comment">/* ADD, one flavour */</span>
     style(<span class="tok-prop">--opcode</span>: <span class="tok-num">1</span>): &hellip;;    <span class="tok-comment">/* ADD, another */</span>

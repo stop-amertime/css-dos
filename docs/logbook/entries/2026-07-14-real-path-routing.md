@@ -17,7 +17,7 @@ cart stays in the URL (`?cart=<id>`) through the rest of Build, and
 loading that URL directly pre-selects it once `serverCarts` loads.
 
 `vite.config.js` now emits `vercel.json` `rewrites` + `_redirects`
-(SPA fallback other hosts need) — required for direct loads/refresh
+(SPA fallback other hosts need) - required for direct loads/refresh
 on a deep path. Verified in dev + `vite preview` prod build via
 Playwright: pushState nav (no reload, distinct Analytics `[view]`
 events per route), skip-tag round-trip, cart deep-link pre-select,

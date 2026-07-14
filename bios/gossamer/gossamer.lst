@@ -1,9 +1,9 @@
-     1                                  ; gossamer.asm — Gossamer BIOS for CSS-DOS
+     1                                  ; gossamer.asm - Gossamer BIOS for CSS-DOS
      2                                  ; Loaded at F000:0000 (linear 0xF0000)
      3                                  ;
      4                                  ; CONSTRAINTS:
-     5                                  ; - No 0x0F-prefixed opcodes (near Jcc) — CSS emulator doesn't support them
-     6                                  ; - No segment override prefixes (0x26 ES:, 0x2E CS:, etc.) — treated as no-ops
+     5                                  ; - No 0x0F-prefixed opcodes (near Jcc) - CSS emulator doesn't support them
+     6                                  ; - No segment override prefixes (0x26 ES:, 0x2E CS:, etc.) - treated as no-ops
      7                                  ; - All memory access uses DS segment (the default)
      8                                  ; - For VGA access: set DS=0xB800, use [DI] addressing
      9                                  
@@ -11,7 +11,7 @@
     11                                  [org 0]
     12                                  
     13                                  ; ============================================================
-    14                                  ; INT 10h — Video Services  (offset 0)
+    14                                  ; INT 10h - Video Services  (offset 0)
     15                                  ; ============================================================
     16                                  int10h_handler:
     17 00000000 80FC0E                      cmp ah, 0x0E
@@ -170,11 +170,11 @@
    170                                      ; Only store modes we support; map anything else to 0x03.
    171 000000EA 3C13                        cmp al, 0x13
    172 000000EC 740E                        je .store_mode
-   173 000000EE 3C04                        cmp al, 0x04           ; CGA 320x200x4 — 16 KB aperture at B8000
+   173 000000EE 3C04                        cmp al, 0x04           ; CGA 320x200x4 - 16 KB aperture at B8000
    174 000000F0 740A                        je .store_mode
-   175 000000F2 3C05                        cmp al, 0x05           ; CGA 320x200x4 mono — same aperture, grey palette
+   175 000000F2 3C05                        cmp al, 0x05           ; CGA 320x200x4 mono - same aperture, grey palette
    176 000000F4 7406                        je .store_mode
-   177 000000F6 3C06                        cmp al, 0x06           ; CGA 640x200x2 hires mono — 1 bpp, same 16 KB aperture
+   177 000000F6 3C06                        cmp al, 0x06           ; CGA 640x200x2 hires mono - 1 bpp, same 16 KB aperture
    178 000000F8 7402                        je .store_mode
    179 000000FA B003                        mov al, 0x03
    180                                  .store_mode:
@@ -284,7 +284,7 @@
    284 0000019C CF                          iret
    285                                  
    286                                  ; ============================================================
-   287                                  ; scroll_up_one — all VGA access via DS=0xB800
+   287                                  ; scroll_up_one - all VGA access via DS=0xB800
    288                                  ; ============================================================
    289                                  scroll_up_one:
    290 0000019D 1E                          push ds
@@ -321,7 +321,7 @@
    321 000001CF C3                          ret
    322                                  
    323                                  ; ============================================================
-   324                                  ; INT 16h — Keyboard
+   324                                  ; INT 16h - Keyboard
    325                                  ; ============================================================
    326                                  int16h_handler:
    327 000001D0 80FC00                      cmp ah, 0x00
@@ -365,7 +365,7 @@
    365 0000020A CF                          iret
    366                                  
    367                                  ; ============================================================
-   368                                  ; INT 1Ah — Timer
+   368                                  ; INT 1Ah - Timer
    369                                  ; ============================================================
    370                                  int1ah_handler:
    371 0000020B 80FC00                      cmp ah, 0x00
@@ -385,7 +385,7 @@
    385 00000223 CF                          iret
    386                                  
    387                                  ; ============================================================
-   388                                  ; INT 21h — DOS
+   388                                  ; INT 21h - DOS
    389                                  ; ============================================================
    390                                  int21h_handler:
    391 00000224 80FC02                      cmp ah, 0x02
@@ -493,7 +493,7 @@
    493 000002B7 CF                          iret
    494                                  
    495                                  ; ============================================================
-   496                                  ; INT 20h — Halt
+   496                                  ; INT 20h - Halt
    497                                  ; ============================================================
    498                                  int20h_handler:
    499                                      ; Signal halt: write 1 to halt flag at DS:0x2110
@@ -511,8 +511,8 @@
    511                                  ; never go stale when code above them grows. (They DID go stale once:
    512                                  ; the hardcoded tables in kiln/memory.mjs + ref-machine.mjs pointed
    513                                  ; INT 16h into the middle of set-mode after the 2026-06 CGA/DAC work
-   514                                  ; shifted every handler by +0x7B — INT 16h "hung" in the DAC loop.)
-   515                                  ; Data only — never executed.
+   514                                  ; shifted every handler by +0x7B - INT 16h "hung" in the DAC loop.)
+   515                                  ; Data only - never executed.
    516                                  ; ============================================================
    517                                  ivt_gossamer_table:
    518 000002C5 49565447                    db 'IVTG'

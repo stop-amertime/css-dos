@@ -6,7 +6,7 @@ run of the same cart. Each reference emulator mirrors one BIOS flavor.
 | File | BIOS flavor | Used for |
 |---|---|---|
 | `ref-hack.mjs`    | Gossamer | .COM programs via the hack path. No DOS. |
-| `ref-corduroy.mjs`| Corduroy | (Future — will land when Corduroy stabilizes.) |
+| `ref-corduroy.mjs`| Corduroy | (Future - will land when Corduroy stabilizes.) |
 
 They share the same JS 8086 core (`tools/js8086.js`) and the
 peripheral/BIOS-handler shims in `tools/lib/`.

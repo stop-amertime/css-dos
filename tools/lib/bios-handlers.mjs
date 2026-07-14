@@ -52,7 +52,7 @@ export function createBiosHandlers(memory, pic, kbd, getRegs, setRegs) {
       const head = memory[BDA_BASE + 0x1A] | (memory[BDA_BASE + 0x1B] << 8);
       const tail = memory[BDA_BASE + 0x1C] | (memory[BDA_BASE + 0x1D] << 8);
       if (head === tail) {
-        // Buffer empty — rewind IP by 2 to re-execute INT 16h next step.
+        // Buffer empty - rewind IP by 2 to re-execute INT 16h next step.
         // This simulates the CSS μop 0 hold: the instruction keeps retrying
         // until the buffer is non-empty. Return true to prevent fallthrough
         // to gossamer's incompatible INT 16h handler.
@@ -74,10 +74,10 @@ export function createBiosHandlers(memory, pic, kbd, getRegs, setRegs) {
       const head = memory[BDA_BASE + 0x1A] | (memory[BDA_BASE + 0x1B] << 8);
       const tail = memory[BDA_BASE + 0x1C] | (memory[BDA_BASE + 0x1D] << 8);
       if (head === tail) {
-        // Empty — set ZF
+        // Empty - set ZF
         setRegs({ flags: regs.flags | 0x0040 });
       } else {
-        // Key available — clear ZF, peek into AX
+        // Key available - clear ZF, peek into AX
         const ascii = memory[BDA_BASE + head];
         const scancode = memory[BDA_BASE + head + 1];
         setRegs({ al: ascii, ah: scancode, flags: regs.flags & ~0x0040 });
@@ -227,12 +227,12 @@ export function createBiosHandlers(memory, pic, kbd, getRegs, setRegs) {
       return true;
     }
     if (regs.ah === 0x02) {
-      // Get RTC time — return 00:00:00, CF clear
+      // Get RTC time - return 00:00:00, CF clear
       setRegs({ ch: 0, cl: 0, dh: 0, dl: 0, flags: regs.flags & ~1 });
       return true;
     }
     if (regs.ah === 0x04) {
-      // Get RTC date — return 2025-01-01, CF clear
+      // Get RTC date - return 2025-01-01, CF clear
       setRegs({ ch: 0x20, cl: 0x25, dh: 0x01, dl: 0x01, flags: regs.flags & ~1 });
       return true;
     }
@@ -370,7 +370,7 @@ export function createBiosHandlers(memory, pic, kbd, getRegs, setRegs) {
     }
     if (regs.ah === 0xC0) {
       // System config table: AH=0, ES:BX=config_table, CF=0
-      // We don't have a config table in the ref emulator — just return success
+      // We don't have a config table in the ref emulator - just return success
       setRegs({ ah: 0, flags: regs.flags & ~0x0001 });
       return true;
     }
@@ -380,7 +380,7 @@ export function createBiosHandlers(memory, pic, kbd, getRegs, setRegs) {
   }
 
   function int19h() {
-    // Bootstrap halt — same as INT 20h
+    // Bootstrap halt - same as INT 20h
     memory[0x0504] = 1;
     const regs = getRegs();
     setRegs({ ip: regs.ip - 2 });
@@ -400,7 +400,7 @@ export function createBiosHandlers(memory, pic, kbd, getRegs, setRegs) {
       case 0x19: return int19h();
       case 0x1A: return int1ah();
       case 0x20: return int20h();
-      default: return true;  // swallow — ROM stubs contain D6 which js8086 can't execute
+      default: return true;  // swallow - ROM stubs contain D6 which js8086 can't execute
     }
   };
 }

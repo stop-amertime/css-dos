@@ -1,5 +1,5 @@
 <script>
-  // The disk — the baked-in floppy and the 512-byte window trick.
+  // The disk - the baked-in floppy and the 512-byte window trick.
   // Copy recycled from the retired "300 MB question" page; window
   // mechanism from EXPLAINER.md §8 / CABINET-ANATOMY.md §10–11.
   import Foldable from '../Foldable.svelte';

@@ -1,5 +1,5 @@
 <script>
-  // CssDemo — four small proofs that CSS really has the working parts
+  // CssDemo - four small proofs that CSS really has the working parts
   // of a programming language, stacked so none of them hides behind a
   // tab. The Function and Branching results are computed by REAL CSS
   // (@function / if() in css-demo.css), not JS.
@@ -80,14 +80,14 @@
     padding: 0;
   }
 
-  /* — CSS code-flicker demo — */
+  /* - CSS code-flicker demo - */
   .css-demo {
     border: 1px solid var(--edit-black);
     background: var(--edit-white);
     box-shadow: 4px 4px 0 var(--edit-black);
     margin: 12px 0;
   }
-  /* The four proofs are stacked (no tabs — nothing hides). Each gets a
+  /* The four proofs are stacked (no tabs - nothing hides). Each gets a
      thin labelled divider strip, then a panel: code left, live result
      right. */
   .css-demo-head {
@@ -138,7 +138,7 @@
     font-size: 16px;
   }
 
-  /* The Function panel's box is sized by a REAL custom @function — the same
+  /* The Function panel's box is sized by a REAL custom @function - the same
      kind of @function CSS-DOS itself uses (kiln/css-lib.mjs). If the browser
      doesn't support @function it falls back to the plain width below. */
   @function --double(--n) {
@@ -152,7 +152,7 @@
   }
 
   /* The Branching panel's box picks its colour with a REAL if(style())
-     conditional — the same construct CSS-DOS uses for its shift/branch
+     conditional - the same construct CSS-DOS uses for its shift/branch
      tables. #branch-toggle flips --on; falls back to red if if() is
      unsupported. */
   .css-demo-result .demo-box-branch {

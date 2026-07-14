@@ -9,24 +9,24 @@ real DOS software.
 Fallback for DOS carts. Corduroy is the default; pick Muslin with
 `"preset": "dos-muslin"` or `"bios": "muslin"` if Corduroy misbehaves
 for a specific cart. Note: INT 09h is stubbed and INT 08h doesn't EOI,
-so anything that relies on BIOS keyboard IRQ won't work here — use
+so anything that relies on BIOS keyboard IRQ won't work here - use
 Corduroy for those.
 
 ## What it implements
 
 - Full IVT + BDA initialization that drbio expects.
-- `INT 10h` — text-mode teletype, cursor, Mode 13h set/clear, AH=1Ah
+- `INT 10h` - text-mode teletype, cursor, Mode 13h set/clear, AH=1Ah
   display combination code.
-- `INT 13h` — floppy read via the rom-disk window at `D000:0000`. Rejects
+- `INT 13h` - floppy read via the rom-disk window at `D000:0000`. Rejects
   hard-disk calls (DL ≥ 0x80) with CF=1.
-- `INT 16h` — proper BDA ring buffer (head/tail at BDA 0x1A/0x1C).
-- `INT 1Ah` — auto-incrementing tick counter (workaround for no PIT yet).
-- `INT 08h`, `INT 09h`, `INT 11h`, `INT 12h`, `INT 15h`, `INT 19h` —
+- `INT 16h` - proper BDA ring buffer (head/tail at BDA 0x1A/0x1C).
+- `INT 1Ah` - auto-incrementing tick counter (workaround for no PIT yet).
+- `INT 08h`, `INT 09h`, `INT 11h`, `INT 12h`, `INT 15h`, `INT 19h` -
   stubs enough to satisfy the kernel's probes.
 
 ## Known gaps
 
-- No PIT timer (tracked — needs `--cycleCount`-driven countdown).
+- No PIT timer (tracked - needs `--cycleCount`-driven countdown).
 - No PIC-driven hardware IRQs beyond the one-shot keyboard path.
 - `INT 13h` is read-only (schema supports `disk.writable`, implementation
   doesn't yet).

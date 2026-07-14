@@ -1,5 +1,5 @@
 ; ==========================================================================
-; CSS-BIOS init stub — lives at F000:0000 in the BIOS ROM
+; CSS-BIOS init stub - lives at F000:0000 in the BIOS ROM
 ;
 ; Assembled with: nasm -f bin -o bios/init.bin bios/init.asm
 ;
@@ -49,7 +49,7 @@ BDA_CHARHT  equ 0x85    ; character height (2 bytes)
 %endmacro
 
 ; ==========================================================================
-; Entry point — CPU starts executing here (F000:0000)
+; Entry point - CPU starts executing here (F000:0000)
 ; ==========================================================================
 start:
     cli
@@ -62,7 +62,7 @@ start:
     mov  sp, 0x0100
 
     ; ------------------------------------------------------------------
-    ; Step 2: Clear VGA text screen — 2000 words of 0x0720
+    ; Step 2: Clear VGA text screen - 2000 words of 0x0720
     ; ------------------------------------------------------------------
     mov  ax, VGA_SEG
     mov  es, ax
@@ -255,13 +255,13 @@ str_boot:    db 'Booting DOS...', 0
 
 
 ; ==========================================================================
-; Dummy IRET — default handler for all unused interrupt vectors
+; Dummy IRET - default handler for all unused interrupt vectors
 ; ==========================================================================
 dummy_iret:
     iret
 
 
 ; ==========================================================================
-; STUB_BASE — D6 microcode stubs are appended here by generate-dos.mjs
+; STUB_BASE - D6 microcode stubs are appended here by generate-dos.mjs
 ; ==========================================================================
 STUB_BASE equ ($ - $$)

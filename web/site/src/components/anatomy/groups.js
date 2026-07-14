@@ -1,4 +1,4 @@
-// groups.js — the ten file sections of the cabinet carousel, plus
+// groups.js - the ten file sections of the cabinet carousel, plus
 // the drawn bar segments. Order = file order (of first appearance).
 // The carousel also has a 'map' overview page (router FILE_SECTIONS)
 // that isn't a file section and so isn't listed here.
@@ -13,7 +13,7 @@
 // bright green, screen = dark cyan. Keys and clock were light cyan
 // and bright yellow until 2026-07-12 (owner call): both were near
 // invisible as pane chrome on white, so keys is now forest green
-// and the clock gold — still the warmest, loudest thing on the bar
+// and the clock gold - still the warmest, loudest thing on the bar
 // without disappearing in the pane.
 export const GROUPS = [
   { id: 'util',    label: 'Bit & byte helpers',              size: '15 KB',  c: '#00aa00' },
@@ -28,13 +28,13 @@ export const GROUPS = [
   { id: 'clock',   label: 'Clock',                           size: '43 MB',  c: '#b8860b' },
 ];
 
-// The four sections too small to draw at bar scale — together
+// The four sections too small to draw at bar scale - together
 // ~327 KB, 0.1% of the file, under a pixel of a 680px bar. On the
 // bar they are one 2px sliver; the zoom box below expands them.
 export const TINY = ['util', 'cpu', 'chipset', 'keys'];
 
 // Drawn bar segments: file order, one segment per section (the
-// clock is contiguous since the 2026-07-10 kiln reorder — buffer
+// clock is contiguous since the 2026-07-10 kiln reorder - buffer
 // reads now sit beside the keyframes). px pre-computed for a 680px
 // bar (~2.19 px/MB) starting at x=12, after the 2px TINY sliver at
 // x=10. The 25 KB header comment before util is sub-pixel and has
@@ -48,7 +48,7 @@ export const SEGS = [
   { g: 'clock',  x: 594, w: 96  },  // buffer reads + keyframes
 ];
 
-// Zoom box segments: the TINY sliver expanded to a 240px box —
+// Zoom box segments: the TINY sliver expanded to a 240px box -
 // ~350× the bar's scale. Proportional to 15 / 307 / 19 / 3.7 KB,
 // except keys is held to a 6px minimum so it can be hovered and
 // clicked.

@@ -1,12 +1,12 @@
-# 2026-06-11 — doomLoad kernel characterised: FAT chain walk was the lion; 16K clusters cut doomLoad ticks 69%
+# 2026-06-11 - doomLoad kernel characterised: FAT chain walk was the lion; 16K clusters cut doomLoad ticks 69%
 
 Resolved the ~49% kernel share of doomLoad (2026-06-09 finding) to
 EDR-DOS routines by rebuilding the deployed kernel (rev `72ae65f`)
-with its linker map (see `reference/debugging-dos-kernel.md` —
+with its linker map (see `reference/debugging-dos-kernel.md` -
 the old checked-in map was from a FreeDOS-kernel era and is wrong).
 Per-symbol attribution of the load window: `fatptr` 21.4% of ALL
 doomLoad ticks, `div32` 6.5%, `fdosrw` 6.5%, `getblk` 5.9%,
-`locate_buffer` 5.1%, `getnblk` 2.1% — one causal chain: a FAT
+`locate_buffer` 5.1%, `getnblk` 2.1% - one causal chain: a FAT
 chain-step costs ~50 ticks (software div32 per entry), and EDR-DOS
 restarts the walk from cluster 1 on every backward seek. Doom8088
 runs `-noxms` (8086 has no XMS), so every lump load = fseek+fread

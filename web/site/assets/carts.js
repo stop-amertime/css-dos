@@ -1,4 +1,4 @@
-// carts.js — visual manifest for the cart-card grid on index.html.
+// carts.js - visual manifest for the cart-card grid on index.html.
 //
 // This file is purely cosmetic: cover art, description, and a palette for
 // the placeholder when no cover exists. The actual cart bytes are loaded
@@ -41,7 +41,7 @@ window.CARTS = [
     cover: '/assets/boxart/rogue.jpg',
   },
   {
-    // Synthetic card — not a folder under carts/. Selecting it surfaces the
+    // Synthetic card - not a folder under carts/. Selecting it surfaces the
     // custom file/folder upload panel. wizard.js special-cases id 'custom'.
     id: 'custom',
     name: 'Custom Program',

@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-// fulldiff.mjs — find the first tick where calcite's register/flag state
+// fulldiff.mjs - find the first tick where calcite's register/flag state
 // diverges from the JS reference emulator.
 //
 // Inputs:
-//   <cabinet.css>    — built with the new builder (sidecar .bios.bin etc)
-//   [--max-ticks=N]  — stop after this many ref-emulator steps (default 50k)
-//   [--skip=N]       — skip the first N ticks in the diff (for debugging
+//   <cabinet.css>    - built with the new builder (sidecar .bios.bin etc)
+//   [--max-ticks=N]  - stop after this many ref-emulator steps (default 50k)
+//   [--skip=N]       - skip the first N ticks in the diff (for debugging
 //                      past known-good boot)
-//   [--stop-at=all]  — by default stops at first divergence; 'all' keeps
+//   [--stop-at=all]  - by default stops at first divergence; 'all' keeps
 //                      going and summarises up to 20 per-register diffs.
 //
 // Outputs:
@@ -184,7 +184,7 @@ async function main() {
     log(`aligned ref CS=${hex(initialRegs.CS)} IP=${hex(initialRegs.IP)} SP=${hex(initialRegs.SP)} SS=${hex(initialRegs.SS)}`);
 
     // Turn on the ref's write log so we can cross-check memory writes
-    // against calcite on each step. Cheap — a few entries per step on average.
+    // against calcite on each step. Cheap - a few entries per step on average.
     ref.beginWriteLog();
 
     const summary = [];
@@ -194,8 +194,8 @@ async function main() {
     const t0 = performance.now();
 
     while (instr < flags.maxTicks) {
-      // On V4 calcite, every 8086 instruction — including REP-prefixed
-      // string ops regardless of CX — retires in exactly one calcite tick.
+      // On V4 calcite, every 8086 instruction - including REP-prefixed
+      // string ops regardless of CX - retires in exactly one calcite tick.
       // The ref emulator collapses REP to one step too, so the two are in
       // sync instruction-for-instruction. No special REP handling needed.
       const preR = ref.regs();
@@ -213,7 +213,7 @@ async function main() {
       const cs = await dbg.state();
       const calcR = calciteRegsToStandard(cs);
       // Check memory-write agreement. Only sample up to the first 8
-      // write addresses per step to keep the cost bounded — a REP STOSW
+      // write addresses per step to keep the cost bounded - a REP STOSW
       // that writes 64K would otherwise trigger 64K round trips.
       let memDivergence = null;
       if (writes.length > 0) {
@@ -221,7 +221,7 @@ async function main() {
         // dedupe addresses (STOS writes touch consecutive bytes)
         const addrs = [...new Set(sample.map(w => w.addr))];
         // Read each addr once from calcite to see what it actually holds.
-        // Run them serially via read_memory(addr, 1) — cheaper than
+        // Run them serially via read_memory(addr, 1) - cheaper than
         // pulling a big block because most divergences cluster locally.
         for (const addr of addrs) {
           const r = await dbg.memory(addr, 1);

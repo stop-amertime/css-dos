@@ -53,10 +53,10 @@ Validates. Rejects on first error, listing every error it found.
 
 Dispatches on `manifest.bios`:
 
-- **gossamer** — reads the pre-built `bios/gossamer/gossamer.bin`.
-- **muslin** — invokes NASM on `bios/muslin/muslin.asm`, parses the
+- **gossamer** - reads the pre-built `bios/gossamer/gossamer.bin`.
+- **muslin** - invokes NASM on `bios/muslin/muslin.asm`, parses the
   listing for `bios_init`'s offset.
-- **corduroy** — invokes `bios/corduroy/build.mjs`, which runs
+- **corduroy** - invokes `bios/corduroy/build.mjs`, which runs
   NASM + Watcom (`wcc`) + `wlink` to produce `bios.bin`. If the
   toolchain is missing, falls back to the prebaked
   `web/prebake/corduroy.bin` (same artifact the browser builder uses),
@@ -77,7 +77,7 @@ DOS carts only (skipped for hack).
 - Returns `{ bytes, layout }`.
 
 **FAT12 cluster cap.** `mkfat12` picks `sectorsPerCluster` based on
-total disk size so data clusters stay ≤ 4084 — above 4085, DOS
+total disk size so data clusters stay ≤ 4084 - above 4085, DOS
 auto-detects FAT16 and misreads our 12-bit FAT entries. SPC doubles
 from 1 until the constraint holds (hard cap 128). 1.44 MB and smaller
 disks get SPC=1; 2.88 MB disks get SPC=2. See
@@ -101,7 +101,7 @@ Kiln streams CSS to the output.
 ## Cabinet output
 
 Every cabinet starts with a header comment describing exactly what
-went into it — the resolved manifest, the disk layout, the BIOS
+went into it - the resolved manifest, the disk layout, the BIOS
 source, the build time. See the [cart format](cart-format.md#the-cabinet-header)
 for the exact shape.
 
@@ -121,15 +121,15 @@ Three options:
 
 ## Toolchain requirements
 
-- **Node.js** — the builder, Kiln, mkfat12, ref emulators.
-- **NASM** — for the Muslin and Corduroy BIOSes. Override the path
+- **Node.js** - the builder, Kiln, mkfat12, ref emulators.
+- **NASM** - for the Muslin and Corduroy BIOSes. Override the path
   via `NASM=` env var.
-- **OpenWatcom** — for the Corduroy BIOS only. See
+- **OpenWatcom** - for the Corduroy BIOS only. See
   `bios/corduroy/toolchain.env`.
 
 Gossamer ships pre-built, so a hack-cart build needs only Node.
 Corduroy builds also work without NASM/Watcom via the prebaked
-fallback (see stage 3 above) — you only need the toolchain when
+fallback (see stage 3 above) - you only need the toolchain when
 editing BIOS sources.
 
 ## Where intermediate artifacts go

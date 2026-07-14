@@ -1,4 +1,4 @@
-// tests/bench/profiles/msdos-boot.mjs — MS-DOS 4.00 boot-to-prompt bench.
+// tests/bench/profiles/msdos-boot.mjs - MS-DOS 4.00 boot-to-prompt bench.
 //
 // carts/msdos4 boots real MS-DOS 4.00 via the Corduroy INT 19h path
 // (MSBOOT -> MSLOAD -> IO.SYS -> MSDOS.SYS -> COMMAND.COM); AUTOEXEC.BAT
@@ -49,7 +49,7 @@ function bridgeRequest(bridge, msg, transfer = []) {
 
 export async function run(host) {
   if (!window.__bridgeWorker) {
-    throw new Error('no __bridgeWorker — page must spawn bridge first');
+    throw new Error('no __bridgeWorker - page must spawn bridge first');
   }
   const bridge = window.__bridgeWorker;
 
@@ -81,7 +81,7 @@ export async function run(host) {
   }
   host.log('banner reached');
 
-  // Per-phase wasm compile breakdown (parse/compile substeps) — the
+  // Per-phase wasm compile breakdown (parse/compile substeps) - the
   // bridge exposes engine.compile_phase_report() for exactly this.
   let phaseReport = null;
   try {

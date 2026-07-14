@@ -1,5 +1,5 @@
 <script>
-  // TickFlow — one tick as a flowchart (static). The ring of variables:
+  // TickFlow - one tick as a flowchart (static). The ring of variables:
   // IP → program bytes → opcode → register formulas + write slots →
   // memory formulas → a new IP. Around it, the animation, once per lap.
   // Spec: ABOUT-SCRIPT.md, "Where's the computer?".

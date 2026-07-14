@@ -1,5 +1,5 @@
 <script>
-  // CpuCoverage — all fourteen register tables as one grid: a mark
+  // CpuCoverage - all fourteen register tables as one grid: a mark
   // where that register's table has a row for that opcode. Data
   // measured from sokoban.css (cpu-coverage.js): 850 rows, 232
   // distinct opcodes. Static SVG.

@@ -133,7 +133,7 @@ function int09hEntries() {
 
   return {
     regEntries: [
-      // μop 4: EOI — clear the in-service bit for the handled IRQ
+      // μop 4: EOI - clear the in-service bit for the handled IRQ
       { reg: 'picInService', uOp: 4, expr: eoiExpr, comment: 'INT 09h: EOI' },
     ],
     memWrites: [
@@ -182,11 +182,11 @@ function int09hEntries() {
  *   μop 0: Hold if BDA buffer empty. When non-empty: AX = key word.
  *   μop 1: Write new head lo to BDA 0x041A
  *   μop 2: Write new head hi to BDA 0x041B
- *   μop 3: Folded IRET — pop IP+CS+FLAGS, SP += 6, retire
+ *   μop 3: Folded IRET - pop IP+CS+FLAGS, SP += 6, retire
  *
  * AH=01h (non-blocking peek):
  *   μop 0: AX = peek key word if non-empty. Compute ZF.
- *   μop 1: Folded IRET — pop IP+CS+FLAGS+ZF, SP += 6, retire
+ *   μop 1: Folded IRET - pop IP+CS+FLAGS+ZF, SP += 6, retire
  */
 function int16hEntries() {
   const q1 = ROUTINE_IDS.INT_16H;
@@ -282,11 +282,11 @@ function int16hEntries() {
  * AH=02h (set cursor position):
  *   μop 0: Write DL (col) to BDA 0x0450
  *   μop 1: Write DH (row) to BDA 0x0451
- *   μop 2: Folded IRET — pop IP+CS+FLAGS, SP += 6, retire
+ *   μop 2: Folded IRET - pop IP+CS+FLAGS, SP += 6, retire
  *
  * AH=03h (get cursor position):
  *   μop 0: DX = (row << 8) | col from BDA, CX = 0
- *   μop 1: Folded IRET — pop IP+CS+FLAGS, SP += 6, retire
+ *   μop 1: Folded IRET - pop IP+CS+FLAGS, SP += 6, retire
  *
  * AH=0Eh (teletype output):
  *   Handles control chars via --biosAL dispatch:
@@ -300,19 +300,19 @@ function int16hEntries() {
  *   μop 2: Write attribute 0x07 to VGA text buffer (suppressed for ctrl chars)
  *   μop 3: Write new cursor col to BDA 0x0450
  *   μop 4: Write new cursor row to BDA 0x0451
- *   μop 5: Folded IRET — pop IP+CS+FLAGS, SP += 6, retire
+ *   μop 5: Folded IRET - pop IP+CS+FLAGS, SP += 6, retire
  *
  * AH=0Fh (get video mode):
  *   μop 0: AX = (cols << 8) | mode, BX = BX & 0x00FF (clear BH)
- *   μop 1: Folded IRET — pop IP+CS+FLAGS, SP += 6, retire
+ *   μop 1: Folded IRET - pop IP+CS+FLAGS, SP += 6, retire
  *
  * AH=00h (set video mode):
  *   μop 0: Write mode (AL) to BDA 0x0449
  *   μop 1: Write cols to BDA 0x044A (80 for text, 40 for mode 13h)
  *   μop 2: Write cursor col=0 to BDA 0x0450
  *   μop 3: Write cursor row=0 to BDA 0x0451
- *   μop 4: Folded IRET — pop IP+CS+FLAGS, SP += 6, retire
- *   Note: screen clearing is omitted — the init stub already clears the screen,
+ *   μop 4: Folded IRET - pop IP+CS+FLAGS, SP += 6, retire
+ *   Note: screen clearing is omitted - the init stub already clears the screen,
  *   and a full clear would require thousands of μops (one per byte).
  */
 function int10hEntries() {
@@ -549,7 +549,7 @@ function int1ahEntries() {
         expr: `if(style(${AH}: 0): calc(var(--AH) * 256); else: var(--__1AX))`,
         comment: 'INT 1Ah AH=00h: AL=0 midnight' },
 
-      // μop 1: IRET — pop IP+CS+FLAGS, SP+=6 (retirement)
+      // μop 1: IRET - pop IP+CS+FLAGS, SP+=6 (retirement)
       { reg: 'IP', uOp: 1, expr: popIP, comment: 'INT 1Ah: IRET pop IP' },
       { reg: 'CS', uOp: 1, expr: popCS, comment: 'INT 1Ah: IRET pop CS' },
       // FLAGS: AH=00h uses normal (no CF change), AH=02h/04h clear CF
@@ -572,11 +572,11 @@ function int1ahEntries() {
 /**
  * INT 08h (Timer IRQ): increment BDA tick counter, call INT 1Ch hook, EOI.
  *
- * μop 0: Increment ticks_lo (BDA 0x046C) — write lo byte
+ * μop 0: Increment ticks_lo (BDA 0x046C) - write lo byte
  * μop 1: Write ticks_lo hi byte
  * μop 2: Write ticks_hi lo byte (BDA 0x046E)
  * μop 3: Write ticks_hi hi byte
- * μop 4: EOI, retire (no INT 1Ch hook — it's just IRET anyway)
+ * μop 4: EOI, retire (no INT 1Ch hook - it's just IRET anyway)
  */
 function int08hEntries() {
   const q1 = ROUTINE_IDS.INT_08H;
@@ -755,7 +755,7 @@ function int13hEntries() {
       //   Floppy AH=02h: AX=sectorCount (AH=0, AL=sectors read)
       //   Floppy AH=08h: AX=0 (AH=0 success)
       //   Floppy AH=15h: AX=256 (AH=01 floppy type)
-      //   Floppy AH=16h: AX=0 (AH=0 disk not changed) — but keep AL, so AX = AL
+      //   Floppy AH=16h: AX=0 (AH=0 disk not changed) - but keep AL, so AX = AL
       //   Hard disk AH=41h: AX=256 (AH=01 not supported)
       //   Hard disk AH=48h: AX=256 (AH=01 not supported)
       //   Hard disk AH=08h: AX=0 (AH=00)
@@ -801,7 +801,7 @@ function int13hEntries() {
         expr: `if(style(${AH}: 2): ${byteCount}; else: var(--__1biosCnt))`,
         comment: 'INT 13h AH=02h: biosCnt=AL*512' },
 
-      // μop 1: copy loop — advance src, dst, dec cnt
+      // μop 1: copy loop - advance src, dst, dec cnt
       { reg: 'biosSrc', uOp: 1,
         expr: `if(style(${AH}: 2): calc(var(--__1biosSrc) + 1); else: var(--__1biosSrc))`,
         comment: 'INT 13h: biosSrc++' },
@@ -865,7 +865,7 @@ function int13hEntries() {
         comment: 'INT 13h AH=02h: IRET SP+=6' },
     ],
     memWrites: [
-      // μop 1: AH=02h copy loop — write readMem(biosSrc) to biosDst
+      // μop 1: AH=02h copy loop - write readMem(biosSrc) to biosDst
       { uOp: 1,
         addr: `if(style(${AH}: 2): var(--__1biosDst); else: -1)`,
         val: `--readMem(var(--__1biosSrc))`,

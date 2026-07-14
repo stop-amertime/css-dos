@@ -6,7 +6,7 @@
   if (!cpu) return;
   const el = document.createElement('div');
   el.style.cssText = 'position:fixed;top:4px;right:4px;background:#000;color:#0f0;padding:4px 8px;font:12px/1.2 monospace;z-index:99;border:1px solid #0f0';
-  el.textContent = '— Hz';
+  el.textContent = '- Hz';
   document.body.appendChild(el);
   function read() {
     return parseInt(getComputedStyle(cpu).getPropertyValue('--__1cycleCount') || '0', 10);

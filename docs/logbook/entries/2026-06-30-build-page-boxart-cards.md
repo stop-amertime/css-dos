@@ -20,7 +20,7 @@ Changes:
   name/desc. Selected cart's name (header) + blurb now live in one
   `#cart-detail` box below the grid.
 - **Selection = thick green border** (`outline 4px #1faa1f` +
-  matching shadow), not the old black fill — black blended into the
+  matching shadow), not the old black fill - black blended into the
   card borders.
 - **Custom card** carries its text inside the cover (dashed border,
   muted `#ededed` fill, `+` glyph + name + blurb) instead of the

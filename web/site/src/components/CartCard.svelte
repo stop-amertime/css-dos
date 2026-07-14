@@ -1,7 +1,7 @@
 <script>
   // One cart card: cover art (with placeholder fallback) + name/desc. A
   // cart without a cover (or with a broken cover image) falls back to its
-  // display.bullets text card — "NAME with: <list>" on the accent colour.
+  // display.bullets text card - "NAME with: <list>" on the accent colour.
   // Cover wins when both are declared.
   let { cart, selected, onpick } = $props();
   let broken = $state(false);
@@ -40,7 +40,7 @@
 </div>
 
 <style>
-  /* No frame — the boxart is the card. Hard offset shadow, same DOS
+  /* No frame - the boxart is the card. Hard offset shadow, same DOS
      idiom as .custom-panel. */
   .cart-card {
     background: var(--edit-white);
@@ -94,7 +94,7 @@
     line-height: 14px;
     opacity: 0.75;
   }
-  /* Custom card — no box art. Dashed border + muted fill, with the "Load your
+  /* Custom card - no box art. Dashed border + muted fill, with the "Load your
      own program" prompt living inside the cover. */
   .cart-cover-custom {
     border: 2px dashed #8a8a8a;
@@ -122,7 +122,7 @@
     color: #555;
   }
 
-  /* Text card — a featured cart with no box art (display.bullets):
+  /* Text card - a featured cart with no box art (display.bullets):
      "NAME with: <list>" in white on the cart's accent colour
      (dos-shell: near-black), set in the machine's own font. */
   .cart-cover-text {

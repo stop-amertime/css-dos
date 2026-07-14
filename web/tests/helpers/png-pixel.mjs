@@ -1,4 +1,4 @@
-// Decode the centre pixel of a small non-interlaced 8-bit PNG — the
+// Decode the centre pixel of a small non-interlaced 8-bit PNG - the
 // shape Playwright element screenshots produce. Just enough decoder
 // for tests that assert one pixel's colour (e.g. the hold lamp);
 // not a general PNG library.

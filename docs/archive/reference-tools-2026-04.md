@@ -16,7 +16,7 @@ Not in PATH. Used to assemble test `.asm` files and the BIOS init stub.
 
 Available for browser automation to run generated HTML/CSS in Chrome and
 extract register state. Prefer Calcite traces and reference emulator
-comparison — Playwright is slow and a last resort.
+comparison - Playwright is slow and a last resort.
 
 ## Calcite tools
 

@@ -18,13 +18,13 @@ refined or corrected. Seven commits.
 - **Dead/broken scripts.** Deleted orphan `tests/harness/fb-pack-diff.mjs`
   and bit-rotted `conformance/ref-muslin.mjs` (assembled a BIOS now in
   `legacy/`, read a never-committed `dos/disk.img`, contradicted its
-  README) — README fixed to point full-DOS conformance at
+  README) - README fixed to point full-DOS conformance at
   `pipeline.mjs fulldiff`.
 - **Stale cart refs.** `web/site/assets/carts.js` stopped advertising
   deleted carts (digger/lemmings/montezuma) + fixed `rogue`→`rogue1_0`;
   `tests/bench/lib/artifacts.mjs` dropped montezuma + mis-pathed
   hello-text registrations. (Found `carts/sokoban` has files but no
-  `program.json` while the manifest lists it — spun off as a task.)
+  `program.json` while the manifest lists it - spun off as a task.)
 - **Noisy dev docs.** Gitignored `docs/benches/` (48 raw JSONs, kept on
   disk); removed AI-agent-prompt + session-handoff cruft from
   `docs/archive/`, kept the INDEX-vouched dated design specs.

@@ -1,4 +1,4 @@
-# 2026-06-16 — Phase 0: Doom ingame is dispatch-bound, not memory-bound; compiler road is viable
+# 2026-06-16 - Phase 0: Doom ingame is dispatch-bound, not memory-bound; compiler road is viable
 
 **FINDING.** Settles whether codegen can beat the interpreter on Doom8088
 ingame, before reviving the archived compiler road. The v2 wasm rewrite
@@ -26,9 +26,9 @@ unrolled ≤16×**. Per body iteration: **2 memory reads** (texture xlat +
 colormap ss:xlat) + **4 memory writes** (2× stosw) + **~5 trivial ALU**.
 
 ## Diagnosis question
-Interpreter does ~3µs/tick. Is that the real work (memory — unfixable) or
+Interpreter does ~3µs/tick. Is that the real work (memory - unfixable) or
 dispatch/plumbing (~678 interpreted ops/tick to execute one guest
-instruction — removable by codegen)?
+instruction - removable by codegen)?
 
 ## Results (probes in `tmp/phase0/`, run 2026-06-16)
 
@@ -38,31 +38,31 @@ over 3 memory backends, 300M bodies):
 | memory backend | t/s | ×vs 333K native | ×vs 207K browser |
 |---|--:|--:|--:|
 | flat array (= wasm linear memory) | 8.33 B | 25,020 | 40,249 |
-| flat + presence-check (v2 "Step 2b") | 8.51 B | — | — |
+| flat + presence-check (v2 "Step 2b") | 8.51 B | - | - |
 | **hashmap per access** (pessimistic) | **198 M** | **595** | **957** |
 
 → Even a hashmap-per-access backend is **595× the interpreter**. The work
-is trivial (ns). The interpreter's cost is **not memory** — it is dispatch.
+is trivial (ns). The interpreter's cost is **not memory** - it is dispatch.
 
 **B. Browser engine** (`coldraw_v8.mjs`, V8/Node, same loop over a
 Uint8Array = wasm linear memory): **2.39 B t/s = 11,564× the browser
-interpreter.** Headroom holds in the browser, not just native — closes
+interpreter.** Headroom holds in the browser, not just native - closes
 v2's "browser never tested" caveat.
 
 **C. Interpret vs compile, identical work** (`dispatch_probe.rs`, native;
-a match-dispatch interpreter walking the *measured* 678-ops/tick profile —
-LoadSlot 28% / LoadLit 8% / dispatch-chain / few mem — vs the taken path as
+a match-dispatch interpreter walking the *measured* 678-ops/tick profile -
+LoadSlot 28% / LoadLit 8% / dispatch-chain / few mem - vs the taken path as
 straight-line code, 2M ticks):
 
 ```
 INTERP  (678 ops/tick via match): 825,418 t/s   (1.79 ns/op)
 CODEGEN (straight-line taken path): 701,016,474 t/s
-speedup: 849×   (model interp = 2.48× of real 333K — same order, sane)
+speedup: 849×   (model interp = 2.48× of real 333K - same order, sane)
 ```
 
 → 849× is the **ceiling** (codegen folds 678-op plumbing → ~15 real ops).
-The **floor** — compiling the 678 ops as-is, no folding, per-op cost
-1.79ns→~0.4ns — is **~4.5×**. Realistic codegen sits between; both clear
+The **floor** - compiling the 678 ops as-is, no folding, per-op cost
+1.79ns→~0.4ns - is **~4.5×**. Realistic codegen sits between; both clear
 the 3×-viable / 10×-commit gates.
 
 ## Why v2 lost 45× despite this headroom
@@ -73,18 +73,18 @@ Two architecture mistakes, both fixable, neither fundamental:
 2. **v2's wasm crossed a wasmtime host boundary per memory read.** Flat
    linear memory = one `i32.load`, zero crossings (probe A proves it). v2
    also tried lifting RAM into linear memory and reverted it (−19%) because
-   its per-read presence-check cost > savings — probe A(c) shows a *plain*
+   its per-read presence-check cost > savings - probe A(c) shows a *plain*
    flat read is free; the presence-check was the regression, not flatness.
 
 ## Verdict
 **GO.** Ingame is dispatch-bound; codegen of a flat-memory, zero-crossing
 op stream recovers the overhead. The winning shape is to **codegen the v1
 branch-skipping op stream → wasm, slots + guest memory in flat linear
-memory** — NOT v2's whole-tick DAG walker.
+memory** - NOT v2's whole-tick DAG walker.
 
 **Caveats.** (1) Numbers are the *hot region*; whole-frame ingame gain is
 Amdahl-bounded by the column-drawer's share of a frame (dominant in
-rendering, not 100%) — realistically a ~5–15× whole-game multiple, ~1 fps →
+rendering, not 100%) - realistically a ~5–15× whole-game multiple, ~1 fps →
 ~5–15 fps. (2) Probes model the ideal compiled form (the Phase-0 mandate:
 "what the compiler would emit if it understood this region perfectly"); a
 real generic codegen captures the floor nearly for free, the ceiling only

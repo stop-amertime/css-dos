@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// profile-doom-load.mjs — produce a flame-graph-shaped breakdown of where
+// profile-doom-load.mjs - produce a flame-graph-shaped breakdown of where
 // CPU time goes during Doom8088's level load, by stepping the reference
 // JS 8086 emulator (~2M instr/s, in-process) and hooking every CALL/RET.
 //
 // Why this instead of running calcite + REP_DIAG: calcite at ~7 MHz takes
 // ~1 wall minute to reach in-game; under the web player the same trip is
 // many minutes. The reference is ~10-30x faster, deterministic, and easy
-// to instrument. The CPU work being profiled is CSS-DOS-independent — what
+// to instrument. The CPU work being profiled is CSS-DOS-independent - what
 // happens on the reference is what calcite has to execute eventually.
 //
 // What we profile: from boot to a configurable instruction budget. The
@@ -16,7 +16,7 @@
 // demo's level-load is captured.
 //
 // Output: top N CALL sites by self time and inclusive time, with caller
-// distribution. CS:IP keys are reported raw — we don't have a .map file
+// distribution. CS:IP keys are reported raw - we don't have a .map file
 // yet (Doom8088 release zip doesn't ship one). To resolve, build
 // Doom8088 from source with -Wl,-Map=doom.map and the symbolicate flow
 // can be added later.
@@ -54,7 +54,7 @@ const trueCallSites = new Map(); // calleeKey -> Map(callerKey -> count)
 // 8086 opcode classification.
 // CALL: E8 (near rel16), 9A (far ptr16:16), FF /2 (near r/m16), FF /3 (far m16:16).
 // RET:  C2/C3 (near, with/without imm16 pop), CA/CB (far, with/without imm16),
-//        CF (IRET — far ret + flags pop).
+//        CF (IRET - far ret + flags pop).
 // We classify BEFORE the step (peek the opcode bytes), then take regs
 // AFTER the step (so the post-step CS:IP is the callee entry / caller
 // resume). For FF we have to peek the modrm byte too.
@@ -99,7 +99,7 @@ function classify(cs, ip) {
 }
 
 // --- accumulator tables ---
-// Per call-site (keyed by callee CS:IP — the function entry point), track:
+// Per call-site (keyed by callee CS:IP - the function entry point), track:
 //   calls         : number of times entered
 //   selfInstr     : sum of (instr executed inside this frame minus child inclusive)
 //   inclusiveInstr: sum of (instr from CALL to matching RET)
@@ -138,7 +138,7 @@ let recordingStartedAt = 0;
 
 // trueCalleeTargets is populated after the main pass; on the first pass we
 // stash pre-step regs only when needed. To avoid two passes, we record
-// pre-step regs on every step (cheap — Map lookups dominate the work
+// pre-step regs on every step (cheap - Map lookups dominate the work
 // anyway) and only consult them at RET-aggregation time.
 let preCS = 0, preIP = 0;
 
@@ -195,7 +195,7 @@ while (instrCount < totalInstr) {
     bumpStats(f.calleeKey, fields);
     // Propagate inclusive up to parent's child-time so its self gets reduced.
     if (stack.length > 0) stack[stack.length - 1].childInclusive += inclusive;
-    // else: drop on the floor — bottomFrameKey is just a tag, we don't
+    // else: drop on the floor - bottomFrameKey is just a tag, we don't
     // accumulate self time for it (it's the recording-start frame which by
     // definition we entered without seeing a CALL).
   }
@@ -265,8 +265,8 @@ for (const r of byInc) {
 }
 
 // --- true call-site report (--callers=N) ---
-// The "top callers" column in the existing reports is by *frame* — the
-// enclosing calleeKey at the moment of CALL — which is misleading because
+// The "top callers" column in the existing reports is by *frame* - the
+// enclosing calleeKey at the moment of CALL - which is misleading because
 // it points at the outer function entry rather than the byte address of
 // the actual CALL instruction. This report shows the latter, generated
 // from the pre-step CS:IP we record on each step.
@@ -290,7 +290,7 @@ if (callersN > 0) {
 }
 
 // --- byte dump of top sites for symbolication ---
-// We don't have a .map for the released DOOM.EXE — gcc-ia16 build, no
+// We don't have a .map for the released DOOM.EXE - gcc-ia16 build, no
 // debug info shipped. Print 64 raw bytes at each hot CS:IP plus any
 // printable ASCII in a +/-128-byte window (libgcc helpers don't have
 // strings, but neighbouring gcc-emitted functions often do, which lets

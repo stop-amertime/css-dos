@@ -35,7 +35,7 @@
   .step-strip {
     display: flex;
     list-style: none;
-    /* Transparent: the strip sits on .wiz-head's ▒-textured band —
+    /* Transparent: the strip sits on .wiz-head's ▒-textured band -
        no hairline borders (band edges are texture changes now). */
     background: none;
     padding: 0;
@@ -55,10 +55,10 @@
   }
   .step-strip li .num { color: var(--edit-red); margin-right: 4px; }
   /* The CURRENT tab goes transparent so the band's ▒ texture shows
-     through — pressed into the chrome — while the inactive tabs wear a
+     through - pressed into the chrome - while the inactive tabs wear a
      DARKER dither of the same weave, sitting further back (owner call
      2026-07-10: all tabs dithered, current lightest, not flat-vs-
-     dithered). Cyan stays off the strip — CTAs and subdots only. */
+     dithered). Cyan stays off the strip - CTAs and subdots only. */
   .step-strip li {
     background: conic-gradient(#666 90deg, #0000 90deg 180deg,
                 #666 180deg 270deg, #0000 270deg) 0 0 / 4px 4px,
@@ -68,7 +68,7 @@
     background: none;
     color: var(--edit-black);
   }
-  /* TUI-style angle brackets on the current tab — a cheap, authentic
+  /* TUI-style angle brackets on the current tab - a cheap, authentic
      touch (BIOS setup / Turbo Vision menu highlight). Pseudo-elements
      so they don't touch the flex layout or push the label. */
   .step-strip li.current::before,
@@ -77,7 +77,7 @@
   }
   .step-strip li.current::before { content: '\2039 '; }
   .step-strip li.current::after { content: ' \203a'; }
-  /* Fade the tab's CONTENT, not the li — an opacity on the li would
+  /* Fade the tab's CONTENT, not the li - an opacity on the li would
      drag the tooltip ::after below down with it (child opacity can't
      exceed the parent's). */
   .step-strip li.disabled { cursor: not-allowed; }
@@ -128,7 +128,7 @@
     gap: 6px;
     font-size: 16px;
     line-height: 16px;
-    /* Black, not dimmed grey — #666 was illegible on the dithered
+    /* Black, not dimmed grey - #666 was illegible on the dithered
        band. The white current chip still marks the selection. */
     color: var(--edit-black);
     cursor: pointer;
@@ -140,7 +140,7 @@
     text-overflow: ellipsis;
   }
   .subdots li .dot { flex: none; }
-  /* Flat squares — no outline, no shadow (clutter at 10px). The
+  /* Flat squares - no outline, no shadow (clutter at 10px). The
      current chip below keeps its blocky shadow; it's button-sized. */
   .subdots li .dot {
     width: 10px; height: 10px;
@@ -162,14 +162,14 @@
 
   @media (max-width: 900px) {
     /* Strip cells shrink + ellipsize instead of forcing the row wider than
-       the viewport (min-width:0 releases the flex min-content floor — this is
+       the viewport (min-width:0 releases the flex min-content floor - this is
        what fixes the horizontal-overflow bug). */
     .step-strip li {
       min-width: 0;
       padding: 4px 4px;
       font-size: 17px;
     }
-    /* Ellipsize the label span, NOT the li — overflow:hidden on the li
+    /* Ellipsize the label span, NOT the li - overflow:hidden on the li
        would clip the locked-tab tooltip ::after. */
     .step-strip li .lbl {
       display: inline-block;

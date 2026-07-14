@@ -30,14 +30,14 @@
 //
 // Cells referenced by a mode the cart never enters may be unmapped
 // (e.g. no CGA aperture): the var() resolves invalid, poisoning only
-// the locals of that mode's arm — the arm selected by --vidMode still
+// the locals of that mode's arm - the arm selected by --vidMode still
 // paints correctly, and an arm fed invalid cells degrades to black
 // (proven in tests/harness/pixels-render.playwright.mjs).
 //
 // This is CSS-DOS PLATFORM knowledge (VRAM geometry, DAC layout, CGA
 // palette register) living in the EMITTER, exactly where
 // memory.mjs/patterns/misc.mjs already keep VGA/DAC knowledge.
-// Calcite sees only integer cells and background-color rules — the
+// Calcite sees only integer cells and background-color rules - the
 // cardinal rule is untouched.
 
 import { cellIdxOf, DAC_LINEAR } from './memory.mjs';
@@ -48,7 +48,7 @@ const VRAM_CGA = 0xB8000;     // CGA 2-plane aperture (modes 4/5/6)
 const MODE_ADDR = 0x449;      // BDA current video mode byte
 const CGA_PAL_ADDR = 0x4F3;   // kiln shadow of OUT 0x3D9 (palette reg)
 
-// Fixed VGA 16-colour palette — same values as VGA_PALETTE_U32 in
+// Fixed VGA 16-colour palette - same values as VGA_PALETTE_U32 in
 // web/shim/video-modes.mjs.
 const VGA16 = [
   [0, 0, 0], [0, 0, 170], [0, 170, 0], [0, 170, 170],
@@ -70,7 +70,7 @@ function font() {
   if (!fontBytes) {
     fontBytes = Uint8Array.from(atob(FONT_B64), c => c.charCodeAt(0));
     if (fontBytes.length !== 2048) {
-      throw new Error(`embedded cga-8x8 font size ${fontBytes.length} !== 2048 — FONT_B64 is corrupt`);
+      throw new Error(`embedded cga-8x8 font size ${fontBytes.length} !== 2048 - FONT_B64 is corrupt`);
     }
   }
   return fontBytes;
@@ -91,6 +91,16 @@ function dacChannel8(entry, channel) {
   return `round(${cellByteExpr(DAC_LINEAR + entry * 3 + channel)} * 255 / 63)`;
 }
 
+// Shared envelope for the three lookup @functions: a single <integer>
+// argument style()-dispatch table with a fallback else arm.
+function emitLookupFn(name, param, returnType, arms, fallback) {
+  return `@function --${name}(${param} <integer>) returns ${returnType} {
+  result: if(
+${arms.join('\n')}
+    else: ${fallback});
+}`;
+}
+
 // Shared 256-arm palette function: index -> rgb() from the live DAC.
 // Written once; re-evaluated per call site (per pixel) with its --idx.
 function emitPaletteFunction() {
@@ -99,11 +109,7 @@ function emitPaletteFunction() {
     const rgb = `rgb(${dacChannel8(e, 0)} ${dacChannel8(e, 1)} ${dacChannel8(e, 2)})`;
     arms.push(`    style(--idx: ${e}): ${rgb};`);
   }
-  return `@function --paletteRGB(--idx <integer>) returns <color> {
-  result: if(
-${arms.join('\n')}
-    else: rgb(0 0 0));
-}`;
+  return emitLookupFn('paletteRGB', '--idx', '<color>', arms, 'rgb(0 0 0)');
 }
 
 // Fixed 16-colour palette for text and CGA modes.
@@ -113,11 +119,7 @@ function emitVga16Function() {
     const [r, g, b] = VGA16[e];
     arms.push(`    style(--i: ${e}): rgb(${r} ${g} ${b});`);
   }
-  return `@function --vgaRGB(--i <integer>) returns <color> {
-  result: if(
-${arms.join('\n')}
-    else: rgb(0 0 0));
-}`;
+  return emitLookupFn('vgaRGB', '--i', '<color>', arms, 'rgb(0 0 0)');
 }
 
 // Glyph-row lookup: --k = char * 8 + row -> font byte (bit 7 =
@@ -128,11 +130,7 @@ function emitFontFunction() {
   for (let k = 0; k < 2048; k++) {
     if (f[k] !== 0) arms.push(`    style(--k: ${k}): ${f[k]};`);
   }
-  return `@function --fontRow(--k <integer>) returns <integer> {
-  result: if(
-${arms.join('\n')}
-    else: 0);
-}`;
+  return emitLookupFn('fontRow', '--k', '<integer>', arms, '0');
 }
 
 // Text/CGA colour selection. style() queries only work against typed
@@ -234,13 +232,13 @@ export function emitPixelPaintRules({ width = 320, height = 200 } = {}) {
   const count = width * height;
   lines.push('/* --- pixel rules --- */');
   for (let i = 0; i < count; i++) {
-    const x = i % width, y = (i - (i % width)) / width;
+    const x = i % width, y = Math.floor(i / width);
     // CGA aperture byte: even scanlines at +0, odd at +0x2000; 80
     // bytes per scanline, 4 pixels per byte. Mode 6 subsamples even
     // source columns, which lands on the same byte with the mode-4
-    // divisor doubled — so one byte read serves modes 4, 5 and 6.
-    const cga = cellByteExpr(VRAM_CGA + (y % 2) * 0x2000 + ((y - (y % 2)) / 2) * 80 + (x >> 2));
-    // Text cell word (char lo, attr hi — always cell-aligned).
+    // divisor doubled - so one byte read serves modes 4, 5 and 6.
+    const cga = cellByteExpr(VRAM_CGA + (y % 2) * 0x2000 + Math.floor(y / 2) * 80 + (x >> 2));
+    // Text cell word (char lo, attr hi - always cell-aligned).
     const t40 = cellIdxOf(VRAM_TEXT + ((y >> 3) * 40 + (x >> 3)) * 2);
     const t80 = cellIdxOf(VRAM_TEXT + ((y >> 3) * 80 + (x >> 2)) * 2);
     const gy = y % 8;

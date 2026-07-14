@@ -1,4 +1,4 @@
-// tests/bench/profiles/doom-loading.mjs — doom8088 boot-to-loading bench.
+// tests/bench/profiles/doom-loading.mjs - doom8088 boot-to-loading bench.
 //
 // Canonical boot-to-in-game wall-time measurement. Drives the
 // calcite bridge worker via
@@ -14,7 +14,7 @@
 //   stage_ingame:     _g_gamestate==0
 //
 // All compose from the generic script primitives (cond, halt, stride,
-// pattern@…) — no upstream-aware predicates in calcite. The doom8088
+// pattern@…) - no upstream-aware predicates in calcite. The doom8088
 // addresses live HERE in the profile, where they belong (consumer side).
 
 const ADDR_GAMESTATE  = 0x3a3c4;
@@ -34,7 +34,7 @@ const TEXT_VRAM_BYTES = 4000;
 // "engine just started" from "level loaded").
 // Doom8088 won't progress past title or main menu without keyboard
 // input. The cabinet's `--keyboard` handler edge-detects make/break,
-// so a single `setvar=keyboard,KEY` isn't enough — we need press/
+// so a single `setvar=keyboard,KEY` isn't enough - we need press/
 // release cycles. The new `setvar_pulse=NAME,VALUE,HOLD_TICKS` action
 // handles that: writes VALUE now, schedules write-of-0 HOLD_TICKS
 // later (calcite-core's WatchRegistry tracks pending releases and
@@ -108,7 +108,7 @@ export async function run(host) {
   // The bench page (page/index.html) spawns the bridge worker and
   // exposes it as window.__bridgeWorker before importing this profile.
   if (!window.__bridgeWorker) {
-    throw new Error('no __bridgeWorker — page must spawn bridge first');
+    throw new Error('no __bridgeWorker - page must spawn bridge first');
   }
   const bridge = window.__bridgeWorker;
 

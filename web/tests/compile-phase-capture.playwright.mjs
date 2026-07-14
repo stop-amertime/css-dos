@@ -3,13 +3,13 @@
 // Loads the bench compile-only page, waits for compile-done, then pulls
 // calcite's recorded phase timings via the bridge's 'phase-report'
 // message (CalciteEngine::compile_phase_report). This exists because the
-// engine's [compile phase] log lines are invisible in the browser —
-// worker console output doesn't reach the host page — and attaching a
+// engine's [compile phase] log lines are invisible in the browser -
+// worker console output doesn't reach the host page - and attaching a
 // CDP console listener distorts the very timing you're measuring
 // (~+12 s on a 30 s compile when this was first built, 2026-06-12).
 //
 // NOT a benchmark (use tests/bench/driver/run.mjs compile-only for
-// comparable compileMs numbers) — this is for finding out WHERE a slow
+// comparable compileMs numbers) - this is for finding out WHERE a slow
 // compile spends its time. Needs the dev server:
 //   npm run dev                         (Vite, default port 5173)
 //   node web/tests/compile-phase-capture.playwright.mjs [port]
@@ -20,7 +20,7 @@ try {
   pw = await import('playwright');
 } catch {
   const dir = process.env.PLAYWRIGHT_DIR;
-  if (!dir) throw new Error('playwright not found — install it or set PLAYWRIGHT_DIR');
+  if (!dir) throw new Error('playwright not found - install it or set PLAYWRIGHT_DIR');
   const fallback = new URL('index.js', `file:///${dir.replace(/\\/g, '/')}/`).href;
   pw = (await import(fallback)).default ?? (await import(fallback));
 }

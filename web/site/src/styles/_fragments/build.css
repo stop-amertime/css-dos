@@ -1,4 +1,4 @@
-/* build.css — the Build step (STEP 2) container bits. Carved verbatim from
+/* build.css - the Build step (STEP 2) container bits. Carved verbatim from
    assets/wizard.css and assets/site.css.
 
    Progress-bar internals (.build-progress .bar / fill / meta / log and the
@@ -14,7 +14,7 @@
    rules are carved here. */
 
 /* ===== Build-step intro ===== */
-/* The intro shares the cart grid's centred 680px column — without the
+/* The intro shares the cart grid's centred 680px column - without the
    cap it hugged the window's left edge while the grid centred, and the
    text read as flowing off to the left (owner, 2026-07-13). */
 .build-intro { margin-bottom: 20px; max-width: 680px; margin-inline: auto; }
@@ -31,7 +31,7 @@
 }
 
 /* Build step's own sub-pages (pick / configure+build / cabinet ready) sit
-   directly in the reading flow — no per-block border/header chrome, same
+   directly in the reading flow - no per-block border/header chrome, same
    as Learn's sub-pages. */
 .subpage[data-build-subpage] { margin-top: 4px; }
 
@@ -47,7 +47,7 @@
   padding: 10px 24px;
 }
 
-/* ===== machine row — IBM PC photo + specs + advanced ===== */
+/* ===== machine row - IBM PC photo + specs + advanced ===== */
 /* Flex, not a fixed grid: the photo is capped to a sensible width and the
    specs column takes the rest, wrapping under the photo only when the row
    gets too narrow to hold both. */
@@ -95,7 +95,7 @@
   vertical-align: top;
 }
 .spec-table th {
-  /* Not blue — blue is the action colour (Build button / primary), and a
+  /* Not blue - blue is the action colour (Build button / primary), and a
      blue label column read as clickable. A neutral dark band instead. */
   background: #333;
   color: var(--edit-white);
@@ -104,7 +104,7 @@
 }
 .spec-table td { background: var(--edit-white); }
 
-/* "Configuration" fold — themed on top of the shared .foldable
+/* "Configuration" fold - themed on top of the shared .foldable
    (foldable.css). Gray body to match the surrounding config panel. */
 .foldable.advanced { margin-top: 8px; }
 .foldable.advanced .fold-body { background: var(--edit-gray); padding: 14px 12px; }
@@ -142,7 +142,7 @@
    build-progress.css) ===== */
 #build-progress-wrap { margin-top: 12px; }
 
-/* ===== result row — tiny floppy on the left, the green "✓ CSS file
+/* ===== result row - tiny floppy on the left, the green "✓ CSS file
    built" success line and the optional-download link to its right.
    Deliberately low-profile (no box chrome) so the tall source viewer
    below gets the vertical room. ===== */
@@ -166,15 +166,15 @@
 .result-ok { color: var(--edit-green); }
 .result-tick { margin-right: 2px; }
 /* min-width:0 lets the info column shrink below its content's min-content
-   width (the download line is long) instead of forcing the flex row —
-   and the whole window — wider than a phone viewport. */
+   width (the download line is long) instead of forcing the flex row -
+   and the whole window - wider than a phone viewport. */
 .result-info { min-width: 0; }
 .result-info h3 {
   font-size: 20px;
   line-height: 20px;
   margin: 0 0 6px;
 }
-/* The download is optional/secondary — a plain link, not a primary button,
+/* The download is optional/secondary - a plain link, not a primary button,
    so it doesn't compete with the "Play" action on the next step. */
 .result-dl {
   background: none;
@@ -194,7 +194,7 @@
 /* ===== Result section links (from site.css) ===== */
 #result .row a.btn { color: var(--edit-black); }
 
-/* ===== Source viewer — terminal black/green, like a `TYPE` redirect.
+/* ===== Source viewer - terminal black/green, like a `TYPE` redirect.
    One centred pager line ("Source Code: « Prev : Page [1] of N : Next »"),
    then a tall source box that fills the space. ===== */
 .pager-controls {
@@ -220,7 +220,7 @@
   font-size: 16px;
   line-height: 16px;
 }
-/* Compact inline pager buttons — not the big shadowed dialog .btn. */
+/* Compact inline pager buttons - not the big shadowed dialog .btn. */
 .pager-btn {
   background: var(--edit-white);
   color: var(--edit-black);

@@ -4,14 +4,14 @@ Reference documentation for CSS-DOS: what the EDR-DOS kernel does during boot,
 what BIOS services it calls, and what our CSS-BIOS must provide.
 
 Sources:
-- `../edrdos/drbio/init.asm` — early BIOS init, device driver chain, IVT save
-- `../edrdos/drbio/biosinit.asm` — main BIOS init sequence, DOS data setup, CONFIG.SYS
-- `../edrdos/drbio/config.asm` — CONFIG.SYS processing, DDSC/LDT setup
-- `../edrdos/drbio/genercfg.asm` — CONFIG.SYS file reading and command dispatch
-- `../edrdos/drdos/header.asm` — DOS (PCMODE) data segment, List of Lists, NUL device
-- `../edrdos/drbio/f52data.def` — List of Lists field offsets
-- `../edrdos/drbio/fdos.equ` — DDSC (DPB), BCB, directory entry structures
-- `../edrdos/drbio/udsc.equ` — Unit Descriptor (physical drive info)
+- `../edrdos/drbio/init.asm` - early BIOS init, device driver chain, IVT save
+- `../edrdos/drbio/biosinit.asm` - main BIOS init sequence, DOS data setup, CONFIG.SYS
+- `../edrdos/drbio/config.asm` - CONFIG.SYS processing, DDSC/LDT setup
+- `../edrdos/drbio/genercfg.asm` - CONFIG.SYS file reading and command dispatch
+- `../edrdos/drdos/header.asm` - DOS (PCMODE) data segment, List of Lists, NUL device
+- `../edrdos/drbio/f52data.def` - List of Lists field offsets
+- `../edrdos/drbio/fdos.equ` - DDSC (DPB), BCB, directory entry structures
+- `../edrdos/drbio/udsc.equ` - Unit Descriptor (physical drive info)
 - Ralf Brown's Interrupt List (canonical reference for INT interfaces)
 
 ---
@@ -41,11 +41,11 @@ that and directly set up the minimum state the kernel needs.
 
 **Steps (in order):**
 
-1. **CLI** — disable interrupts
-2. **Stack setup** — SS:SP = 0030:0100 (linear 0x400, just below BDA)
-3. **Clear VGA text screen** — 2000 words of 0x0720 to B800:0000
-4. **Default all 256 IVT entries** — point to `dummy_iret` in BIOS ROM
-5. **Override 11 IVT entries** — point to D6 microcode stubs:
+1. **CLI** - disable interrupts
+2. **Stack setup** - SS:SP = 0030:0100 (linear 0x400, just below BDA)
+3. **Clear VGA text screen** - 2000 words of 0x0720 to B800:0000
+4. **Default all 256 IVT entries** - point to `dummy_iret` in BIOS ROM
+5. **Override 11 IVT entries** - point to D6 microcode stubs:
    - INT 08h (timer), INT 09h (keyboard IRQ), INT 10h (video)
    - INT 11h (equipment), INT 12h (memory size), INT 13h (disk)
    - INT 15h (system services), INT 16h (keyboard input)
@@ -60,9 +60,9 @@ that and directly set up the minimum state the kernel needs.
    - Cursor shape `[0x60]` = 0x0607
    - CRT port `[0x63]` = 0x03D4
    - Rows-1 `[0x84]` = 24, char height `[0x85]` = 16
-7. **Write boot splash** — direct VGA text writes (no INT 10h calls)
-8. **Set cursor** — BDA `[0x50]` = (col=0, row=8)
-9. **Jump to kernel** — `jmp 0060:0000` with BL=0 (boot drive A:), DS=0
+7. **Write boot splash** - direct VGA text writes (no INT 10h calls)
+8. **Set cursor** - BDA `[0x50]` = (col=0, row=8)
+9. **Jump to kernel** - `jmp 0060:0000` with BL=0 (boot drive A:), DS=0
 
 **Critical: the kernel entry contract:**
 - CS:IP = 0060:0000
@@ -70,7 +70,7 @@ that and directly set up the minimum state the kernel needs.
 - DS:BP → boot sector BPB (for hidden sectors detection)
   - **Gap**: our init stub sets DS=0 and doesn't provide a BPB. The kernel's
     `init0` pushes `ds:1eh[bp]` and `ds:1ch[bp]` (BPB hidden sectors). With
-    DS=0 and BP undefined, this reads garbage from the IVT — but since we
+    DS=0 and BP undefined, this reads garbage from the IVT - but since we
     only boot from floppy (DL=0), the `detect_boot_drv` code path that uses
     `part_off` is skipped for floppies.
 
@@ -78,11 +78,11 @@ that and directly set up the minimum state the kernel needs.
 
 ## 3. Phase 1: Kernel Early Init (`init.asm`)
 
-### 3.1 `init0` — Decompression and Relocation
+### 3.1 `init0` - Decompression and Relocation
 
 Entry: the kernel file is loaded at some segment (60h or 70h depending on
 loader protocol). `init0` runs from within the deblocking buffer area (first
-512 bytes of the CODE segment) — this area is reused later.
+512 bytes of the CODE segment) - this area is reused later.
 
 Steps:
 1. Fix up A20Enable to a RET instruction
@@ -94,7 +94,7 @@ Steps:
 6. Copy kernel to TEMP_RELOC_SEG, decompress if compressed
 7. Far jump to `init1` at BIO_SEG (70h)
 
-### 3.2 `init1` — Hardware Queries
+### 3.2 `init1` - Hardware Queries
 
 This is where the kernel makes its first BIOS INT calls. Entry state: DS=CS=70h,
 DL=physical boot drive.
@@ -103,8 +103,8 @@ DL=physical boot drive.
 
 | Step | INT | AH | Registers | Purpose | Expected Return |
 |------|-----|----|-----------|---------|-----------------|
-| 1 | INT 15h | 88h | — | Get extended memory size | AX=KB of extended mem; CF=1 if unsupported |
-| 2 | INT 12h | — | — | Get conventional memory size | AX=KB (e.g. 640) |
+| 1 | INT 15h | 88h | - | Get extended memory size | AX=KB of extended mem; CF=1 if unsupported |
+| 2 | INT 12h | - | - | Get conventional memory size | AX=KB (e.g. 640) |
 | 3 | INT 10h | 0Eh | AL=char, BX=7 | TTY output (version string) | (display only) |
 | 4 | INT 15h | 41h,00h | BX=0 | Check BIOS resume mode support | CF=1 → not supported |
 
@@ -142,7 +142,7 @@ Exit:  CF=1 if not supported
 If supported, the kernel hooks INT 6Ch for resume handling. We return CF=1
 (default behavior for unrecognized AH values). ✅ Works via default path.
 
-### 3.3 `init1` — Device Driver Chain Setup
+### 3.3 `init1` - Device Driver Chain Setup
 
 After BIOS queries, `init1` sets up the resident device driver chain:
 
@@ -170,14 +170,14 @@ Entry to `biosinit`:
 Steps:
 1. Set up stack at CS:stack
 2. Save bios_seg = CS
-3. **RPL (Remote Program Loader) check** — reads INT 2Fh vector, calls AX=4A06h
+3. **RPL (Remote Program Loader) check** - reads INT 2Fh vector, calls AX=4A06h
    if "RPL" signature found. This is irrelevant for CSS-DOS.
 4. Calculate `mem_max` = mem_size - MOVE_DOWN
-5. **Relocate BIOS code** — copy RCODE/ICODE segments to high memory
-6. **Move BDOS** — if single-file kernel, copy BDOS to `dos_cseg`
+5. **Relocate BIOS code** - copy RCODE/ICODE segments to high memory
+6. **Move BDOS** - if single-file kernel, copy BDOS to `dos_cseg`
 7. **Relocate biosinit itself** to top of memory, far-return to `relocated_init`
 
-### 4.2 `relocated_init` — Main Sequence
+### 4.2 `relocated_init` - Main Sequence
 
 After relocation, the main sequence is:
 
@@ -232,7 +232,7 @@ After pcmode_init returns, biosinit continues to Phase 3.
 
 ## 5. Phase 3: CONFIG.SYS and Shell Exec
 
-### 5.1 `config_start` — Pre-CONFIG Setup
+### 5.1 `config_start` - Pre-CONFIG Setup
 
 This is where the kernel starts making INT 21h calls. The DOS is now alive.
 
@@ -241,9 +241,9 @@ This is where the kernel starts making INT 21h calls. The DOS is now alive.
 | Step | INT 21h AH | Registers | Purpose |
 |------|------------|-----------|---------|
 | 1 | 50h (Set PSP) | BX=PSP seg | Tell DOS where our PSP is. **Must be first INT 21h call.** |
-| 2 | 3306h (Get True Version) | — | Get DOS version number |
-| 3 | 4458h (DRDOS internal) | — | Get DRDOS internal data pointer |
-| 4 | 5200h (Get List of Lists) | — | Get pointer to internal DOS data in ES:BX |
+| 2 | 3306h (Get True Version) | - | Get DOS version number |
+| 3 | 4458h (DRDOS internal) | - | Get DRDOS internal data pointer |
+| 4 | 5200h (Get List of Lists) | - | Get pointer to internal DOS data in ES:BX |
 | 5 | 48h (Allocate Memory) | BX=FFFFh | Get max available block size |
 | 6 | 48h (Allocate Memory) | BX=max | Allocate all available memory |
 | 7 | 0Eh (Select Drive) | DL=init_drv | Set default drive to boot drive |
@@ -253,7 +253,7 @@ This is where the kernel starts making INT 21h calls. The DOS is now alive.
 | 11 | 46h (Force Dup) | BX=handle,CX=target | Duplicate to STDOUT, STDERR |
 | 12 | 3Eh (Close File) | BX=handle | Close AUX initial handle |
 
-### 5.2 `config` — CONFIG.SYS Processing
+### 5.2 `config` - CONFIG.SYS Processing
 
 **INT 21h calls during CONFIG.SYS:**
 
@@ -261,7 +261,7 @@ This is where the kernel starts making INT 21h calls. The DOS is now alive.
 |------------|-----------|---------|
 | 6507h | BX=FFFFh, CX=5, DX=FFFFh | Get DBCS lead byte table pointer |
 | 3800h | DS:DX=buffer | Get current country information |
-| 0Dh | — | Disk reset (before bus master checks) |
+| 0Dh | - | Disk reset (before bus master checks) |
 | 0Eh | DL=drive | Get current drive |
 | 32h | DL=3 | Get DPB for drive C: |
 | 3Dh+80h | DS:DX="DCONFIG.SYS" | Open DCONFIG.SYS (try first) |
@@ -273,7 +273,7 @@ This is where the kernel starts making INT 21h calls. The DOS is now alive.
 | 4Ah | ES=segment, BX=size | Resize memory block |
 | 58h,01 | BL=strategy | Set memory allocation strategy |
 | 09h | DS:DX=string | Display string (status messages) |
-| 01h/08h | — | Read character (for F5/F8 prompts) |
+| 01h/08h | - | Read character (for F5/F8 prompts) |
 | 02h | DL=char | Write character (echo) |
 
 **BIOS INT calls during CONFIG.SYS:**
@@ -290,29 +290,29 @@ This is where the kernel starts making INT 21h calls. The DOS is now alive.
 | INT 10h | 02h | Set cursor position (COLOUR mode, backspace) |
 | INT 2Fh | varies | Multiplex (STACKER, DBLSPACE, MemMAX checks) |
 
-### 5.3 `config_end` — Post-CONFIG Cleanup
+### 5.3 `config_end` - Post-CONFIG Cleanup
 
 | INT 21h AH | Registers | Purpose |
 |------------|-----------|---------|
 | 4Ah | ES=mem_base, BX=used | Shrink memory allocation |
-| 62h (Get PSP) | — | Get current PSP |
+| 62h (Get PSP) | - | Get current PSP |
 | 3Eh (Close) | BX=0..N | Close all inherited handles |
 | 3Dh (Open) | DS:DX="AUX" | Re-open standard devices |
 | 3Dh (Open) | DS:DX="CON" | Re-open CON (STDIN/STDOUT/STDERR) |
 | 46h (Dup2) | various | Force dup to standard handles |
 | 3Dh (Open) | DS:DX="PRN" | Open PRN device (STDPRN) |
 
-### 5.4 `dos_r70` — Final Steps and EXEC
+### 5.4 `dos_r70` - Final Steps and EXEC
 
 | INT 21h AH | Registers | Purpose |
 |------------|-----------|---------|
 | 3Dh+02h | DS:DX="$IDLE$" | Open IDLE device |
-| 4458h | — | Get DRDOS internal data |
+| 4458h | - | Get DRDOS internal data |
 | 4403h | BX=handle | IOCTL write to IDLE device |
 | 3Eh | BX=handle | Close IDLE device |
 | 58h,01 | BL=03h,BH=0 | Set memory strategy (unlink UMBs) |
 | 60h (Expand Path) | DS:SI=shell name | Expand SHELL= filename to absolute path |
-| 4Bh,00h (EXEC) | DS:DX=shell, ES:BX=params | **EXEC COMMAND.COM** — this is where the boot completes |
+| 4Bh,00h (EXEC) | DS:DX=shell, ES:BX=params | **EXEC COMMAND.COM** - this is where the boot completes |
 
 If EXEC fails:
 | INT 21h AH | Registers | Purpose |
@@ -337,7 +337,7 @@ ES:BX).
 | -0Ch | WORD | net_retry | 3 | Network retry count |
 | -0Ah | WORD | net_delay | 1 | Network delay count |
 | -08h | DWORD | bcb_root | FFFF:FFFF | Current disk buffer pointer |
-| -04h | WORD | — | 0 | Unread CON input |
+| -04h | WORD | - | 0 | Unread CON input |
 | -02h | WORD | dmd_root | 0 | Root of MCB chain (segment) |
 | +00h | DWORD | ddsc_ptr | FFFF:FFFF | First DDSC (DPB) in chain |
 | +04h | DWORD | file_ptr | → msdos_file_tbl | System File Table head |
@@ -347,21 +347,21 @@ ES:BX).
 | +12h | DWORD | buf_ptr | → buf_info | Disk buffer info |
 | +16h | DWORD | ldt_ptr | 0:0 | LDT (CDS) array |
 | +1Ah | DWORD | fcb_ptr | → dummy_fcbs | FCB table |
-| +1Eh | WORD | — | 0 | Unknown |
+| +1Eh | WORD | - | 0 | Unknown |
 | +20h | BYTE | phys_drv | 0 | Number of physical drives |
 | +21h | BYTE | last_drv | 0 | LASTDRIVE |
 | +22h | DWORD | dev_root → nul_device | | Device driver chain head (NUL device) |
 | +34h | BYTE | join_drv | 0 | Number of JOINed drives |
 | +37h | DWORD | setverPtr | 0:0 | SETVER table |
-| +3Fh | WORD | — | 1 | Number of disk buffers |
-| +41h | WORD | — | 1 | Read-ahead buffer size |
+| +3Fh | WORD | - | 1 | Number of disk buffers |
+| +41h | WORD | - | 1 | Read-ahead buffer size |
 | +43h | BYTE | bootDrv | 0 | Boot drive (1=A:, 2=B:, 3=C:) |
 | +44h | BYTE | cpu_type | 0 | 1 if >= 386 |
 | +45h | WORD | ext_mem | 0 | Extended memory (from INT 15h AH=88h) |
 | +63h | BYTE | dmd_upper_link | 0 | Upper memory link flag |
 | +66h | WORD | dmd_upper_root | FFFFh | Upper memory MCB chain |
 
-### 6.2 `pcmode_init` — What It Does
+### 6.2 `pcmode_init` - What It Does
 
 Called from `biosinit` via `call dword ptr cs:dos_init`.
 
@@ -374,7 +374,7 @@ Entry: AX=mem_size, BX=free_seg, DL=init_drv, DS=dos_dseg, ES=int_stubs_seg
 5. Fix up INT 30h (CALL 5 entry point) as a JMP FAR
 6. Save BIOS INT 2Fh handler address
 7. Fix up instance data segment pointers
-8. Call `pcmode_reinit` — sets up codeSeg, hash tables, internal variable fixups
+8. Call `pcmode_reinit` - sets up codeSeg, hash tables, internal variable fixups
 9. Set up first MCB: `dmd_root` = free_seg, DMD_ID='Z' (last), DMD_PSP=0 (free),
    DMD_LEN = mem_size - free_seg - 1
 
@@ -528,13 +528,13 @@ Allocated during `setup_buffers` based on BUFFERS= setting (default 3 or 5).
 0x00400-0x004FF  BDA
 0x00600-0x0XXXX  Resident BIOS (may be relocated to HMA if HIDOS)
   [DOS data segment, possibly relocated]
-  [DDSCs — possibly relocated to UMB/HMA]
-  [LDT array — LASTDRIVE entries]
-  [SFT — FILES= entries]
-  [Disk buffers — BUFFERS= entries]
-  [Stacks — STACKS= entries]
+  [DDSCs - possibly relocated to UMB/HMA]
+  [LDT array - LASTDRIVE entries]
+  [SFT - FILES= entries]
+  [Disk buffers - BUFFERS= entries]
+  [Stacks - STACKS= entries]
   [Loaded device drivers from CONFIG.SYS]
-  [DOS code — relocated down or to HMA]
+  [DOS code - relocated down or to HMA]
   [First free MCB]
   ... (free memory)
   [mem_size]       Top of conventional memory
@@ -542,7 +542,7 @@ Allocated during `setup_buffers` based on BUFFERS= setting (default 3 or 5).
 
 ---
 
-## 9. What Our BIOS Must Provide — Gap Analysis
+## 9. What Our BIOS Must Provide - Gap Analysis
 
 ### 9.1 How the Kernel's Own BIOS Layer Helps
 
@@ -555,18 +555,18 @@ what the external BIOS (our CSS microcode) must provide.
 - If non-zero (COLOUR active): uses INT 10h AH=09h, 03h, 02h, 06h
 - If zero (default): falls through to `INT 10h AH=0Eh`
 
-**`col_mode` defaults to `db 0, 7, 0`** — byte 0 is zero, so the COLOUR
+**`col_mode` defaults to `db 0, 7, 0`** - byte 0 is zero, so the COLOUR
 code path is never taken unless the user adds `COLOUR=` to CONFIG.SYS.
 This means **INT 10h AH=09h and AH=06h are never called during boot**.
 
 **Disk I/O path**: INT 13h calls from the disk driver go through `Int13Trap`
 (in init.asm), which saves AX, calls the actual BIOS INT 13h handler, and
 handles DMA errors internally. The kernel never calls INT 13h directly for
-file I/O — that goes through INT 21h → DOS → device driver → Int13Trap → BIOS.
+file I/O - that goes through INT 21h → DOS → device driver → Int13Trap → BIOS.
 
 **INT 2Fh**: The kernel hooks INT 2Fh early via `Int2FTrap`. All multiplex
 calls (RPL, STACKER, DBLSPACE, MemMAX) are internal. Our dummy IRET handler
-is sufficient — the kernel gracefully handles no response.
+is sufficient - the kernel gracefully handles no response.
 
 ### 9.2 Complete BIOS INT Call Table
 
@@ -575,15 +575,15 @@ that triggers it:
 
 | INT | AH | Caller | Input | Expected Output | Status |
 |-----|----|--------|-------|-----------------|--------|
-| **INT 10h** | 00h | (not called during boot) | — | — | N/A |
+| **INT 10h** | 00h | (not called during boot) | - | - | N/A |
 | | 02h | (COLOUR path only) | BH=page, DH=row, DL=col | BDA updated | ✅ but not reached |
 | | 03h | (COLOUR path only) | BH=page | DH=row, DL=col, CX=shape | ✅ but not reached |
 | | 06h | (COLOUR path only) | AL=lines, BH=attr, CX=UL, DX=LR | VGA scroll | ❌ but not reached |
 | | 09h | (COLOUR path only) | AL=char, BH=page, BL=attr, CX=count | VGA write | ❌ but not reached |
 | | 0Eh | init1:output_msg, FastConsole | AL=char, BH=page, BL=7 | VGA write, cursor advance | ✅ CR/LF/BS/BEL |
-| | 0Fh | (not called during boot) | — | — | ✅ |
-| **INT 11h** | — | init1 | — | AX=equipment word | ✅ |
-| **INT 12h** | — | init1 | — | AX=KB (640) | ✅ |
+| | 0Fh | (not called during boot) | - | - | ✅ |
+| **INT 11h** | - | init1 | - | AX=equipment word | ✅ |
+| **INT 12h** | - | init1 | - | AX=KB (640) | ✅ |
 | **INT 13h** | 00h | disk driver init | DL=drive | AH=0, CF=0 | ✅ |
 | | 02h | disk driver (sector read) | DL,ES:BX,CX,DH,AL | CF=0, AL=count | ✅ |
 | | 08h | disk driver init | DL=drive | CX,DX,BL geometry | ✅ (ES:DI not needed) |
@@ -592,31 +592,31 @@ that triggers it:
 | | 41h | disk driver init | DL=80h+ | CF=1 | ✅ |
 | | 48h | disk driver init | DL=80h+ | CF=1 | ✅ |
 | **INT 15h** | 41h | init1 (resume check) | BX=0 | CF=1 | ✅ (default path) |
-| | 88h | init1 | — | AX=0 | ✅ |
-| | 4Fh | (not called during boot) | — | — | ✅ |
-| | C0h | (not called during boot) | — | — | ✅ |
-| **INT 16h** | 00h | option_key (F5/F8 read) | — | AH=scan, AL=ASCII | ✅ |
-| | 01h | option_key (keyboard poll) | — | ZF=1 if empty | ✅ |
-| | 02h | get_boot_options (shift check) | — | AL=shift flags | ✅ |
-| **INT 1Ah** | 00h | option_key (timeout) | — | CX:DX=ticks | ✅ reads BDA |
-| **INT 08h** | — | PIT IRQ (hardware) | — | BDA ticks++, EOI | ✅ |
-| **INT 09h** | — | keyboard IRQ (hardware) | — | key→BDA buffer, EOI | ✅ |
-| **INT 19h** | — | (not called during boot) | — | — | ✅ |
-| **INT 20h** | — | (not called during boot) | — | — | ✅ |
+| | 88h | init1 | - | AX=0 | ✅ |
+| | 4Fh | (not called during boot) | - | - | ✅ |
+| | C0h | (not called during boot) | - | - | ✅ |
+| **INT 16h** | 00h | option_key (F5/F8 read) | - | AH=scan, AL=ASCII | ✅ |
+| | 01h | option_key (keyboard poll) | - | ZF=1 if empty | ✅ |
+| | 02h | get_boot_options (shift check) | - | AL=shift flags | ✅ |
+| **INT 1Ah** | 00h | option_key (timeout) | - | CX:DX=ticks | ✅ reads BDA |
+| **INT 08h** | - | PIT IRQ (hardware) | - | BDA ticks++, EOI | ✅ |
+| **INT 09h** | - | keyboard IRQ (hardware) | - | key→BDA buffer, EOI | ✅ |
+| **INT 19h** | - | (not called during boot) | - | - | ✅ |
+| **INT 20h** | - | (not called during boot) | - | - | ✅ |
 
 ### 9.3 Actual Gaps
 
-**FIXED: INT 1Ah AH=00h** — now reads BDA tick counter (0x046C/0x046E).
+**FIXED: INT 1Ah AH=00h** - now reads BDA tick counter (0x046C/0x046E).
 However, the F5/F8 polling loop still blocks boot because the PIT is not
 programmed and IRQ 0 is masked, so the BDA ticks never advance via INT 08h.
 Fixing this requires: PIT programming in init.asm, pit.mjs reload=0→65536
 handling, PIC unmasking, and INT 08h/09h IRET. See logbook for details on
 a failed attempt at this.
 
-**FIXED: INT 10h AH=0Eh** — now handles CR/LF/BS/BEL via `--biosAL` dispatch.
+**FIXED: INT 10h AH=0Eh** - now handles CR/LF/BS/BEL via `--biosAL` dispatch.
 Control chars suppress VGA writes and update cursor position correctly.
 
-**PREDICTED NEXT BLOCKER: PIT/PIC/IRET** — the F5/F8 key polling loop in
+**PREDICTED NEXT BLOCKER: PIT/PIC/IRET** - the F5/F8 key polling loop in
 `biosinit.asm:option_key` polls INT 1Ah in a loop (not yet verified that
 the kernel reaches this point without hitting other bugs first):
 
@@ -637,7 +637,7 @@ option_key10:
 INT 1Ah now correctly reads BDA ticks, but the ticks will stay at 0 because:
 1. PIT channel 0 is not programmed (no OUT to ports 0x43/0x40)
 2. IRQ 0 is masked in the PIC (picMask=0xFF)
-3. INT 08h/09h handlers don't IRET (observed during a failed PIT attempt —
+3. INT 08h/09h handlers don't IRET (observed during a failed PIT attempt -
    they skip the D6 sentinel but don't pop IP/CS/FLAGS from the stack)
 
 Previously this section described the INT 10h CR/LF issue:
@@ -672,7 +672,7 @@ sets the BDA video mode directly.
 
 ## 10. Critical Boot Path Summary
 
-The minimum viable boot path — what must work for CONFIG.SYS processing
+The minimum viable boot path - what must work for CONFIG.SYS processing
 to complete and COMMAND.COM to EXEC:
 
 | Step | What happens | BIOS calls | Status |
@@ -690,6 +690,6 @@ to complete and COMMAND.COM to EXEC:
 | 11 | COMMAND.COM EXEC | INT 21h AH=4Bh → DOS | ✅ |
 
 **Bottom line: INT 1Ah and INT 10h are fixed. The predicted next blocker
-is step 10 — the PIT must fire INT 08h to advance BDA ticks so the F5/F8
+is step 10 - the PIT must fire INT 08h to advance BDA ticks so the F5/F8
 timeout loop exits. Not yet verified that the kernel reaches step 10
 without hitting other bugs.**

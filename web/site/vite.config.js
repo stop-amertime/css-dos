@@ -23,9 +23,9 @@ const calciteRoot = process.env.CALCITE_REPO
 
 // DEV: serve the runtime files off disk at their URL paths (same paths prod
 // copies into dist/), plus the dev-only surfaces and endpoints that used to
-// live in the retired web/scripts/dev.mjs — Vite is the ONE dev server:
+// live in the retired web/scripts/dev.mjs - Vite is the ONE dev server:
 //   - RUNTIME_COPIES paths (shared with prod)
-//   - DEV_ALIASES paths (bench, calcite dev pages, web tests, tmp — dev only)
+//   - DEV_ALIASES paths (bench, calcite dev pages, web tests, tmp - dev only)
 //   - /_status, /_reset, /_clear (cache-layer killers, see docs/rebuild-when.md)
 //   - /carts/index.json (+ legacy /_carts.json alias for build.html)
 // Anything not matched falls through to Vite (the Svelte site, HMR, publicDir).
@@ -33,7 +33,7 @@ const devRuntime = {
   name: 'css-dos-dev-runtime',
   apply: 'serve',
   configureServer(server) {
-    // The calcite pkg dir actually being served (vendored or sibling) —
+    // The calcite pkg dir actually being served (vendored or sibling) -
     // taken from the same table that serves it, so /_status can't lie.
     const servedPkgDir = RUNTIME_COPIES.find(([p]) => p === '/calcite/pkg')[1];
     server.middlewares.use((req, res, next) => {
@@ -63,7 +63,7 @@ const devRuntime = {
 };
 
 // PROD: copy the runtime files into dist/, emit carts/index.json, and emit
-// the host header config (COOP/COEP — optional; nothing in the live path
+// the host header config (COOP/COEP - optional; nothing in the live path
 // needs SharedArrayBuffer, kept for a possible future wasm-threads path).
 const buildRuntime = {
   name: 'css-dos-build-runtime',
@@ -85,21 +85,14 @@ const buildRuntime = {
 
     writeFileSync(join(dist, 'carts', 'index.json'), JSON.stringify(cartsIndex()));
 
-    writeFileSync(join(dist, 'vercel.json'), JSON.stringify({
-      headers: [{
-        source: '/(.*)',
-        headers: [
-          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
-          { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
-        ],
-      }],
-      // SPA fallback for the real-path router (router.svelte.js): any
-      // path not matching a static file in dist/ (carts/, player/,
-      // calcite/, etc. all win first) serves index.html so client-side
-      // routing can take over. Needed so a direct load or refresh on
-      // e.g. /build/pick doesn't 404.
-      rewrites: [{ source: '/(.*)', destination: '/index.html' }],
-    }, null, 2));
+    // vercel.json lives TRACKED at web/site/vercel.json - Vercel only
+    // reads it from the project root directory at deploy start, never
+    // from the build output (lesson of the 2026-07-14 /about/faqs 404).
+    // Copied into dist/ too so a prebuilt-dist deploy behaves the same.
+    // It holds the COOP/COEP headers and the SPA fallback rewrite the
+    // real-path router needs (any path not matching a static file -
+    // carts/, player/, calcite/ etc. win first - serves index.html).
+    cpSync(resolve(here, 'vercel.json'), join(dist, 'vercel.json'));
     // Netlify / Cloudflare Pages fallback (headers + SPA rewrite).
     writeFileSync(join(dist, '_headers'),
       '/*\n  Cross-Origin-Opener-Policy: same-origin\n  Cross-Origin-Embedder-Policy: require-corp\n');
@@ -110,7 +103,7 @@ const buildRuntime = {
 };
 
 // builder.svelte.js imports the browser-builder graph as native ESM by its
-// runtime URL (/browser-builder/main.mjs). It is NOT bundled — it's copied
+// runtime URL (/browser-builder/main.mjs). It is NOT bundled - it's copied
 // into dist/ and resolved by the browser at runtime. Mark it external so
 // Rollup emits the import verbatim instead of following into the shebang'd,
 // CLI-shaped source graph. enforce:'pre' runs before Vite's own resolution.

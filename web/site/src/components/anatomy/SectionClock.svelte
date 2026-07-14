@@ -1,5 +1,5 @@
 <script>
-  // The clock — the four-keyframe animation (0.1 KB) and the three
+  // The clock - the four-keyframe animation (0.1 KB) and the three
   // memory sweeps it drives (43 MB). The four-variable ring
   // walk-through is the main body (owner: don't bury the mechanism
   // in a fold). Facts from CABINET-ANATOMY.md §4, §12, §14–16;

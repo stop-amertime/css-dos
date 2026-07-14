@@ -114,7 +114,7 @@ export function emitPicVectorProperties() {
   return [
     // _irqEffective: unmasked pending IRQs (for trigger decision + acknowledge)
     `  --_irqEffective: if(style(--__1picInService: 0): --and(var(--__1picPending), --not(var(--__1picMask))); else: 0);`,
-    // _irqNum: lowest set bit of _irqEffective (for acknowledge — which bit to move)
+    // _irqNum: lowest set bit of _irqEffective (for acknowledge - which bit to move)
     `  --_irqNum: --lowestBit(var(--_irqEffective));`,
     // _irqBit: bitmask for the IRQ being acknowledged
     `  --_irqBit: --pow2(var(--_irqNum));`,
@@ -130,7 +130,7 @@ export function emitPicVectorProperties() {
 /**
  * Emit @functions for IRQ bit manipulation.
  * --lowestBit(val): returns the bit position (0-7) of the lowest set bit, or -1 if 0.
- * --pow2() is already defined in css-lib.mjs (0..31 range) — we reuse it.
+ * --pow2() is already defined in css-lib.mjs (0..31 range) - we reuse it.
  */
 export function emitIRQFunctions() {
   // lowestBit uses 8 locals which exceeds Chrome's 7-local limit,

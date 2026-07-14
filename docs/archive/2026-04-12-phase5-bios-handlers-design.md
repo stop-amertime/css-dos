@@ -1,8 +1,8 @@
-# Phase 5: BIOS Handlers — Design Delta
+# Phase 5: BIOS Handlers - Design Delta
 
 **Date:** 2026-04-12  
 **Base spec:** V3-PLAN-1.md, Phase 5 section (lines 408-429) and "BIOS as microcode" section (lines 212-249)  
-**Scope:** INT 09h (keyboard), INT 10h (video), INT 16h (keyboard read), INT 1Ah (timer), INT 20h (halt). INT 21h excluded — provided by the DOS kernel when booting EDR-DOS.
+**Scope:** INT 09h (keyboard), INT 10h (video), INT 16h (keyboard read), INT 1Ah (timer), INT 20h (halt). INT 21h excluded - provided by the DOS kernel when booting EDR-DOS.
 
 This document covers only what V3-PLAN-1.md does not already specify. The microcode sentinel approach, JS `int_handler` hook, and IVT layout are defined there and not repeated here.
 
@@ -22,12 +22,12 @@ Per V3-PLAN-1.md line 33: one CSS evaluation step is a **cycle** (was "tick" in 
 
 ### 1.1 HTML Buttons
 
-The HTML template includes a `<key-board>` element with `<button>` elements for each key. CSS selectors on the `.cpu` ancestor detect button presses via `:active` (not `:hover:active` — `:hover` sticks on touch devices) and set `--keyboard`:
+The HTML template includes a `<key-board>` element with `<button>` elements for each key. CSS selectors on the `.cpu` ancestor detect button presses via `:active` (not `:hover:active` - `:hover` sticks on touch devices) and set `--keyboard`:
 
 ```css
 .cpu {
   &:has(key-board button:nth-child(1):active) { --keyboard: 4656; }
-  /* 4656 = 0x1230 = scancode 0x12 (E), ascii 0x30 ('0') — example */
+  /* 4656 = 0x1230 = scancode 0x12 (E), ascii 0x30 ('0') - example */
 }
 ```
 
@@ -64,7 +64,7 @@ else: 0);
 
 `_kbdChanged` is 1 when `--keyboard` differs from its value at the previous instruction boundary (key pressed or released), 0 otherwise.
 
-**Known limitation:** If a key is pressed and released entirely within a single multi-cycle instruction (e.g., a long REP MOVSB), the press is lost — both `kbdLast` and `--keyboard` will be 0 at the next instruction boundary. In practice this is negligible: even a fast REP MOVSB with CX=1000 takes ~13,000 cycles, which is ~13ms in Calcite, while the shortest human keypress is ~50-100ms.
+**Known limitation:** If a key is pressed and released entirely within a single multi-cycle instruction (e.g., a long REP MOVSB), the press is lost - both `kbdLast` and `--keyboard` will be 0 at the next instruction boundary. In practice this is negligible: even a fast REP MOVSB with CX=1000 takes ~13,000 cycles, which is ~13ms in Calcite, while the shortest human keypress is ~50-100ms.
 
 ### 1.3 IRQ 1 Firing
 
@@ -83,7 +83,7 @@ The existing IRQ injection mechanism (Phase 4) handles the rest: at the next ins
 
 ### 1.4 Port 0x60: What Programs Read
 
-`IN AL, 0x60` returns the **scancode** — the high byte of `--keyboard` (`scancode<<8|ascii` >> 8).
+`IN AL, 0x60` returns the **scancode** - the high byte of `--keyboard` (`scancode<<8|ascii` >> 8).
 
 This matches real PC hardware, where port 0x60 returns raw make/break scancodes. Programs that hook INT 09h and read port 0x60 directly (Doom, Wolf3D, most id Software games, many others) will see correct scancodes.
 
@@ -98,7 +98,7 @@ On a real PC, the BIOS INT 09h handler translates scancodes to ASCII via a ROM l
 --_kbdScancode: --rightShift(var(--keyboard), 8);
 ```
 
-The INT 09h handler stuffs both `--_kbdScancode` and `--_kbdAscii` into the BDA ring buffer. This is invisible to programs — they see correct scancodes on port 0x60 and correct (scancode, ASCII) pairs from INT 16h.
+The INT 09h handler stuffs both `--_kbdScancode` and `--_kbdAscii` into the BDA ring buffer. This is invisible to programs - they see correct scancodes on port 0x60 and correct (scancode, ASCII) pairs from INT 16h.
 
 The JS `KeyboardController.portIn` must also be updated to return the scancode (high byte) for `IN AL, 0x60`.
 
@@ -121,7 +121,7 @@ function int09h(cpu) {
   // Port 0x60 returns just the scancode (high byte), matching real HW.
   const scancode = kbd.portIn(0, 0x60);  // byte read = scancode
   if (scancode === 0) {
-    // Key release — send EOI, do nothing else
+    // Key release - send EOI, do nothing else
     pic.portOut(0, 0x20, 0x20);
     return true;
   }
@@ -132,7 +132,7 @@ function int09h(cpu) {
   const tail = memory[BDA_BASE + 0x1C] | (memory[BDA_BASE + 0x1D] << 8);
   const head = memory[BDA_BASE + 0x1A] | (memory[BDA_BASE + 0x1B] << 8);
 
-  // Advance tail (hardcoded buffer range — not reading 0x0480/0x0482)
+  // Advance tail (hardcoded buffer range - not reading 0x0480/0x0482)
   let newTail = tail + 2;
   if (newTail >= KBD_BUF_END) newTail = KBD_BUF_START;
 
@@ -167,7 +167,7 @@ The "skip to EOI on key release" is a conditional: if `--_kbdScancode == 0`, μo
 
 Buffer-full check (newTail == head): compared at μop 4. If full, skip the tail pointer update (drop the key).
 
-Exact CSS expressions to be determined at implementation time — the μop structure is what matters for the spec.
+Exact CSS expressions to be determined at implementation time - the μop structure is what matters for the spec.
 
 ---
 
@@ -181,7 +181,7 @@ gossamer-dos.asm already implements INT 16h correctly using the BDA ring buffer 
 
 INT 16h AH=00h has a **spin loop** (`je .key_wait` when buffer is empty). As real 8086 code, this loop executes CMP + JE repeatedly, consuming cycles while waiting for a key. Each iteration goes through the full CPU decode pipeline.
 
-As microcode, the spin can be a single μop that holds (doesn't advance) until the BDA buffer is non-empty. This is dramatically more efficient under JIT — one property evaluation per cycle instead of full instruction decode.
+As microcode, the spin can be a single μop that holds (doesn't advance) until the BDA buffer is non-empty. This is dramatically more efficient under JIT - one property evaluation per cycle instead of full instruction decode.
 
 **Decision: microcode.** The blocking spin is the hottest path for any interactive program.
 
@@ -200,7 +200,7 @@ As microcode, the spin can be a single μop that holds (doesn't advance) until t
 
 The μop 0 hold is the key optimization: while the buffer is empty, the CPU stays at μop 0 of the sentinel, evaluating one cheap comparison per cycle. IRQs can still fire at the μop 0 boundary (irqActive checks happen at instruction boundaries, and μop 0 is an instruction boundary for the sentinel).
 
-Wait — that's a subtlety. The sentinel's μop 0 hold needs to allow IRQ injection. Otherwise the keyboard IRQ can never fire while INT 16h is waiting, creating a deadlock. The irqActive check must treat "sentinel holding at μop 0" as an instruction boundary.
+Wait - that's a subtlety. The sentinel's μop 0 hold needs to allow IRQ injection. Otherwise the keyboard IRQ can never fire while INT 16h is waiting, creating a deadlock. The irqActive check must treat "sentinel holding at μop 0" as an instruction boundary.
 
 **AH=01h (check key, non-blocking):**
 
@@ -213,7 +213,7 @@ Wait — that's a subtlety. The sentinel's μop 0 hold needs to allow IRQ inject
 
 **Folded IRET:** The handler performs IRET inline as its last μops, which lets it merge the caller's stacked FLAGS with the ZF result. This avoids a separate IRET instruction and eliminates the FLAGS-on-stack write-back problem. The handler reads the stacked FLAGS at μop 3, sets or clears bit 6 (ZF), and writes the merged value to `--flags`. Since the handler retires at μop 3 (not at an IRET instruction), IP is set directly to the popped return address.
 
-**AH=00h also folds IRET:** For consistency, AH=00h's retirement μops also perform the IRET inline (pop IP, pop CS, pop FLAGS, SP += 6). This means the IRET byte in ROM after the sentinel+ID is never reached for INT 16h — but it should still be present as a safety fallback for other code paths.
+**AH=00h also folds IRET:** For consistency, AH=00h's retirement μops also perform the IRET inline (pop IP, pop CS, pop FLAGS, SP += 6). This means the IRET byte in ROM after the sentinel+ID is never reached for INT 16h - but it should still be present as a safety fallback for other code paths.
 
 ### 3.4 The Deadlock Problem
 
@@ -221,7 +221,7 @@ INT 16h AH=00h blocks until a key arrives. The key arrives via IRQ 1 → INT 09h
 
 If the sentinel's μop 0 hold is treated as "mid-instruction" (uOp != retirement), IRQs are blocked and INT 16h deadlocks.
 
-**Solution:** Since BIOS handlers use opcode 0xD6 (214) — separate from the IRQ delivery sentinel at 0xF1 (241) — the irqActive logic needs rules for both opcodes. The IRQ delivery sentinel (241) keeps its existing behavior. The BIOS handler sentinel (214) needs a μop 0 hold that allows IRQ injection:
+**Solution:** Since BIOS handlers use opcode 0xD6 (214) - separate from the IRQ delivery sentinel at 0xF1 (241) - the irqActive logic needs rules for both opcodes. The IRQ delivery sentinel (241) keeps its existing behavior. The BIOS handler sentinel (214) needs a μop 0 hold that allows IRQ injection:
 
 ```css
 --irqActive: if(
@@ -249,11 +249,11 @@ When IRQ 1 fires during the INT 16h hold:
 6. IRET returns to the INT 16h sentinel
 7. INT 16h's μop 0 re-evaluates: buffer now non-empty, advances to μop 1
 
-This is exactly how a real 8086 handles nested interrupts during a HLT instruction — the hold is interruptible.
+This is exactly how a real 8086 handles nested interrupts during a HLT instruction - the hold is interruptible.
 
 ### 3.5 Architectural Constraint: Only μop 0 Holds Are Interruptible
 
-The re-entrancy works because IRET returns the CPU to the sentinel's starting address, where it re-decodes and starts at μop 0 — which is exactly where the hold was. If a future handler tried to hold at μop > 0, the IRQ sentinel's μop sequence would overwrite `--uOp`, and after IRET the sentinel would restart at μop 0, not at the held μop. **This is an architectural constraint, not a coincidence.** Only μop 0 holds are safe for interruptible waits.
+The re-entrancy works because IRET returns the CPU to the sentinel's starting address, where it re-decodes and starts at μop 0 - which is exactly where the hold was. If a future handler tried to hold at μop > 0, the IRQ sentinel's μop sequence would overwrite `--uOp`, and after IRET the sentinel would restart at μop 0, not at the held μop. **This is an architectural constraint, not a coincidence.** Only μop 0 holds are safe for interruptible waits.
 
 ### 3.6 μop Numbering: Two Separate Opcodes, Two Separate Instructions
 
@@ -272,7 +272,7 @@ These are defined in V3-PLAN-1.md. Noting the specific μop design decisions:
 
 ### INT 10h (Video)
 
-**AH=0Eh (teletype):** The most complex handler. Microcode μop sequence: read cursor from BDA, handle CR/LF/BEL, compute VGA offset, write char+attr, advance cursor, conditionally scroll. Scroll is a sub-sequence that copies 1920 words up and clears the last row — ~3840 μops for a full scroll (each μop copies or clears one byte).
+**AH=0Eh (teletype):** The most complex handler. Microcode μop sequence: read cursor from BDA, handle CR/LF/BEL, compute VGA offset, write char+attr, advance cursor, conditionally scroll. Scroll is a sub-sequence that copies 1920 words up and clears the last row - ~3840 μops for a full scroll (each μop copies or clears one byte).
 
 **AH=00h (set mode):** Write mode to BDA, clear screen (2000 words for text, 32000 words for Mode 13h).
 
@@ -304,7 +304,7 @@ The CSS `_irqEffective` property does not implement PIC priority:
 --_irqEffective: --and(var(--__1picPending), --not(var(--__1picMask)));
 ```
 
-This is `pending & ~mask` — it ignores the in-service register. On a real 8259A PIC, an IRQ is only deliverable if no higher-priority IRQ is currently in service. The JS PIC (`hasInt()` in peripherals.mjs) correctly implements this: it scans from IRQ 0 upward and blocks delivery if any lower-numbered (higher-priority) IRQ is in-service.
+This is `pending & ~mask` - it ignores the in-service register. On a real 8259A PIC, an IRQ is only deliverable if no higher-priority IRQ is currently in service. The JS PIC (`hasInt()` in peripherals.mjs) correctly implements this: it scans from IRQ 0 upward and blocks delivery if any lower-numbered (higher-priority) IRQ is in-service.
 
 Phase 4 never hit this because only IRQ 0 (timer) existed. With Phase 5 adding IRQ 1 (keyboard), the CSS PIC would incorrectly deliver IRQ 1 while IRQ 0's handler is running (before EOI).
 
@@ -327,7 +327,7 @@ else: calc(var(--_lowestInServiceBit) * 2 - 1));
 --_irqEffective: --and(--and(var(--__1picPending), --not(var(--__1picMask))), --not(var(--_irqPriorityMask)));
 ```
 
-Wait — the 8259A blocks all IRQs at equal or **lower** priority (higher number) than the in-service one. IRQ 0 is highest priority. If IRQ 0 is in-service, IRQs 1-7 are blocked. So the mask should block bits >= the in-service bit, not bits <= it.
+Wait - the 8259A blocks all IRQs at equal or **lower** priority (higher number) than the in-service one. IRQ 0 is highest priority. If IRQ 0 is in-service, IRQs 1-7 are blocked. So the mask should block bits >= the in-service bit, not bits <= it.
 
 Actually, re-reading the 8259A spec: the priority resolver blocks delivery of interrupts at the **same or lower priority** than the highest-priority in-service interrupt. Lower priority = higher IRQ number. So if IRQ 0 is in-service, all IRQs (0-7) are blocked. If IRQ 2 is in-service, IRQs 2-7 are blocked but 0-1 can still fire.
 
@@ -393,18 +393,18 @@ The CSS side receives the same events via `--keyboard` changes at the same cycle
 
 ## 7. Implementation Order
 
-0. **PIC priority fix** — add in-service check to `_irqEffective` in irq.mjs. Test with existing timer-irq.asm (should still pass).
-1. **JS int_handler functions** — INT 09h, 10h (AH=0Eh only initially), 16h, 1Ah, 20h. Wire into compare.mjs. Test with reference emulator alone.
-2. **BDA initialization** — keyboard buffer head/tail/start/end fields in the generator.
-3. **kbdLast + _kbdChanged** — new state var and computed property in template.mjs / emit-css.mjs.
-4. **picPending update** — merge keyboard IRQ source.
-5. **irqActive fix** — allow IRQ injection during sentinel μop 0 holds.
-6. **INT 09h microcode emitter** — sentinel μop sequence in transpiler.
-7. **INT 16h microcode emitter** — with the μop 0 hold for blocking read, FLAGS-on-stack for AH=01h.
-8. **INT 10h microcode emitter** — AH=0Eh teletype first, then other subfunctions.
-9. **INT 1Ah, INT 20h microcode emitters** — trivial.
-10. **HTML template** — `:active` button mappings.
-11. **Conformance tests** — keyboard-irq.asm test program exercising the full path.
+0. **PIC priority fix** - add in-service check to `_irqEffective` in irq.mjs. Test with existing timer-irq.asm (should still pass).
+1. **JS int_handler functions** - INT 09h, 10h (AH=0Eh only initially), 16h, 1Ah, 20h. Wire into compare.mjs. Test with reference emulator alone.
+2. **BDA initialization** - keyboard buffer head/tail/start/end fields in the generator.
+3. **kbdLast + _kbdChanged** - new state var and computed property in template.mjs / emit-css.mjs.
+4. **picPending update** - merge keyboard IRQ source.
+5. **irqActive fix** - allow IRQ injection during sentinel μop 0 holds.
+6. **INT 09h microcode emitter** - sentinel μop sequence in transpiler.
+7. **INT 16h microcode emitter** - with the μop 0 hold for blocking read, FLAGS-on-stack for AH=01h.
+8. **INT 10h microcode emitter** - AH=0Eh teletype first, then other subfunctions.
+9. **INT 1Ah, INT 20h microcode emitters** - trivial.
+10. **HTML template** - `:active` button mappings.
+11. **Conformance tests** - keyboard-irq.asm test program exercising the full path.
 
 **Deferred:** Terminology rename ("ticks" → "cycles") moved to a separate PR to avoid entangling with feature work.
 

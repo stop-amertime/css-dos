@@ -12,7 +12,7 @@ node tests/harness/pipeline.mjs fulldiff /tmp/<cart>.css --max-ticks=10000
 ```
 
 Note the tick number and the register/memory diff. Always pass `--max-ticks`
-— see "Budgets" below.
+- see "Budgets" below.
 
 ### 2. Diagnose: is it a CSS bug or a calcite bug?
 
@@ -54,7 +54,7 @@ visual sanity-check, screenshot at a tick past where the program should be:
 node tests/harness/pipeline.mjs fast-shoot /tmp/<cart>.css --tick=3000000 --out=/tmp/shot.png
 ```
 
-## Budgets — every command needs an explicit ≤2-minute cap
+## Budgets - every command needs an explicit ≤2-minute cap
 
 Boot reaches the `A:\>` prompt around tick 2-4M. The slow `pipeline.mjs shoot`
 path drives `calcite-debugger` at ~1500 ticks/s and will not terminate inside

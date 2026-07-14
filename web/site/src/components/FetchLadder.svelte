@@ -4,7 +4,7 @@
   // cabinet's real --readMem. All arms and counts verbatim/measured
   // from sokoban.css: 736,510 RAM arms + 6,924 ROM arms + 512 disk
   // window arms + 2 keyboard arms = 743,948, in this file order.
-  // No scroll box — the height is the point.
+  // No scroll box - the height is the point.
   import SplitPane from './SplitPane.svelte';
 
   const RAM_CELLS = 40; // 80 RAM lines; ~100 lines total ≈ 1800px
@@ -13,7 +13,7 @@
     slab += `    style(--at: ${2 * i}): mod(var(--__1mc${i}), 256);\n`;
     slab += `    style(--at: ${2 * i + 1}): round(down, var(--__1mc${i}) / 256);\n`;
   }
-  slab += '\n         … 736,430 more arms like these — every byte of RAM …\n\n';
+  slab += '\n         … 736,430 more arms like these - every byte of RAM …\n\n';
   slab += '    style(--at: 983040): 235;\n';
   slab += '    style(--at: 983041): 16;\n';
   slab += '    style(--at: 983042): 144;\n';
@@ -22,7 +22,7 @@
   slab += '    /* the disk window: requested sector × 512 + this arm\'s position */\n';
   slab += '    style(--at: 851968): --readDiskByte(calc((mod(var(--__1mc632), 256) + round(down, var(--__1mc632) / 256) * 256) * 512 + 0));\n';
   slab += '    style(--at: 851969): --readDiskByte(calc((mod(var(--__1mc632), 256) + round(down, var(--__1mc632) / 256) * 256) * 512 + 1));\n';
-  slab += '\n         … 510 more — the 512-byte disk window …\n\n';
+  slab += '\n         … 510 more - the 512-byte disk window …\n\n';
   slab += '  else: 0);\n}';
 </script>
 

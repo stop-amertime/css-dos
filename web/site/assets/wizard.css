@@ -1,4 +1,4 @@
-/* wizard.css — overlay on site.css for the step-by-step shell on
+/* wizard.css - overlay on site.css for the step-by-step shell on
    /index.html. Visual chrome only; all real build wiring lives in
    build.js, driven through hidden form elements in step 3. */
 
@@ -17,7 +17,7 @@
 body:has(.window.wizard) {
   display: grid;
   /* Without an explicit column, the implicit grid track sizes to
-     max-content — i.e. to .window.wizard's own 820px — which makes its
+     max-content - i.e. to .window.wizard's own 820px - which makes its
      `max-width: calc(100% - 32px)` resolve against 820px instead of the
      viewport, defeating the shrink on narrow screens. Pin the track to
      the viewport so the percentage is meaningful. */
@@ -100,7 +100,7 @@ body:has(.window.wizard) {
 }
 .step .explainer { max-width: 900px; margin-bottom: 16px; }
 
-/* ===== Step 1 — Welcome ===== */
+/* ===== Step 1 - Welcome ===== */
 .hero-row {
   display: grid;
   grid-template-columns: 160px 1fr;
@@ -146,10 +146,10 @@ body:has(.window.wizard) {
   color: var(--edit-black);
 }
 
-/* ===== Step 1 — Learn (sub-pages + widgets) ===== */
+/* ===== Step 1 - Learn (sub-pages + widgets) ===== */
 
 
-/* Compact hero on Learn sub-page 1 — logo beside the heading, sized for
+/* Compact hero on Learn sub-page 1 - logo beside the heading, sized for
    the narrow reading column (independent of the old wide-hero grid). */
 .learn-step .hero-row {
   grid-template-columns: 96px 1fr;
@@ -161,7 +161,7 @@ body:has(.window.wizard) {
 .learn-step .hero-logo img { width: 80px; height: 80px; }
 .learn-step .hero-text h1 { margin-bottom: 6px; }
 
-/* Intro sub-page — logo beside the text, centred within the gray
+/* Intro sub-page - logo beside the text, centred within the gray
    window-body. Only this sub-page fills the body height; the others keep
    their natural top-aligned flow. (window-body min-height 480 − 40 pad.) */
 .subpage-intro {
@@ -170,7 +170,7 @@ body:has(.window.wizard) {
   justify-content: center;
   min-height: 420px;
 }
-/* `display: flex` defeats the `hidden` attribute — re-hide explicitly so
+/* `display: flex` defeats the `hidden` attribute - re-hide explicitly so
    the intro hero only shows on sub-page 1. */
 .subpage-intro[hidden] { display: none; }
 .intro-hero {
@@ -268,7 +268,7 @@ body:has(.window.wizard) {
   line-height: 18px !important;
 }
 
-/* — CSS code-flicker demo — */
+/* - CSS code-flicker demo - */
 .css-demo {
   border: 1px solid var(--edit-black);
   background: var(--edit-white);
@@ -307,7 +307,7 @@ body:has(.window.wizard) {
   align-items: stretch;
 }
 /* `display: grid` above defeats the `hidden` attribute, so re-hide
-   explicitly — only the active panel shows. */
+   explicitly - only the active panel shows. */
 .css-demo-panel[hidden] { display: none; }
 .css-demo-code {
   margin: 0;
@@ -345,7 +345,7 @@ body:has(.window.wizard) {
   font-size: 16px;
 }
 
-/* The Function panel's box is sized by a REAL custom @function — the same
+/* The Function panel's box is sized by a REAL custom @function - the same
    kind of @function CSS-DOS itself uses (kiln/css-lib.mjs). If the browser
    doesn't support @function it falls back to the plain width below. */
 @function --double(--n) {
@@ -359,7 +359,7 @@ body:has(.window.wizard) {
 }
 
 /* The Branching panel's box picks its colour with a REAL if(style())
-   conditional — the same construct CSS-DOS uses for its shift/branch
+   conditional - the same construct CSS-DOS uses for its shift/branch
    tables. #branch-toggle flips --on; falls back to red if if() is
    unsupported. */
 .css-demo-result .demo-box-branch {
@@ -384,7 +384,7 @@ body:has(.window.wizard) {
   box-shadow: none;
 }
 
-/* — cross / sim lists — */
+/* - cross / sim lists - */
 .cross-list, .sim-list {
   list-style: none;
   margin: 8px 0 0;
@@ -402,7 +402,7 @@ body:has(.window.wizard) {
 }
 .ext-link-box p { margin: 0; }
 
-/* — Credits sub-page — */
+/* - Credits sub-page - */
 .credits-head {
   margin: 18px 0 8px;
   font-size: 16px;
@@ -430,7 +430,7 @@ body:has(.window.wizard) {
   color: var(--edit-red);
 }
 
-/* — byte-for-byte RAM example — */
+/* - byte-for-byte RAM example - */
 .byte-example {
   margin: 8px 0;
   padding: 12px 16px;
@@ -447,7 +447,7 @@ body:has(.window.wizard) {
 .byte-example .tok-prop { color: var(--edit-cyan); }
 .byte-example .tok-num { color: var(--edit-yellow); }
 
-/* — earth–moon visual — */
+/* - earth–moon visual - */
 .moon-viz {
   border: 1px solid var(--edit-black);
   background: var(--edit-white);
@@ -463,7 +463,7 @@ body:has(.window.wizard) {
   color: var(--edit-black);
 }
 
-/* ===== Step 2 — pipeline (PARKED, out of flow) ===== */
+/* ===== Step 2 - pipeline (PARKED, out of flow) ===== */
 .pipeline {
   display: grid;
   grid-template-columns: 1fr 24px 1fr 24px 1fr 24px 1fr;
@@ -631,7 +631,7 @@ body:has(.window.wizard) {
 .css-body span { font-size: 12px; }
 .css-body .dim { color: #888; }
 
-/* ===== Step 2 — Build intro + blocks ===== */
+/* ===== Step 2 - Build intro + blocks ===== */
 .build-intro { margin-bottom: 20px; }
 .build-intro h1 { margin-bottom: 10px; }
 .build-intro p { font-size: 16px; line-height: 19px; margin: 0 0 10px; }
@@ -646,7 +646,7 @@ body:has(.window.wizard) {
 }
 
 /* Build step's own sub-pages (pick / configure+build / cabinet ready) sit
-   directly in the reading flow — no per-block border/header chrome, same
+   directly in the reading flow - no per-block border/header chrome, same
    as Learn's sub-pages. */
 .subpage[data-build-subpage] { margin-top: 4px; }
 
@@ -662,7 +662,7 @@ body:has(.window.wizard) {
   padding: 10px 24px;
 }
 
-/* cart grid — PC-box ratio, big title, small desc */
+/* cart grid - PC-box ratio, big title, small desc */
 .cart-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -723,7 +723,7 @@ body:has(.window.wizard) {
   line-height: 14px;
   opacity: 0.75;
 }
-/* Custom card — no box art. Dashed border + muted fill, with the name and
+/* Custom card - no box art. Dashed border + muted fill, with the name and
    blurb living inside the cover (set in wizard.js). */
 .cart-cover-custom {
   border: 2px dashed #8a8a8a;
@@ -768,7 +768,7 @@ body:has(.window.wizard) {
   margin-top: 4px;
 }
 
-/* Custom-program upload panel — surfaced only when the Custom card is
+/* Custom-program upload panel - surfaced only when the Custom card is
    selected. A substantial bordered panel, not a one-line link. */
 .custom-panel {
   margin-top: 16px;
@@ -818,7 +818,7 @@ body:has(.window.wizard) {
 }
 .cart-selected-line { margin-top: 12px; }
 
-/* machine row — IBM PC + specs + advanced */
+/* machine row - IBM PC + specs + advanced */
 .machine-row {
   display: grid;
   grid-template-columns: 280px 1fr;
@@ -890,7 +890,7 @@ details.advanced .advanced-body {
 }
 details.advanced .advanced-body .row:last-child { margin-bottom: 0; }
 
-/* build progress — overrides site.css's #stages styling for the wizard look */
+/* build progress - overrides site.css's #stages styling for the wizard look */
 #build-progress-wrap { margin-top: 12px; }
 #stages {
   list-style: none;
@@ -942,7 +942,7 @@ details.advanced .advanced-body .row:last-child { margin-bottom: 0; }
   color: var(--edit-black);
 }
 
-/* Raw log — collapsed to a scrolling pane under the progress bar. */
+/* Raw log - collapsed to a scrolling pane under the progress bar. */
 .build-log {
   margin-top: 8px;
   max-height: 96px;
@@ -1012,7 +1012,7 @@ details.advanced .advanced-body .row:last-child { margin-bottom: 0; }
   margin-right: 4px;
 }
 
-/* The paginated source viewer — same green-on-black look as build.html,
+/* The paginated source viewer - same green-on-black look as build.html,
    shown directly in the result panel (no longer behind a dropdown).
    Smaller text so more of the dense cabinet CSS fits on screen. */
 .window.wizard #source-pre {
@@ -1028,7 +1028,7 @@ details.advanced .advanced-body .row:last-child { margin-bottom: 0; }
   color: var(--edit-black);
 }
 
-/* ===== Step 3 — Play ===== */
+/* ===== Step 3 - Play ===== */
 /* Intro prose (h1 + explanation), matching the build-step intro. */
 .play-intro { margin-bottom: 24px; }
 .play-intro h1 { margin: 0 0 12px; }

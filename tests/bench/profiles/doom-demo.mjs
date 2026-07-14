@@ -1,7 +1,7 @@
-// tests/bench/profiles/doom-demo.mjs — input-free Doom8088 perf bench.
+// tests/bench/profiles/doom-demo.mjs - input-free Doom8088 perf bench.
 //
 // The story: Doom's title screen, if left alone for ~5 seconds of game
-// time, starts a recorded demo. The demo is gameplay — gamestate flips
+// time, starts a recorded demo. The demo is gameplay - gamestate flips
 // to GS_LEVEL (0), mode stays 0x13, the viewport renders frames as if
 // the player were walking the level. Crucially: NO KEYBOARD INPUT IS
 // REQUIRED to reach this state, which makes it the right vehicle for
@@ -16,12 +16,12 @@
 //   - ticksToDemo:  engine ticks to reach demo gameplay. Should be
 //                   close to identical across branches (same x86 work).
 //                   If it isn't, the cabinet is taking a different
-//                   path — investigate before trusting wall numbers.
+//                   path - investigate before trusting wall numbers.
 //   - demoFps:      frames-changed-per-second over MEASURE_SECONDS of
 //                   demo playback. Direct steady-state speed reading.
 //
 // Differs from doom-loading / doom-all in that it never presses a key.
-// `ingame` here is the demo's GS_LEVEL, not the new-game GS_LEVEL —
+// `ingame` here is the demo's GS_LEVEL, not the new-game GS_LEVEL -
 // `_g_usergame` stays 0 (the new-game path didn't run; demo path took
 // us there via G_DeferedPlayDemo → G_DoPlayDemo → G_DoLoadLevel).
 //
@@ -38,22 +38,22 @@ const FB_BASE  = 0xa0000;
 const FB_BYTES = 320 * 200;
 
 const MEASURE_SECONDS = 20;
-const WARMUP_SECONDS  = 4;   // shorter than doom-all's 8s — demo is
+const WARMUP_SECONDS  = 4;   // shorter than doom-all's 8s - demo is
                               // already steady-state from frame 1, no
                               // door-melt-wipe to warm through.
 
-// Watch list — boot stages + demo onset.
+// Watch list - boot stages + demo onset.
 //   - poll: shared stride for all gated cond watches.
 //   - text_drdos / text_doom: text-mode breadcrumbs.
 //   - title: title splash visible (mode 0x13, gamestate=3, menuactive=0).
 //   - demo_ingame: demo gameplay started (mode 0x13, gamestate=0).
-//                  NO usergame=1 requirement — demo path doesn't set it.
+//                  NO usergame=1 requirement - demo path doesn't set it.
 const WATCH_SPECS = [
   'poll:stride:every=50000',
   `text_drdos:cond:${ADDR_BDA_MODE}=0x03,pattern@${ADDR_TEXT_VRAM}:2:${TEXT_VRAM_BYTES}=DR-DOS:gate=poll:then=emit`,
   `text_doom:cond:${ADDR_BDA_MODE}=0x03,pattern@${ADDR_TEXT_VRAM}:2:${TEXT_VRAM_BYTES}=DOOM8088:gate=poll:then=emit`,
   `title:cond:${ADDR_MENUACTIVE}=0,${ADDR_GAMESTATE}=3,${ADDR_BDA_MODE}=0x13:gate=poll:then=emit`,
-  // `repeat` so the cond re-fires on every gated poll while it holds —
+  // `repeat` so the cond re-fires on every gated poll while it holds -
   // we ignore pre-title fires JS-side (tick-0 false-fire happens because
   // uninit memory + pre-BIOS mode aren't yet 0x13/zero; gating on
   // `text_doom` having already happened lets us trust the real fire).
@@ -106,7 +106,7 @@ export async function run(host) {
   if (!window.__bridgeWorker) throw new Error('no __bridgeWorker');
   const bridge = window.__bridgeWorker;
 
-  host.log(`registering ${WATCH_SPECS.length} watches (no keypresses — demo path)`);
+  host.log(`registering ${WATCH_SPECS.length} watches (no keypresses - demo path)`);
   for (const spec of WATCH_SPECS) {
     await bridgeRequest(bridge, { type: 'register-watch', spec });
   }
@@ -136,7 +136,7 @@ export async function run(host) {
     const r = await bridgeRequest(bridge, { type: 'drain-measurements' });
     const events = JSON.parse(r.events);
     for (const ev of events) {
-      // Suppress demo_ingame until after title has fired — pre-title
+      // Suppress demo_ingame until after title has fired - pre-title
       // hits are the tick-0 false-fire.
       if (ev.watch === 'demo_ingame' && !stages.title) continue;
       if (!stages[ev.watch]) {

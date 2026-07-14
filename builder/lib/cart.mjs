@@ -74,7 +74,7 @@ function to83(name) {
 
 function wrapBareProgram(programPath) {
   // Synthesise a 1-file cart folder around a loose .com/.exe so the rest of
-  // the pipeline can treat it uniformly. No program.json is written — the
+  // the pipeline can treat it uniformly. No program.json is written - the
   // default preset applies, same as any manifest-less cart folder.
   const out = mkdtempSync(join(tmpdir(), 'cart-bare-'));
   copyFileSync(programPath, join(out, basename(programPath)));
@@ -87,7 +87,7 @@ function unzipToTemp(zipPath) {
     // Cross-platform unzip: use tar on Windows 10+ / macOS / Linux.
     execFileSync('tar', ['-xf', zipPath, '-C', out], { stdio: 'pipe' });
   } catch (_) {
-    throw new Error(`failed to unzip ${zipPath} — install tar or unzip the cart manually and point the builder at the folder`);
+    throw new Error(`failed to unzip ${zipPath} - install tar or unzip the cart manually and point the builder at the folder`);
   }
   return out;
 }

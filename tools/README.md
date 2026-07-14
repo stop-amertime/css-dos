@@ -20,9 +20,9 @@ various build-time converters. Not user-facing.
 
 ## Not to be confused with
 
-- `conformance/` — reference emulators that use these utilities.
-- `builder/` — the orchestrator. Invokes `mkfat12.mjs` and
+- `conformance/` - reference emulators that use these utilities.
+- `builder/` - the orchestrator. Invokes `mkfat12.mjs` and
   `lib/bios-symbols.mjs` (indirectly) when building.
-- `kiln/` — the CSS transpiler; unrelated to anything here.
-- `tests/bench/lib/ensure-fresh.mjs` — staleness primitive for built
+- `kiln/` - the CSS transpiler; unrelated to anything here.
+- `tests/bench/lib/ensure-fresh.mjs` - staleness primitive for built
   artifacts; lives there because it's a bench-harness concern.

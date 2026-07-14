@@ -1,4 +1,4 @@
-# tests/bench — the canonical performance harness
+# tests/bench - the canonical performance harness
 
 This is **the** place to measure performance on CSS-DOS. One driver,
 two transports (web via Playwright, native via `calcite-cli`), profiles
@@ -6,7 +6,7 @@ declare what to measure. The web bench runs the same calcite-wasm +
 bridge + SW + player surface the user sees, so its numbers are the
 numbers the user feels.
 
-It is the perf-shaped peer to `tests/harness/` (correctness — smoke,
+It is the perf-shaped peer to `tests/harness/` (correctness - smoke,
 conformance, divergence-finding). If you need a perf number, you are
 in the right place. If you need correctness, look there.
 
@@ -20,21 +20,21 @@ methodology has to be consistent or those comparisons are noise.
 
 1. **Use only the four canonical profiles** below. Don't roll an
    ad-hoc `.mjs` script under `tests/harness/` to "just measure
-   something" — that's how the old `flamegraph-doom.mjs` /
+   something" - that's how the old `flamegraph-doom.mjs` /
    `bench-doom-stages.mjs` sprawl happened, and it's now deleted.
    If you need a measurement that isn't covered, add a profile
    under `profiles/` and document it here. **Don't reach for**
    `cargo bench`, `criterion`, the calcite `calcite-bench` Rust
    binary, the player's `?bench=1` HUD overlay, or any
-   `bench-*.mjs` script outside `tests/bench/profiles/` — those
+   `bench-*.mjs` script outside `tests/bench/profiles/` - those
    are internal/legacy/HUD tooling and won't produce comparable
    numbers.
 
 2. **Web is the source of truth, and the web bench MUST run
    `--headed`.** Headless Chromium throttles backgrounded workers,
    so headless wall-clock numbers are meaningless. The CLI bench
-   (`--target=cli`) is a dev-only sanity check — different runtime,
-   no SW, no `<img>` frame consumer — and **never** the source for
+   (`--target=cli`) is a dev-only sanity check - different runtime,
+   no SW, no `<img>` frame consumer - and **never** the source for
    a user-facing perf claim. Don't quote CLI numbers in STATUS/
    LOGBOOK as if they reflect what the user sees.
 
@@ -42,7 +42,7 @@ methodology has to be consistent or those comparisons are noise.
    carry host-CPU / Chrome-GC noise; with nothing else competing
    the runs converge tightly (±0.5 %), but a wrong-direction
    single-run delta is meaningless. The `doom-all` profile is the
-   right choice for delta measurements — it captures all phase
+   right choice for delta measurements - it captures all phase
    timings in one boot.
 
 4. **Quote JSON before/after a perf claim.** The driver writes
@@ -64,7 +64,7 @@ methodology has to be consistent or those comparisons are noise.
 | `doom-ingame-fps`  | Steady-state in-game FPS while holding Left | "How does it feel mid-gameplay?" 8 s warmup (menu slide-off, view fade-in, cache warmup) → 20 s measurement. Hashes the full 320×200 framebuffer; each distinct hash is one user-visible frame. ~107 s. |
 | `doom-all`         | doom-loading **and** doom-ingame-fps in one boot | **The default for any non-trivial perf measurement.** Same wall as `doom-ingame-fps` alone (both share the boot). Reports phase substeps (compile / dosBoot / doomTitle / doomMenuDelay / doomLoad / warmup / measure). |
 | `msdos-boot`       | MS-DOS 4.00 (carts/msdos4) boot to the VER banner | "Why is the writable cabinet slow to load?" Reports the compile-vs-run split: `compileMs`/`fetchMs`/`saveMs` (page envelope) vs `runMsToPrompt`/`ticksToPrompt`, plus `phaseReport` (per-phase wasm compile breakdown from `engine.compile_phase_report()`). ~40 s. |
-| `windows-all`      | Windows 1.01 (carts/0windows101) boot to the MS-DOS Executive, then open README.DOC in Write via injected keys | **The default for Windows perf measurement.** The doom-all analogue: phases `dosBoot` / `winBoot` / `executive` / `writeLoad`. `writeLoadMs` (Enter → README.DOC drawn by WRITE.EXE, the heaviest app on the floppy) is the doomLoad analogue — watch this number. Key injection is tick-scheduled (`at` watches: R type-selects README.DOC, Enter launches); if a kiln/builder change shifts boot ticks the bench fails loudly — re-derive the tick constants in the profile with fast-shoot. |
+| `windows-all`      | Windows 1.01 (carts/0windows101) boot to the MS-DOS Executive, then open README.DOC in Write via injected keys | **The default for Windows perf measurement.** The doom-all analogue: phases `dosBoot` / `winBoot` / `executive` / `writeLoad`. `writeLoadMs` (Enter → README.DOC drawn by WRITE.EXE, the heaviest app on the floppy) is the doomLoad analogue - watch this number. Key injection is tick-scheduled (`at` watches: R type-selects README.DOC, Enter launches); if a kiln/builder change shifts boot ticks the bench fails loudly - re-derive the tick constants in the profile with fast-shoot. |
 
 ### What "doom-all" reports (read this so you know what to cite)
 
@@ -90,14 +90,14 @@ methodology has to be consistent or those comparisons are noise.
 ```
 
 **doomLoad is ~67 % of the engine-run wall** (was ~86 % before the
-2026-06-11 FAT-cluster fix) — still where perf optimisation pays off
+2026-06-11 FAT-cluster fix) - still where perf optimisation pays off
 most, and where regressions hide. Watch this number specifically.
 
 ### Current baseline (2026-06-11, post FAT-cluster fix, single healthy run)
 
 | Phase / metric | Value |
 |---|---:|
-| compile        | ~4.6 s (2026-06-12 compile-wall work; drifts — see note) |
+| compile        | ~4.6 s (2026-06-12 compile-wall work; drifts - see note) |
 | dosBoot        | 7.8 s |
 | doomTitle      | 0.0 s |
 | doomMenuDelay  | 1.6 s |
@@ -110,7 +110,7 @@ most, and where regressions hide. Watch this number specifically.
 
 Raw JSON `docs/benches/doom-all-2026-06-11-spc32-run1.json`; A/B refs
 `...spcref-run*.json`. The host flapped healthy↔3×-degraded that day,
-so this is a single healthy run, not a 3-run median — a clean median
+so this is a single healthy run, not a 3-run median - a clean median
 re-baseline is owed; ticks are deterministic (boot→ingame 13.5–13.7M
 every run) so tick-based claims are safe. Sanity-check ticksPerSecAvg
 (~478 K healthy vs ~175 K degraded) before trusting any wall number.
@@ -119,7 +119,7 @@ History: 2026-06-10 (copy-elim, pre-cluster-fix, 3-run median) 70.5 s
 63.65 s; 2026-05-08 (old-kbd, BIF2 OFF) 79.7 s / 423 K / 68.5 s.
 
 **Compile-wall drift warning:** compileMs is NOT comparable across
-days — pass-off measured 31.6 s on 2026-06-10 vs 24.6 s on
+days - pass-off measured 31.6 s on 2026-06-10 vs 24.6 s on
 2026-06-09 on the same code (host/Chrome state). For compile-cost
 claims, A/B the same day (`compile-only` profile); for perf claims,
 use the runtime metrics (`ticksPerSecAvg`, `runMsToInGame`,
@@ -132,7 +132,7 @@ noise. Don't compare single FPS numbers; use ticksPerSecAvg or
 With BIF2 fusion ON (measured 2026-05-08 era): ~+4-5 % throughput;
 FPS delta inside the noise floor.
 
-### Before you run a bench — quiet the host
+### Before you run a bench - quiet the host
 
 FPS variance is mostly other things competing for CPU. **Check that
 no other agent (or you) is running another bench, a build, or a
@@ -152,26 +152,26 @@ another agent is working unless you're sure they're not measuring.
 
 ```
 tests/bench/
-  page/index.html       — page-side runner (loads calcite-bridge worker)
-  driver/run.mjs        — Node CLI; drives page (Playwright) or calcite-cli
-  profiles/             — one .mjs file per named bench
-    compile-only.mjs    — sanity: cabinet → parse → compile, report ms
-    doom-loading.mjs    — doom8088 boot through six stages to in-game
-    doom-ingame-fps.mjs — doom8088 steady-state FPS while holding Left
-    doom-all.mjs        — doom-loading + doom-ingame-fps in one boot
-    msdos-boot.mjs      — MS-DOS 4.00 boot to the VER banner
-    windows-all.mjs     — Windows 1.01 boot + open README.DOC in Write
+  page/index.html       - page-side runner (loads calcite-bridge worker)
+  driver/run.mjs        - Node CLI; drives page (Playwright) or calcite-cli
+  profiles/             - one .mjs file per named bench
+    compile-only.mjs    - sanity: cabinet → parse → compile, report ms
+    doom-loading.mjs    - doom8088 boot through six stages to in-game
+    doom-ingame-fps.mjs - doom8088 steady-state FPS while holding Left
+    doom-all.mjs        - doom-loading + doom-ingame-fps in one boot
+    msdos-boot.mjs      - MS-DOS 4.00 boot to the VER banner
+    windows-all.mjs     - Windows 1.01 boot + open README.DOC in Write
   lib/
-    artifacts.mjs       — declarative manifest of every built artifact
-    ensure-fresh.mjs    — staleness primitive (mtime + transitive rebuild)
+    artifacts.mjs       - declarative manifest of every built artifact
+    ensure-fresh.mjs    - staleness primitive (mtime + transitive rebuild)
     ensure-fresh.test.mjs
-  cache/                — built cabinets (gitignored, ephemeral)
+  cache/                - built cabinets (gitignored, ephemeral)
 ```
 
 ## Running a bench
 
 ```sh
-# Sanity (no boot, no run — just compile time):
+# Sanity (no boot, no run - just compile time):
 node tests/bench/driver/run.mjs compile-only
 
 # Default for any non-trivial perf measurement (boot + FPS in one run):
@@ -199,17 +199,17 @@ done
 
 - **Dev server.** Start with
   `CALCITE_REPO=/abs/path/to/calcite npm run dev` (the Vite dev
-  server; port 5173 by default, `PORT=N` env to override — it serves
+  server; port 5173 by default, `PORT=N` env to override - it serves
   the `/bench/` page, `/bench-assets/`, and the calcite pkg). From a
   worktree set `CALCITE_REPO` to the calcite repo (or worktree) you
-  want to bench against — `../calcite/` resolves to the wrong path
+  want to bench against - `../calcite/` resolves to the wrong path
   inside worktrees. The driver attaches via Playwright; pass
   `--port=N` to match the server.
 - **System Chrome on Windows.** The driver's `--headed` path uses
   system Chrome at `C:/Program Files/Google/Chrome/Application/chrome.exe`
   via `launchPersistentContext` so the window actually opens
   visibly. Bundled Playwright Chromium fails on this machine
-  ("side-by-side configuration is incorrect" — missing VC++
+  ("side-by-side configuration is incorrect" - missing VC++
   redistributable). On other platforms, bundled Chromium is used.
 - **Nothing else competing for CPU.** Close other Chrome windows,
   MCP playwright sessions, heavy editor processes. Run-to-run noise
@@ -245,8 +245,8 @@ export async function run(host) {
 }
 ```
 
-Stage detectors compose generic primitives — `cond`, `pattern@…`, `gate=poll`,
-`then=emit`, etc. — with the addresses for *this cart* in the profile
+Stage detectors compose generic primitives - `cond`, `pattern@…`, `gate=poll`,
+`then=emit`, etc. - with the addresses for *this cart* in the profile
 file (the consumer side, where they belong). The primitive grammar lives
 in [`docs/script-primitives.md`](../../docs/script-primitives.md).
 
@@ -272,7 +272,7 @@ registerArtifact({
 to it directly (`register-watch`, `set-watch-chunk-ticks`,
 `bench-run`, `drain-measurements`). Frames/keys flow over the
 `cssdos-bridge` BroadcastChannel (the SW relays `/_screen/framebuffer`
-and `/_kbd?key=` onto it) — there is no port to register. Keyboard
+and `/_kbd?key=` onto it) - there is no port to register. Keyboard
 input from a profile goes through the SW's `/_kbd?key=` endpoint.
 
 ## What's NOT here, and what to use them for instead
@@ -282,12 +282,12 @@ input from a profile goes through the SW's `/_kbd?key=` endpoint.
 | Smoke / conformance / divergence check | `tests/harness/run.mjs smoke`, `tests/harness/pipeline.mjs fulldiff` |
 | Visual screenshot at tick N             | `tests/harness/pipeline.mjs fast-shoot` |
 | Calcite debugger MCP surface            | `tests/harness/pipeline.mjs`, `../calcite/docs/debugger.md` |
-| Low-level Rust microbench / Criterion   | `../calcite/docs/benchmarking.md` (`calcite-bench`, `cargo bench`) — **internal calcite-engine work only**. Not a CSS-DOS perf number. |
+| Low-level Rust microbench / Criterion   | `../calcite/docs/benchmarking.md` (`calcite-bench`, `cargo bench`) - **internal calcite-engine work only**. Not a CSS-DOS perf number. |
 | Player-side stats HUD overlay           | `?bench=1` URL param on `/player/calcite.html`. **Display only**, not a measurement tool. |
 
 **None of those produce numbers comparable to STATUS / LOGBOOK
 baselines.** If you find yourself wanting to "just measure
-something" with one of them — stop, and add a profile here instead.
+something" with one of them - stop, and add a profile here instead.
 
 ## Common pitfalls (read once, save yourself an hour)
 
@@ -309,5 +309,5 @@ something" with one of them — stop, and add a profile here instead.
   runs per side, compare medians.
 - **Quoting CLI numbers as if they're user-facing.** CLI is
   faster than web for reasons that are real (no SW, native rather
-  than wasm) but irrelevant — the user runs the web. CLI numbers
+  than wasm) but irrelevant - the user runs the web. CLI numbers
   belong in dev notes; web numbers in headlines.

@@ -1,7 +1,7 @@
 # builder
 
 The CSS-DOS **builder** turns a cart (folder or zip) into a cabinet (`.css`
-file). It's a thin orchestrator — the real work happens in `stages/`, which
+file). It's a thin orchestrator - the real work happens in `stages/`, which
 it wires together in sequence.
 
 ```
@@ -21,17 +21,17 @@ walkthrough.
 
 ```
 builder/
-  build.mjs            — orchestrator CLI
+  build.mjs            - orchestrator CLI
   stages/
-    bios.mjs           — stage 1: build BIOS bytes (Gossamer/Muslin/Corduroy)
-    floppy.mjs         — stage 2: build FAT12 image (DOS carts only)
-    kiln.mjs           — stage 3: invoke Kiln to emit CSS
+    bios.mjs           - stage 1: build BIOS bytes (Gossamer/Muslin/Corduroy)
+    floppy.mjs         - stage 2: build FAT12 image (DOS carts only)
+    kiln.mjs           - stage 3: invoke Kiln to emit CSS
   presets/
-    dos-corduroy.json  — default DOS preset (C BIOS with real INT 09h)
-    dos-muslin.json    — assembly-BIOS fallback
-    hack.json          — raw-.COM preset
+    dos-corduroy.json  - default DOS preset (C BIOS with real INT 09h)
+    dos-muslin.json    - assembly-BIOS fallback
+    hack.json          - raw-.COM preset
   lib/
-    cart.mjs           — cart resolution (folder/zip → canonical shape)
-    config.mjs         — manifest + preset merge + validation
-    sizes.mjs          — size preset parsing ("640K", "1440K", "autofit")
+    cart.mjs           - cart resolution (folder/zip → canonical shape)
+    config.mjs         - manifest + preset merge + validation
+    sizes.mjs          - size preset parsing ("640K", "1440K", "autofit")
 ```

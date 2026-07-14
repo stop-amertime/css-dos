@@ -1,12 +1,12 @@
-// Stage 3 — invoke Kiln (the transpiler) to emit CSS.
+// Stage 3 - invoke Kiln (the transpiler) to emit CSS.
 //
 // Input:  { bios, floppy (nullable for hack), manifest, kernelBytes,
 //           programBytes, output, header }
 //
-//   kernelBytes   — DOS branch only: contents of dos/bin/kernel.sys as an
+//   kernelBytes   - DOS branch only: contents of dos/bin/kernel.sys as an
 //                   Array<number>. The caller (builder/build.mjs on Node;
 //                   web/browser-builder/main.mjs in the browser) loads these.
-//   programBytes  — hack branch only: contents of the .COM file named in
+//   programBytes  - hack branch only: contents of the .COM file named in
 //                   manifest.boot.raw as an Array<number>. Same ownership.
 //
 // Output: writes CSS to `output` (any object with a .write(string) method).
@@ -18,10 +18,10 @@ import { resolveMemorySize, autofitDosMem, DOS_MAX_MEM } from '../lib/sizes.mjs'
 const KERNEL_LINEAR = 0x600; // DOS kernel load address
 
 // Resolve the floppy file referenced by the first token of boot.runCommand.
-// Used for memory autofit — the cabinet's RAM size is sized to the program
+// Used for memory autofit - the cabinet's RAM size is sized to the program
 // the cart will actually run, not the largest file on the disk. The token
 // can be bare ("DOOM") or include an extension ("DOOM.EXE"); we try the
-// raw name first, then "<name>.EXE" and "<name>.COM" — same lookup order
+// raw name first, then "<name>.EXE" and "<name>.COM" - same lookup order
 // COMMAND.COM uses for an unqualified command line.
 export function autorunFileFromRunCommand(manifest, floppyLayout) {
   if (!floppyLayout) return null;
@@ -45,7 +45,7 @@ export function runKiln({ bios, floppy, manifest, kernelBytes, programBytes, out
 // the geometry the floppy was actually laid out with. Each field is
 // preceded by a 4-byte ASCII anchor in handlers.asm; the patcher finds
 // the anchor and writes the little-endian 16-bit value immediately after.
-// For SPT we additionally patch disk_param_spt — an 8-bit sentinel
+// For SPT we additionally patch disk_param_spt - an 8-bit sentinel
 // (0xD4) in the INT 1Eh diskette parameter table that the reference
 // BIOSes also expose.
 const DISK_GEOM_ANCHORS = {
@@ -78,7 +78,7 @@ function patchBiosDiskGeometry(biosBytes, geometry) {
   const { spt, heads, cyls } = geometry;
   if (spt > 0xFF || heads > 0xFF || cyls > 0xFF) {
     // AH=08h returns these in CL/DH/CH bytes, and the LBA math reads the
-    // low byte of each word. Geometry must fit in a byte — pickFloppyGeometry
+    // low byte of each word. Geometry must fit in a byte - pickFloppyGeometry
     // is responsible for ensuring that.
     throw new Error(`BIOS patch: geometry out of range (spt=${spt}, heads=${heads}, cyls=${cyls}); must fit in a byte each.`);
   }
@@ -90,7 +90,7 @@ function patchBiosDiskGeometry(biosBytes, geometry) {
   }
   // disk_param_table's SPT byte is an 8-bit sentinel. Searching for a bare
   // 0xD4 would be ambiguous, so anchor the search with the surrounding
-  // bytes — the table is `[0x02, 0xD4, 0x1B]` (bytes-per-sector=2, SPT,
+  // bytes - the table is `[0x02, 0xD4, 0x1B]` (bytes-per-sector=2, SPT,
   // gap-length=0x1B).
   const paramAnchor = [0x02, DISK_PARAM_SPT_SENTINEL, 0x1B];
   const paramOff = findUnique(biosBytes, paramAnchor, 'disk_param_spt');
@@ -110,7 +110,7 @@ function patchBiosBootMode(biosBytes, mode) {
 // install_bda writes the actual configured size into BDA. The kernel
 // calls INT 12h (which corduroy's handler serves from the BDA value) to
 // find the top of conventional memory and relocate its BIOS code there.
-// If this lies — e.g. install_bda says 640 but actual RAM is 240 KB —
+// If this lies - e.g. install_bda says 640 but actual RAM is 240 KB -
 // the relocation lands in unmapped memory and boot dies silently.
 // The variable is initialized to 0xBEEF in bios_init.c as a signature
 // so we can find and replace it here without parsing a link map.
@@ -137,7 +137,7 @@ function patchBiosMemSize(biosBytes, memBytes) {
 // 0xBEEE immediate to `(memBytes - 0x10000) / 16` so the stack lives in a
 // 64 KB window ending just before the configured memory top. Without this,
 // the hardcoded 0x9000:FFFE stack falls outside autofit RAM and every
-// push/ret corrupts the return chain — boot dies silently inside
+// push/ret corrupts the return chain - boot dies silently inside
 // install_ivt's C prologue.
 function patchBiosStackSeg(biosBytes, memBytes) {
   if (memBytes < 0x10000) {
@@ -164,14 +164,14 @@ function patchBiosStackSeg(biosBytes, memBytes) {
 // them to resolve memBytes for the harness header before runKiln runs.
 
 function runKilnDos({ bios, floppy, manifest, kernelBytes, output, header }) {
-  // boot.os "msdos4": nothing is preloaded at 0060:0000 — the cabinet
+  // boot.os "msdos4": nothing is preloaded at 0060:0000 - the cabinet
   // boots like real hardware, via the floppy's boot sector (Corduroy's
   // INT 19h path, selected by the boot_mode patch below). kernelBytes
   // is null in that mode; everything DOS comes off the disk.
   const bootsFromDisk = (manifest.boot?.os ?? 'edrdos') === 'msdos4';
   if (!kernelBytes && !bootsFromDisk) throw new Error('runKilnDos: kernelBytes is required');
   if (bootsFromDisk && bios.meta?.flavor !== 'corduroy') {
-    throw new Error(`boot.os "msdos4" requires the corduroy BIOS (got ${bios.meta?.flavor}) — only corduroy has the INT 19h bootstrap.`);
+    throw new Error(`boot.os "msdos4" requires the corduroy BIOS (got ${bios.meta?.flavor}) - only corduroy has the INT 19h bootstrap.`);
   }
   const preloadBytes = kernelBytes ?? [];
 
@@ -199,13 +199,13 @@ function runKilnDos({ bios, floppy, manifest, kernelBytes, output, header }) {
   // Writable disk: the whole floppy image also becomes ordinary memory
   // cells at DISK_SHADOW_LINEAR (their @property initial values are the
   // factory floppy). emitCSS's writableDisk opt reroutes the window's
-  // read arms + write cascade at those cells. Opt-in only — the shadow
+  // read arms + write cascade at those cells. Opt-in only - the shadow
   // roughly doubles a big cabinet's cell count, so game carts don't pay.
   const wantsWritable = manifest.disk?.writable === true;
   if (wantsWritable) {
     embData.push({ addr: DISK_SHADOW_LINEAR, bytes: floppy.bytes });
   }
-  const memoryZones = dosMemoryZones(preloadBytes, KERNEL_LINEAR, memBytes, embData, prune);
+  const memoryZones = dosMemoryZones(memBytes, embData, prune);
 
   emitCSS({
     programBytes:  preloadBytes,
@@ -220,7 +220,7 @@ function runKilnDos({ bios, floppy, manifest, kernelBytes, output, header }) {
     initialCS:     bios.entrySegment,
     initialIP:     bios.entryOffset,
     initialRegs:   { SP: 0 },
-    // Serial-mouse hardware (8250 UART @ COM1 + #mc-N cell grid) — opt-in
+    // Serial-mouse hardware (8250 UART @ COM1 + #mc-N cell grid) - opt-in
     // via program.json `input.mouse` (see program.schema.json).
     mouse:         manifest.input?.mouse === true,
     header,
@@ -240,7 +240,7 @@ function runKilnHack({ bios, manifest, programBytes, output, header }) {
   };
 
   const embeddedData = [buildIVTData(bios.bytes)];
-  const memoryZones = comMemoryZones(programBytes, programOffset, memBytes, prune);
+  const memoryZones = comMemoryZones(memBytes, prune);
 
   emitCSS({
     programBytes,
@@ -248,7 +248,7 @@ function runKilnHack({ bios, manifest, programBytes, output, header }) {
     memoryZones,
     embeddedData,
     programOffset,
-    // Serial-mouse hardware — same opt-in as the DOS path. Useful for
+    // Serial-mouse hardware - same opt-in as the DOS path. Useful for
     // probing the packet machine in isolation (a COM program that
     // polls the UART boots in seconds; Windows takes minutes).
     mouse:         manifest.input?.mouse === true,

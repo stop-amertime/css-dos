@@ -1,5 +1,5 @@
 <script>
-  // Callout — the boxed asides. Replaces the old bare "NOTE" chip
+  // Callout - the boxed asides. Replaces the old bare "NOTE" chip
   // with a per-kind pixel icon + label: info (blue), tip (yellow
   // lightbulb), warn (red). Icons from pixelarticons via
   // unplugin-icons.
@@ -55,7 +55,7 @@
   .callout-warn .callout-head { background: var(--edit-red); color: var(--edit-white); }
   .callout-info { border-color: var(--edit-blue); box-shadow: 4px 4px 0 var(--edit-blue); }
   .callout-warn { border-color: var(--edit-red); box-shadow: 4px 4px 0 var(--edit-red); }
-  /* The body copy is authored by the caller — hence :global. */
+  /* The body copy is authored by the caller - hence :global. */
   .callout :global(p) { margin: 0 0 6px; }
   .callout :global(p:last-child) { margin-bottom: 0; }
 </style>

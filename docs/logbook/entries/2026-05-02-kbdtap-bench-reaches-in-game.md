@@ -1,4 +1,4 @@
-## 2026-05-02 — kbdtap → bench reaches in-game
+## 2026-05-02 - kbdtap → bench reaches in-game
 
 Calcite-core gets a new `setvar_pulse=NAME,VALUE,HOLD_TICKS` action
 that schedules a make/break edge pair, and `cond:repeat` is fixed to

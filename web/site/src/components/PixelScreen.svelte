@@ -1,14 +1,14 @@
 <script>
-  // PixelScreen — how the display works: one CSS rule per pixel. Split
+  // PixelScreen - how the display works: one CSS rule per pixel. Split
   // pane: left, the first three rules (trailing off to "…63,997 more");
   // right, the 320×200 screen with those pixels drawn in the corner and
   // dimension arrows. Colour chips link each rule to its pixel.
   import SplitPane from './SplitPane.svelte';
 
   const PX = [
-    { colour: '#55ff55' }, // pixel 0 — green
-    { colour: '#55ffff' }, // pixel 1 — cyan
-    { colour: '#ff55ff' }, // pixel 2 — magenta
+    { colour: '#55ff55' }, // pixel 0 - green
+    { colour: '#55ffff' }, // pixel 1 - cyan
+    { colour: '#ff55ff' }, // pixel 2 - magenta
   ];
 </script>
 

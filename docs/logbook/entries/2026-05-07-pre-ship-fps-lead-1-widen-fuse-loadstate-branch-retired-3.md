@@ -1,4 +1,4 @@
-## 2026-05-07 — pre-ship FPS lead #1 (widen `fuse_loadstate_branch`): retired
+## 2026-05-07 - pre-ship FPS lead #1 (widen `fuse_loadstate_branch`): retired
 
 Calcite-side work. Full entry in
 [`../calcite/docs/log.md`](../../../calcite/docs/log.md) under

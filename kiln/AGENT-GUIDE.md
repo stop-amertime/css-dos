@@ -6,7 +6,7 @@ How to add new 8086 instructions to the CSS transpiler.
 
 The transpiler generates CSS that emulates an 8086 CPU. Each clock tick, CSS
 evaluates all properties simultaneously. There are no loops or sequential
-execution — everything is one big parallel evaluation.
+execution - everything is one big parallel evaluation.
 
 ### Dispatch system
 
@@ -15,63 +15,68 @@ Each instruction is an opcode (0x00-0xFF). The `DispatchTable` class in
 CSS `if(style(--opcode: N): expr; ...)` chains.
 
 Key methods:
-- `dispatch.addEntry(reg, opcode, expr, comment)` — register `reg` gets value
-  `expr` when the current opcode matches. **One entry per (reg, opcode) pair** —
+- `dispatch.addEntry(reg, opcode, expr, comment)` - register `reg` gets value
+  `expr` when the current opcode matches. **One entry per (reg, opcode) pair** -
   duplicates throw an error.
-- `dispatch.addMemWrite(opcode, addrExpr, valExpr, comment)` — queue a memory
-  write. Each opcode can use up to `NUM_WRITE_SLOTS` (3) word slots — the max
-  is INT, which pushes FLAGS/CS/IP = 3 words.
+- `dispatch.addMemWrite(opcode, addrExpr, valExpr, comment)` - queue an 8-bit
+  **byte** write.
+- `dispatch.addMemWriteWord(opcode, addrExpr, wordValExpr, comment)` - queue a
+  16-bit **word** write: the un-split word `wordValExpr` lands with its lo byte
+  at `addrExpr` and hi byte at `addrExpr+1` (the write side does the split).
+  This is THE way to emit a word write - do not emit lo/hi as two byte writes.
+  Each opcode can use up to `NUM_WRITE_SLOTS` (3) slots, one per call in call
+  order - the max is INT, which pushes FLAGS/CS/IP = 3 words.
 
 ### Register names
 
 16-bit: `AX, CX, DX, BX, SP, BP, SI, DI, CS, DS, ES, SS, IP, flags, halt`
 
 8-bit aliases (computed properties, read-only in dispatch):
-`AL, CL, DL, BL, AH, CH, DH, BH` — accessed as `var(--AL)` etc.
+`AL, CL, DL, BL, AH, CH, DH, BH` - accessed as `var(--AL)` etc.
 
 To write an 8-bit register, you must write the full 16-bit parent using merge helpers:
-- `--mergelow(parent16, newLow8)` — replaces low byte
-- `--mergehigh(parent16, newHigh8)` — replaces high byte
+- `--mergelow(parent16, newLow8)` - replaces low byte
+- `--mergehigh(parent16, newHigh8)` - replaces high byte
 
 ### Reading values
 
 Pre-computed decode properties (available in dispatch expressions):
-- `var(--rmVal8)`, `var(--rmVal16)` — the r/m operand (register or memory)
-- `var(--regVal8)`, `var(--regVal16)` — the reg-field operand
-- `var(--ea)` — effective address (linear) for memory operands
-- `var(--eaOff)` — effective address offset only (no segment)
-- `var(--mod)`, `var(--reg)`, `var(--rm)` — ModR/M fields
-- `var(--modrmExtra)` — extra bytes consumed by ModR/M addressing
-- `var(--immByte)`, `var(--immWord)` — immediate after ModR/M+disp
-- `var(--q0)`..`var(--q5)` — raw instruction bytes from CS:IP
-- `var(--__1REG)` — previous tick's register value (double-buffered)
-- `var(--_cf)` — carry flag bit (0 or 1)
-- `var(--_zf)` — zero flag bit (0 or 1)
-- `var(--AL)`, `var(--AH)`, etc. — 8-bit register aliases
-- `var(--CL)` — CL register value (low byte of CX)
+- `var(--rmVal8)`, `var(--rmVal16)` - the r/m operand (register or memory)
+- `var(--regVal8)`, `var(--regVal16)` - the reg-field operand
+- `var(--ea)` - effective address (linear) for memory operands
+- `var(--eaOff)` - effective address offset only (no segment)
+- `var(--mod)`, `var(--reg)`, `var(--rm)` - ModR/M fields
+- `var(--modrmExtra)` - extra bytes consumed by ModR/M addressing
+- `var(--immByte)`, `var(--immWord)` - immediate after ModR/M+disp
+- `var(--q0)`..`var(--q5)` - raw instruction bytes from CS:IP
+- `var(--__1REG)` - previous tick's register value (double-buffered)
+- `var(--_cf)` - carry flag bit (0 or 1)
+- `var(--_zf)` - zero flag bit (0 or 1)
+- `var(--AL)`, `var(--AH)`, etc. - 8-bit register aliases
+- `var(--CL)` - CL register value (low byte of CX)
 
 ### CSS utility functions
 
-- `--lowerBytes(val, bits)` — mod(val, pow(2, bits)) — truncate to N bits
-- `--rightShift(val, bits)` — floor(val / pow(2, bits))
-- `--bit(val, idx)` — extract single bit (0 or 1)
-- `--u2s1(val)` — unsigned byte to signed (-128..127)
-- `--u2s2(val)` — unsigned word to signed (-32768..32767)
-- `--readMem(addr)` — read byte from memory
-- `--read2(addr)` — read 16-bit word (little-endian)
-- `--and(a, b)`, `--or(a, b)`, `--xor(a, b)` — bitwise (16-bit)
-- `--and8(a, b)`, `--or8(a, b)`, `--xor8(a, b)` — bitwise (8-bit)
-- `--not(val)` — bitwise NOT (16-bit, result = 65535 - val)
-- `--parity(val)` — parity flag lookup
+- `--lowerBytes(val, bits)` - mod(val, pow(2, bits)) - truncate to N bits
+- `--rightShift(val, bits)` - floor(val / pow(2, bits))
+- `--bit(val, idx)` - extract single bit (0 or 1)
+- `--u2s1(val)` - unsigned byte to signed (-128..127)
+- `--u2s2(val)` - unsigned word to signed (-32768..32767)
+- `--readMem(addr)` - read byte from memory
+- `--read2(addr)` - read 16-bit word (little-endian)
+- `--and(a, b)`, `--or(a, b)`, `--xor(a, b)` - bitwise (16-bit)
+- `--and8(a, b)`, `--or8(a, b)`, `--xor8(a, b)` - bitwise (8-bit)
+- `--not(val)` - bitwise NOT (16-bit, result = 65535 - val)
+- `--parity(val)` - parity flag lookup
 
 ### Flag functions
 
-- `--addFlags16(dst, src)`, `--addFlags8(dst, src)` — flags for ADD
-- `--subFlags16(dst, src)`, `--subFlags8(dst, src)` — flags for SUB/CMP
-- `--adcFlags16(dst, src, cf)`, `--sbbFlags16(dst, src, cf)` — with carry
-- `--andFlags16(a, b)`, `--orFlags16(a, b)`, `--xorFlags16(a, b)` — logic flags
-- `--incFlags16(dst, res, oldFlags)` — INC (preserves CF)
-- `--decFlags16(dst, res, oldFlags)` — DEC (preserves CF)
+- `--addFlags16(dst, src)`, `--addFlags8(dst, src)` - flags for ADD
+- `--subFlags16(dst, src)`, `--subFlags8(dst, src)` - flags for SUB/CMP
+- `--adcFlags16(dst, src, cf)`, `--sbbFlags16(dst, src, cf)` - with carry
+- `--andFlags16(a, b)`, `--orFlags16(a, b)`, `--xorFlags16(a, b)` - logic flags
+- `--incFlags16(dst, res, oldFlags)` - INC (preserves CF)
+- `--decFlags16(dst, res, oldFlags)` - DEC (preserves CF)
 - 8-bit variants of all the above
 
 ### IP advancement
@@ -85,16 +90,20 @@ Every instruction must add an IP entry:
 ### Memory writes
 
 For byte writes: one `addMemWrite` call with address and value.
-For word writes: two `addMemWrite` calls — lo byte at addr, hi byte at addr+1.
-Address `-1` means "no write" (disabled slot).
+For word writes: one `addMemWriteWord` call with address and the un-split
+16-bit value - the lo byte lands at `addr`, the hi byte at `addr+1`. Pass the
+whole word (e.g. `var(--regVal16)`, or a top-level `if(...)` dispatch over
+per-`/reg` word values); the per-cell write rules split it into bytes.
+Address `-1` means "no write" (disabled slot); a conditional address that
+resolves to `-1` for a given `/reg` suppresses that branch's write.
 
 Slot usage is tracked per opcode and drives the `--_slotNLive` gates
-that wrap the per-byte write rules: an opcode that calls `addMemWrite`
-N times lights up slots 0…N-1 for that tick, and slots N…5 stay off.
-Opcodes that never call `addMemWrite` leave every gate at 0, so
-non-writing instructions skip all address lookups entirely. You don't
-need to do anything for this to work — just call `addMemWrite` in slot
-order (slot 0 first, then 1, etc.) as you already would.
+that wrap the per-byte write rules: an opcode that calls the write API
+N times (byte or word) lights up slots 0…N-1 for that tick, and the rest
+stay off. Opcodes that never write leave every gate at 0, so non-writing
+instructions skip all address lookups entirely. You don't need to do
+anything for this to work - just call `addMemWrite` / `addMemWriteWord`
+in slot order (slot 0 first, then 1, etc.) as you already would.
 
 ### Pattern for 8-bit register destinations
 
@@ -133,8 +142,8 @@ broader check, run the smoke set: `node tests/harness/run.mjs smoke`.
 ## Examples
 
 See existing pattern files for reference:
-- `patterns/misc.mjs` — simple 1-byte instructions (LAHF, SAHF, NOP, etc.)
-- `patterns/control.mjs` — jumps, calls, returns
-- `patterns/stack.mjs` — PUSH/POP
-- `patterns/group.mjs` — group opcodes with reg-field sub-dispatch
-- `patterns/mov.mjs` — MOV variants, LEA, LES/LDS
+- `patterns/misc.mjs` - simple 1-byte instructions (LAHF, SAHF, NOP, etc.)
+- `patterns/control.mjs` - jumps, calls, returns
+- `patterns/stack.mjs` - PUSH/POP
+- `patterns/group.mjs` - group opcodes with reg-field sub-dispatch
+- `patterns/mov.mjs` - MOV variants, LEA, LES/LDS

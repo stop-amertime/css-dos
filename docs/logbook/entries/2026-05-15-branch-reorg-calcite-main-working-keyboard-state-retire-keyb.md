@@ -1,4 +1,4 @@
-## 2026-05-15 — Branch reorg: calcite main == working keyboard state; retire-keyboard + dependents parked
+## 2026-05-15 - Branch reorg: calcite main == working keyboard state; retire-keyboard + dependents parked
 
 Cleaned up the calcite/CSS-DOS branch divergence that cost the
 2026-05-14 session hours of confusion.
@@ -14,7 +14,7 @@ and STATUS (which describes the post-retire path) contradicted the
 shipped code.
 
 **What was done.**
-- Calcite `main` reset to `ef44f20` (the ex-`old-kbd` tip — the
+- Calcite `main` reset to `ef44f20` (the ex-`old-kbd` tip - the
   keyboard state CSS-DOS master needs). Bench now works on main
   with no `CALCITE_REPO`.
 - All the work that was on calcite main past `ef44f20` is preserved
@@ -36,7 +36,7 @@ on trunk) from the keyboard work (parked) by cherry-picking the
 non-keyboard commits onto the reset main. Landed 5 commits clean
 (rep_fast_forward phases 1/2/3a + probe_bif_predecessor), each
 gated on `cargo build -p calcite-core`. **But that gate was too
-narrow** — `4f3efae` (phase 2) silently removed
+narrow** - `4f3efae` (phase 2) silently removed
 `State::render_framebuffer` / `read_framebuffer_rgba` (the "move
 CGA renderer to calcite-pc-video" half of the genericity mission),
 which broke `calcite-cli`/`calcite-wasm` while `calcite-core` still
@@ -61,5 +61,5 @@ for the bench are broken.
 `feat/retire-keyboard` on both repos. It's all there, in order,
 building. The keyboard story (forward to `:active` everywhere, or
 stay on the side-channel) has to be decided before that branch can
-merge to trunk — that decision is the actual blocker, not the
+merge to trunk - that decision is the actual blocker, not the
 mechanics.

@@ -1,4 +1,4 @@
-## 2026-05-14 — Item #5 (unchecked slot access) attempt: -30% ticks/sec on web bench, write-off
+## 2026-05-14 - Item #5 (unchecked slot access) attempt: -30% ticks/sec on web bench, write-off
 
 Implemented item #5 from the seven-item inefficiency list filed earlier
 today (replace bounds-checked slot reads/writes in `execute()`'s
@@ -32,7 +32,7 @@ range" hint that lets surrounding code restructure) may have hurt
 codegen. The macro expansion is larger than the original `slots[i]`,
 which can shift inlining decisions in non-obvious ways.
 
-Not chasing this further — one run on a possibly-noisy host doesn't
+Not chasing this further - one run on a possibly-noisy host doesn't
 prove it's exactly -30%, but it's nowhere near the +small% we
 expected, and the per-tick cost of writeback/broadcast loops is small
 relative to the inner exec loop (which was already unchecked).
@@ -53,20 +53,20 @@ new agent. Recording so the next agent doesn't repeat:
 
 1. **CSS-DOS master is on the post-old-kbd-merge state.** The bench
    profiles (`tests/bench/profiles/*.mjs`) use
-   `setvar_pulse=keyboard,${ENTER},${TAP_HOLD}` — the **old** keyboard
+   `setvar_pulse=keyboard,${ENTER},${TAP_HOLD}` - the **old** keyboard
    side-channel. The SW (`web/site/sw.js`) handles `/_kbd?key=0xHHHH`
    forwarded as `{type:'kbd', key}` over the bridge port. The bridge
    (`web/shim/calcite-bridge.js`) has the old `keyQueue`/hold-batches
    drainer. **This is the correct state on master.** Do NOT
    "modernise" these to `pseudo_pulse=active,kb-X` / `?class=kb-X` /
-   `{type:'press'}` — STATUS describes the post-retire path but
+   `{type:'press'}` - STATUS describes the post-retire path but
    master is pre-retire. STATUS lies. The reverts at commits
    `915acc3`, `48767d2`, `80f4974` and the merge `5c4b0ad` are the
    ground truth.
 
-2. **Calcite `main` IS the working state — NO `CALCITE_REPO` needed
+2. **Calcite `main` IS the working state - NO `CALCITE_REPO` needed
    anymore.** Resolved 2026-05-14/15: calcite `main` was reset to
-   `ef44f20` (the ex-`old-kbd` tip — the keyboard-side-channel state
+   `ef44f20` (the ex-`old-kbd` tip - the keyboard-side-channel state
    CSS-DOS master needs). The retire-keyboard work + everything
    built on top of it (the crate-extraction refactor, the
    rep_fast_forward genericity phases, the dispatch-specialise
@@ -75,7 +75,7 @@ new agent. Recording so the next agent doesn't repeat:
    `old-kbd` branches + worktrees were deleted from BOTH repos. So:
 
    ```
-   # Just works — calcite main == the old keyboard side-channel state
+   # Just works - calcite main == the old keyboard side-channel state
    node web/scripts/dev.mjs
    node tests/bench/driver/run.mjs doom-loading --headed
    ```
@@ -90,7 +90,7 @@ new agent. Recording so the next agent doesn't repeat:
    logs detailed status to a DOM `<div id="log">` but only
    `console.error` is piped to stderr by the driver. So if the bench
    stalls, the operator sees nothing for 10 minutes. I added DOM-log
-   scraping during this session — it's reverted now, but if you find
+   scraping during this session - it's reverted now, but if you find
    yourself debugging a stalled bench, re-add it. It's the most
    useful 15 lines of code you can write.
 
@@ -111,7 +111,7 @@ ops between dispatches**.
 What it means: the cabinet emits ~50 `Op::Dispatch` (or
 `DispatchChain`) ops per tick, all keyed on the same hot slot
 (`--opcode`). Between dispatches the op stream interleaves
-`LoadState`, arithmetic, function-call inlining, etc. — the
+`LoadState`, arithmetic, function-call inlining, etc. - the
 "prep work" that computes inputs for the next dispatched property.
 Some of that prep computes values that don't depend on `--opcode`.
 Those are tick-invariant for the duration of the tick (or even
@@ -120,7 +120,7 @@ loop-invariant across ticks, but tick-scope is enough).
 The optimisation: identify ops whose inputs are all reads of slots
 that aren't written between the previous dispatch and the next, and
 that aren't downstream of any `--opcode`-dispatched value. Move them
-out of the per-dispatch stream entirely — hoist once to the top of
+out of the per-dispatch stream entirely - hoist once to the top of
 the tick body, or eliminate as common subexpressions.
 
 This is standard compiler stuff: loop-invariant code motion + common
@@ -130,16 +130,16 @@ paths but not for the main op stream.
 
 **Where to look first:**
 
-- `crates/calcite-core/src/compile.rs` — the `compile()` entry,
+- `crates/calcite-core/src/compile.rs` - the `compile()` entry,
   ~line 3187. After the main compile loop produces the op stream,
   the post-Compiler passes run: `inline_calls`, `compact_slots`,
   fusion passes, `build_dispatch_chains`, `recognise_replicated_bodies`.
   A new pass `hoist_dispatch_invariant` would slot in here.
-- `crates/calcite-core/src/pattern/dispatch_specialise.rs` — the
+- `crates/calcite-core/src/pattern/dispatch_specialise.rs` - the
   Expr-level partial evaluator. It already classifies which
   assignments dispatch on `--opcode` vs which don't. Useful as a
   reference for "which slots are dispatch-dependent."
-- `crates/calcite-core/src/pattern/op_profile.rs` — op-adjacency
+- `crates/calcite-core/src/pattern/op_profile.rs` - op-adjacency
   profiler. If you want to see what ops sit between dispatches on
   doom8088 before writing the pass, run with op-profile enabled
   and grep the output.
@@ -160,12 +160,12 @@ per the user's rule):**
 - What's the slot story? Hoisted ops write to the same destination
   slot they originally wrote to. Subsequent reads in the original
   position resolve through the slot, so no rewrites needed
-  downstream — slot is just "already initialised" by the time the
+  downstream - slot is just "already initialised" by the time the
   inner reads happen.
 
 **Hard part to think about before coding:** loop-carried dependencies.
 If the prep op reads a slot that an *earlier* dispatch wrote to,
-it's not invariant — it depends on what the earlier dispatch did,
+it's not invariant - it depends on what the earlier dispatch did,
 which depends on the opcode value of the earlier dispatch. The
 analysis needs to handle this. Specifically: an op is hoistable iff
 every transitive input slot is either (a) a state-var read
@@ -196,7 +196,7 @@ cd ../calcite && git rev-parse main   # MUST be ef44f20...
 # core-only build passed while cli/wasm were broken during the
 # 2026-05-14 cherry-pick attempt and hid a regression for an hour:
 cargo build --release -p calcite-core -p calcite-cli -p calcite-wasm
-# 4. Start dev server (no CALCITE_REPO needed — main is correct):
+# 4. Start dev server (no CALCITE_REPO needed - main is correct):
 cd ../CSS-DOS
 node web/scripts/dev.mjs &
 # 5. Wait for "web dev server: http://localhost:5173/" in its output
@@ -210,7 +210,7 @@ If the number is a win, log it and stop. If it's not, log it and
 stop. **Don't run multiple variants chasing a target. One change,
 one number, user decides.**
 
-If you find yourself wanting to "just measure something quickly" —
+If you find yourself wanting to "just measure something quickly" -
 re-read the directive at the top of this entry (2026-05-14, the
 First-principles section). The previous agent's failure mode was
 exactly this. Measurement was used to defer thinking, not to validate

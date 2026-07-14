@@ -1,4 +1,4 @@
-// cabinet-diff.mjs — compare two cabinets tick-by-tick.
+// cabinet-diff.mjs - compare two cabinets tick-by-tick.
 //
 // "I changed something in kiln, is the output functionally identical?"
 // The test: build a cabinet before the change, save it. Make the change,

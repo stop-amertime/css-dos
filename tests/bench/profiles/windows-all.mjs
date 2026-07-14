@@ -1,26 +1,26 @@
-// tests/bench/profiles/windows-all.mjs — Windows 1.01 boot + app-launch bench.
+// tests/bench/profiles/windows-all.mjs - Windows 1.01 boot + app-launch bench.
 //
 // The Windows analogue of `doom-all`: one boot, every phase timed.
 // carts/0windows101 boots MS-DOS 4.00 (Corduroy INT 19h), AUTOEXEC runs
 // VER then STARTWIN (SETVER3 TSR + WIN), Windows sets CGA mode 6 and
 // draws the MS-DOS Executive. The profile then injects keys to open
-// README.DOC — WIN.INI maps `doc=write.exe`, so this loads WRITE.EXE
+// README.DOC - WIN.INI maps `doc=write.exe`, so this loads WRITE.EXE
 // (188 KB, the heaviest app on the floppy, plus font loading). The
-// wall from Enter to Write-drawn is `writeLoadMs` — the doomLoad
+// wall from Enter to Write-drawn is `writeLoadMs` - the doomLoad
 // analogue and the headline number for "opening programs is slow".
 //
 // Stages (watch names → phases):
-//   dos_banner   — VER banner in text VRAM  (MS-DOS 4.00 booted)
-//   win_gfx      — BDA mode byte = 0x06     (WIN.COM up, logo drawing)
-//   executive    — Executive screen bytes   (desktop ready for input)
-//   key_r/key_enter — injected taps         (select README.DOC, launch)
-//   write_loaded — Write screen bytes       (README.DOC on screen; halt)
+//   dos_banner   - VER banner in text VRAM  (MS-DOS 4.00 booted)
+//   win_gfx      - BDA mode byte = 0x06     (WIN.COM up, logo drawing)
+//   executive    - Executive screen bytes   (desktop ready for input)
+//   key_r/key_enter - injected taps         (select README.DOC, launch)
+//   write_loaded - Write screen bytes       (README.DOC on screen; halt)
 //
 // Key injection is tick-scheduled (`at` watches): boot ticks are
 // deterministic, same rationale as the harness `windows` preset's
 // --press-events schedule. If a kiln/builder change shifts boot ticks,
 // the `executive` stage will fire later than KEY_R_TICK and the bench
-// fails loudly (write_loaded never fires) — re-derive the tick
+// fails loudly (write_loaded never fires) - re-derive the tick
 // constants with fast-shoot, same as re-deriving sentinel addresses.
 
 const ADDR_BDA_MODE  = 0x449;
@@ -34,7 +34,7 @@ const TEXT_VRAM_BYTES = 4000;
 // scrollbar, "Page 1" status bar) ~3.0M ticks later. Key ticks sit
 // 400K ticks (~2.7 guest-seconds) after the executive stage for
 // input-readiness margin. Byte tests picked by diffing CGA VRAM
-// dumps of the logo / Executive / Write screens — each test byte
+// dumps of the logo / Executive / Write screens - each test byte
 // differs from every other screen, spread across the display so
 // partial redraws can't satisfy all of them, away from the mouse
 // pointer (320,100) and Write's blinking caret (top-left of the
@@ -119,7 +119,7 @@ export async function run(host) {
   }
   host.log('write_loaded reached');
 
-  // Phase walls — what the user actually waits through:
+  // Phase walls - what the user actually waits through:
   //   dosBoot    = BIOS + MS-DOS 4.00 to the VER banner
   //   winBoot    = STARTWIN → WIN.COM → mode 6 (logo appears)
   //   executive  = logo → Executive ready

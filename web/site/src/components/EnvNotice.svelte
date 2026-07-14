@@ -1,7 +1,7 @@
 <script>
   // Browser-capability notice, shown on the Build and Play steps. Hard
   // failures (no SW / HTTPS / COOP+COEP / WASM) mean the player cannot
-  // work in this browser — say so ON the page; console errors are
+  // work in this browser - say so ON the page; console errors are
   // unreachable on mobile. Reasons come from lib/health.svelte.js.
   import { health } from '../lib/health.svelte.js';
 </script>

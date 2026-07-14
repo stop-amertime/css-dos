@@ -1,7 +1,7 @@
 <script>
-  // TickClock — the machine's clock. Left: the cabinet's actual clock
+  // TickClock - the machine's clock. Left: the cabinet's actual clock
   // CSS. Right: the four beats of one tick, highlighted in turn by a
-  // pure-CSS animation (tick-clock.css) — the widget runs on the same
+  // pure-CSS animation (tick-clock.css) - the widget runs on the same
   // mechanism it explains, 8× slower.
   import SplitPane from './SplitPane.svelte';
 
@@ -55,7 +55,7 @@
     margin: 16px 0;
   }
 
-  /* — left pane: the clock's actual CSS — */
+  /* - left pane: the clock's actual CSS - */
   .tick-code {
     margin: 0;
     padding: 12px 16px;
@@ -78,7 +78,7 @@
   .tick-code .tok-at      { color: var(--edit-red); }
   .tick-code .tok-sel     { color: #006600; }
 
-  /* — right pane: the four beats — */
+  /* - right pane: the four beats - */
   .tick-beats {
     display: flex;
     flex-direction: column;

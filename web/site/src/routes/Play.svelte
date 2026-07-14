@@ -10,7 +10,7 @@
   let { strip, wizNav } = $props();
 
   // Calcite is the default and the player starts embedded straight
-  // away — /player/calcite.html#embed hides the player's decorative
+  // away - /player/calcite.html#embed hides the player's decorative
   // desktop chrome (pure-CSS :target), so the iframe is just the
   // screen + keyboard. Pop-out opens the full blue-desktop player.
   // The bridge worker (WASM engine) lives in THIS tab; mobile Chrome
@@ -20,7 +20,7 @@
   let rawModal = $state(false);
   const playing = $derived(health.canRun && !stopped);
 
-  // Per-cart hints toast — display.playTips in the cart's program.json
+  // Per-cart hints toast - display.playTips in the cart's program.json
   // (see docs/cart-format.md). Only a cart picked this session carries
   // tips; a cabinet restored after a reload has no cart metadata, so no
   // toast. Dismissal is remembered per cart, not globally, so building
@@ -46,7 +46,7 @@
   // Cache Storage (the bridge streams it from there), and a reload, SW
   // update, or cache eviction can drop it while the route still says
   // "playable". No cabinet → bounce to the Build step's picker. The
-  // freshly-built blob in memory (build.done) also counts — it's saved
+  // freshly-built blob in memory (build.done) also counts - it's saved
   // to the cache right after the build.
   $effect(() => {
     if (!nav.canPlay) { nav.bounceFromPlay(); return; }
@@ -79,7 +79,7 @@
       // parent-window ResizeObserver watching a child-document body does
       // not fire reliably in Chrome (the frame stayed 610px tall after
       // the keyboard reflowed to 421px at phone width). Re-created on
-      // every load — the old one dies with the old document.
+      // every load - the old one dies with the old document.
       const win = frame.contentWindow;
       const body = frame.contentDocument?.body;
       ro?.disconnect();
@@ -91,7 +91,7 @@
     };
     frame.addEventListener('load', attach);
     // A cached/SW-served document can finish loading before this action
-    // attaches — then 'load' never fires and the frame would sit on the
+    // attaches - then 'load' never fires and the frame would sit on the
     // CSS fallback height forever (the "huge gap under the keyboard").
     if (frame.contentDocument?.readyState === 'complete') attach();
     // Belt-and-braces: our own resizes always reflow the embed.
@@ -114,7 +114,7 @@
   // Squish-to-fit: on short viewports the full-size embed (screen +
   // keyboard) can be taller than the band between the wizard's pinned
   // chrome, leaving the page scrolling and the note off-screen. Scale
-  // the iframe down (transform, top-center origin — layout width is
+  // the iframe down (transform, top-center origin - layout width is
   // untouched, so the embed never reflows and the measurement can't
   // feed back) until player + note fit with a small margin all round.
   //

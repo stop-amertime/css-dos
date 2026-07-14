@@ -2,7 +2,7 @@
 // Optional accelerator: overrides --clock manually via rAF so ticks
 // happen as fast as Chrome computes them, rather than at the CSS
 // animation's 400ms tick rate. No functional change vs. pure-CSS mode
-// — just much faster.
+// - just much faster.
 (function(){
   const clock = document.querySelector('.clock');
   const cpu = document.querySelector('.cpu');

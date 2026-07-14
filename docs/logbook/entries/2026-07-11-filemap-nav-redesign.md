@@ -2,7 +2,7 @@
 
 Owner-requested nav redesign of the About "File Map" sub-page. The
 flanking ◄/► carousel arrows are gone (`CabinetBar.svelte`); instead
-the wizard's own Back/Next walk the 11 section pages —
+the wizard's own Back/Next walk the 11 section pages -
 `nav.next()/prev()` step `FILE_SECTIONS` before crossing sub-pages
 (entering forwards starts at `map`, backing in from Calcite lands on
 `clock`, so the strip reads continuously; arrow keys inherit this for

@@ -1,4 +1,4 @@
-; hello_text.asm — minimal text-mode smoke test for the web runner.
+; hello_text.asm - minimal text-mode smoke test for the web runner.
 ;
 ; Prints "HELLO, CSS-DOS!" via INT 10h, AH=0Eh (BIOS teletype), which
 ; writes directly into the VGA text buffer at 0xB8000 through Gossamer.
@@ -9,7 +9,7 @@
 ; Build the .com:
 ;   nasm -f bin -o tests/hello_text.com tests/hello_text.asm
 ; To turn a .com like this into a cabinet, wrap it as a hack-preset cart
-; and run it through the builder — see docs/hack-path.md.
+; and run it through the builder - see docs/hack-path.md.
 ; Quick JS-reference sanity check:
 ;   node conformance/ref-hack.mjs tests/hello_text.com build/gossamer.bin 5000
 

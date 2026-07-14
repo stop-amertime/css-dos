@@ -24,7 +24,7 @@ test('Kiln source files do not import node: modules', () => {
     const src = readFileSync(f, 'utf8');
     assert.ok(
       !/from\s+['"]node:/.test(src) && !/require\(['"]node:/.test(src),
-      `${f.slice(repoRoot.length)} imports a node: module — move I/O out of Kiln`
+      `${f.slice(repoRoot.length)} imports a node: module - move I/O out of Kiln`
     );
   }
 });
@@ -34,7 +34,7 @@ test('builder/lib/config.mjs and builder/stages/kiln.mjs are browser-safe', () =
     const src = readFileSync(resolve(repoRoot, f), 'utf8');
     assert.ok(
       !/from\s+['"]node:/.test(src) && !/require\(['"]node:/.test(src),
-      `${f} imports a node: module — move I/O to caller`
+      `${f} imports a node: module - move I/O to caller`
     );
   }
 });

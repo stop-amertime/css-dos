@@ -1,4 +1,4 @@
-## 2026-05-12 — Idea: per-opcode specialisation (the architectural move)
+## 2026-05-12 - Idea: per-opcode specialisation (the architectural move)
 
 Idea-stage, not implemented. Surfaced after the identity-pruning
 attempt (below) made clear we were nibbling at the wrong altitude.
@@ -22,7 +22,7 @@ opcode affects that property.** The cabinet has hundreds of
 properties (registers, segments, flags, prefix latches, operand-
 decode slots, snapshot variables, memory ports, etc). Per tick:
 each property's dispatch on `--opcode` runs to discover its
-update for the current opcode — usually identity or a small
+update for the current opcode - usually identity or a small
 write. The full per-tick Op stream is hundreds of dispatches.
 That fixed tax is the dominant cost.
 
@@ -35,7 +35,7 @@ per opcode value. For each opcode V in 0..255:
    if none). All dispatches on `--opcode` collapse at compile
    time.
 3. Aggressively simplify: constant-fold, eliminate identity
-   assignments (now visible — `var(--__1AX)` becomes literal
+   assignments (now visible - `var(--__1AX)` becomes literal
    self-assignment which is dead code), constant-propagate
    through dependent slots (`--prefixLen=0` for INC AX, etc).
 4. Compile the simplified per-property Exprs into Ops.
@@ -55,12 +55,12 @@ and probably approaching native-modern-emulator territory.
 
 **Cardinal-rule check.** The move is "compile-time partial
 evaluation of a known-constant operand of every dispatch." That's
-a generic CSS optimisation — fold `if(style(--K: V_known): X;
+a generic CSS optimisation - fold `if(style(--K: V_known): X;
 else: Y)` to `X` when `K` is known. A brainfuck cabinet with 8
 dispatch keys would specialise into 8 bodies. A 6502 cabinet
 into 256 bodies. A non-emulator cabinet that has a dispatch on
 a known-at-compile-time key would specialise identically. The
-catch: calcite doesn't know `--opcode` is "the opcode" — it just
+catch: calcite doesn't know `--opcode` is "the opcode" - it just
 knows it's a key that every property's StyleConditions dispatch
 on. So the pass needs to **discover** which dispatch key (across
 all properties) is worth specialising on. Probably: pick the key
@@ -71,7 +71,7 @@ fact.
 **Hard parts called out up-front.**
 
 1. **Compilation cost.** Naive: run the existing compile pipeline
-   256 times = ~2h. Won't ship. Pass needs to share work — parse
+   256 times = ~2h. Won't ship. Pass needs to share work - parse
    once, walk Expr trees once per property, specialise by Expr
    pruning rather than full re-compile per opcode. Target: 60-120s
    added compile time, acceptable for the boot-once-ship-many
@@ -99,7 +99,7 @@ fact.
    opcode 0x40 only depends on `--__1AX`, not on operand-decode
    slots). The pass either re-runs the topo sort per opcode (cheap
    on the smaller specialised set) or proves the original order
-   is still valid post-specialisation (probably yes — specialisation
+   is still valid post-specialisation (probably yes - specialisation
    only removes dependencies, doesn't add them).
 
 5. **Code-size budget.** 256 × ~50-200 Ops per body = 5-50K total
@@ -113,17 +113,17 @@ After per-opcode specialisation lands, every other optimisation
 gets bigger leverage:
 
 - **Affine-loop fast-forward** (`docs/plans/2026-05-01-affine-
-  loop-fastforward.md`) — recognising a self-looping opcode is
+  loop-fastforward.md`) - recognising a self-looping opcode is
   trivial once the per-opcode body is short and explicit. Today
   the recogniser has to see through hundreds of Ops; post-
   specialisation, each body is ~50 Ops, the loop shape is on the
   surface.
 - **Routine semantic substitution** (`docs/plans/2026-05-12-routine-
-  semantic-substitution.md`) — symbolic evaluation across a
+  semantic-substitution.md`) - symbolic evaluation across a
   guest sub-routine becomes tractable. Symbolic-step through
   specialised per-opcode bodies, each ~50 Ops, instead of
   ~hundreds with embedded dispatches.
-- **Identity pruning** (below entry) — works as intended once
+- **Identity pruning** (below entry) - works as intended once
   per-opcode bodies are specialised, because the simplification
   step exposes identities that were hidden behind dispatches.
 
@@ -139,5 +139,5 @@ version). If the simplified-body Op count is a small fraction of
 the unspecialised stream and the result is structurally clean,
 scale to all 256.
 
-**Status.** Idea-stage. No code. No plan file yet — write one
+**Status.** Idea-stage. No code. No plan file yet - write one
 before implementing if you pick this up.

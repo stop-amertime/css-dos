@@ -1,4 +1,4 @@
-## 2026-05-12 — Plan filed: `__I4D` whole-routine semantic substitution
+## 2026-05-12 - Plan filed: `__I4D` whole-routine semantic substitution
 
 Planning-only entry. Wrote
 [`docs/plans/2026-05-12-routine-semantic-substitution.md`](../plans/2026-05-12-routine-semantic-substitution.md)
@@ -31,7 +31,7 @@ gate:
 6. Perf gate (≥ 5 % doomLoad improvement, 3-run web `--headed`
    median).
 
-No env-var gate. Either it pays unconditionally or it doesn't ship —
+No env-var gate. Either it pays unconditionally or it doesn't ship -
 same rule as the affine-loop plan.
 
 Hard parts called out explicitly: symbolic-evaluator path-explosion

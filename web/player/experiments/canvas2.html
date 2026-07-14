@@ -10,7 +10,7 @@
   </style>
 </head>
 <body>
-  <h3>canvas2 — minimal canvas player (grid.html worker protocol)</h3>
+  <h3>canvas2 - minimal canvas player (grid.html worker protocol)</h3>
   <canvas id="screen" width="640" height="400" style="width:640px;height:400px;"></canvas>
   <div id="stats">loading...</div>
 
@@ -66,7 +66,7 @@
     }
 
     // Frame throttle: one outstanding frame request at a time, requested
-    // on rAF. Same shape as grid.html. We don't care about vsync modes —
+    // on rAF. Same shape as grid.html. We don't care about vsync modes -
     // just pump frames as the worker can deliver them.
     let frameInFlight = false;
     function requestFrame() {

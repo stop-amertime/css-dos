@@ -38,7 +38,7 @@ static void int10_ax(unsigned int ax);
 
 /* REP STOSB into ES:DI. Parameters: segment, offset, value, count.
    Calcite pattern-recognises this shape (addr++, counter--, mem[addr]=val)
-   and lowers it to a single MemoryFill op — one CSS tick for the whole fill. */
+   and lowers it to a single MemoryFill op - one CSS tick for the whole fill. */
 static void vga_fill(unsigned int seg, unsigned int off,
                      unsigned char val, unsigned int count);
 #pragma aux vga_fill =              \
@@ -122,16 +122,16 @@ static unsigned long read_ticks(void) {
     return ((unsigned long)hi << 16) | lo;
 }
 
-/* Pace the splash on the real BDA tick counter — 18.2 Hz, advanced by
+/* Pace the splash on the real BDA tick counter - 18.2 Hz, advanced by
    the INT 08h ISR now that install_pit() arms PIT ch0 at POST and
    splash_show() executes STI before the first wait.
 
    A poll loop, not HLT: this machine's IRQ frame pushes the CURRENT
-   IP, so an interrupted HLT resumes AT the HLT and re-halts forever —
+   IP, so an interrupted HLT resumes AT the HLT and re-halts forever -
    and at 2 cycles per re-executed HLT it would also burn ~5x more CSS
    ticks per guest second than polling (~10 cycles/instruction). The
    2 s minimum below costs roughly 1M CSS ticks ≈ a second or two of
-   wall time under calcite — deliberate: at full speed the splash was
+   wall time under calcite - deliberate: at full speed the splash was
    gone before anyone saw it. */
 static void wait_until(unsigned long target_tick) {
     while (read_ticks() < target_tick) { }
@@ -142,7 +142,7 @@ static void wait_ticks(unsigned int n) {
 }
 
 /* This BIOS runs with SS (0x0030 stack) != DS (BIOS data), so a stack
-   buffer must never be passed as a near `char *` — the callee reads it
+   buffer must never be passed as a near `char *` - the callee reads it
    via DS and sees garbage (the original buf[32] version of this drew
    nothing, silently, since day one). Literals live in DS and are fine;
    digits are drawn by value via draw_char. */
@@ -173,7 +173,7 @@ void splash_show(void) {
     set_palette();
 
     /* Fill the screen with dark gray so the logo's black outline is
-       visible. REP STOSB — one CPU instruction (well, one repeated one)
+       visible. REP STOSB - one CPU instruction (well, one repeated one)
        for the whole 64000-byte framebuffer. Calcite recognises this as
        an affine memory-fill and lowers it to a single MemoryFill op. */
     vga_fill(VGA_SEG, 0, 8, 64000u);
@@ -182,7 +182,7 @@ void splash_show(void) {
     draw_text(140, 52, "CSS-DOS",       15);
     draw_text(140, 64, "CSS-BIOS V0.1",  7);
 
-    /* IVT, BDA, PIC and PIT are all installed by now — let the timer
+    /* IVT, BDA, PIC and PIT are all installed by now - let the timer
        tick so the waits below advance. entry.asm's own STI after
        bios_init returns is then a no-op. */
     sti();
@@ -200,10 +200,10 @@ void splash_show(void) {
 
     /* Hold the finished splash. The waits are guest-time-anchored: the
        four 5-tick pauses between POST lines plus this hold total 55
-       BDA ticks ≈ 3 guest seconds at 18.2 Hz — what a real 8086 would
+       BDA ticks ≈ 3 guest seconds at 18.2 Hz - what a real 8086 would
        show. Under calcite one BDA tick of polling ≈ 10K CSS ticks
        (262,140 cycles at ~26 cycles per poll instruction), so the 55
-       ticks come to ~570K CSS ticks — around a second of wall time on
+       ticks come to ~570K CSS ticks - around a second of wall time on
        a fast host, longer on slower ones. */
     wait_ticks(35);
 

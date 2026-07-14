@@ -6,13 +6,13 @@
 // backgroundColor, and asserts the exact expected rgb() values.
 //
 // Scenarios:
-//   mode 0x13 — framebuffer indices through the live DAC (--paletteRGB)
-//   mode 0x03 — 80×25 text: glyph 'A' white-on-blue, sampled from the
+//   mode 0x13 - framebuffer indices through the live DAC (--paletteRGB)
+//   mode 0x03 - 80×25 text: glyph 'A' white-on-blue, sampled from the
 //               8×8 ROM font at even glyph columns; pixels whose text
 //               cell is unseeded degrade to black (invalid isolation)
-//   mode 0x04 — CGA 320×200×4, palette 1, odd-scanline plane
-//   mode 0x05 — same VRAM, mono palette
-//   mode 0x06 — CGA 640×200×2, default white foreground
+//   mode 0x04 - CGA 320×200×4, palette 1, odd-scanline plane
+//   mode 0x05 - same VRAM, mono palette
+//   mode 0x06 - CGA 640×200×2, default white foreground
 //
 // Run: node tests/harness/pixels-render.playwright.mjs
 
@@ -21,7 +21,7 @@ try {
   pw = await import('playwright');
 } catch {
   const dir = process.env.PLAYWRIGHT_DIR;
-  if (!dir) throw new Error('playwright not found — install it or set PLAYWRIGHT_DIR');
+  if (!dir) throw new Error('playwright not found - install it or set PLAYWRIGHT_DIR');
   const fallback = new URL('index.js', `file:///${dir.replace(/\\/g, '/')}/`).href;
   pw = (await import(fallback)).default ?? (await import(fallback));
 }

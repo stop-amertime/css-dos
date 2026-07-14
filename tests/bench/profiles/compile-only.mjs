@@ -1,4 +1,4 @@
-// tests/bench/profiles/compile-only.mjs — sanity profile: just compile,
+// tests/bench/profiles/compile-only.mjs - sanity profile: just compile,
 // don't run. Verifies page → bridge → cabinet handoff works.
 
 export const manifest = {

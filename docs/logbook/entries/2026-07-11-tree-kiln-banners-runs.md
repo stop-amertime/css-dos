@@ -1,13 +1,13 @@
 # Tree View round 2: Kiln banners restructured, run-delimited lists
 
 The `.cpu` rule is now logically grouped IN KILN (owner-licensed,
-functionality-inert — custom-prop order in one rule is name-resolved):
+functionality-inert - custom-prop order in one rule is name-resolved):
 two banner levels (`===== FETCH & DECODE/REGISTERS/MEMORY WRITE SLOTS
 =====` with `--- instruction fetch/prefix detection/…/register aliases/
 register update formulas ---` subs), aliases moved under REGISTERS.
 The tree mirrors it automatically (two-level section parsing). Long
-sibling lists now render in RUNS delimited by standalone comments —
-each run paginates independently, comments stay visible — proven by a
+sibling lists now render in RUNS delimited by standalone comments -
+each run paginates independently, comments stay visible - proven by a
 Kiln comment planted before `--unknownOp`'s final else (232 rows
 paginate; the else can't drown). Comments inside `if()` values are
 safe: servo cssparser tokenizes them away before calcite's recognizers

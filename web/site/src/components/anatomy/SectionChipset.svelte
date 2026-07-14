@@ -1,8 +1,8 @@
 <script>
-  // The chipset — the support chips around the CPU: timer (PIT),
+  // The chipset - the support chips around the CPU: timer (PIT),
   // interrupt controller (PIC), keyboard controller, VGA palette DAC.
   // Split out of SectionCpu 2026-07-10 when kiln gave these tables
-  // their own .motherboard rule (the CPU proper lives in .cpu — both
+  // their own .motherboard rule (the CPU proper lives in .cpu - both
   // classes on the same player element). Extracts verbatim from
   // sokoban.css (names tidied per the CPU section's NOTE callout).
   import CodeCss from '../CodeCss.svelte';
@@ -16,15 +16,15 @@
   const PIT_COUNTER = `--pitCounter: if(
   /* … rows for the OUT opcodes that program the timer … */
   else: if(
-    style(--pitReload-prev: 0): 0;   /* never armed — hold at zero */
+    style(--pitReload-prev: 0): 0;   /* never armed - hold at zero */
     else: calc(var(--pitCounter-prev) - var(--_pitDecrement)
       + max(0, sign(calc(var(--_pitDecrement) - var(--pitCounter-prev) + 1)))
-        * var(--pitReload-prev))));  /* count down; past zero, reload — and IRQ 0 fires */`;
+        * var(--pitReload-prev))));  /* count down; past zero, reload - and IRQ 0 fires */`;
 
   const CYCLE_ROWS = `style(--opcode: 144): calc(var(--cycleCount-prev) + 3);   /* NOP: 3 cycles */
 style(--opcode: 136): calc(var(--cycleCount-prev)
-  + if(style(--mod: 3): 2; else: 9));   /* MOV: 2 — or 9 if memory is involved */
-style(--opcode: 212): calc(var(--cycleCount-prev) + 83);  /* AAM: 83 — division was expensive */`;
+  + if(style(--mod: 3): 2; else: 9));   /* MOV: 2 - or 9 if memory is involved */
+style(--opcode: 212): calc(var(--cycleCount-prev) + 83);  /* AAM: 83 - division was expensive */`;
 </script>
 
 <p>

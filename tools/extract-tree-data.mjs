@@ -1,16 +1,16 @@
 #!/usr/bin/env node
-// extract-tree-data.mjs — generates the website's anatomy Tree View data
+// extract-tree-data.mjs - generates the website's anatomy Tree View data
 // from a REAL cabinet, never hand-typed CSS. Builds carts/sokoban with the
 // real builder, slices the file into its ten sections (the same regions
 // the site's file carousel shows), and parses each into the tree node
 // model. Giant uniform runs compress losslessly into template + column
-// `run` nodes (see compressRuns) — ALL rows ship and page on the client.
+// `run` nodes (see compressRuns) - ALL rows ship and page on the client.
 //
 // OUTPUT IS SPLIT FOR LAZY LOADING (progressive disclosure):
-//   web/site/src/components/anatomy/tree/<id>-tree.js   — the SKELETON: the
+//   web/site/src/components/anatomy/tree/<id>-tree.js   - the SKELETON: the
 //     section's group structure and everything visible before any fold is
 //     opened. Small; bundled with the app.
-//   web/site/public/anatomy/<id>/<NNN>.json             — CHUNKS: the
+//   web/site/public/anatomy/<id>/<NNN>.json             - CHUNKS: the
 //     children of heavy folded nodes, fetched by TreeAst.svelte only when
 //     the fold is opened. Long child lists are paged (each page carries a
 //     `next` ref + remaining count, so totals are always known without
@@ -32,7 +32,7 @@
 //   run      lossless compression of a uniform stretch: template with
 //            %%N%% tokens + numeric columns; every row verified exact at
 //            generation time; expanded on demand client-side.
-// Nothing is re-nested or reordered at the DATA level — a node's `code` is
+// Nothing is re-nested or reordered at the DATA level - a node's `code` is
 // ONLY its own token. Display (one-lining, pagination) lives in
 // TreeAst.svelte.
 //
@@ -54,7 +54,7 @@ const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SKELETON_DIR = resolve(REPO, 'web/site/src/components/anatomy/tree');
 const CHUNK_DIR = resolve(REPO, 'web/site/public/anatomy');
 
-// The data comes from a REAL cart build — the same Sokoban cabinet the
+// The data comes from a REAL cart build - the same Sokoban cabinet the
 // rest of the site is measured against (groups.js sizes, the File Map,
 // SectionCpu's prose). The tool rebuilds it (~12 s) so the tree always
 // matches current kiln output.
@@ -91,7 +91,7 @@ function sliceRegions(css) {
     const text = `/* ===== ${banner} ===== */`;
     return { id, text };
   });
-  // Locate each banner in order — searching from the previous one forward
+  // Locate each banner in order - searching from the previous one forward
   // so an inner banner can't shadow a later section's.
   let from = 0;
   const found = [];
@@ -110,7 +110,7 @@ function sliceRegions(css) {
 }
 
 // ---------------------------------------------------------------------------
-// Scanning primitives — all comment-aware. Comments can contain parens
+// Scanning primitives - all comment-aware. Comments can contain parens
 // ("/* HLT (IP unchanged) */") and must never affect depth tracking.
 
 function skipComment(text, i) {
@@ -150,7 +150,7 @@ function matchBrace(text, openIndex) {
 // Splits an if(...)'s inner body into its top-level ';'-separated branches.
 // Each branch keeps its own ';' AND its own trailing "/* comment */" (Kiln
 // emits the comment after the ';', so a naive cut hands it to the NEXT
-// branch — the comment-bleed bug this parser has now regrown twice; the
+// branch - the comment-bleed bug this parser has now regrown twice; the
 // lookahead here is the permanent fix, guarded by the round-trip check).
 function splitTopLevel(body) {
   const parts = [];
@@ -176,7 +176,7 @@ function splitTopLevel(body) {
   return parts;
 }
 
-// First ':' at paren-depth 0 (the branch's own "cond: value" separator —
+// First ':' at paren-depth 0 (the branch's own "cond: value" separator -
 // colons inside style(...) conditions sit at depth 1 and don't match).
 function topLevelColon(text) {
   let depth = 0;
@@ -197,7 +197,7 @@ function topLevelColon(text) {
 
 // Parses text beginning with "if(" (or "calc(if(") into an `if` node.
 // `trailer` is everything from the if's own ')' to the end of the given
-// text — keeping it ON the node means the renderer can close the block
+// text - keeping it ON the node means the renderer can close the block
 // visually at the right indent, and the round-trip check can prove no text
 // was lost.
 function parseIf(text) {
@@ -212,7 +212,7 @@ function parseIf(text) {
     let t = branchText.trim();
     // Standalone comments BETWEEN branches become their own block nodes:
     // real file content in place, and run delimiters for the renderer's
-    // per-run pagination — a comment Kiln plants at a type boundary in a
+    // per-run pagination - a comment Kiln plants at a type boundary in a
     // long branch list stays visible instead of drowning behind "(N more…)".
     while (t.startsWith('/*')) {
       const end = t.indexOf('*/') + 2;
@@ -271,9 +271,9 @@ class Grouper {
     // is the normal shape inside a rule body (e.g. a chip rule delimited
     // only by `--- edge detection --- / --- registers ---`) and for leading
     // subs before a body's first `===== major =====`. EVERY such sub is a
-    // sibling at the major level — a promoted sub must not become a major
+    // sibling at the major level - a promoted sub must not become a major
     // that swallows the `---` groups after it (that bug nested slot 1/2
-    // under slot 0, `registers` under `timer countdown`, etc. — fixed
+    // under slot 0, `registers` under `timer countdown`, etc. - fixed
     // 2026-07-12). The banner text is kept verbatim, so the round-trip
     // check is unaffected.
     if (!this.major || this.majorPromoted) {
@@ -285,9 +285,9 @@ class Grouper {
     this.major.children.push(this.sub);
   }
   // A real preamble (raw content, no banner at all, before any banner) still
-  // has no honest label — that is a KILN bug (plant a banner over it).
+  // has no honest label - that is a KILN bug (plant a banner over it).
   fallbackMajor() {
-    console.error('  WARNING: content before the first banner — add a banner in kiln (showing as "(preamble)")');
+    console.error('  WARNING: content before the first banner - add a banner in kiln (showing as "(preamble)")');
     this.openMajor('', '(preamble)');
   }
   comment(text) {
@@ -306,12 +306,12 @@ class Grouper {
 // ---------------------------------------------------------------------------
 // The generic region parser: walks a slice of the real file item by item.
 // Handles comments/banners, @property blocks, @function bodies, style
-// rules (including nested one-liner rules — the keyboard block — and
+// rules (including nested one-liner rules - the keyboard block - and
 // @keyframes percent blocks), and plain declarations.
 
 // Index just past a trailing comment that STARTS on the same line as
 // position `i` (spaces/tabs only in between); `i` if there is none.
-// Index-based on purpose — slicing the remainder of a 44 MB region per
+// Index-based on purpose - slicing the remainder of a 44 MB region per
 // row is O(n²).
 function trailingCommentEnd(text, i) {
   let j = i;
@@ -375,7 +375,7 @@ function parseBody(body) {
       break;
     }
     if (body[j] === ';') {
-      // Declaration. Every decl parses to name + value (fully decomposed —
+      // Declaration. Every decl parses to name + value (fully decomposed -
       // display decides one-lining); its own trailing comment moves to the
       // node so the renderer's comment column gets it.
       let end = j + 1;
@@ -391,7 +391,7 @@ function parseBody(body) {
         if (comment) decl.comment = comment;
         push(decl);
       } else {
-        // Non-custom-property line (animation shorthand etc.) — verbatim.
+        // Non-custom-property line (animation shorthand etc.) - verbatim.
         if (comment) chunk = `${chunk} ${comment}`;
         push({ kind: 'block', code: chunk });
       }
@@ -410,7 +410,7 @@ function parseBody(body) {
   if (!items.some((it) => it.__banner)) return items;
   // Group by the body's own banners. Any items BEFORE the first banner are a
   // legitimate lead (e.g. a rule's opening comment, or the precomputed decls
-  // before the trap-flag sub-banner) — they render flat, ahead of the groups,
+  // before the trap-flag sub-banner) - they render flat, ahead of the groups,
   // with no "(preamble)" warning (that warning is for the region/kiln level).
   // A leading `--- x ---` with no `=====` above it opens its own group
   // (Grouper.openSub promotes it): banners inside a rule body are already one
@@ -454,7 +454,7 @@ function parseRegion(region) {
       i = end;
       continue;
     }
-    // @property — verbatim block.
+    // @property - verbatim block.
     if (region.startsWith('@property', i)) {
       const open = region.indexOf('{', i);
       const close = matchBrace(region, open);
@@ -462,7 +462,7 @@ function parseRegion(region) {
       i = close + 1;
       continue;
     }
-    // @function / @keyframes / style rule — header + body.
+    // @function / @keyframes / style rule - header + body.
     const open = region.indexOf('{', i);
     if (open === -1) {
       const rest = region.slice(i).trim();
@@ -604,7 +604,7 @@ function carveRegion(nodes) {
 // children to the top (the banner stays as a plain comment line), and any
 // LONE structural wrapper (the one .motherboard rule, an @function's
 // `result:` chain) renders open instead of demanding a click per level.
-// Everything hoisted/unfolded still lazy-loads exactly as before — an
+// Everything hoisted/unfolded still lazy-loads exactly as before - an
 // unfolded lazy node fetches on mount, which happens when its parent
 // becomes visible.
 
@@ -616,7 +616,7 @@ function hoistAndRoot(nodes) {
   if (items.length === 1 && items[0].kind === 'section') {
     const root = items[0];
     items = root.code ? [{ kind: 'block', code: root.code }] : [];
-    items = items.concat(root.children); // no spread — child lists reach 200k+
+    items = items.concat(root.children); // no spread - child lists reach 200k+
   } else {
     // A leading empty group (the region banner immediately followed by the
     // first real banner) renders as a plain comment line, not an empty box.
@@ -629,7 +629,7 @@ function hoistAndRoot(nodes) {
 }
 
 // @property registration blocks and labelled sub-groups read as reference
-// material beside a rule, not competing structure — a lone rule among them
+// material beside a rule, not competing structure - a lone rule among them
 // IS the section's body, so it renders open (owner feedback 2026-07-12;
 // before this, every chipset chip cost an extra click on `.motherboard {`).
 const isRegistrationNode = (n) =>
@@ -647,23 +647,23 @@ function unfoldCeremony(node) {
 }
 
 // ---------------------------------------------------------------------------
-// Run compression — ALL rows ship, none truncated. A stretch of >= RUN_MIN
+// Run compression - ALL rows ship, none truncated. A stretch of >= RUN_MIN
 // consecutive siblings whose serialized form is identical once digits are
 // masked becomes one `run` node: a template (digits replaced by %%N%%
 // tokens) plus one column per token. Columns that are constant store one
 // number; columns that are an exact linear sequence store {b, s}; anything
 // else stores the full value array. EVERY row is then re-expanded from the
-// spec and compared byte-for-byte against its source serialization — a
+// spec and compared byte-for-byte against its source serialization - a
 // stretch that does not reproduce exactly stays as explicit rows. The
 // client expands rows on demand (web/site/.../tree/lazy.js expandRun), so
 // a 655,000-arm dispatch is fully pageable from a few-KB spec.
 // Run compression exists for the flat memory-scale lists (hundreds of
-// thousands of uniform siblings under one node — there is no tree to
+// thousands of uniform siblings under one node - there is no tree to
 // break those up by). Everything tree-shaped ships as plain nodes,
-// chunked along the tree — so the threshold is deliberately high: below
+// chunked along the tree - so the threshold is deliberately high: below
 // it, explicit rows are only kilobytes and simplicity wins.
 const RUN_MIN = 256;
-// Masks may CYCLE (memr's arms alternate mod/round for even/odd bytes) —
+// Masks may CYCLE (memr's arms alternate mod/round for even/odd bytes) -
 // a run carries `period` templates and rows use templates[i % period].
 const MAX_PERIOD = 4;
 
@@ -680,8 +680,8 @@ function expandRunRowString(run, i) {
 }
 
 // Encode one class's column across its rows: constant, exact linear, or
-// explicit values (irregular columns ARE the content — memory images,
-// disk bytes — and ship in full).
+// explicit values (irregular columns ARE the content - memory images,
+// disk bytes - and ship in full).
 function encodeColumn(vals) {
   if (vals.every((v) => v === vals[0])) return { c: vals[0] };
   const step = vals[1] - vals[0];
@@ -701,7 +701,7 @@ function linearCuts(vals) {
   for (const [d, n] of freq) if (n > (freq.get(dominant) ?? 0)) dominant = d;
   const cuts = [];
   for (let i = 0; i < diffs.length; i++) if (diffs[i] !== dominant) cuts.push(i + 1);
-  if (cuts.length > vals.length / 8) return null; // irregular — no cuts
+  if (cuts.length > vals.length / 8) return null; // irregular - no cuts
   return cuts;
 }
 
@@ -768,7 +768,7 @@ function buildRuns(serialized, k) {
 
   // Candidate A: cut at zone gaps (best when columns are linear between
   // gaps). Candidate B: one whole-stretch run with value arrays (best when
-  // the data is irregular everywhere — floppy bytes, memory images —
+  // the data is irregular everywhere - floppy bytes, memory images -
   // where cutting only fragments and duplicates templates). Keep smaller.
   const cutSet = new Set();
   for (let cls = 0; cls < k; cls++) {
@@ -777,7 +777,7 @@ function buildRuns(serialized, k) {
       const vals = [];
       for (let i = cls; i < n; i += k) vals.push(digitRows[i][c]);
       const cuts = linearCuts(vals);
-      if (cuts == null) continue; // irregular column — full values, no cuts
+      if (cuts == null) continue; // irregular column - full values, no cuts
       for (const cut of cuts) cutSet.add(cut * k); // class-row index → row index
     }
   }
@@ -840,7 +840,7 @@ class ChunkWriter {
   // Writes `children` as one or more pages; returns { ref, count }.
   writePages(children) {
     // A page must never consist only of landmark comments with the real
-    // content stranded on the next page — that renders as a "(N more…)"
+    // content stranded on the next page - that renders as a "(N more…)"
     // button with nothing above it (the disk-window bug). A page may close
     // only once it holds at least one substantive (non-comment) node, so a
     // leading comment always rides onto the page with the content it labels.
@@ -890,7 +890,7 @@ class ChunkWriter {
 
 // Post-order: externalize heavy children. Folded nodes lazy-load on
 // expand; non-foldable nodes (an if inside an expanded decl) lazy-load on
-// mount — which still only happens after an ancestor fold opened, so both
+// mount - which still only happens after an ancestor fold opened, so both
 // stay off the wire until the reader drills in. Non-foldable nodes get a
 // looser threshold so medium rows don't cost a fetch each.
 function externalize(node, writer) {
@@ -938,7 +938,7 @@ function serializeNode(node, indent) {
 function writeSkeleton(id, nodes, bytes) {
   const NAME = id.toUpperCase();
   const lines = [];
-  lines.push(`// ${id}-tree.js — GENERATED by tools/extract-tree-data.mjs. Do not hand-edit.`);
+  lines.push(`// ${id}-tree.js - GENERATED by tools/extract-tree-data.mjs. Do not hand-edit.`);
   lines.push(`// Every code string is real, verbatim CSS from a full carts/sokoban`);
   lines.push(`// build, round-trip-verified against the cabinet at generation time.`);
   lines.push(`// This module is the section's SKELETON; heavy folded nodes carry`);
@@ -957,7 +957,7 @@ function writeSkeleton(id, nodes, bytes) {
 }
 
 // ---------------------------------------------------------------------------
-// Per-section sanity checks against independent expectations — a recipe
+// Per-section sanity checks against independent expectations - a recipe
 // that silently parses the wrong slice must fail here.
 function countWhere(nodes, pred) {
   let n = 0;
@@ -971,7 +971,7 @@ function countWhere(nodes, pred) {
 
 const SANITY = {
   util: (nodes) => {
-    // Shared primitives only — the flag arithmetic @functions moved to CPU.
+    // Shared primitives only - the flag arithmetic @functions moved to CPU.
     const fns = countWhere(nodes, (n) => (n.code ?? '').startsWith('@function'));
     if (fns < 15) throw new Error(`util: only ${fns} @functions found (expected 15+ shared primitives)`);
   },
@@ -1052,13 +1052,13 @@ function generate(ids) {
     assertRoundTrip(nodes, region, id);
     carveRegion(nodes);
     const bytes = region.length;
-    // The region opens with its own /* ===== BANNER ===== */ delimiter —
+    // The region opens with its own /* ===== BANNER ===== */ delimiter -
     // the pane header renders that (title + byte size), so the raw
     // comment would only restate it. Drop it after the round-trip check.
     const banner = `/* ===== ${SECTIONS.find((s) => s.id === id).banner} ===== */`;
     if (nodes[0]?.kind === 'block' && nodes[0].code === banner) nodes.shift();
     const root = hoistAndRoot(nodes);
-    // hoistAndRoot re-adds a hoisted group's own banner comment — same
+    // hoistAndRoot re-adds a hoisted group's own banner comment - same
     // dedup applies when that group was the region itself.
     if (root.children[0]?.kind === 'block' && root.children[0].code === banner) {
       root.children.shift();

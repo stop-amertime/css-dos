@@ -22,7 +22,7 @@ commits, all on calcite main:
 2026-05-08 baseline: 77.1 s / 446K. Within ~3 %.
 
 Smoke 7/7 PASS. Calcite unit + integration input-edge tests pass.
-Cardinal-rule check ✓ — apply path operates over CSS pseudo classes
+Cardinal-rule check ✓ - apply path operates over CSS pseudo classes
 + selectors + state-var slots, no upstream knowledge.
 
 Cross-link: calcite `docs/log.md` 2026-05-28.

@@ -1,10 +1,10 @@
-// coverage.mjs — report which 8086 opcodes a cart actually exercises
+// coverage.mjs - report which 8086 opcodes a cart actually exercises
 // across a run.
 //
 // Why: "fulldiff passed 5000 instructions" is only reassuring if those
 // 5000 instructions exercised the opcodes you're worried about. This
 // tool runs the JS reference emulator (no calcite needed, no daemon
-// needed, very fast — no cross-machine round trips) and tallies every
+// needed, very fast - no cross-machine round trips) and tallies every
 // opcode it hits. Output: a count per opcode + a list of never-touched
 // opcodes.
 //
@@ -21,7 +21,7 @@ export function computeCoverage({ cssPath, maxTicks = 100_000 }) {
     initialIP: sidecars.meta.bios.entryOffset,
   });
   // Optional: align from calcite state at tick 0, but for coverage we
-  // don't need to — close-enough initial state still exercises ~same
+  // don't need to - close-enough initial state still exercises ~same
   // opcodes over the run. Keep the dep surface small.
 
   const counts = new Int32Array(256);

@@ -3,7 +3,7 @@
 // calcite-bridge worker, which hosts the calcite WASM engine. All
 // runtime coordination (frames, viewer signals, keyboard, cabinet
 // pings) flows over the 'cssdos-bridge' BroadcastChannel between the
-// worker and the SW — nothing to wire up here. The /player/calcite.html
+// worker and the SW - nothing to wire up here. The /player/calcite.html
 // runner is pure HTML+CSS: its <img> fetches /_screen/framebuffer from
 // the SW, which pumps frames broadcast by the worker spawned here.
 //
@@ -12,7 +12,7 @@
 
 (async function bootCalciteBridge() {
   // Announce boot state so the page can show it (the Svelte site renders
-  // these on the Play step — console-only errors are invisible on mobile).
+  // these on the Play step - console-only errors are invisible on mobile).
   const announce = (phase, error) => {
     window.__calciteBridgeState = { phase, error };
     try {
@@ -20,7 +20,7 @@
     } catch {}
   };
   if (!('serviceWorker' in navigator)) {
-    console.error('[calcite-bridge] service workers unavailable — player cannot stream');
+    console.error('[calcite-bridge] service workers unavailable - player cannot stream');
     announce('unsupported', 'service workers unavailable');
     return;
   }
@@ -41,9 +41,9 @@
     bridge.addEventListener('message', (ev) => {
       const d = ev.data;
       if (!d) return;
-      // 'status' = lifecycle (boot / compiling / compiled / errors) — always
+      // 'status' = lifecycle (boot / compiling / compiled / errors) - always
       // shown, a handful per session. 'stats' = 1 Hz fps line, 'debug' =
-      // per-frame / mode-change traces — verbose only.
+      // per-frame / mode-change traces - verbose only.
       if (d.type === 'status') {
         console.log('[calcite-bridge]', d.message);
       } else if (verbose && (d.type === 'stats' || d.type === 'debug')) {

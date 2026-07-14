@@ -22,7 +22,7 @@
 
 <style>
   /* Base 96px size; build.css's .result-floppy / .result-floppy .floppy
-     scales this down to 60% for the "Cabinet ready" panel — that rule
+     scales this down to 60% for the "Cabinet ready" panel - that rule
      stays global (it's applied from the parent route, Build.svelte). */
   .result-floppy .floppy {
     width: 96px; height: 96px;

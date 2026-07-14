@@ -1,4 +1,4 @@
-; timer-irq.asm — Test PIT timer IRQ delivery
+; timer-irq.asm - Test PIT timer IRQ delivery
 ; Programs PIT channel 0 with a short reload (100 decimal),
 ; installs an INT 08h handler that increments a counter,
 ; enables interrupts, and loops until counter >= 3.
@@ -44,7 +44,7 @@ start:
     cmp byte [counter], 3
     jb .wait
 
-    ; Done — put counter in AX for visibility in the trace
+    ; Done - put counter in AX for visibility in the trace
     mov al, [counter]
     xor ah, ah
 

@@ -1,4 +1,4 @@
-// cabinet-header.mjs — parse + write the cabinet header comment.
+// cabinet-header.mjs - parse + write the cabinet header comment.
 //
 // Every .css cabinet begins with a C-style comment. The current human-
 // readable form holds a "Resolved manifest:" JSON block and free-form
@@ -16,7 +16,7 @@
 // The `!HARNESS v1 ... !*/` sentinel form keeps the payload a single
 // self-contained comment so any CSS tooling still ignores it, but is
 // quick to extract with a regex. Cabinets without the harness block
-// still work — we fall back to parsing the human header's JSON indent.
+// still work - we fall back to parsing the human header's JSON indent.
 
 import { readFileSync, openSync, readSync, closeSync } from 'node:fs';
 
@@ -24,7 +24,7 @@ const HARNESS_HEADER_VERSION = 1;
 const HARNESS_TAG = `!HARNESS v${HARNESS_HEADER_VERSION} `;
 
 // Read only the first N bytes of a (possibly gigantic) cabinet. Cabinets
-// are tens to hundreds of MB — never read the whole file just to get the
+// are tens to hundreds of MB - never read the whole file just to get the
 // header. 64 KB is plenty for the comment block.
 export function readCabinetHeader(cssPath, { maxBytes = 64 * 1024 } = {}) {
   const fd = openSync(cssPath, 'r');
@@ -60,7 +60,7 @@ export function parseHarnessHeader(headerText) {
 export function parseHumanHeader(headerText) {
   const start = headerText.indexOf('Resolved manifest:');
   if (start < 0) return null;
-  // Each line is " *   <text>" — strip the leading ` *   ` (3 spaces)
+  // Each line is " *   <text>" - strip the leading ` *   ` (3 spaces)
   // from the lines after "Resolved manifest:".
   const after = headerText.slice(start);
   const lines = after.split('\n');
@@ -98,7 +98,7 @@ export function readCabinetMeta(cssPath) {
   throw new Error(`cannot parse cabinet header from ${cssPath} (neither harness nor human manifest block found in first 64 KB)`);
 }
 
-// Build the harness-header comment string. Stays self-contained — the
+// Build the harness-header comment string. Stays self-contained - the
 // whole thing is one /* ... */ so there's no risk of confusing any
 // CSS tokenizer. The payload is JSON, so keys can be added later
 // without breaking older readers (they just ignore what they don't know).

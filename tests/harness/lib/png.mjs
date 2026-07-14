@@ -1,11 +1,11 @@
-// png.mjs — minimal pure-JS RGBA PNG writer.
+// png.mjs - minimal pure-JS RGBA PNG writer.
 //
 // Why hand-roll a PNG encoder instead of pulling in pngjs or sharp?
 // The repo is strictly no-deps (no package.json, no node_modules) and
 // staying that way keeps agent setup trivial. PNG's spec is small
 // enough that a compliant writer fits in ~80 lines.
 //
-// Compression: uses zlib's deflate via node:zlib — that's a Node builtin,
+// Compression: uses zlib's deflate via node:zlib - that's a Node builtin,
 // not an npm dep, so we're still within the "no package.json" rule.
 //
 // Output: 8-bit RGBA (colour type 6). Handles arbitrary widths/heights.
@@ -57,7 +57,7 @@ export function encodePng(width, height, rgba) {
   ihdr[11] = 0;  // filter method: 0
   ihdr[12] = 0;  // interlace: none
 
-  // IDAT — every scanline prefixed with filter byte 0 (none).
+  // IDAT - every scanline prefixed with filter byte 0 (none).
   const rowBytes = width * 4;
   const raw = Buffer.alloc((rowBytes + 1) * height);
   for (let y = 0; y < height; y++) {
@@ -92,7 +92,7 @@ export function phash(width, height, rgba) {
       for (let y = y0; y < y1; y++) {
         for (let x = x0; x < x1; x++) {
           const i = (y * width + x) * 4;
-          // Rec. 709 luma — matches what human eyes care about.
+          // Rec. 709 luma - matches what human eyes care about.
           sum += 0.2126 * rgba[i] + 0.7152 * rgba[i + 1] + 0.0722 * rgba[i + 2];
           count++;
         }
