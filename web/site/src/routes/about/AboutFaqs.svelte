@@ -94,13 +94,13 @@
     <Foldable id="ai">
       {#snippet summary()}Did you use AI?{/snippet}
       <p>
-        Yes, a lot, but I would still say the code is <i>my code</i>. Claude churned out much of the mechanical work, helped me keep track, write good docs and organise commits. Prior to AI, these fell by the wayside due to ADHD. I'm a published AI safety researcher and red-teamer, so am aware that LLMs are not a tool to point at a problem and press 'Go'. I'd label CSS-DOS 'LLM-assisted' but not 'vibe coded'. 
+        Yes, a lot, but I would still say the code is <i>my code</i>. LLMs churned out much of the mechanical work, helped me keep track, write good docs and organise commits. Prior to AI, these fell by the wayside due to ADHD. I'm a published AI safety researcher and red-teamer, so am aware that LLMs are not a tool to point at a problem and press 'Go'. I'd label CSS-DOS 'LLM-assisted' but not 'vibe coded'. 
       </p>
       <p>
         AI <i>writing</i> is cringe-inducing and bland. I'm typing this myself. The copy on this website is edited by my fingers word-by-word, with proofreading by Claude.
       </p>
       <p>
-        Claude couldn't have figured the project out alone, but it was immensely helpful. Claude lacked the intuition to contribute reliably on a conceptual level, although the writable shadow-disk, and <code>&lt;img&gt;</code> tag Calcite hack, among others were Claude&rsquo;s idea. However, this project is an unusual one and it often took a laughably inept path through implementations, needing firm shepherding. But it's able to spew out menial code, like a slightly dim intern with the speed of the Flash. 
+        LLMs couldn't have figured the project out alone, but were immensely helpful. Claude lacked the intuition to contribute reliably on a conceptual level, although the writable shadow-disk, and <code>&lt;img&gt;</code> tag Calcite hack, among others were Claude&rsquo;s idea. However, this project is an unusual one and it often took a laughably inept path through implementations, needing firm shepherding. But it's able to spew out menial code, like a slightly dim intern with the speed of the Flash. 
       </p>
       <p>
         As a long-time tinkerer and coder, I do miss the romantic thrill of cobbling code together by hand, rolling the dice on it, and feeling that pay-off (or letdown). Perhaps I'm an old fogey, but there&rsquo;s something about creating with your own two hands that&rsquo;s lost when you order a minion to do it for you, no matter how beautiful the end product.
@@ -125,14 +125,14 @@
     <Foldable id="contact">
       {#snippet summary()}I have a question that isn&rsquo;t answered here.{/snippet}
       <p>
-        Email me - <b>ahmed.elhadi.amer&nbsp;[at]&nbsp;gmail&nbsp;(dot)&nbsp;com</b>. I&rsquo;d love to hear from interested people.
+        Email me - <b>hello [at] ahmedamer (dot) co.uk</b>. I&rsquo;d love to hear from interested people.
       </p>
     </Foldable>
 
     <Foldable id="press">
       {#snippet summary()}Can I get in touch with you for press/videos/podcasts/etc.?{/snippet}
       <p>
-        Email me - <b>ahmed.elhadi.amer&nbsp;[at]&nbsp;gmail&nbsp;(dot)&nbsp;com</b>. I&rsquo;d be happy to contribute to press, YouTube videos, and whatever else.
+        Email me - <b>hello [at] ahmedamer (dot) co.uk</b>. I&rsquo;d be happy to contribute to press, YouTube videos, and whatever else.
       </p>
     </Foldable>
     
