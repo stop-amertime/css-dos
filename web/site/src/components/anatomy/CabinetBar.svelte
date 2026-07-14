@@ -86,7 +86,7 @@
         <rect x="10" y="68" width="240" height="26" fill="none"
               stroke="var(--edit-black)" stroke-width="1.5" pointer-events="none"/>
         <text class="zoom-label" x="258" y="86"
-              pointer-events="none">~350&times; zoom &mdash; 0.1% of the file</text>
+              pointer-events="none">~350&times; zoom - 0.1% of the file</text>
       </svg>
       {#if cur}
         <span class="drop-tick" style="left:{tickPct}%; background:{cur.c}"></span>
@@ -114,7 +114,7 @@
           <IconCursor class="bar-hint-icon" aria-hidden="true" />
           <div>
             <div>
-              This bar is the map &mdash; <b>click any stripe</b> to find
+              This bar is the map - <b>click any stripe</b> to find
               out how that part of the file works.
             </div>
             <div class="bar-hint-promise">

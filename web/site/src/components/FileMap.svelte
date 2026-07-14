@@ -37,16 +37,16 @@
           stroke="var(--edit-black)" stroke-width="1.5"/>
     <!-- labels inside the two biggest segments -->
     <text x="441" y="34" text-anchor="middle" font-size="13" fill="#fff"
-          font-family="inherit">memory write rules &mdash; 171 MB</text>
+          font-family="inherit">memory write rules - 171 MB</text>
     <text x="145" y="34" text-anchor="middle" font-size="12" fill="#fff"
-          font-family="inherit">read &mdash; 44 MB</text>
+          font-family="inherit">read - 44 MB</text>
     <!-- zoom callout for the CPU hairline -->
     <line x1="10" y1="53" x2="10" y2="82" stroke="#aa0000" stroke-width="1"/>
     <line x1="13" y1="53" x2="250" y2="82" stroke="#aa0000" stroke-width="1"/>
     <rect x="10" y="82" width="240" height="30" fill="var(--edit-white)"
           stroke="#aa0000" stroke-width="1.5"/>
     <text x="130" y="101" text-anchor="middle" font-size="13" fill="#aa0000"
-          font-family="inherit">the entire CPU &mdash; ~300 KB (0.1%)</text>
+          font-family="inherit">the entire CPU - ~300 KB (0.1%)</text>
   </svg>
 
   <div class="file-map-legend">

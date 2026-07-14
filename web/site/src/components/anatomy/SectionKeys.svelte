@@ -39,13 +39,13 @@ Mouse support is actually <i>easier</i> than keyboard support - I just detect th
   <code>:active</code> can only answer one question: <i>is this element held down now?</i> However, a program only gets round to asking the keyboard hundreds of ticks afterwards. CSS speaks in the present tense; the PC demands past tense.
 </p>
 <p>
-  So the past is reconstructed, like in Crimewatch. The variable <code>--prevKeyboard</code> remembers what <code>--keyboard</code> said one tick ago &mdash; its entire definition is &ldquo;copy the current value&rdquo;, and the <a href="#about/file/clock">clock section</a>&rsquo;s handover plumbing makes the copy arrive a tick late, which for once is exactly what we want. Compare the two and you get <i>events</i> out of a <i>state</i>:
+  So the past is reconstructed, like in Crimewatch. The variable <code>--prevKeyboard</code> remembers what <code>--keyboard</code> said one tick ago - its entire definition is &ldquo;copy the current value&rdquo;, and the <a href="#about/file/clock">clock section</a>&rsquo;s handover plumbing makes the copy arrive a tick late, which for once is exactly what we want. Compare the two and you get <i>events</i> out of a <i>state</i>:
 </p>
 <CodeCss code={KBD_PRESS} />
 
 <SectionHead>The release-code latch</SectionHead>
 <p>
-  A press edge is one tick wide &mdash; under Calcite, gone in about 1/400,000th of a second. So it&rsquo;s immediately <b>latched</b>: a variable holds the most recent key event until the next one replaces it, where the program can read it at its leisure. Releases get the same treatment &mdash; real keyboards send a <i>release</i> code when a key comes up, and games depend on it to know when you&rsquo;ve stopped moving &mdash; so letting go is detected as an event too, and latched the same way.
+  A press edge is one tick wide - under Calcite, gone in about 1/400,000th of a second. So it&rsquo;s immediately <b>latched</b>: a variable holds the most recent key event until the next one replaces it, where the program can read it at its leisure. Releases get the same treatment - real keyboards send a <i>release</i> code when a key comes up, and games depend on it to know when you&rsquo;ve stopped moving - so letting go is detected as an event too, and latched the same way.
 </p>
 
 <SectionHead>Hold mode</SectionHead>

@@ -64,7 +64,7 @@
     <EnvNotice />
     <div class="build-intro">
       <h1>Build the <code>.css</code> file</h1>
-      <p>The entire computer &mdash; and your program &mdash; has to be baked into one stylesheet. This page builds it. Pick a program to put on the floppy, or upload  your own: 
+      <p>The entire computer - and your program - has to be baked into one stylesheet. This page builds it. Pick a program to put on the floppy, or upload  your own: 
     </div>
     <CartGrid />
     {#if customSelected}<CustomPanel />{/if}
@@ -110,7 +110,7 @@
               <p class="opt-warn dim small">
                 Warning: a writable disk grows the cabinet and its
                 compile time substantially (~0.4&nbsp;MB per KB of
-                floppy &mdash; often 50&ndash;90%), and can push large
+                floppy - often 50&ndash;90%), and can push large
                 carts past what Chrome will load at all.
               </p>
             </div>

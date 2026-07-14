@@ -39,7 +39,7 @@
         <div class="kbd-readout">
           --keyboard: <span class="kbd-value"></span>
         </div>
-        <span class="dim small">hold a key &mdash; even this readout is pure CSS</span>
+        <span class="dim small">hold a key - even this readout is pure CSS</span>
       </div>
     {/snippet}
   </SplitPane>

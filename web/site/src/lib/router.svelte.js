@@ -42,6 +42,11 @@ class Nav {
   buildSub = $state(1);  // Build sub-page 1..3
   section = $state('map');   // current section on the About/file carousel
   sectionDir = $state(1);    // slide direction of the last section change
+  // One-shot deep-link target for the FAQs page: '#about/faqs/<id>' sets
+  // this, AboutFaqs.svelte opens+scrolls to the matching Foldable and
+  // clears it. Not kept in sync on manual toggling (unlike `section`) —
+  // it's a landing instruction, not persistent state.
+  faqAnchor = $state(null);
   // The carousel's "this bar is a map" hint: shows on every page of
   // the File Map sub-page until dismissed, and the dismissal sticks
   // per browser (localStorage) so returning readers never see it again.
@@ -234,6 +239,9 @@ class Nav {
       this.sub = i >= 0 ? i + 1 : 1;
       if (this.sub === ABOUT_FILE_SUB && FILE_SECTIONS.includes(s2)) {
         this.section = s2;
+      }
+      if (subName === 'faqs' && s2) {
+        this.faqAnchor = s2;
       }
     } else if (target === BUILD) {
       const i = BUILD_SUBS.indexOf(s1);

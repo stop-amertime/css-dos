@@ -38,13 +38,13 @@
     {/snippet}
     {#snippet right()}
       <div class="fl-col">
-        <div class="fl-band">CSS &mdash; verbatim from the cabinet</div>
+        <div class="fl-band">CSS - verbatim from the cabinet</div>
         <pre class="fl-slab"><code>{slab}</code></pre>
       </div>
     {/snippet}
   </SplitPane>
   <p class="fl-fact">
-    One function, <b>743,948 arms</b> &mdash; one per address. Just this
+    One function, <b>743,948 arms</b> - one per address. Just this
     function, the part of the file that reads one byte, is
     <b>44 million characters</b>: nine complete works of Shakespeare.
   </p>

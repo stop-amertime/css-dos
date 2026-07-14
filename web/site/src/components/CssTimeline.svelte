@@ -78,7 +78,7 @@
             <button class="demo-toggle" type="button" onclick={() => (on = !on)}>
               toggle --on
             </button>
-            <span class="dim small">no JavaScript &mdash; the <code>if()</code> picks the colour</span>
+            <span class="dim small">no JavaScript - the <code>if()</code> picks the colour</span>
           </div>
         {:else}
           <pre class="tl-code"><code><span class="tok-at">@function</span> <span class="tok-fn">--double</span>(<span class="tok-prop">--n</span>) {'{'}

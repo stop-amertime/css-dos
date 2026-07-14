@@ -37,12 +37,12 @@
 
 <Callout kind="tip" label="Fun fact">
   <p>
-    Early experiments in CSS computation had no way to make time pass &mdash; the user had to repeatedly press buttons to advance the machine one cycle at a time, until this method of using animations and <code>@keyframes</code> was discovered.
+    Early experiments in CSS computation had no way to make time pass - the user had to repeatedly press buttons to advance the machine one cycle at a time, until this method of using animations and <code>@keyframes</code> was discovered.
   </p>
 </Callout>
 
 <p>
-  Exactly one thing in CSS changes on its own: an <b>animation</b>. At the very bottom of the file, after 300&nbsp;MB of formulas, sits the thing that runs them &mdash; verbatim:
+  Exactly one thing in CSS changes on its own: an <b>animation</b>. At the very bottom of the file, after 300&nbsp;MB of formulas, sits the thing that runs them - verbatim:
 </p>
 <CodeCss code={CLOCK_ANIM} />
 <p>
@@ -51,26 +51,26 @@
 
 <SectionHead>Why not just make the clock faster?</SectionHead>
 <p>
-  It&rsquo;s the obvious knob. 400&nbsp;ms per instruction is 2.5 instructions per second &mdash; at that rate DOS takes the best part of two weeks to boot. And the fix is sitting right there in the code above: write <code>4ms</code> instead, and the machine is 100&times; faster, free?
+  It&rsquo;s the obvious knob. 400&nbsp;ms per instruction is 2.5 instructions per second - at that rate DOS takes the best part of two weeks to boot. And the fix is sitting right there in the code above: write <code>4ms</code> instead, and the machine is 100&times; faster, free?
 </p>
 <p>
-  Sadly, the clock was never the throttle. Each tick asks the browser to re-settle the whole 300&nbsp;MB dependency graph, and that takes Chrome seconds on a small cabinet &mdash; minutes on a Doom-sized one. The browser already can&rsquo;t finish one lap before the next is due; ticks just queue up behind a recalculation that never ends. Speeding up the clock deepens the queue and changes nothing.
+  Sadly, the clock was never the throttle. Each tick asks the browser to re-settle the whole 300&nbsp;MB dependency graph, and that takes Chrome seconds on a small cabinet - minutes on a Doom-sized one. The browser already can&rsquo;t finish one lap before the next is due; ticks just queue up behind a recalculation that never ends. Speeding up the clock deepens the queue and changes nothing.
 </p>
 <p>
-  So the 400&nbsp;ms is aspirational &mdash; written for a browser that could keep up, which doesn&rsquo;t exist. That gap is exactly what <a href="#about/calcite">Calcite</a> fills: it ignores the wall-clock number entirely and runs laps as fast as it can compute them, hundreds of thousands per second.
+  So the 400&nbsp;ms is aspirational - written for a browser that could keep up, which doesn&rsquo;t exist. That gap is exactly what <a href="#about/calcite">Calcite</a> fills: it ignores the wall-clock number entirely and runs laps as fast as it can compute them, hundreds of thousands per second.
 </p>
 
 <SectionHead>Why does every value need four variables?</SectionHead>
 <p>
-  Each tick, every value &mdash; register or memory cell &mdash; must be recomputed from its previous one. But a variable can&rsquo;t reference itself in CSS (in most other languages, it can!):
+  Each tick, every value - register or memory cell - must be recomputed from its previous one. But a variable can&rsquo;t reference itself in CSS (in most other languages, it can!):
 </p>
 <CycleDiagrams panel="self" />
 <p>
-  Well, that&rsquo;s easy to solve &mdash; just use a buffer, right? Hold the previous value of <code>--X</code> somewhere and copy from that? CSS doesn&rsquo;t like that either: it detects <i>cycles</i> too, of any length, and ignores them.
+  Well, that&rsquo;s easy to solve - just use a buffer, right? Hold the previous value of <code>--X</code> somewhere and copy from that? CSS doesn&rsquo;t like that either: it detects <i>cycles</i> too, of any length, and ignores them.
 </p>
 <CycleDiagrams panel="pair" />
 <p>
-  What we need is a system that lets state through without ever, at any instant, having a complete route from start to end &mdash; a bit like an airlock:
+  What we need is a system that lets state through without ever, at any instant, having a complete route from start to end - a bit like an airlock:
 </p>
 <CycleDiagrams panel="ring" />
 <p>
@@ -78,22 +78,22 @@
 </p>
 <CodeCss code={CELL_PLUMBING} />
 <p>
-  Follow one lap. At the 25% keyframe, last lap&rsquo;s <code>_1</code> copies move into <code>_2</code> &mdash; and since every <code>-prev</code> is defined as its <code>_2</code>, every formula now reads the new state and re-evaluates. At the 75% keyframe, the freshly computed values are copied into <code>_1</code>. Repeat forever.
+  Follow one lap. At the 25% keyframe, last lap&rsquo;s <code>_1</code> copies move into <code>_2</code> - and since every <code>-prev</code> is defined as its <code>_2</code>, every formula now reads the new state and re-evaluates. At the 75% keyframe, the freshly computed values are copied into <code>_1</code>. Repeat forever.
 </p>
 <p>
-  The reason for the two-step handover: each copy is written at one keyframe and read at another, so nothing is ever read and overwritten at the same moment. The machine never sees a half-updated version of itself &mdash; every tick gets a clean before-picture, even though 368,256 cells and fourteen registers all change &ldquo;at once.&rdquo;
+  The reason for the two-step handover: each copy is written at one keyframe and read at another, so nothing is ever read and overwritten at the same moment. The machine never sees a half-updated version of itself - every tick gets a clean before-picture, even though 368,256 cells and fourteen registers all change &ldquo;at once.&rdquo;
 </p>
 
 <Foldable>
   {#snippet summary()}The nitty-gritty: what actually freezes the copies{/snippet}
   <p>
-    The <code>_1</code> and <code>_2</code> lines live inside the <code>store</code> and <code>execute</code> <code>@keyframes</code> blocks (attached to the machine permanently, paused &mdash; the wiring is at the bottom of this page). The load-bearing browser behaviour: while an animation is <i>running</i>, a <code>var()</code> inside its keyframes re-resolves continuously &mdash; the copy is a live wire, tracking its source. While it is <i>paused</i>, the browser stops re-resolving, and the copy simply holds its last value. The pause is the freeze &mdash; the only way in CSS to keep a value still.
+    The <code>_1</code> and <code>_2</code> lines live inside the <code>store</code> and <code>execute</code> <code>@keyframes</code> blocks (attached to the machine permanently, paused - the wiring is at the bottom of this page). The load-bearing browser behaviour: while an animation is <i>running</i>, a <code>var()</code> inside its keyframes re-resolves continuously - the copy is a live wire, tracking its source. While it is <i>paused</i>, the browser stops re-resolving, and the copy simply holds its last value. The pause is the freeze - the only way in CSS to keep a value still.
   </p>
   <p>
-    Why two copies between <code>--X</code> and <code>--X-prev</code>, not one? Because the four variables form a ring, and a ring whose links are all live at once is a circular reference no matter how many hops it has. With a single in-between copy, the moment its keyframe ran, every link would conduct at once &mdash; a cycle at the exact instant of handover, every tick. With two, unpaused strictly in turn, at least one link is frozen at every instant, and CSS never has a cycle to reject.
+    Why two copies between <code>--X</code> and <code>--X-prev</code>, not one? Because the four variables form a ring, and a ring whose links are all live at once is a circular reference no matter how many hops it has. With a single in-between copy, the moment its keyframe ran, every link would conduct at once - a cycle at the exact instant of handover, every tick. With two, unpaused strictly in turn, at least one link is frozen at every instant, and CSS never has a cycle to reject.
   </p>
   <p>
-    The names here are tidied for reading. In the real file, <code>--X-prev</code>, <code>--X_1</code> and <code>--X_2</code> for memory cell 5000 are <code>--__1mc5000</code>, <code>--__0mc5000</code> and <code>--__2mc5000</code> &mdash; and only the base <code>--mc5000</code> is ever declared. The three copies have no <code>@property</code> block anywhere: an unregistered CSS variable springs into existence the first time something assigns it.
+    The names here are tidied for reading. In the real file, <code>--X-prev</code>, <code>--X_1</code> and <code>--X_2</code> for memory cell 5000 are <code>--__1mc5000</code>, <code>--__0mc5000</code> and <code>--__2mc5000</code> - and only the base <code>--mc5000</code> is ever declared. The three copies have no <code>@property</code> block anywhere: an unregistered CSS variable springs into existence the first time something assigns it.
   </p>
   <p>
     And the very first tick? Neither copy animation has ever run, so nothing has ever been copied. That is what the <code>,&nbsp;32861</code> fallbacks riding in the plumbing lines are for: they supply each cell&rsquo;s power-on value until the real handover machinery delivers its first cargo.
@@ -101,16 +101,16 @@
 </Foldable>
 
 <p>
-  And that is where this section&rsquo;s 43&nbsp;MB goes: the animation itself is 0.1&nbsp;KB, but the three plumbing lines have to be written out per cell &mdash; three complete sweeps over all of memory (15 + 15 + 13&nbsp;MB), just to move values from one copy to the next. The registers get the same treatment in a much smaller block inside the CPU.
+  And that is where this section&rsquo;s 43&nbsp;MB goes: the animation itself is 0.1&nbsp;KB, but the three plumbing lines have to be written out per cell - three complete sweeps over all of memory (15 + 15 + 13&nbsp;MB), just to move values from one copy to the next. The registers get the same treatment in a much smaller block inside the CPU.
 </p>
 
 <p>
-  One thing this animation is <i>not</i>: the time DOS sees. DOS gets its time from the simulated timer chip, which counts something else entirely &mdash; the <a href="#about/file/chipset">chipset section</a> covers it.
+  One thing this animation is <i>not</i>: the time DOS sees. DOS gets its time from the simulated timer chip, which counts something else entirely - the <a href="#about/file/chipset">chipset section</a> covers it.
 </p>
 
 <SectionHead>How the store and execute steps get triggered</SectionHead>
 <p>
-  The store and execute steps are themselves <code>@keyframes</code> &mdash; and an animation can&rsquo;t call another animation. So the cabinet attaches both to the CPU permanently, <b>paused</b>, and the clock unpauses each one for a quarter of every lap &mdash; verbatim:
+  The store and execute steps are themselves <code>@keyframes</code> - and an animation can&rsquo;t call another animation. So the cabinet attaches both to the CPU permanently, <b>paused</b>, and the clock unpauses each one for a quarter of every lap - verbatim:
 </p>
 <CodeCss code={CONDUCTOR} />
 

@@ -57,7 +57,7 @@
   <p class="caption">
     Each rule reads its pixel&rsquo;s byte of video memory
     (<code>--vram-&hellip;</code>) and looks the colour up in the
-    palette. No image, no canvas &mdash; when a game draws, it writes
+    palette. No image, no canvas - when a game draws, it writes
     bytes, and divs change colour.
   </p>
 </div>

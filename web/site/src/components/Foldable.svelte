@@ -10,11 +10,13 @@
   //   </Foldable>
   //
   // `open` binds the current state; `class` lets a caller theme the frame
-  // (e.g. a coloured border) without re-implementing the glyph.
-  let { summary, children, open = $bindable(false), class: klass = '' } = $props();
+  // (e.g. a coloured border) without re-implementing the glyph. `id` is
+  // forwarded onto the underlying <details> so a fold is addressable —
+  // see AboutFaqs.svelte's deep-link handling for the pattern.
+  let { summary, children, open = $bindable(false), class: klass = '', id = undefined } = $props();
 </script>
 
-<details class="foldable {klass}" bind:open>
+<details class="foldable {klass}" {id} bind:open>
   <summary>
     <span class="fold-glyph" aria-hidden="true"></span>
     <span class="fold-summary">{@render summary()}</span>

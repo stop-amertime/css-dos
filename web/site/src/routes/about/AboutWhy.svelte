@@ -8,7 +8,7 @@
   <h1>Why?</h1>
   <blockquote class="epigraph">
     <p>&ldquo;Because it&rsquo;s there&rdquo;</p>
-    <cite>&mdash; George Mallory, when asked why he climbed Everest.</cite>
+    <cite>- George Mallory, when asked why he climbed Everest.</cite>
   </blockquote>
   <!-- TODO(owner): link the Dark Souls bongos run -->
   <p>

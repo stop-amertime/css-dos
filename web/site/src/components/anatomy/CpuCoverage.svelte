@@ -28,7 +28,7 @@
     {/each}
   </svg>
   <p class="caption">
-    850 rows, 232 distinct opcodes &mdash; measured from the Sokoban
+    850 rows, 232 distinct opcodes - measured from the Sokoban
     cabinet. The IP row is full: every instruction has to say where the
     machine goes next. The blank columns are opcodes the 8086 never
     defined; the near-empty rows are the segment registers, which

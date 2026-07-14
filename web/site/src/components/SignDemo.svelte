@@ -25,7 +25,7 @@
     <span>=</span>
     <span class="sd-out"></span>
   </div>
-  <span class="small dim">1 means A &lt; B &mdash; computed by real CSS <code>sign()</code>, not JS</span>
+  <span class="small dim">1 means A &lt; B - computed by real CSS <code>sign()</code>, not JS</span>
 </div>
 
 <style>

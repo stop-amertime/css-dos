@@ -78,7 +78,7 @@
         </button>
         <div class="ram-feed">
           {#if feed.length === 0}
-            <span class="dim small">press run &mdash; watch every formula re-evaluate</span>
+            <span class="dim small">press run - watch every formula re-evaluate</span>
           {/if}
           {#each feed as line}
             {#if line.tail}

@@ -65,7 +65,7 @@
       <button class="demo-toggle" id="branch-toggle" type="button" onclick={() => (on = !on)}>
         toggle --on
       </button>
-      <span class="dim small">no JavaScript &mdash; the <code>if()</code> picks the colour</span>
+      <span class="dim small">no JavaScript - the <code>if()</code> picks the colour</span>
     </div>
   </div>
 </div>

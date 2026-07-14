@@ -40,7 +40,7 @@
     {/snippet}
   </SplitPane>
   <p class="caption">
-    The moving highlight is itself a CSS animation &mdash; the same
+    The moving highlight is itself a CSS animation - the same
     mechanism, slowed 8&times;. The cabinet&rsquo;s clock does a full lap
     every 400&nbsp;ms; Calcite runs the same lap hundreds of thousands of
     times a second.

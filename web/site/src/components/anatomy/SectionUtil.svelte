@@ -46,7 +46,7 @@
 </script>
 
 <p>
-  The <Term t="cabinet">cabinet</Term> begins with a toolbox of <b>21 small functions</b> &mdash; helpers for common operations we don&rsquo;t have.
+  The <Term t="cabinet">cabinet</Term> begins with a toolbox of <b>21 small functions</b> - helpers for common operations we don&rsquo;t have.
 </p>
 
 <div class="ops-supply">
@@ -76,13 +76,13 @@
 <Foldable class="fold-bg">
   {#snippet summary()}Background: AND, OR, and why a CPU needs them{/snippet}
   <p>
-    Computers store numbers as <b>bits</b> &mdash; a 16-bit number is sixteen 0-or-1 digits. AND, OR and XOR combine two numbers by comparing each bit &mdash; AND keeps a 1 only where both numbers have a 1, OR where either does, XOR where exactly one does. Programs lean on them for all sorts of operations.
+    Computers store numbers as <b>bits</b> - a 16-bit number is sixteen 0-or-1 digits. AND, OR and XOR combine two numbers by comparing each bit - AND keeps a 1 only where both numbers have a 1, OR where either does, XOR where exactly one does. Programs lean on them for all sorts of operations.
   </p>
 </Foldable>
 
 <SectionHead>Bit operations from arithmetic</SectionHead>
 <p>
-  You met <code>--and</code> on the last page &mdash; the whole trick is that on single bits, AND is multiplication: 1&times;1 is 1, everything else is 0. Line two numbers up in binary and multiply each column:
+  You met <code>--and</code> on the last page - the whole trick is that on single bits, AND is multiplication: 1&times;1 is 1, everything else is 0. Line two numbers up in binary and multiply each column:
 </p>
 
 <div class="and-work">
@@ -109,7 +109,7 @@
 </p>
 <CodeCss code={AND_FN} />
 <p>
-  OR and XOR fall out of the same move: per bit, OR is <code>min(1, a + b)</code>, XOR is <code>a + b &minus; 2ab</code>, and NOT is <code>1 &minus; a</code> &mdash; the full set of logic gates, rebuilt from primary-school arithmetic.
+  OR and XOR fall out of the same move: per bit, OR is <code>min(1, a + b)</code>, XOR is <code>a + b &minus; 2ab</code>, and NOT is <code>1 &minus; a</code> - the full set of logic gates, rebuilt from primary-school arithmetic.
 </p>
 
 <SectionHead>Comparisons from sign()</SectionHead>
@@ -121,11 +121,11 @@
 </p>
 <CodeCss code={LESS_THAN} />
 <p>
-  Out comes a clean 0 or 1 that can be fed straight into more arithmetic &mdash; exactly how this works is left as an exercise to the reader. This helper is how a subtraction decides whether it had to borrow (<a href="#about/file/cpu">the CPU</a>&rsquo;s carry flag), and how <a href="#about/file/screen">the screen</a> fakes its 70 Hz retrace signal.
+  Out comes a clean 0 or 1 that can be fed straight into more arithmetic - exactly how this works is left as an exercise to the reader. This helper is how a subtraction decides whether it had to borrow (<a href="#about/file/cpu">the CPU</a>&rsquo;s carry flag), and how <a href="#about/file/screen">the screen</a> fakes its 70 Hz retrace signal.
 </p>
 
 <p>
-  A 0-or-1 answer also stands in for &ldquo;if&rdquo; inside a formula: <code>flag&nbsp;&times;&nbsp;A + (1&nbsp;&minus;&nbsp;flag)&nbsp;&times;&nbsp;B</code> picks A or B. The machine even uses it to <i>cancel</i> memory writes: when a write shouldn&rsquo;t happen, the same trick turns its target address into &minus;1 &mdash; an address no memory cell answers to &mdash; and the write lands nowhere.
+  A 0-or-1 answer also stands in for &ldquo;if&rdquo; inside a formula: <code>flag&nbsp;&times;&nbsp;A + (1&nbsp;&minus;&nbsp;flag)&nbsp;&times;&nbsp;B</code> picks A or B. The machine even uses it to <i>cancel</i> memory writes: when a write shouldn&rsquo;t happen, the same trick turns its target address into &minus;1 - an address no memory cell answers to - and the write lands nowhere.
 </p>
 
 <SectionHead>The lookup tables</SectionHead>
@@ -143,7 +143,7 @@
 
 <SectionHead>The rest of the utility functions</SectionHead>
 <p>
-  The rest of these 21 are byte plumbing: functions that split and splice the two-bytes-per-cell memory (<code>--extractByte</code>, <code>--spliceByte</code>, <code>--applySlot</code> &mdash; the <a href="#about/file/memw">write-formulas section</a> shows the last one at work) and read a 16-bit value across two of them. The instruction-decoding helpers that pick apart x86 operand bytes, and the flag calculators (<code>--addFlags16</code>, <code>--shrFlags8</code>, &hellip;), are CPU-specific rather than shared, so they live in <a href="#about/file/cpu">the CPU section</a> instead.
+  The rest of these 21 are byte plumbing: functions that split and splice the two-bytes-per-cell memory (<code>--extractByte</code>, <code>--spliceByte</code>, <code>--applySlot</code> - the <a href="#about/file/memw">write-formulas section</a> shows the last one at work) and read a 16-bit value across two of them. The instruction-decoding helpers that pick apart x86 operand bytes, and the flag calculators (<code>--addFlags16</code>, <code>--shrFlags8</code>, &hellip;), are CPU-specific rather than shared, so they live in <a href="#about/file/cpu">the CPU section</a> instead.
 </p>
 
 <style>

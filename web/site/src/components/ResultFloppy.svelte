@@ -15,7 +15,7 @@
   <div class="result-info">
     <h3 class="result-ok"><span class="result-tick" aria-hidden="true">&#10004;</span> CSS file built</h3>
     <button class="result-dl" onclick={() => build.download()}>
-      (optional) Download cabinet.css &mdash; {build.sizeMB}
+      (optional) Download cabinet.css - {build.sizeMB}
     </button>
   </div>
 </div>

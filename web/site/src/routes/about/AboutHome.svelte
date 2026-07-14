@@ -14,7 +14,7 @@
         An <Term t="i8086">8086</Term> CPU, chipset, 640&nbsp;KB RAM, floppy, keyboard and VGA screen in one <code>.css</code> file.
       </p>
       <p class="lede">
-        It&rsquo;s a morbidly obese <b>300+&nbsp;MB</b> of spec-compliant <Term t="css">CSS</Term>, abused beyond recognition &mdash; some of the most delightfully painful and wasteful code ever cursed to exist.
+        It&rsquo;s a morbidly obese <b>300+&nbsp;MB</b> of spec-compliant <Term t="css">CSS</Term>, abused beyond recognition; some of the most delightfully painful and wasteful code ever cursed to exist.
       </p>
       <p class="lede">
         It boots <b>Microsoft Windows 1.0</b> and its namesake MS-DOS, and runs real &rsquo;80s software.

@@ -19,7 +19,7 @@
     <rect x="10" y="10" width="680" height="222" fill="none"
           stroke="#aa0000" stroke-width="1.5" stroke-dasharray="6 5"/>
     <text x="350" y="256" text-anchor="middle" font-size="13"
-          fill="#aa0000" font-family="inherit">the animation &mdash; one lap = one tick</text>
+          fill="#aa0000" font-family="inherit">the animation - one lap = one tick</text>
 
     <!-- top row: IP → bytes → opcode -->
     <rect x="36" y="34" width="108" height="46" fill="var(--edit-white)" stroke="var(--edit-black)" stroke-width="1.5"/>

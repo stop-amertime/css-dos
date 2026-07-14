@@ -9,14 +9,14 @@
   <h1>Tricks</h1>
   <p>
     Everything so far needed a workaround; these are the ones too good
-    to leave out. Nothing later depends on them &mdash; this page is for
+    to leave out. Nothing later depends on them - this page is for
     the curious.
   </p>
 
   <h3 class="anatomy-head">No comparisons</h3>
   <p>
     <code>calc()</code> can add, subtract, multiply and divide. It
-    cannot ask <i>is A less than B?</i> &mdash; there is no
+    cannot ask <i>is A less than B?</i> - there is no
     <code>&lt;</code>. A CPU asks constantly: the carry flag is
     literally &ldquo;did this subtraction dip below zero?&rdquo;. The
     workaround is <code>sign()</code>, which returns &minus;1, 0 or +1:
@@ -37,13 +37,13 @@
   <p>
     Mid-expression, there&rsquo;s no way to write &ldquo;if flag, then
     A, else B&rdquo;. But every yes/no answer is already a 0 or a 1
-    &mdash; so choosing is multiplication:
+    - so choosing is multiplication:
   </p>
   <pre class="byte-example"><code>flag * A + (<span class="tok-num">1</span> - flag) * B    <span class="tok-comment">/* A if flag is 1, else B */</span></code></pre>
   <p>
     The same trick <i>skips</i> a memory write: when a write
     shouldn&rsquo;t happen, this arithmetic turns its target address
-    into &minus;1 &mdash; an address no memory cell matches, so the
+    into &minus;1 - an address no memory cell matches, so the
     write lands nowhere.
   </p>
 
@@ -72,9 +72,9 @@
     Some values are painful to derive live, so they&rsquo;re computed
     at build time and shipped as a read-only <code>if()</code> lookup.
     The 8086&rsquo;s <b>parity flag</b> needs the number of 1-bits in a
-    byte &mdash; rather than count bits in CSS, the file carries the
+    byte - rather than count bits in CSS, the file carries the
     answer for all 256 byte values. Shifting by a variable amount needs
-    2&#8319;, which <code>calc()</code> can&rsquo;t express &mdash; so
+    2&#8319;, which <code>calc()</code> can&rsquo;t express - so
     0&ndash;31&nbsp;&rarr;&nbsp;2&#8319; is a 32-entry table. The
     floppy disk is the same idea at scale: one arm per byte.
   </p>
@@ -82,10 +82,10 @@
   <h3 class="anatomy-head">No loops</h3>
   <p>
     A tick is defined as one instruction; there is no way to loop
-    inside one. But <code>REP MOVSB</code> &mdash; the 8086&rsquo;s
-    block-copy, used constantly &mdash; is supposed to copy CX bytes in
+    inside one. But <code>REP MOVSB</code> - the 8086&rsquo;s
+    block-copy, used constantly - is supposed to copy CX bytes in
     a single instruction. The fix: copy <i>one</i> byte, decrement CX,
-    and &mdash; if CX is still above zero &mdash; set the next
+    and - if CX is still above zero - set the next
     instruction address to point back at <b>itself</b>. Next tick, the
     CPU fetches the very same instruction and copies the next byte.
   </p>
@@ -103,7 +103,7 @@
     Chrome caps a CSS function at about 7 local variables and
     won&rsquo;t nest one custom function call inside another&rsquo;s
     arguments. A lot of the file&rsquo;s arithmetic is hand-flattened
-    to fit &mdash; <code>mod(x, 256)</code> spelled out inline instead
+    to fit - <code>mod(x, 256)</code> spelled out inline instead
     of calling a tidy helper. The code is shaped by a real
     browser&rsquo;s enforcement: if Chrome can&rsquo;t evaluate it, it
     isn&rsquo;t CSS.

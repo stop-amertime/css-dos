@@ -201,7 +201,7 @@
 {/if}
 
 <p class="play-note">
-  This is running through <b>Calcite</b>, a JIT compiler for CSS &mdash;
+  This is running through <b>Calcite</b>, a JIT compiler for CSS -
   <a href="#about/calcite">how it works, and why it isn&rsquo;t
   cheating</a>. Or
   <button class="link-btn" onclick={() => rawModal = true}>try the raw
@@ -216,7 +216,7 @@
     <div class="window-body">
       <p>
         This opens the same cabinet as a plain stylesheet in a plain
-        tab &mdash; no Calcite, just your browser&rsquo;s own CSS engine
+        tab - no Calcite, just your browser&rsquo;s own CSS engine
         chewing through 300&nbsp;MB.
       </p>
       <p>
@@ -224,13 +224,13 @@
         per <i>month</i> before it does. Save your work first.
       </p>
       <p class="small">
-        Why it&rsquo;s this slow &mdash; and what Calcite does instead
-        &mdash; is on <a href="#about/calcite"
+        Why it&rsquo;s this slow - and what Calcite does instead
+        - is on <a href="#about/calcite"
         onclick={() => rawModal = false}>the Calcite page</a>.
       </p>
       <div class="raw-modal-btns">
         <a class="btn" href="/player/raw.html" target="_blank" rel="noopener"
-           onclick={() => rawModal = false}>I understand &mdash; open it</a>
+           onclick={() => rawModal = false}>I understand - open it</a>
         <button class="btn" onclick={() => rawModal = false}>Cancel</button>
       </div>
     </div>

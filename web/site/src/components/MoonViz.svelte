@@ -22,8 +22,8 @@
     <text x="413" y="34" text-anchor="middle" font-size="20" font-weight="bold" fill="#aa0000" font-family="inherit">~60%</text>
   </svg>
   <p class="caption">
-    Take one step for every character in the file &mdash; letter,
-    digit, etc. &mdash; and you&rsquo;d walk
+    Take one step for every character in the file - letter,
+    digit, etc. - and you&rsquo;d walk
     <b>about 60% of the way to the Moon</b>
     (some 230,000&nbsp;km).
   </p>

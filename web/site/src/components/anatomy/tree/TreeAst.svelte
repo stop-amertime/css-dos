@@ -348,7 +348,7 @@
     <pre class="ast-line"><span class="tree-glyph" aria-hidden="true"></span><code class="ast-note">loading <DosSpinner /></code></pre>
   {:else if loadState === 'error'}
     <div class="tree-more">
-      <button onclick={retry}>failed to load &mdash; retry</button>
+      <button onclick={retry}>failed to load - retry</button>
     </div>
   {/if}
 {/snippet}

@@ -28,26 +28,26 @@ style(--opcode: 212): calc(var(--cycleCount-prev) + 83);  /* AAM: 83 — divisio
 </script>
 
 <p>
-  Around the CPU sits a small posse of support silicon, and &rsquo;80s programs talk to it <i>directly</i> (it&rsquo;s the &rsquo;80s, anything goes!): they program a <b>timer chip</b> to interrupt them 18.2 times a second, tell the <b>interrupt controller</b> which events to let through, stream colours into the <b>VGA palette</b>. Each of those chips is simulated the same way the registers are &mdash; a few more variables, with tables describing what the silicon would have done:
+  Around the CPU sits a small posse of support silicon, and &rsquo;80s programs talk to it <i>directly</i> (it&rsquo;s the &rsquo;80s, anything goes!): they program a <b>timer chip</b> to interrupt them 18.2 times a second, tell the <b>interrupt controller</b> which events to let through, stream colours into the <b>VGA palette</b>. Each of those chips is simulated the same way the registers are - a few more variables, with tables describing what the silicon would have done:
 </p>
 <CodeCss code={CHIP_VARS} />
 
 <p>
-  A CPU register&rsquo;s table ends with &ldquo;otherwise, keep the old value&rdquo; &mdash; if the current instruction doesn&rsquo;t touch it, nothing happens. These chips are different: real hardware runs whether or not the program is paying attention. Their tables end with a fall-through that <i>does work</i>. The timer&rsquo;s table has rows for the OUT instructions that program it, and when none of them fire &mdash; almost every tick &mdash; it counts down instead:
+  A CPU register&rsquo;s table ends with &ldquo;otherwise, keep the old value&rdquo; - if the current instruction doesn&rsquo;t touch it, nothing happens. These chips are different: real hardware runs whether or not the program is paying attention. Their tables end with a fall-through that <i>does work</i>. The timer&rsquo;s table has rows for the OUT instructions that program it, and when none of them fire - almost every tick - it counts down instead:
 </p>
 <CodeCss code={PIT_COUNTER} />
 <p class="dim small">
-  (Note the shape: the <i>idle</i> case takes the <code>if</code> and the real work is the <code>else</code>, which looks backwards. But a <code>style()</code> test can only ask <i>is this variable exactly this value?</i> &mdash; there is no &ne; or &gt;. The only case that can be named as one exact value is <code>--pitReload</code> being 0, a timer that was never programmed &mdash; so it gets the <code>if</code>, and counting falls through to the <code>else</code>.)
+  (Note the shape: the <i>idle</i> case takes the <code>if</code> and the real work is the <code>else</code>, which looks backwards. But a <code>style()</code> test can only ask <i>is this variable exactly this value?</i> - there is no &ne; or &gt;. The only case that can be named as one exact value is <code>--pitReload</code> being 0, a timer that was never programmed - so it gets the <code>if</code>, and counting falls through to the <code>else</code>.)
 </p>
 <p>
-  Every time the counter crosses zero it reloads itself and raises IRQ&nbsp;0 &mdash; the tick DOS keeps its clock by. The interrupt controller&rsquo;s fall-through latches any newly arrived interrupt requests; the keyboard controller&rsquo;s copies the current key so the next tick can spot the change.
+  Every time the counter crosses zero it reloads itself and raises IRQ&nbsp;0 - the tick DOS keeps its clock by. The interrupt controller&rsquo;s fall-through latches any newly arrived interrupt requests; the keyboard controller&rsquo;s copies the current key so the next tick can spot the change.
 </p>
 
 <SectionHead>Where the timer&rsquo;s ticks come from</SectionHead>
 <p>
-  The countdown above needs something to count, so the timer is derived from a number the CPU already tracks: a running tally of the cycles each instruction <i>would have cost</i> on the real 4.77&nbsp;MHz chip. The tally is one more register table &mdash; every instruction&rsquo;s row adds what Intel&rsquo;s 1978 manual billed for it:
+  The countdown above needs something to count, so the timer is derived from a number the CPU already tracks: a running tally of the cycles each instruction <i>would have cost</i> on the real 4.77&nbsp;MHz chip. The tally is one more register table - every instruction&rsquo;s row adds what Intel&rsquo;s 1978 manual billed for it:
 </p>
 <CodeCss code={CYCLE_ROWS} />
 <p>
-  The gearing is real 1981 engineering: the PC&rsquo;s timer chip ran at exactly one quarter of the CPU&rsquo;s clock, so the timer&rsquo;s ticks are simply <code>cycleCount&nbsp;/&nbsp;4</code>. The chip is simulated down to its quirks &mdash; in its default square-wave mode the counter genuinely counts down by <i>two</i> per tick, and its 16-bit reload value has to arrive as two separate byte writes before the count starts, just like the real part.
+  The gearing is real 1981 engineering: the PC&rsquo;s timer chip ran at exactly one quarter of the CPU&rsquo;s clock, so the timer&rsquo;s ticks are simply <code>cycleCount&nbsp;/&nbsp;4</code>. The chip is simulated down to its quirks - in its default square-wave mode the counter genuinely counts down by <i>two</i> per tick, and its 16-bit reload value has to arrive as two separate byte writes before the count starts, just like the real part.
 </p>
