@@ -47,7 +47,7 @@ style(--at: 1281): --rightShift(var(--keyboard-prev), 8);`;
   The overwhelming bulk. Memory cells hold two bytes each, so every cell gets a pair of arms: the even address extracts the low byte (<code>mod(&hellip;, 256)</code>), the odd address the high byte (divide by 256, round down). These arms read the live machine - whatever a program has written is what comes back.
 </p>
 <p>
-  Two arms hiding in the middle of the RAM range aren&rsquo;t memory at all: addresses 1280 and 1281 are wired straight to the live keyboard value - the aperture from the <a href="#about/file/keys">keyboard section</a>, plumbed in. When the BIOS keyboard service reads those addresses, it gets real keypresses through the same function as everything else:
+  Two arms hiding in the middle of the RAM range aren&rsquo;t memory at all: addresses 1280 and 1281 are wired straight to the live keyboard value - the aperture from the <a href="/about/file/keys">keyboard section</a>, plumbed in. When the BIOS keyboard service reads those addresses, it gets real keypresses through the same function as everything else:
 </p>
 <CodeCss code={KBD_ARMS} />
 
@@ -61,7 +61,7 @@ style(--at: 1281): --rightShift(var(--keyboard-prev), 8);`;
   The last 512 arms are the strangest. They don&rsquo;t hold anything at all.
 </p>
 <p>
-  Instead, they&rsquo;re a <i>window</i>. The BIOS writes the number of the sector it wants into an agreed memory cell (<code>--mc632</code>), then reads these 512 addresses. Each arm computes <i>the requested sector &times; 512 + its own position in the window</i> - the first arm serves the sector&rsquo;s first byte, the last one its 512th - and hands the question straight to the disk function. Same 512 addresses, whichever sector was last asked for: change the number in the cell, and the view changes. (The gibberish in the formula - <code>mod(&hellip;, 256) + round(down, &hellip;) &times; 256</code> - is just gluing the 16-bit sector number back together from its packed cell.) The <a href="#about/file/disk">disk section</a> picks it up from there.
+  Instead, they&rsquo;re a <i>window</i>. The BIOS writes the number of the sector it wants into an agreed memory cell (<code>--mc632</code>), then reads these 512 addresses. Each arm computes <i>the requested sector &times; 512 + its own position in the window</i> - the first arm serves the sector&rsquo;s first byte, the last one its 512th - and hands the question straight to the disk function. Same 512 addresses, whichever sector was last asked for: change the number in the cell, and the view changes. (The gibberish in the formula - <code>mod(&hellip;, 256) + round(down, &hellip;) &times; 256</code> - is just gluing the 16-bit sector number back together from its packed cell.) The <a href="/about/file/disk">disk section</a> picks it up from there.
 </p>
 
 <SectionHead>If all else fails - 1</SectionHead>

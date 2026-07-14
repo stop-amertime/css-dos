@@ -1,8 +1,8 @@
 <script>
   // FAQs — a stack of Foldables under the opening title. Each Foldable
-  // carries a stable `id` so it's a deep-link target: '#about/faqs/<id>'
+  // carries a stable `id` so it's a deep-link target: '/about/faqs/<id>'
   // opens that fold and scrolls to it (see nav.faqAnchor in
-  // router.svelte.js) — e.g. <a href="#about/faqs/ai">the AI FAQ</a>.
+  // router.svelte.js) — e.g. <a href="/about/faqs/ai">the AI FAQ</a>.
   import Foldable from '../../components/Foldable.svelte';
   import Term from '../../components/Term.svelte';
   import { nav } from '../../lib/router.svelte.js';
@@ -26,7 +26,7 @@
     <Foldable id="js" open={true}>
       {#snippet summary()}Really - no JavaScript?{/snippet}
       <p>
-        Really - the machine is one CSS file, and a browser can evaluate every line of it; nothing you see comes from JavaScript. What a browser can&rsquo;t do is keep up: 300&nbsp;MB of stylesheet is more than a tab survives, and even a small build runs at a couple of instructions per second. So this site feeds the same file to <b>Calcite</b>, a compiler built for the job - <a href="#about/calcite">its page</a> explains it, and why it isn&rsquo;t cheating.
+        Really - the machine is one CSS file, and a browser can evaluate every line of it; nothing you see comes from JavaScript. What a browser can&rsquo;t do is keep up: 300&nbsp;MB of stylesheet is more than a tab survives, and even a small build runs at a couple of instructions per second. So this site feeds the same file to <b>Calcite</b>, a compiler built for the job - <a href="/about/calcite">its page</a> explains it, and why it isn&rsquo;t cheating.
       </p>
     </Foldable>
 
@@ -40,14 +40,14 @@
     <Foldable id="video">
       {#snippet summary()}How does it draw video?{/snippet}
       <p>
-        In theory, the screen is 64,000 boxes, 320 wide by 200 tall, each with a rule that turns its own byte of video memory into a background colour. The <a href="#about/file/screen">screen section</a> has the rules, the palette, and the faked electron beam. In practise, <a href="#about/calcite">Calcite</a> streams the image into the page instead. 
+        In theory, the screen is 64,000 boxes, 320 wide by 200 tall, each with a rule that turns its own byte of video memory into a background colour. The <a href="/about/file/screen">screen section</a> has the rules, the palette, and the faked electron beam. In practise, <a href="/about/calcite">Calcite</a> streams the image into the page instead. 
       </p>
     </Foldable>
 
     <Foldable id="input">
       {#snippet summary()}How do you control it? CSS can&rsquo;t see a keyboard/mouse.{/snippet}
       <p>
-        It can&rsquo;t. What it can see is whether an element is currently being pressed - the <code>:active</code> selector - so the machine has an on-screen keyboard whose keys are real buttons. The <a href="#about/file/keys">keyboard section</a> shows the actual rules, live. The mouse plays the same trick in reverse: every screen pixel is itself clickable, and a click feeds an emulated serial mouse with the cursor&rsquo;s position.
+        It can&rsquo;t. What it can see is whether an element is currently being pressed - the <code>:active</code> selector - so the machine has an on-screen keyboard whose keys are real buttons. The <a href="/about/file/keys">keyboard section</a> shows the actual rules, live. The mouse plays the same trick in reverse: every screen pixel is itself clickable, and a click feeds an emulated serial mouse with the cursor&rsquo;s position.
       </p>
     </Foldable>
 

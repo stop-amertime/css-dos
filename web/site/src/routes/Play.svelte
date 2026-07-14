@@ -202,7 +202,7 @@
 
 <p class="play-note">
   This is running through <b>Calcite</b>, a JIT compiler for CSS -
-  <a href="#about/calcite">how it works, and why it isn&rsquo;t
+  <a href="/about/calcite">how it works, and why it isn&rsquo;t
   cheating</a>. Or
   <button class="link-btn" onclick={() => rawModal = true}>try the raw
   CSS version</button>.
@@ -225,7 +225,7 @@
       </p>
       <p class="small">
         Why it&rsquo;s this slow - and what Calcite does instead
-        - is on <a href="#about/calcite"
+        - is on <a href="/about/calcite"
         onclick={() => rawModal = false}>the Calcite page</a>.
       </p>
       <div class="raw-modal-btns">

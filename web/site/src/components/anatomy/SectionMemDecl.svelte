@@ -39,7 +39,7 @@
 
 <SectionHead>Trick 1: only declare the first variable</SectionHead>
 <p>
-  There&rsquo;s a wrinkle: <code>--mc5000</code> isn&rsquo;t the only variable for that cell. The <a href="#about/file/clock">clock section</a> explains why every tick has to read the <i>previous</i> values of memory while the new ones are being computed.
+  There&rsquo;s a wrinkle: <code>--mc5000</code> isn&rsquo;t the only variable for that cell. The <a href="/about/file/clock">clock section</a> explains why every tick has to read the <i>previous</i> values of memory while the new ones are being computed.
 </p>
 <p>
   For efficiency, only the first one is declared. The other three have no <code>@property</code> declaration - an unregistered CSS variable is simply created if it didn't already exist. They <i>do</i> need a power-on value for the very first tick, expressed as fallback as follows:
@@ -57,7 +57,7 @@
 
 <SectionHead>Trick 2: Using memory beyond the addressable limit</SectionHead>
 <p>
-  This machine needs some memory aside from what's available to the running program. For example, a program sets a pallette colour by writing three bytes to a port, and on real hardware those bytes live inside the VGA chip - not in any memory the program can read back. The writable floppy (covered in the <a href="#about/file/disk">disk section</a>) has the same problem. 
+  This machine needs some memory aside from what's available to the running program. For example, a program sets a pallette colour by writing three bytes to a port, and on real hardware those bytes live inside the VGA chip - not in any memory the program can read back. The writable floppy (covered in the <a href="/about/file/disk">disk section</a>) has the same problem. 
 </p>
 <p>
   An 8086 address is assembled from two 16-bit registers, as segment &times; 16 + offset - and that tops out a little over one megabyte. The chip cannot address memory higher than that number. But this machine&rsquo;s memory isn&rsquo;t a real address space - it&rsquo;s variable names, and a name is just text. Nothing stops the file defining cells higher than the chip could count. So the palette lives as perfectly ordinary memory cells starting at byte 1,048,576 (packed two to a cell, that&rsquo;s <code>--mc524288</code> - the very cell the palette function reads), and the writable floppy&rsquo;s contents at byte 2,097,152.
@@ -76,7 +76,7 @@
   Fair question: the palette isn&rsquo;t memory, so why dress it up as memory cells - couldn&rsquo;t it live in its own function somewhere, away from the address space?
 </p>
 <p>
-  Well, a <code>@function</code> re-computes from its inputs every time it&rsquo;s called; between ticks it holds nothing. The only thing in this machine that can hold a value is a variable with the <a href="#about/file/clock">clock plumbing</a> behind it. So the choice was never &ldquo;memory cells or a function&rdquo;. It was &ldquo;memory cells, or a second parallel system of variables doing the same job&rdquo;.
+  Well, a <code>@function</code> re-computes from its inputs every time it&rsquo;s called; between ticks it holds nothing. The only thing in this machine that can hold a value is a variable with the <a href="/about/file/clock">clock plumbing</a> behind it. So the choice was never &ldquo;memory cells or a function&rdquo;. It was &ldquo;memory cells, or a second parallel system of variables doing the same job&rdquo;.
 </p>
 <p>
  A bespoke palette store would need its own broadcast over all 768 bytes, with its own slot variables - the write machinery again, wearing a different name. The writable floppy is the same problem.
@@ -85,7 +85,7 @@
   Treating them as memory makes them nearly free. The cells ride along in the lovely fully-equipped Mercedes that RAM already paid for: the declarations (the writable floppy&rsquo;s <code>initial-value</code>s <i>are</i> the factory disk image - that&rsquo;s why reloading resets it), the two-byte packing, the clock plumbing, the write-splicing function. The palette port&rsquo;s entire implementation is one ordinary write slot aimed at address 1,048,576&nbsp;+ colour&nbsp;&times;&nbsp;3 + channel. It's a bit hacky, but very practical. 
 </p>
 <p>
- If we just need to refer to a single value with a fixed name, it does go lighter: the palette&rsquo;s write cursor and the interrupt controller&rsquo;s mask aren&rsquo;t memory cells but <a href="#about/file/chipset">chipset</a> variables with their own little update tables, just like a CPU register. That&rsquo;s the general rule: a single value with a fixed name only needs a variable; bytes picked out by a computation need memory cells. The palette&rsquo;s cursor sits on one side of that line, the 768 bytes it points into on the other.
+ If we just need to refer to a single value with a fixed name, it does go lighter: the palette&rsquo;s write cursor and the interrupt controller&rsquo;s mask aren&rsquo;t memory cells but <a href="/about/file/chipset">chipset</a> variables with their own little update tables, just like a CPU register. That&rsquo;s the general rule: a single value with a fixed name only needs a variable; bytes picked out by a computation need memory cells. The palette&rsquo;s cursor sits on one side of that line, the 768 bytes it points into on the other.
 </p>
 
 <SectionHead>No bounds checks are needed</SectionHead>

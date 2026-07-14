@@ -93,10 +93,17 @@ const buildRuntime = {
           { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
         ],
       }],
+      // SPA fallback for the real-path router (router.svelte.js): any
+      // path not matching a static file in dist/ (carts/, player/,
+      // calcite/, etc. all win first) serves index.html so client-side
+      // routing can take over. Needed so a direct load or refresh on
+      // e.g. /build/pick doesn't 404.
+      rewrites: [{ source: '/(.*)', destination: '/index.html' }],
     }, null, 2));
-    // Netlify / Cloudflare Pages fallback.
+    // Netlify / Cloudflare Pages fallback (headers + SPA rewrite).
     writeFileSync(join(dist, '_headers'),
       '/*\n  Cross-Origin-Opener-Policy: same-origin\n  Cross-Origin-Embedder-Policy: require-corp\n');
+    writeFileSync(join(dist, '_redirects'), '/*  /index.html  200\n');
 
     this.info('staged runtime assets, carts/index.json, and host headers into dist/');
   },

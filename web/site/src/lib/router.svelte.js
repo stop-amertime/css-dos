@@ -1,11 +1,12 @@
 // Wizard navigation as reactive state. Three steps (About / Build /
 // Play); About has 7 sub-pages (Home hero, Why?, then the info
-// pages), Build has 3. The URL hash addresses the exact page —
-// `#step/subpage[/section]`, names not numbers, so deep links survive
+// pages), Build has 3. The URL path addresses the exact page —
+// `/step/subpage[/section]`, names not numbers, so deep links survive
 // reordering and a refresh keeps your spot. Legacy one-word hashes
-// (#home, #about, #build, #play, #how) still land on the right step.
-// Play is gated behind a finished build; a locked Play link redirects
-// to Build, not the start.
+// (#home, #about, #build, #play, #how — from before the switch to
+// real paths) still land on the right step, translated to a path on
+// first load. Play is gated behind a finished build; a locked Play
+// link redirects to Build, not the start.
 import { build } from './builder.svelte.js';
 
 export const STEPS = ['about', 'build', 'play'];
@@ -42,7 +43,7 @@ class Nav {
   buildSub = $state(1);  // Build sub-page 1..3
   section = $state('map');   // current section on the About/file carousel
   sectionDir = $state(1);    // slide direction of the last section change
-  // One-shot deep-link target for the FAQs page: '#about/faqs/<id>' sets
+  // One-shot deep-link target for the FAQs page: '/about/faqs/<id>' sets
   // this, AboutFaqs.svelte opens+scrolls to the matching Foldable and
   // clears it. Not kept in sync on manual toggling (unlike `section`) —
   // it's a landing instruction, not persistent state.
@@ -88,9 +89,19 @@ class Nav {
   // from Cache Storage after a reload.
   get canPlay() { return build.done || build.restored; }
 
-  // A #play deep link that arrived before the cabinet-restore probe
+  // A /play deep link that arrived before the cabinet-restore probe
   // resolved; replayed by the 'cssdos-cabinet-restored' listener below.
   #wantedPlay = false;
+
+  // A cart id from a /build/pick?cart=<id> deep link, held until
+  // build.serverCarts has loaded (selectCart() needs that list).
+  // Replayed by loadServerCarts()'s caller — see replayWantedCart().
+  #wantedCart = null;
+
+  // One-shot: the next URL write should carry ?skipped=true, then
+  // strip it immediately (history.replaceState) so only that single
+  // landing pageview is tagged. Set by go(step, { skipped: true }).
+  #tagSkipped = false;
 
   get atStart() { return this.step === ABOUT && this.sub === 1; }
   get isLast() { return this.step === PLAY; }
@@ -113,10 +124,11 @@ class Nav {
       : "Please 'Build' a file first";
   }
 
-  go(step) {
+  go(step, opts) {
     this.#wantedPlay = false; // any navigation cancels a pending replay
     if (step === PLAY && !this.canPlay) step = BUILD; // locked Play → Build
     this.step = Math.max(ABOUT, Math.min(PLAY, step));
+    if (opts?.skipped) this.#tagSkipped = true;
     scrollTop();
   }
 
@@ -131,6 +143,27 @@ class Nav {
   // that was redirected to Build only because the probe hadn't resolved.
   replayWantedPlay() {
     if (this.#wantedPlay && this.canPlay) this.go(PLAY);
+  }
+
+  // Called once build.loadServerCarts() resolves: honour a
+  // ?cart=<id> link that arrived before the cart list did. Silently
+  // does nothing if the id doesn't match any known cart (selectCart's
+  // own no-op). Mirrors CartGrid's click behaviour: picking a cart
+  // advances past the Pick sub-page.
+  async replayWantedCart() {
+    const id = this.#wantedCart;
+    this.#wantedCart = null;
+    if (!id) return;
+    await build.selectCart(id);
+    if (build.source === 'cart' && this.buildSub === BUILD_PICK) this.next();
+  }
+
+  // One-shot read of #tagSkipped for the URL-write effect (private
+  // fields aren't reachable from outside the class body otherwise).
+  _consumeTagSkipped() {
+    const was = this.#tagSkipped;
+    this.#tagSkipped = false;
+    return was;
   }
 
   // Called from the Play page when its cabinet probe comes up empty
@@ -200,20 +233,33 @@ class Nav {
     }
   }
 
-  // The canonical hash for the current state.
-  hashFor() {
-    if (this.step === BUILD) return `build/${BUILD_SUBS[this.buildSub - 1]}`;
-    if (this.step === PLAY) return 'play';
-    if (this.sub === 1) return 'home'; // the About/home hero IS the homepage
-    let h = `about/${ABOUT_SUBS[this.sub - 1]}`;
-    if (this.sub === ABOUT_FILE_SUB) h += `/${this.section}`;
-    return h;
+  // The canonical path + query string for the current state.
+  pathFor() {
+    let p;
+    if (this.step === BUILD) {
+      p = `/build/${BUILD_SUBS[this.buildSub - 1]}`;
+      // selectCart() advances straight past Pick to Configure, so a
+      // chosen cart stays on the URL across the whole Build step, not
+      // just while buildSub === BUILD_PICK.
+      if (build.source === 'cart' && build.cart?.name) {
+        p += `?cart=${encodeURIComponent(build.cart.name)}`;
+      }
+    } else if (this.step === PLAY) {
+      p = '/play';
+    } else if (this.sub === 1) {
+      p = '/'; // the About/home hero IS the homepage
+    } else {
+      p = `/about/${ABOUT_SUBS[this.sub - 1]}`;
+      if (this.sub === ABOUT_FILE_SUB) p += `/${this.section}`;
+    }
+    if (this.#tagSkipped) p += (p.includes('?') ? '&' : '?') + 'skipped=true';
+    return p;
   }
 
-  applyHash() {
-    const raw = (location.hash || '').replace(/^#/, '').toLowerCase();
-    if (!raw) return;
-    // In-copy deep links (e.g. a FAQ pointing at #about/file/clock)
+  applyPath() {
+    const raw = location.pathname.replace(/^\/+/, '').toLowerCase();
+    if (!raw) return; // root '/' → About/home, the default state
+    // In-copy deep links (e.g. a FAQ pointing at /about/file/clock)
     // land like a page turn, not mid-scroll.
     scrollTop();
     const [s0, s1, s2] = raw.split('/');
@@ -228,8 +274,8 @@ class Nav {
     }
     this.step = target;
     if (target === ABOUT) {
-      // '#home' / legacy '#about/intro' → the hero; one-word legacy
-      // '#how' / '#howitworks' / '#why' → that page; bare '#about' →
+      // 'home' / legacy 'about/intro' → the hero; one-word legacy
+      // 'how' / 'howitworks' / 'why' → that page; bare 'about' →
       // "How is this possible?" (the old first About page).
       const subName =
         s0 === 'home' || s0 === 'intro' || s1 === 'intro' ? 'home'
@@ -250,6 +296,13 @@ class Nav {
       if (want === 3 && !build.done) want = build.hasSource ? 2 : 1;
       if (want === 2 && !build.hasSource) want = 1;
       this.buildSub = want;
+      // ?cart=<id> on any Build sub-page — stash for replayWantedCart()
+      // once build.serverCarts has loaded (selectCart() needs that
+      // list). Deep-linking straight to Configure/Result with a cart
+      // still lands on Pick above (no source yet); replayWantedCart()
+      // advances past it once the cart's loaded.
+      const cartId = new URLSearchParams(location.search).get('cart');
+      if (cartId) this.#wantedCart = cartId;
     }
   }
 }
@@ -264,20 +317,53 @@ function scrollTop() {
 
 export const nav = new Nav();
 
-if (typeof window !== 'undefined') {
-  window.addEventListener('hashchange', () => { if (!guard) nav.applyHash(); });
-  window.addEventListener('cssdos-cabinet-restored', () => nav.replayWantedPlay());
-  nav.applyHash();
+// A legacy bookmark/shared link arrives as '#about/why' etc. — translate
+// it to the equivalent path once, then drop the hash. Bare '#' (no path
+// segments) means "just the old homepage hash", same as visiting '/'.
+function migrateLegacyHash() {
+  const raw = (location.hash || '').replace(/^#/, '');
+  if (!raw) return;
+  history.replaceState(null, '', '/' + raw + location.search);
+  location.hash = '';
+}
 
-  // Any navigation state change writes the canonical hash — including
-  // canonicalising a legacy one-word hash on first load.
+if (typeof window !== 'undefined') {
+  migrateLegacyHash();
+  window.addEventListener('popstate', () => { if (!guard) nav.applyPath(); });
+  window.addEventListener('cssdos-cabinet-restored', () => nav.replayWantedPlay());
+  // Intercept same-origin, unmodified left-clicks on plain <a href="/...">
+  // links (in-copy deep links like '/about/calcite') so they go through
+  // pushState instead of a full page reload.
+  window.addEventListener('click', (e) => {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const a = e.target.closest?.('a');
+    if (!a || a.target || a.hasAttribute('download')) return;
+    const url = new URL(a.href, location.href);
+    if (url.origin !== location.origin) return;
+    e.preventDefault();
+    guard = true;
+    history.pushState(null, '', url.pathname + url.search);
+    guard = false;
+    nav.applyPath();
+  });
+  nav.applyPath();
+
+  // Any navigation state change writes the canonical path — including
+  // canonicalising a legacy hash on first load.
   $effect.root(() => {
     $effect(() => {
-      const want = '#' + nav.hashFor();
-      if (location.hash === want) return;
+      const want = nav.pathFor();
+      const have = location.pathname + location.search;
+      if (have === want) return;
       guard = true;
-      location.hash = want;
-      requestAnimationFrame(() => { guard = false; });
+      history.pushState(null, '', want);
+      guard = false;
+      // The ?skipped=true tag is a one-shot label for this single landing
+      // pageview — strip it right after so it doesn't linger through
+      // subsequent navigation (replaceState adds no history entry).
+      if (nav._consumeTagSkipped()) {
+        history.replaceState(null, '', nav.pathFor());
+      }
     });
   });
 }

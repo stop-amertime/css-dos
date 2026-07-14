@@ -93,7 +93,7 @@
     <br/>It actually gets a little worse: you can&rsquo;t even <i>read</i> a variable at a dynamic position. Say you want to read the byte of memory at position X. There&rsquo;s no way to say <code>memory[number-X]</code>. Instead, you have to write a comprehensive <code>if()</code> statement that checks every variable that it could possibly be, one by one (!!!). And no cheating with an array, because CSS hasn&rsquo;t heard of her. Every byte that is <i>read</i> from RAM or disk requires traversing an <code>if()</code> statement with 743,948 arms - one per address. Just that one function, required to read one byte of memory, is the length of nine complete works of Shakespeare.
   </p>
   <p>
-    A heart-breaking and mind-boggling way to write code. Much more detail is on the next page - <a href="#about/file">the File Map</a>.
+    A heart-breaking and mind-boggling way to write code. Much more detail is on the next page - <a href="/about/file">the File Map</a>.
   </p>
 
 
@@ -119,9 +119,9 @@
     CSS can&rsquo;t read files, access a keyboard, or draw directly on the screen - so we cobble every one of these together:
   </p>
   <ul class="sim-list bracket-list">
-    <li><b>The floppy disk:</b> CSS can&rsquo;t open anything at runtime - no files, no requests, no loading - so the entire floppy is baked into the stylesheet in advance, byte by byte, one <code>if()</code> arm per byte. DOS asks the drive for one 512-byte sector at a time, so the machine keeps a 512-byte window in memory whose contents aren&rsquo;t stored anywhere: those addresses read straight through to the disk table, at &lsquo;requested sector &times; 512 + offset&rsquo;. (<a href="#about/file/disk">See: disk</a>.)</li>
-    <li><b>The screen:</b> 64,000 <code>&lt;div&gt;</code>s are assembled in a 320&times;200 grid, each with a rule that colours it from its own byte of video RAM (skipping over the complexity of various video modes - Text, CGA, Mode&nbsp;13h&hellip;). This is, note, the only place in 300&nbsp;MB where CSS is doing its actual day job, although it&rsquo;s a laborious shift. (<a href="#about/file/screen">See: screen</a>).</li>
-    <li><b>A keyboard:</b> CSS can see whether an element is being pressed at this exact moment via the <code>:active</code> selector. So the machine&rsquo;s keyboard is a set of real on-screen buttons, each carrying a rule - &lsquo;while I am held, the keyboard variable holds my key&rsquo;s code&rsquo; - wired into the two bytes of memory where the BIOS expects keyboard hardware. (<a href="#about/file/keys">See: keyboard</a>).</li>
+    <li><b>The floppy disk:</b> CSS can&rsquo;t open anything at runtime - no files, no requests, no loading - so the entire floppy is baked into the stylesheet in advance, byte by byte, one <code>if()</code> arm per byte. DOS asks the drive for one 512-byte sector at a time, so the machine keeps a 512-byte window in memory whose contents aren&rsquo;t stored anywhere: those addresses read straight through to the disk table, at &lsquo;requested sector &times; 512 + offset&rsquo;. (<a href="/about/file/disk">See: disk</a>.)</li>
+    <li><b>The screen:</b> 64,000 <code>&lt;div&gt;</code>s are assembled in a 320&times;200 grid, each with a rule that colours it from its own byte of video RAM (skipping over the complexity of various video modes - Text, CGA, Mode&nbsp;13h&hellip;). This is, note, the only place in 300&nbsp;MB where CSS is doing its actual day job, although it&rsquo;s a laborious shift. (<a href="/about/file/screen">See: screen</a>).</li>
+    <li><b>A keyboard:</b> CSS can see whether an element is being pressed at this exact moment via the <code>:active</code> selector. So the machine&rsquo;s keyboard is a set of real on-screen buttons, each carrying a rule - &lsquo;while I am held, the keyboard variable holds my key&rsquo;s code&rsquo; - wired into the two bytes of memory where the BIOS expects keyboard hardware. (<a href="/about/file/keys">See: keyboard</a>).</li>
     <li><b>Sound</b> just has no way to work, really. Except possibly displaying the sound wave visually&hellip;? Perhaps that&rsquo;s future work.</li>
   </ul>
 
@@ -163,7 +163,7 @@
     The solution is to do what every other programming language does (including JavaScript in Chrome etc.), and compile the code into something faster before it runs.
   </p>
   <p>
-    This site runs the same file through <b>Calcite</b>, a compiler that evaluates the same CSS over 200,000&times; faster; <a href="#about/calcite">its own page</a> explains how it works, and why it isn&rsquo;t cheating.
+    This site runs the same file through <b>Calcite</b>, a compiler that evaluates the same CSS over 200,000&times; faster; <a href="/about/calcite">its own page</a> explains how it works, and why it isn&rsquo;t cheating.
   </p>
 </div>
 

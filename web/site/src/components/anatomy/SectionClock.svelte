@@ -57,7 +57,7 @@
   Sadly, the clock was never the throttle. Each tick asks the browser to re-settle the whole 300&nbsp;MB dependency graph, and that takes Chrome seconds on a small cabinet - minutes on a Doom-sized one. The browser already can&rsquo;t finish one lap before the next is due; ticks just queue up behind a recalculation that never ends. Speeding up the clock deepens the queue and changes nothing.
 </p>
 <p>
-  So the 400&nbsp;ms is aspirational - written for a browser that could keep up, which doesn&rsquo;t exist. That gap is exactly what <a href="#about/calcite">Calcite</a> fills: it ignores the wall-clock number entirely and runs laps as fast as it can compute them, hundreds of thousands per second.
+  So the 400&nbsp;ms is aspirational - written for a browser that could keep up, which doesn&rsquo;t exist. That gap is exactly what <a href="/about/calcite">Calcite</a> fills: it ignores the wall-clock number entirely and runs laps as fast as it can compute them, hundreds of thousands per second.
 </p>
 
 <SectionHead>Why does every value need four variables?</SectionHead>
@@ -105,7 +105,7 @@
 </p>
 
 <p>
-  One thing this animation is <i>not</i>: the time DOS sees. DOS gets its time from the simulated timer chip, which counts something else entirely - the <a href="#about/file/chipset">chipset section</a> covers it.
+  One thing this animation is <i>not</i>: the time DOS sees. DOS gets its time from the simulated timer chip, which counts something else entirely - the <a href="/about/file/chipset">chipset section</a> covers it.
 </p>
 
 <SectionHead>How the store and execute steps get triggered</SectionHead>

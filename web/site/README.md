@@ -24,9 +24,18 @@ copy is served). See the repo `CLAUDE.md`.
   and `lib/router.svelte.js` (`Nav` class) back the UI reactively;
   `routes/` are the three wizard steps (About / Build / Play — About
   hosts the Home hero as its first page, then Why? and the info
-  pages), `components/` the shared pieces. Hash routing
-  (`#home`/`#about/<page>`/`#build`/`#play`) so refresh/deep-links
-  work; legacy hashes (`#about/intro`, `#how`, `#why`) still resolve.
+  pages), `components/` the shared pieces. Real-path routing via the
+  History API (`/`/`/about/<page>`/`/build/<sub>`/`/play`) — each page
+  is a distinct URL so Vercel Analytics can attribute pageviews per
+  route, not just to `/`. Refresh/deep-links work off a `vercel.json`
+  rewrite (`/(.*) → /index.html`; `_redirects` mirrors it for
+  Netlify/Cloudflare). Legacy hash links (`#about/intro`, `#how`,
+  `#why`, bare `#`) still resolve — translated to the equivalent path
+  once on load. Picking a cart on `/build/pick` puts it in the URL
+  (`?cart=<id>`), so a Build deep link can restore the selection; the
+  Why page's "TRY IT OUT IMMEDIATELY" button tags its landing pageview
+  `?skipped=true` (stripped right after) to attribute that cohort
+  separately from readers who walk through About normally.
 - **The build runs in the browser.** `builder.svelte.js` imports the
   `/browser-builder/main.mjs` graph as native ESM and calls
   `buildCabinetInBrowser(...)` — the same kiln/builder code the Node
@@ -55,6 +64,10 @@ URLs**:
     runs fine without isolation (verified end-to-end 2026-07-04 — see
     logbook). Emitted anyway to keep the door open for a future
     wasm-threads/SAB path; header-less hosts (e.g. GitHub Pages) work.
+  - `vercel.json`'s `rewrites` + `_redirects` (Netlify/Cloudflare) —
+    the SPA fallback the real-path router needs: any path not matching
+    a file already in `dist/` serves `index.html` so a direct load or
+    refresh on e.g. `/build/pick` doesn't 404.
 
 The browser-builder import is marked Rollup-external (copied, not
 bundled — avoids its CLI shebang / Node-shaped files). The one shebang

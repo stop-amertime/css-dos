@@ -1,7 +1,7 @@
 <script>
   // The file map — the cabinet bar as a clickable map, the file's
   // sections as a carousel. The current section lives on the router
-  // (nav.section) so it's addressable — #about/file/clock deep-links.
+  // (nav.section) so it's addressable — /about/file/clock deep-links.
   //
   // Page anatomy (owner call, 2026-07-12): ONE code pane at the top —
   // coloured border, big header (name + size + code icon, the only

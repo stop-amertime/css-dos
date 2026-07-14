@@ -134,7 +134,7 @@ The first question: why is there no ALU in the above list?
   Evaluating all fourteen registers against the current opcode is how an instruction is executed. 
   </p>
   <img src="assets/cart-before-horse.png" style="display:block;width:50%; margin:auto;margin-bottom:32px"/>
-  <p>The opcode is just another variable: the cabinet contains the line <code>--opcode:&nbsp;var(--q0)</code>, where <code>--q0</code> is the byte of memory IP points at, fetched through the monstrous function in the <a href="#about/file/memr">read-formulas section</a>.
+  <p>The opcode is just another variable: the cabinet contains the line <code>--opcode:&nbsp;var(--q0)</code>, where <code>--q0</code> is the byte of memory IP points at, fetched through the monstrous function in the <a href="/about/file/memr">read-formulas section</a>.
 </p>
 <p>
   Here's a visualisation of the contents of all fourteen registers - with a mark if a register's formula has a row for that opcode:
@@ -170,7 +170,7 @@ The first question: why is there no ALU in the above list?
   <ul class="sim-list">
     <li><code>--cf</code> - the <b>carry flag</b>: did the true sum exceed 65,535? Dividing by 65,536 and rounding down answers exactly that, as a 1 or a 0.</li>
     <li><code>--zfsf</code> - the <b>zero flag</b> and <b>sign flag</b>: is the result zero, and is its top bit set (a 16-bit number&rsquo;s way of being negative)? Each answer is parked at its own bit position in the flags word.</li>
-    <li><code>--pf</code> - the <b>parity flag</b>, read from the 256-entry lookup table in the <a href="#about/file/util">utility-functions section</a>.</li>
+    <li><code>--pf</code> - the <b>parity flag</b>, read from the 256-entry lookup table in the <a href="/about/file/util">utility-functions section</a>.</li>
     <li>The long line in the middle - the <b>half-carry flag</b>: did the bottom four bits overflow? Built from <code>sign()</code>, because CSS has no <code>&lt;</code>.</li>
     <li>The <code>+ 2</code> at the end - a bit the 8086 keeps permanently switched on.</li>
   </ul>
@@ -193,7 +193,7 @@ The first question: why is there no ALU in the above list?
   <li>The trick: multiply the jump distance by the zero flag (<code>--bit()</code> extracts it from the flags register as a 1 or a 0). If the flag is 1, IP moves the full distance. If it is 0, the distance is multiplied by zero, and we jump 0 bytes instead.</li>
 </ul>
 <p>
-  Some conditions cost more. &ldquo;Jump if less&rdquo; is taken when the sign flag and the overflow flag disagree - an XOR, which CSS doesn&rsquo;t have. The <a href="#about/file/util">utility section</a> builds XOR out of multiplication, and here it is at work on two flag bits:
+  Some conditions cost more. &ldquo;Jump if less&rdquo; is taken when the sign flag and the overflow flag disagree - an XOR, which CSS doesn&rsquo;t have. The <a href="/about/file/util">utility section</a> builds XOR out of multiplication, and here it is at work on two flag bits:
 </p>
 <CodeCss code={JL_COND} />
 
@@ -234,7 +234,7 @@ The first question: why is there no ALU in the above list?
     <li><b>IP and CS</b> load the handler&rsquo;s address from a table in memory</li>
     <li><b>SP</b> drops by six, for the three pushed words: the paused instruction&rsquo;s address (where the handler will return to) and the flags</li>
     <li><b>flags</b> clears its interrupt bit, so the handler can&rsquo;t itself be interrupted</li>
-    <li><b>cycleCount</b> charges 61 cycles - what the real 8086 billed for a hardware interrupt. (The counter is a register table like the others: each opcode&rsquo;s row adds the cost Intel&rsquo;s manual lists for it. What it&rsquo;s actually <i>for</i> - see the <a href="#about/file/chipset">chipset section</a>.)</li>
+    <li><b>cycleCount</b> charges 61 cycles - what the real 8086 billed for a hardware interrupt. (The counter is a register table like the others: each opcode&rsquo;s row adds the cost Intel&rsquo;s manual lists for it. What it&rsquo;s actually <i>for</i> - see the <a href="/about/file/chipset">chipset section</a>.)</li>
   </ul>
   <p>
     Behind that sits a simulated interrupt controller - three variables tracking which interrupts are masked, pending, and currently being serviced, with the timer outranking the keyboard. Clearing the serviced bit - the lowest bit set - uses a classic bit hack: <code>x AND (x &minus; 1)</code> deletes the lowest set bit of a number, no loop required.
@@ -318,5 +318,5 @@ The first question: why is there no ALU in the above list?
 </Foldable>
 <CodeCss code={POWER_ON} />
 <p>
-  That is linear address 983,040 - the first ROM entry in the <a href="#about/file/memr">read-formulas section</a> - and the byte sitting there is 235: a jump instruction. So the machine&rsquo;s first act is to jump into the BIOS proper, which sets up a stack, fills in the interrupt table, paints its splash screen, and jumps again, into DOS. A cold boot, the same as a real PC does it.
+  That is linear address 983,040 - the first ROM entry in the <a href="/about/file/memr">read-formulas section</a> - and the byte sitting there is 235: a jump instruction. So the machine&rsquo;s first act is to jump into the BIOS proper, which sets up a stack, fills in the interrupt table, paints its splash screen, and jumps again, into DOS. A cold boot, the same as a real PC does it.
 </p>

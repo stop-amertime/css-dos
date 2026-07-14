@@ -58,7 +58,7 @@
 
 <SectionHead>Does <i>every</i> byte really need this?</SectionHead>
 <p>
-  Most of RAM is the program&rsquo;s own instructions, and instructions don&rsquo;t change while they run - so couldn&rsquo;t the code be baked in as literals, the way the <a href="#about/file/memr">read section</a> bakes in the BIOS?
+  Most of RAM is the program&rsquo;s own instructions, and instructions don&rsquo;t change while they run - so couldn&rsquo;t the code be baked in as literals, the way the <a href="/about/file/memr">read section</a> bakes in the BIOS?
 </p>
 <p>
   The problem is that at build time, almost nothing is <i>knowably</i> code. The program ships on the floppy, and its bytes only become RAM when DOS loads them - to an address DOS picks, at runtime. Games decompress themselves. Code of this era overwrites its own instructions as a matter of course. The BIOS is the one thing whose bytes are pinned down before power-on - which is why it&rsquo;s exactly the thing that got the literal treatment.

@@ -15,7 +15,7 @@
   import SourceViewer from '../components/SourceViewer.svelte';
   import EnvNotice from '../components/EnvNotice.svelte';
 
-  build.loadServerCarts();
+  build.loadServerCarts().then(() => nav.replayWantedCart());
 
   const PRESETS = [
     { value: 'dos-corduroy', label: 'Corduroy + DOS' },

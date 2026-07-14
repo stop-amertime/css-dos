@@ -121,7 +121,7 @@
 </p>
 <CodeCss code={LESS_THAN} />
 <p>
-  Out comes a clean 0 or 1 that can be fed straight into more arithmetic - exactly how this works is left as an exercise to the reader. This helper is how a subtraction decides whether it had to borrow (<a href="#about/file/cpu">the CPU</a>&rsquo;s carry flag), and how <a href="#about/file/screen">the screen</a> fakes its 70 Hz retrace signal.
+  Out comes a clean 0 or 1 that can be fed straight into more arithmetic - exactly how this works is left as an exercise to the reader. This helper is how a subtraction decides whether it had to borrow (<a href="/about/file/cpu">the CPU</a>&rsquo;s carry flag), and how <a href="/about/file/screen">the screen</a> fakes its 70 Hz retrace signal.
 </p>
 
 <p>
@@ -143,7 +143,7 @@
 
 <SectionHead>The rest of the utility functions</SectionHead>
 <p>
-  The rest of these 21 are byte plumbing: functions that split and splice the two-bytes-per-cell memory (<code>--extractByte</code>, <code>--spliceByte</code>, <code>--applySlot</code> - the <a href="#about/file/memw">write-formulas section</a> shows the last one at work) and read a 16-bit value across two of them. The instruction-decoding helpers that pick apart x86 operand bytes, and the flag calculators (<code>--addFlags16</code>, <code>--shrFlags8</code>, &hellip;), are CPU-specific rather than shared, so they live in <a href="#about/file/cpu">the CPU section</a> instead.
+  The rest of these 21 are byte plumbing: functions that split and splice the two-bytes-per-cell memory (<code>--extractByte</code>, <code>--spliceByte</code>, <code>--applySlot</code> - the <a href="/about/file/memw">write-formulas section</a> shows the last one at work) and read a 16-bit value across two of them. The instruction-decoding helpers that pick apart x86 operand bytes, and the flag calculators (<code>--addFlags16</code>, <code>--shrFlags8</code>, &hellip;), are CPU-specific rather than shared, so they live in <a href="/about/file/cpu">the CPU section</a> instead.
 </p>
 
 <style>

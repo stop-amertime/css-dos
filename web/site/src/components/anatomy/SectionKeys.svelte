@@ -39,7 +39,7 @@ Mouse support is actually <i>easier</i> than keyboard support - I just detect th
   <code>:active</code> can only answer one question: <i>is this element held down now?</i> However, a program only gets round to asking the keyboard hundreds of ticks afterwards. CSS speaks in the present tense; the PC demands past tense.
 </p>
 <p>
-  So the past is reconstructed, like in Crimewatch. The variable <code>--prevKeyboard</code> remembers what <code>--keyboard</code> said one tick ago - its entire definition is &ldquo;copy the current value&rdquo;, and the <a href="#about/file/clock">clock section</a>&rsquo;s handover plumbing makes the copy arrive a tick late, which for once is exactly what we want. Compare the two and you get <i>events</i> out of a <i>state</i>:
+  So the past is reconstructed, like in Crimewatch. The variable <code>--prevKeyboard</code> remembers what <code>--keyboard</code> said one tick ago - its entire definition is &ldquo;copy the current value&rdquo;, and the <a href="/about/file/clock">clock section</a>&rsquo;s handover plumbing makes the copy arrive a tick late, which for once is exactly what we want. Compare the two and you get <i>events</i> out of a <i>state</i>:
 </p>
 <CodeCss code={KBD_PRESS} />
 
