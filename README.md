@@ -17,18 +17,20 @@ runs real ’80s software. Yes, it runs **DOOM**.\*
 
 
 
-## How is that possible?
+### How is that possible?
 This question is tackled in depth [here]( https://css-dos.ahmedamer.co.uk/#about/how)
 
 
 
-## How does it work? 
+### How does it work? 
 Here is a ✨🌟[full interactive walkthrough](https://css-dos.ahmedamer.co.uk/#about/file/map)✨
 
-## Did you use AI?
+### Did you use AI?
+
 <details>
-  <summary>Expand to see (slightly long)</summary>
-  
+  <summary>**Expand to see (slightly long)**</summary>
+
+--+
 Yes, I did. A lot, actually. I haven't personally written much code by hand in the last year or so, but I would still say the code is _my code_. 
 
 Claude churned out much of the mechanical work, helped me keep track, write good docs and organise commits, and write commit messages and comments. Prior to AI, these fell by the wayside due to my ADHD. It feels relevant to mention that I'm a published AI safety researcher and red-teamer, and am very aware that LLMs are not a tool one can just point at a problem and press 'Go'. I'd label this project 'LLM-assisted' but not 'vibe coded'.
@@ -51,7 +53,7 @@ Until then, I hope for the restraint to use tools to reach higher places, not to
 </details>
 
 
-## How is performance?
+### How is performance?
 
 A browser evaluates all of this at roughly **two instructions per
 second** — three weeks to boot DOS, if it didn’t freeze first. So the
