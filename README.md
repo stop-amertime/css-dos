@@ -3,7 +3,7 @@
 **An entire ’80s PC in a stylesheet.**
 
 An 8086 CPU, chipset, 640 KB RAM, floppy drive, keyboard, mouse and
-screen — in one `.css` file. It’s a morbidly obese 300+ MB of
+screen - in one `.css` file. It’s a morbidly obese 300+ MB of
 spec-compliant CSS, abused beyond recognition: some of the most
 delightfully painful and wasteful code ever cursed to exist.
 
@@ -15,8 +15,8 @@ runs real ’80s software. Yes, it runs **DOOM**.\*
 ### ▶ [Play it in your browser — css-dos.ahmedamer.co.uk](https://css-dos.ahmedamer.co.uk)
 
 The site builds a cabinet from a boxed program (Windows 1.01, DOOM,
-Rogue, Zork…) or from any DOS program you hand it, then boots it —
-and explains, section by scale-drawn section, how 300 MB of stylesheet
+Rogue, Zork…) or from any DOS program you hand it, then boots it
+and explains, section by section, how 300 MB of stylesheet
 becomes a working computer.
 
 ## How is that possible?
@@ -50,7 +50,11 @@ a single byte of it, and bound by the project’s cardinal rule: it must
 produce exactly what a spec-compliant browser would, byte for byte.
 [Why that isn’t cheating →](https://css-dos.ahmedamer.co.uk/#about/calcite)
 
----
+
+### How / how much was AI used in this project? 
+
+See [here](https://css-dos.ahmedamer.co.uk/#about/faqs/ai) for more info on how much I used AI in the project. 
+
 
 ## The 30-second version (for developers)
 
@@ -78,7 +82,7 @@ $ ../calcite/target/release/calcite-cli -i rogue.css
 |---|---|
 | **cart** | Input folder or zip: a program, any data files, optional `program.json`. |
 | **floppy** | FAT12 disk image the builder assembles from a cart. Internal. |
-| **cabinet** | The built artifact — a single `.css` file, runnable. |
+| **cabinet** | The built artifact - a single `.css` file, runnable. |
 | **Kiln** | The transpiler. Turns an 8086 memory image into CSS. |
 | **builder** | Orchestrator. Wires up BIOS → floppy → Kiln. |
 | **BIOSes** | Three flavors: **Gossamer** (hack-path shim), **Muslin** (assembly DOS BIOS), **Corduroy** (structured C DOS BIOS, default). |
@@ -120,12 +124,12 @@ memory, so cabinet size is no longer bounded by a floppy size.
 
 ## Credits
 
-- Lyra Rebane ([rebane2001](https://github.com/rebane2001)) — the
+- Lyra Rebane ([rebane2001](https://github.com/rebane2001)) - the
   original [x86css](https://github.com/rebane2001/x86css), a 16-bit
   x86 CPU in pure CSS. CSS-DOS grew out of it.
-- Jane Ori — the [CPU Hack](https://dev.to/janeori/expert-css-the-cpu-hack-4ddj).
-- [emu8](https://github.com/nicknisi/emu8) — the reference 8086 emulator.
-- [Doom8088](https://github.com/FrenkelS/Doom8088) by Frenkel Smeijers —
+- Jane Ori - the [CPU Hack](https://dev.to/janeori/expert-css-the-cpu-hack-4ddj).
+- [emu8](https://github.com/nicknisi/emu8) - the reference 8086 emulator.
+- [Doom8088](https://github.com/FrenkelS/Doom8088) by Frenkel Smeijers -
   id Software’s DOOM, ported to the 16-bit 8088/8086.
 - EDR-DOS via [SvarDOS](https://svardos.org/), and Microsoft’s
   [MS-DOS 4.00](https://github.com/microsoft/MS-DOS) (MIT, 2024).
