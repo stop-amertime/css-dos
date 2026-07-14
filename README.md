@@ -52,6 +52,12 @@ produce exactly what a spec-compliant browser would, byte for byte.
 
 ---
 
+## How/ how much was AI used in this project? 
+
+See [here](https://css-dos.ahmedamer.co.uk/#about/faqs/ai)
+
+---
+
 ## The 30-second version (for developers)
 
 A **cart** (folder or zip) contains a DOS program. The **builder** takes
