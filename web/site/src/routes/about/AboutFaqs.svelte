@@ -93,32 +93,36 @@
 
     <Foldable id="ai">
       {#snippet summary()}Did you use AI?{/snippet}
+      <p>Yes, a lot, and I consider the code to be <i>my code</i> - but my opinions on the matter are complex. I'm no ambassador for AI accelerationism; I'm a published AI safety researcher and red-teamer. I'm well aware that LLMs aren't a tool to point at a problem and press 'Go'. I'd label CSS-DOS 'LLM-assisted' but not 'vibe coded'.</p>
+
+      <p>NOTE: AI <i>writing</i> is cringe-inducing and bland. I'm typing this myself. The copy on this website is edited by my fingers word-by-word, with proofreading by Claude.</p>
       <p>
-        Yes, a lot, but I would still say the code is <i>my code</i>. LLMs churned out much of the mechanical work, helped me keep track, write good docs and organise commits. Prior to AI, these fell by the wayside due to ADHD. I'm a published AI safety researcher and red-teamer, so am aware that LLMs are not a tool to point at a problem and press 'Go'. I'd label CSS-DOS 'LLM-assisted' but not 'vibe coded'. 
+      <b>I want to briefly validate the LLM haters.</b> I think the availability of LLMs cheapens the act of writing code, opening the door to 'slop'. I <i>hate</i> slop. Thoughtless and generic 'content' produced without craft is a blight. The Luddites had a point. However, I think indiscriminately hating all LLM use is throwing the baby out with the bathwater. I wish the internet would unite against 'slop' itself and cherish craftsmanship. Automatically tarring <i>all</i> LLM use with the same brush only alienates those with nuanced opinions and real use cases. We should judge the work itself.
+      </p>
+      <p>I don't feel AI replaces my own creativity when used in the following ways: to churn out mechanical work I could otherwise do, and to replace menial tasks: writing docs and comments, organising commits and refactoring. Prior to AI, these tasks often fell by the wayside due to my ADHD and projects suffered. Claude is able to spew out menial code like a slightly dim intern with the speed of The Flash. I'm the opposite - an intuitive and eccentric thinker, but by no means meticulous. So, it helps me, making the entire process easier and more enjoyable. I also prefer writing scripts on a laptop versus pen and paper.</p>
+
+      <p>This silly project would be nowhere without human intuition and craft. Claude lacked the imagination/talent to contribute reliably on a conceptual level, although a few ideas (the writable shadow-disk, and <code>&lt;img&gt;</code> tag Calcite hack, among others) were Claude&rsquo;s, it failed much more than it succeeded. Claude often took a laughably inept path through implementations, needing firm shepherding.
       </p>
       <p>
-        AI <i>writing</i> is cringe-inducing and bland. I'm typing this myself. The copy on this website is edited by my fingers word-by-word, with proofreading by Claude.
+      I do worry about educating future generations on that craft, but I don't think prejudice and wholesale rejection are the way to achieve that. It comes across as aloof and elitist. The Luddites were great craftspeople, but history tells us that smashing the mills didn't end up teaching the next generation to make beautiful clothes.
       </p>
       <p>
-        LLMs couldn't have figured the project out alone, but were immensely helpful. Claude lacked the intuition to contribute reliably on a conceptual level, although the writable shadow-disk, and <code>&lt;img&gt;</code> tag Calcite hack, among others were Claude&rsquo;s idea. However, this project is an unusual one and it often took a laughably inept path through implementations, needing firm shepherding. But it's able to spew out menial code, like a slightly dim intern with the speed of the Flash. 
+      <b>As a long-time tinkerer, I do miss the romantic thrill of cobbling code together</b>, rolling the dice on it, and feeling the pay-off (or letdown). There&rsquo;s something about creating with your own two hands that&rsquo;s lost when you order a minion to do it for you, no matter how beautiful the end product.
       </p>
       <p>
-        As a long-time tinkerer and coder, I do miss the romantic thrill of cobbling code together by hand, rolling the dice on it, and feeling that pay-off (or letdown). Perhaps I'm an old fogey, but there&rsquo;s something about creating with your own two hands that&rsquo;s lost when you order a minion to do it for you, no matter how beautiful the end product.
+      But I think this project wouldn&rsquo;t exist without AI. I'm quite convinced the mess and debt would have snowballed, and my patience would have run out, before DOS booted.
       </p>
       <p>
-        But. This project wouldn&rsquo;t exist without AI, full stop. I'm 100% sure my patience would have run out before DOS booted. I don&rsquo;t know Rust well, and couldn&rsquo;t have coded Calcite alone. Claude made Calcite optimisations I don&rsquo;t fully understand. In fact, Fable 5 sauntered in and doubled Calcite&rsquo;s performance in a single commit. There&rsquo;s something lovely about that, though some part of me wishes I was the one who did it.
+      <b>There is a line where my AI use goes from 'helpful' to 'guilt-inducing', and I'm still finding it.</b> I don&rsquo;t know Rust super well, and couldn&rsquo;t have coded Calcite alone. Claude made Calcite optimisations I don&rsquo;t fully understand. In fact, Fable 5 sauntered in and doubled Calcite&rsquo;s performance in a single commit. There&rsquo;s something lovely about that, though some part of me wishes I was the one who did it.
       </p>
       <p>
-        There&rsquo;s a tension: convenience / frictionlessness versus challenge / satisfaction. A game with a button to immediately skip every level would be pointless. But what about skipping <i>one</i> level? What if you had to be stuck for a bit, or  it cost money, so you couldn&rsquo;t do it willy nilly? When does that option become a net positive?
+      If a game had a button to immediately skip to the end, playing would be pointless. But what about skipping <i>one</i> level? What if you had to be stuck for a bit, or it cost money, so you couldn&rsquo;t do it willy nilly? When does that kind of option become a net positive? Some part of me wishes for less choice, to have challenge forced upon me. Dark Souls has no level-skipping - it'd cheapen it. But a lot of people have completed Dark Souls, and nobody has <i>ever</i> run a full OS in CSS. In this case, getting to the end with a little help is arguably better than giving up before crossing the finish line.
       </p>
       <p>
-        Some part of me wishes for less choice, to have challenge forced upon me. Dark Souls has no level-skipping, it'd cheapen it. But a lot of people have completed Dark Souls, and nobody has <i>ever</i> run a full OS in CSS. Doing five out of six levels and seeing the end is arguably better than giving up.
+      <b>Can someone make an AI that only A) teaches you, or B) automates menial tasks you can already do? I'd subscribe.</b> Editing website CSS manually has started to feel menial and old-timey, like hand-washing clothes. Maybe I&rsquo;ve had a taste of LLM coding, or maybe I&rsquo;ve had a taste of the depraved stuff and ordinary CSS doesn&rsquo;t turn me on any more. Either way, I want to automate centering divs and fiddling with line heights: it's not 'creative', it's an unnecessary obstruction.
       </p>
       <p>
-        Shunning LLMs feels like throwing the baby out with the bathwater. Brainlessly editing the CSS of this website manually has started to feel menial in an old-timey way, like hand-washing clothes or emptying the chamber pot. Maybe because I&rsquo;ve had a taste of LLM coding, or maybe I&rsquo;ve had a taste of the depraved stuff and ordinary CSS doesn&rsquo;t turn me on any more. Either way, I want to automate centering divs and fiddling with line heights because it's a waste of time. Someone make an AI model that either teaches you new skills or automates things you can already do, rather than doing things entirely for you? I&rsquo;d subscribe to that.
-      </p>
-      <p>
-        Until then, I hope for the restraint to use tools to reach higher places, not to avoid getting off my arse at all.
+      <b>In summary, I hope to be disciplined enough to use tools to reach higher places, not to avoid getting off my arse at all.</b>
       </p>
     </Foldable>
 
