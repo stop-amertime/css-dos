@@ -300,7 +300,7 @@ function emitSCAS(dispatch) {
   dispatch.addEntry('IP', 0xAE, repCondIP(), `SCASB`);
 
   dispatch.addEntry('flags', 0xAF,
-    repGuardReg(`calc(--subFlags16(var(--__1AX), --read2(calc(var(--__1ES) * 16 + var(--__1DI)))) + --and(var(--__1flags), 1792))`, `var(--__1flags)`),
+    repGuardReg(`calc(--subFlags16(var(--__1AX), calc(var(--_strDstByte) + var(--_strDstHiByte) * 256)) + --and(var(--__1flags), 1792))`, `var(--__1flags)`),
     `SCASW flags`);
   dispatch.addEntry('DI', 0xAF,
     repGuardReg(strAdjust('DI', 2), `var(--__1DI)`),
