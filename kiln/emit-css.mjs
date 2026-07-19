@@ -16,6 +16,7 @@ import { emitWriteSlotProperties, emitDiskAddrProperties, buildInitialMemory, bu
          NUM_WRITE_SLOTS, PACK_SIZE, buildCellSet, buildInitialMemoryPacked,
          cellIdxOf, cellOffOf, cellBase } from './memory.mjs';
 import { emitFlagFunctions } from './patterns/flags.mjs';
+import { spDecBy, stackWriteAddr, INT_CLEAR_FLAGS_EXPR, INT_FRAME } from './patterns/stack-addr.mjs';
 
 // Opcode emitters
 import { emitAllMOV } from './patterns/mov.mjs';
@@ -228,11 +229,13 @@ class DispatchTable {
 
     // TF (Trap Flag) override: when previous FLAGS had TF=1, fire INT 1 instead
     // of the normal instruction. INT 1: push FLAGS/CS/IP, clear TF+IF, jump to IVT[1].
+    // SP uses spDecBy(6) for the --lowerBytes wrap — the old `calc(SP - 6)` would
+    // underflow at SP ≤ 5 (same fix as control.mjs / misc.mjs / stack.mjs).
     const TF_OVERRIDES = {
       'IP':    'var(--_tfIP)',
       'CS':    'var(--_tfCS)',
-      'SP':    'calc(var(--__1SP) - 6)',
-      'flags': '--and(var(--__1flags), 64767)',  // & 0xFCFF = clear TF+IF
+      'SP':    spDecBy(6),
+      'flags': INT_CLEAR_FLAGS_EXPR,
     };
 
     // IRQ override: when --_irqActive fires (unmasked pending IRQ with IF set
@@ -244,10 +247,10 @@ class DispatchTable {
     // bit (while still latching any new edges); picInService sets it so that
     // lower-priority IRQs block until EOI.
     const IRQ_OVERRIDES = {
-      'SP':       'calc(var(--__1SP) - 6)',
+      'SP':       spDecBy(6),
       'IP':       '--read2(calc(var(--picVector) * 4))',
       'CS':       '--read2(calc(var(--picVector) * 4 + 2))',
-      'flags':    '--and(var(--__1flags), 64767)',
+      'flags':    INT_CLEAR_FLAGS_EXPR,
       'cycleCount': 'calc(var(--__1cycleCount) + 61)',
       // Edge-OR applied so concurrent edges don't get dropped. The latch
       // expression is settable (this.picPendingLatchExpr) because mouse
@@ -313,26 +316,15 @@ class DispatchTable {
     // TF trap and IRQ delivery both push FLAGS/CS/IP - three word-aligned
     // pushes. Each lands in one width=2 slot. Stack is always even-aligned
     // (SP starts even, decrements by 2) so no straddle here.
-    const ssBase = 'calc(var(--__1SS) * 16)';
-    // Wrap SP-K to 16 bits - without this, IRQ/TF push at SP=0 lands one
-    // segment too low (SS:0xFFFE != SS-1:0xFFFE). Same fix as PUSH/CALL/INT
-    // in kiln/patterns/{stack,control,misc,group}.mjs.
-    const sa = (k) => `calc(${ssBase} + --lowerBytes(calc(var(--__1SP) - ${k} + 65536), 16))`;
-    const intAddr = [
-      sa(2),   // slot 0: FLAGS at SP-2..SP-1
-      sa(4),   // slot 1: CS at SP-4..SP-3
-      sa(6),   // slot 2: IP at SP-6..SP-5
-    ];
+    // Addresses and values derived from INT_FRAME (stack-addr.mjs) so every
+    // INT-family path shares the same frame layout definition.
+    const intAddr = INT_FRAME.map(f => stackWriteAddr(f.offset));
     const intVal = [
       `var(--__1flags)`,
       `var(--__1CS)`,
       `var(--__1IP)`,
     ];
-    const intFrameWord = [
-      'FLAGS at SS:SP-2',
-      'CS at SS:SP-4',
-      'IP at SS:SP-6',
-    ];
+    const intFrameWord = INT_FRAME.map(f => `${f.name} at SS:SP-${f.offset}`);
     const slotRole = [
       'every writing opcode\'s first (or only) write',
       'used only by multi-write opcodes: the second byte/word they write this tick',
