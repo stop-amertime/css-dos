@@ -50,15 +50,30 @@ export function emitCSSLib() {
   result: mod(--rightShift(var(--val), var(--idx)), 2);
 }
 
-/* --- bitwise AND/OR/XOR/NOT --- */
+/* --- bitwise AND/OR/XOR/NOT (nibble LUT) --- */
+/* Each operation uses a 16×16 nested-if lookup table per nibble,
+   then combines four nibble results. This replaces the previous
+   per-bit decomposition approach (32 intermediate variables + 16
+   recombinations) with 8 nibble extractions + 4 table lookups.
+   Evaluation cost: max 32 style() tests per lookup vs 48 intermediate
+   variables + multiplications. CSS size is ~2.3× larger, but this is
+   negligible in a 400 MB+ cabinet (~19 KB vs ~8 KB). */
 
-${emitBitwiseXor()}
+${emitNibbleLUT('xor', (a, b) => (a ^ b))}
 
-${emitBitwiseAnd()}
+${emitNibbleWrapper('xor')}
 
-${emitBitwiseOr()}
+${emitNibbleLUT('and', (a, b) => (a & b))}
 
-${emitBitwiseNot()}
+${emitNibbleWrapper('and')}
+
+${emitNibbleLUT('or', (a, b) => (a | b))}
+
+${emitNibbleWrapper('or')}
+
+${emitNotNibbleLUT()}
+
+${emitNotNibbleWrapper()}
 
 /* --- 8-bit wrappers --- */
 /* Chrome can't nest function calls as arguments, so these provide
@@ -185,72 +200,70 @@ ${['or', 'and', 'xor'].map(op => `@function --${op}8(--a <integer>, --b <integer
 `;
 }
 
-// Per-bit decomposition lines for one variable (`--${v}1..16`), the shared
-// prelude of every bitwise function.
-function decomposeBits(v) {
+// --- Nibble LUT generators ---
+// A 4-bit × 4-bit lookup table using nested if(): outer matches --a (16 arms),
+// inner matches --b (16 arms). Worst-case evaluation: 16 + 16 = 32 style() tests.
+function emitNibbleLUT(name, op) {
   const lines = [];
-  for (let i = 1; i <= 16; i++) {
-    const div = Math.pow(2, i - 1);
-    lines.push(i === 1
-      ? `  --${v}1: mod(var(--${v}), 2);`
-      : `  --${v}${i}: mod(round(down, var(--${v}) / ${div}), 2);`);
+  lines.push(`@function --${name}Nibble(--a <integer>, --b <integer>) returns <integer> {`);
+  lines.push(`  result: if(`);
+  for (let a = 0; a < 16; a++) {
+    const inner = [];
+    for (let b = 0; b < 16; b++) inner.push(`style(--b: ${b}): ${op(a, b)}`);
+    lines.push(`    style(--a: ${a}): if(${inner.join('; ')}; else: 0);`);
   }
-  return lines;
-}
-
-// Wrap the 16 weighted bit terms into the `result: calc(...)` sum and close
-// the function - the shared tail of every bitwise function.
-function combineBits(terms) {
-  return [`  result: calc(`, terms.join(' +\n'), `  );`, `}`];
-}
-
-// Generate a 16-bit bitwise function with per-bit decomposition
-function emitBitDecomp(name, bitExpr) {
-  const lines = [];
-  lines.push(`@function --${name}(--a <integer>, --b <integer>) returns <integer> {`);
-  lines.push(...decomposeBits('a'));
-  lines.push(...decomposeBits('b'));
-  // Combine
-  const terms = [];
-  for (let i = 1; i <= 16; i++) {
-    const mult = i === 1 ? '' : ` * ${Math.pow(2, i - 1)}`;
-    const expr = bitExpr(i);
-    terms.push(i === 1 ? `    ${expr}` : `    calc(${expr})${mult}`);
-  }
-  lines.push(...combineBits(terms));
+  lines.push(`  else: 0);`);
+  lines.push(`}`);
   return lines.join('\n');
 }
 
-function emitBitwiseXor() {
-  // XOR: a ^ b = a + b - 2*a*b (per bit)
-  return emitBitDecomp('xor', i =>
-    `min(1, var(--a${i}) + var(--b${i})) - var(--a${i}) * var(--b${i})`
-  );
+// Wrapper: extract four nibbles from each 16-bit operand, look up each pair,
+// and recombine with positional weights (1, 16, 256, 4096).
+function emitNibbleWrapper(name) {
+  return [
+    `@function --${name}(--a <integer>, --b <integer>) returns <integer> {`,
+    `  --an0: mod(var(--a), 16);`,
+    `  --an1: mod(round(down, calc(var(--a) / 16)), 16);`,
+    `  --an2: mod(round(down, calc(var(--a) / 256)), 16);`,
+    `  --an3: mod(round(down, calc(var(--a) / 4096)), 16);`,
+    `  --bn0: mod(var(--b), 16);`,
+    `  --bn1: mod(round(down, calc(var(--b) / 16)), 16);`,
+    `  --bn2: mod(round(down, calc(var(--b) / 256)), 16);`,
+    `  --bn3: mod(round(down, calc(var(--b) / 4096)), 16);`,
+    `  result: calc(`,
+    `    --${name}Nibble(var(--an0), var(--bn0))`,
+    `    + --${name}Nibble(var(--an1), var(--bn1)) * 16`,
+    `    + --${name}Nibble(var(--an2), var(--bn2)) * 256`,
+    `    + --${name}Nibble(var(--an3), var(--bn3)) * 4096`,
+    `  );`,
+    `}`,
+  ].join('\n');
 }
 
-function emitBitwiseAnd() {
-  // AND: a & b = a * b (per bit)
-  return emitBitDecomp('and', i =>
-    `var(--a${i}) * var(--b${i})`
-  );
-}
-
-function emitBitwiseOr() {
-  // OR: a | b = a + b - a*b (per bit)
-  return emitBitDecomp('or', i =>
-    `min(1, var(--a${i}) + var(--b${i}))`
-  );
-}
-
-function emitBitwiseNot() {
+// NOT only has one operand: 16-entry single-level LUT.
+function emitNotNibbleLUT() {
   const lines = [];
-  lines.push(`@function --not(--a <integer>) returns <integer> {`);
-  lines.push(...decomposeBits('a'));
-  const terms = [];
-  for (let i = 1; i <= 16; i++) {
-    const mult = i === 1 ? '' : ` * ${Math.pow(2, i - 1)}`;
-    terms.push(`    (1 - var(--a${i}))${mult}`);
-  }
-  lines.push(...combineBits(terms));
+  lines.push(`@function --notNibble(--a <integer>) returns <integer> {`);
+  lines.push(`  result: if(`);
+  for (let a = 0; a < 16; a++) lines.push(`    style(--a: ${a}): ${15 - a};`);
+  lines.push(`  else: 0);`);
+  lines.push(`}`);
   return lines.join('\n');
+}
+
+function emitNotNibbleWrapper() {
+  return [
+    `@function --not(--a <integer>) returns <integer> {`,
+    `  --an0: mod(var(--a), 16);`,
+    `  --an1: mod(round(down, calc(var(--a) / 16)), 16);`,
+    `  --an2: mod(round(down, calc(var(--a) / 256)), 16);`,
+    `  --an3: mod(round(down, calc(var(--a) / 4096)), 16);`,
+    `  result: calc(`,
+    `    --notNibble(var(--an0))`,
+    `    + --notNibble(var(--an1)) * 16`,
+    `    + --notNibble(var(--an2)) * 256`,
+    `    + --notNibble(var(--an3)) * 4096`,
+    `  );`,
+    `}`,
+  ].join('\n');
 }
