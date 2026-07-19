@@ -3,7 +3,7 @@
 // Flag bit positions for condition checks
 // CF=bit0, PF=bit2, AF=bit4, ZF=bit6, SF=bit7, OF=bit11
 
-import { stackWriteAddr, spDecBy, spIncBy, stackReadWord } from './stack-addr.mjs';
+import { stackWriteAddr, spDecBy, spIncBy, stackReadWord, emitIntFrame } from './stack-addr.mjs';
 
 /**
  * Conditional jump condition expressions.
@@ -134,56 +134,11 @@ export function emitRET_imm(dispatch) {
  * Uses 6 memory write slots (3 word pushes).
  */
 export function emitINT(dispatch) {
-  // Interrupt number is at q1 (byte after opcode)
-  // IVT entry at intNum * 4: 2 bytes IP, 2 bytes CS
-  // Stack: SP -= 6 (push FLAGS, CS, IP+2)
-
-  dispatch.addEntry('SP', 0xCD, spDecBy(6), `INT (SP-=6)`);
-
-  // New IP from IVT: read2(intNum * 4)
-  dispatch.addEntry('IP', 0xCD,
-    `--read2(calc(var(--q1) * 4))`,
-    `INT load IP from IVT`);
-
-  // New CS from IVT: read2(intNum * 4 + 2)
-  dispatch.addEntry('CS', 0xCD,
-    `--read2(calc(var(--q1) * 4 + 2))`,
-    `INT load CS from IVT`);
-
-  // FLAGS: clear IF (bit 9) and TF (bit 8) - keep other bits
-  // new flags = old flags & ~0x0300 = old flags & 0xFCFF
-  // But this is the pushed value; the new flags register value has IF+TF cleared
-  dispatch.addEntry('flags', 0xCD,
-    `--and(var(--__1flags), 64767)`,
-    `INT clear IF+TF`);
-  // 64767 = 0xFCFF = ~(IF|TF) & 0xFFFF
-
-  const retIP = `calc(var(--__1IP) + 2)`;
-
-  // 8086 INT pushes: FLAGS first (to highest addr), then CS, then IP (to lowest addr)
-  // After SP -= 6, stack layout is:
-  //   [SP+0, SP+1] = return IP   (pushed last)
-  //   [SP+2, SP+3] = CS          (pushed second)
-  //   [SP+4, SP+5] = FLAGS       (pushed first)
-  // All offsets are wrapped to 16-bit unsigned via stackWriteAddr().
-
-  // Push FLAGS (word at SP-2, SP-1) - pushed first, goes to highest address
-  dispatch.addMemWriteWord(0xCD,
-    stackWriteAddr(2),
-    `var(--__1flags)`,
-    `INT push FLAGS`);
-
-  // Push CS (word at SP-4, SP-3)
-  dispatch.addMemWriteWord(0xCD,
-    stackWriteAddr(4),
-    `var(--__1CS)`,
-    `INT push CS`);
-
-  // Push return IP (word at SP-6, SP-5) - pushed last, goes to lowest address
-  dispatch.addMemWriteWord(0xCD,
-    stackWriteAddr(6),
-    retIP,
-    `INT push IP`);
+  emitIntFrame(dispatch, 0xCD, {
+    vectorExpr: 'var(--q1)',
+    retIPExpr:  'calc(var(--__1IP) + 2)',
+    label:      'INT',
+  });
 }
 
 /**

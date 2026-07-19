@@ -1,7 +1,7 @@
 // Miscellaneous instructions: HLT, NOP, LODSB, MOV r/m imm, flag manipulation, etc.
 
 import { REG16, SPLIT_REGS } from './regs.mjs';
-import { stackWriteAddr as sa, spDecBy, stackReadWord } from './stack-addr.mjs';
+import { stackWriteAddr as sa, spDecBy, stackReadWord, emitIntFrame, INT_CLEAR_FLAGS_EXPR } from './stack-addr.mjs';
 
 // ===== REP PREFIX HELPERS =====
 // These helpers wrap string operation expressions to handle REP/REPE/REPNE prefixes.
@@ -1313,42 +1313,11 @@ function emitXLAT(dispatch) {
  * Same as INT 0xCD but interrupt number = 3, return IP = IP + 1.
  */
 function emitINT3(dispatch) {
-  dispatch.addEntry('SP', 0xCC, spDecBy(6), `INT 3 (SP-=6)`);
-
-  // Load new IP from IVT[3*4] = IVT[12]
-  dispatch.addEntry('IP', 0xCC,
-    `--read2(12)`,
-    `INT 3 load IP from IVT`);
-
-  // Load new CS from IVT[3*4+2] = IVT[14]
-  dispatch.addEntry('CS', 0xCC,
-    `--read2(14)`,
-    `INT 3 load CS from IVT`);
-
-  // Clear IF (bit 9) and TF (bit 8): flags & 0xFCFF = flags & 64767
-  dispatch.addEntry('flags', 0xCC,
-    `--and(var(--__1flags), 64767)`,
-    `INT 3 clear IF+TF`);
-
-  const retIP = `calc(var(--__1IP) + 1)`;
-
-  // Push FLAGS (word at SP-2/SP-1, highest address, pushed first)
-  dispatch.addMemWriteWord(0xCC,
-    sa(2),
-    `var(--__1flags)`,
-    `INT 3 push FLAGS`);
-
-  // Push CS (word at SP-4/SP-3)
-  dispatch.addMemWriteWord(0xCC,
-    sa(4),
-    `var(--__1CS)`,
-    `INT 3 push CS`);
-
-  // Push return IP (word at SP-6/SP-5, lowest address, pushed last)
-  dispatch.addMemWriteWord(0xCC,
-    sa(6),
-    retIP,
-    `INT 3 push IP`);
+  emitIntFrame(dispatch, 0xCC, {
+    vectorExpr: '3',
+    retIPExpr:  'calc(var(--__1IP) + 1)',
+    label:      'INT 3',
+  });
 }
 
 /**
@@ -1359,7 +1328,6 @@ function emitINTO(dispatch) {
   // OF = bit 11 of flags. Use arithmetic mux since --_of isn't a decode property.
   // ofBit is 0 or 1. Arithmetic: of*trueVal + (1-of)*falseVal
   const ofBit = `--bit(var(--__1flags), 11)`;
-  const ssBase = `calc(var(--__1SS) * 16)`;
   const retIP = `calc(var(--__1IP) + 1)`;
 
   // SP: if OF, SP -= 6; else unchanged. Wrap to 16 bits for the OF=1 case.
@@ -1367,25 +1335,23 @@ function emitINTO(dispatch) {
     `calc(${ofBit} * ${spDecBy(6)} + (1 - ${ofBit}) * var(--__1SP))`,
     `INTO (SP-=6 if OF)`);
 
-  // IP: if OF, load from IVT[16]; else IP + 1
+  // IP: if OF, load from IVT[4*4=16]; else IP + 1
   dispatch.addEntry('IP', 0xCE,
     `calc(${ofBit} * --read2(16) + (1 - ${ofBit}) * (var(--__1IP) + 1))`,
     `INTO load IP`);
 
-  // CS: if OF, load from IVT[18]; else unchanged
+  // CS: if OF, load from IVT[4*4+2=18]; else unchanged
   dispatch.addEntry('CS', 0xCE,
     `calc(${ofBit} * --read2(18) + (1 - ${ofBit}) * var(--__1CS))`,
     `INTO load CS`);
 
   // flags: if OF, clear IF+TF; else unchanged
   dispatch.addEntry('flags', 0xCE,
-    `calc(${ofBit} * --and(var(--__1flags), 64767) + (1 - ${ofBit}) * var(--__1flags))`,
+    `calc(${ofBit} * ${INT_CLEAR_FLAGS_EXPR} + (1 - ${ofBit}) * var(--__1flags))`,
     `INTO clear IF+TF if OF`);
 
-  // Memory pushes (words) - addr uses arithmetic mux: of*real_addr +
-  // (1-of)*(-1), so the frame is suppressed (addr -1) when OF is clear.
-  // The address arm passed to addMemWriteWord is the word's lo address;
-  // the hi byte lands at addr+1 as usual.
+  // Memory pushes: addr uses arithmetic mux: of*real_addr + (1-of)*(-1),
+  // so the frame is suppressed (addr -1) when OF is clear.
   dispatch.addMemWriteWord(0xCE,
     `calc(${ofBit} * (${sa(2)}) + (1 - ${ofBit}) * (-1))`,
     `var(--__1flags)`,
