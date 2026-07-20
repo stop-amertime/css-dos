@@ -275,11 +275,12 @@ class Nav {
     this.step = target;
     if (target === ABOUT) {
       // 'home' / legacy 'about/intro' → the hero; one-word legacy
-      // 'how' / 'howitworks' / 'why' → that page; bare 'about' →
-      // "How is this possible?" (the old first About page).
+      // 'how' / 'howitworks' / 'why' → that page; bare 'about' → the
+      // hero too (it used to alias the old "How?" first page, which
+      // landed readers three pages in - confusing for a shared link).
       const subName =
         s0 === 'home' || s0 === 'intro' || s1 === 'intro' ? 'home'
-        : s0 === 'about' ? (s1 ?? 'how')
+        : s0 === 'about' ? (s1 ?? 'home')
         : s0; // 'how' | 'howitworks' | 'why'
       const i = ABOUT_SUBS.indexOf(subName === 'howitworks' ? 'how' : subName);
       this.sub = i >= 0 ? i + 1 : 1;
