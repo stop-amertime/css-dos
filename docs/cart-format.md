@@ -407,6 +407,14 @@ the front page. The card's title and blurb come from the cart's own
 `name` / `description` - the website holds no per-cart metadata of its own.
 Ignored by the builder.
 
+### `display.recommended` · implemented (website)
+
+`true` puts a small gold "Recommended" seal (star + word, the hero
+flair's wiggle edge) on the cart's card in the featured landing grid.
+Display-only; ignored by the builder. Currently set on
+`carts/0windows101` only - it's meant to single out ONE cart, not to
+be sprinkled around.
+
 ### `display.bullets` / `display.accent` · implemented (website)
 
 The cover-less alternative to `display.cover`: an array of short lines

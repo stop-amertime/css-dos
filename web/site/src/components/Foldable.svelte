@@ -13,11 +13,16 @@
   // (e.g. a coloured border) without re-implementing the glyph. `id` is
   // forwarded onto the underlying <details> so a fold is addressable -
   // see AboutFaqs.svelte's deep-link handling for the pattern.
-  let { summary, children, open = $bindable(false), class: klass = '', id = undefined } = $props();
+  // `onopen` fires when the reader OPENS the fold themselves (summary
+  // activation while closed - keyboard included, since summary turns
+  // Enter/Space into a click). Programmatic opens (deep links, the
+  // initial `open` prop) don't fire it - it's an intent signal, used
+  // for the FAQ analytics events.
+  let { summary, children, open = $bindable(false), class: klass = '', id = undefined, onopen = undefined } = $props();
 </script>
 
 <details class="foldable {klass}" {id} bind:open>
-  <summary>
+  <summary onclick={() => { if (!open) onopen?.(); }}>
     <span class="fold-glyph" aria-hidden="true"></span>
     <span class="fold-summary">{@render summary()}</span>
   </summary>

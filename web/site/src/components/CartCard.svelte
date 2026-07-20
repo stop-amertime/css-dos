@@ -3,6 +3,8 @@
   // cart without a cover (or with a broken cover image) falls back to its
   // display.bullets text card - "NAME with: <list>" on the accent colour.
   // Cover wins when both are declared.
+  import IconStar from '~icons/pixelarticons/star';
+
   let { cart, selected, onpick } = $props();
   let broken = $state(false);
 </script>
@@ -37,6 +39,17 @@
       <div class="cart-cover-placeholder"><div class="ph-name">{cart.name}</div></div>
     {/if}
   </div>
+  {#if cart.recommended}
+    <!-- display.recommended in the cart's program.json: a small gold
+         seal in the box's top-right corner - same wiggle edge and gold
+         pair as the hero's flair burst (global.css --seal-*). -->
+    <div class="cart-seal" aria-label="Recommended">
+      <div class="cart-seal-disc">
+        <IconStar class="cart-seal-star" aria-hidden="true" />
+        <span class="cart-seal-word">Recommended</span>
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -49,6 +62,7 @@
     user-select: none;
     display: flex;
     flex-direction: column;
+    position: relative;   /* anchors the Recommended seal */
   }
   .cart-card:hover { background: #ddddff; }
   /* Selected: a thick green border so the choice is unmistakable, while the
@@ -152,4 +166,50 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .cart-cover-text .ct-list li::before { content: '> '; opacity: 0.7; }
+
+  /* ── The "Recommended" seal (display.recommended) - a small twin of
+     the hero's gold flair burst: same radial-sine wiggle edge and gold
+     band/fill pair (global.css --seal-*), tucked over the box's
+     top-right corner at a sticker-ish tilt. Decorative only - clicks
+     fall through to the card. ── */
+  .cart-seal {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 68px;
+    height: 68px;
+    display: grid;
+    place-items: center;
+    background: var(--seal-gold-band);
+    clip-path: var(--seal-wiggle);
+    transform: rotate(8deg);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .cart-seal-disc {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: var(--seal-gold-fill);
+    color: var(--edit-black);
+    text-align: center;
+  }
+  .cart-seal :global(.cart-seal-star) {
+    width: 15px;
+    height: 15px;
+    display: block;
+  }
+  .cart-seal-word {
+    /* 8px WebVGA: 11 chars × 4px = 44px, just inside the 50px disc's
+       chord one row below centre. */
+    font-size: 8px;
+    line-height: 8px;
+    letter-spacing: -0.2px;
+    text-transform: uppercase;
+  }
 </style>

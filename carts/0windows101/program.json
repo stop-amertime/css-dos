@@ -4,6 +4,7 @@
   "description": "Microsoft Windows 1.01 (1985) on real MS-DOS 4.00, CGA 640x200. Boots to the MS-DOS Executive with the original desktop applets on the floppy.",
   "display": {
     "cover": "windows101-79.jpg",
+    "recommended": true,
     "playTips": [
       "In MS-DOS Executive (the file manager), use keyboard arrows/Enter or double-click to run a file. CLOCK.EXE is recommended.",
       "TO CLICK AND DRAG: turn on Hold Mode, then click to start dragging.",

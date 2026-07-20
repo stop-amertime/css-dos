@@ -195,6 +195,10 @@
     justify-content: space-between;
     background: #ffffcc;
     text-align: left;
+    /* Bold word, no rule under it - matches the Play toast's title
+       (owner ask, 2026-07-20). */
+    font-weight: bold;
+    border-bottom: none;
   }
   /* The upward arrow - yellow like the note (a rotated square sharing
      its background). */
@@ -212,9 +216,11 @@
   .hint-x {
     background: none;
     border: none;
-    padding: 0 2px;
+    padding: 0 6px;
     font: inherit;
-    font-size: 16px;
+    /* Big and bold - the dismiss affordance was easy to miss at 16px. */
+    font-size: 20px;
+    font-weight: bold;
     line-height: 16px;
     color: var(--edit-black);
     cursor: pointer;

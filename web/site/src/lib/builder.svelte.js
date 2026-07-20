@@ -87,6 +87,7 @@ class Build {
         cover: c.program.display.cover ? `/assets/boxart/${c.program.display.cover}` : null,
         bullets: c.program.display.bullets || null,
         accent: c.program.display.accent || null,
+        recommended: c.program.display.recommended === true,
       }));
     carts.push({ id: 'custom', name: 'Custom Program', custom: true });
     return carts;

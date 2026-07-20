@@ -6,6 +6,11 @@
   import Foldable from '../../components/Foldable.svelte';
   import Term from '../../components/Term.svelte';
   import { nav } from '../../lib/router.svelte.js';
+  import { track } from '../../lib/analytics.js';
+
+  // One analytics event per fold the reader opens themselves, named by
+  // the fold's id (Foldable's onopen skips programmatic/deep-link opens).
+  const faq = (id) => () => track(`faq_${id}`);
 
   $effect(() => {
     const id = nav.faqAnchor;
@@ -23,35 +28,35 @@
   <h1>FAQs</h1>
 
   <div class="faq-list">
-    <Foldable id="js" open={true}>
+    <Foldable id="js" open={true} onopen={faq('js')}>
       {#snippet summary()}Really - no JavaScript?{/snippet}
       <p>
         Really - the machine is one CSS file, and a browser can evaluate every line of it; nothing you see comes from JavaScript. What a browser can&rsquo;t do is keep up: 300&nbsp;MB of stylesheet is more than a tab survives, and even a small build runs at a couple of instructions per second. So this site feeds the same file to <b>Calcite</b>, a compiler built for the job - <a href="/about/calcite">its page</a> explains it, and why it isn&rsquo;t cheating.
       </p>
     </Foldable>
 
-    <Foldable id="html-page">
+    <Foldable id="html-page" onopen={faq('html-page')}>
       {#snippet summary()}Don&rsquo;t you need an HTML page for this to work?{/snippet}
       <p>
         Yes - a small, dumb one. A tag that loads the stylesheet, one element for the clock, one for the CPU, and 64,000 empty ones for the pixels. Nothing in it computes anything; it&rsquo;s scaffolding for the CSS to hang off.
       </p>
     </Foldable>
 
-    <Foldable id="video">
+    <Foldable id="video" onopen={faq('video')}>
       {#snippet summary()}How does it draw video?{/snippet}
       <p>
         In theory, the screen is 64,000 boxes, 320 wide by 200 tall, each with a rule that turns its own byte of video memory into a background colour. The <a href="/about/file/screen">screen section</a> has the rules, the palette, and the faked electron beam. In practise, <a href="/about/calcite">Calcite</a> streams the image into the page instead. 
       </p>
     </Foldable>
 
-    <Foldable id="input">
+    <Foldable id="input" onopen={faq('input')}>
       {#snippet summary()}How do you control it? CSS can&rsquo;t see a keyboard/mouse.{/snippet}
       <p>
         It can&rsquo;t. What it can see is whether an element is currently being pressed - the <code>:active</code> selector - so the machine has an on-screen keyboard whose keys are real buttons. The <a href="/about/file/keys">keyboard section</a> shows the actual rules, live. The mouse plays the same trick in reverse: every screen pixel is itself clickable, and a click feeds an emulated serial mouse with the cursor&rsquo;s position.
       </p>
     </Foldable>
 
-    <Foldable id="doesnt-work">
+    <Foldable id="doesnt-work" onopen={faq('doesnt-work')}>
       {#snippet summary()}What doesn&rsquo;t work in CSS?{/snippet}
       <p>
         <b>Sound</b> - there&rsquo;s just no way for CSS to make noise. Except&hellip; possibly displaying the sound wave visually? Perhaps that&rsquo;s future work.
@@ -67,21 +72,21 @@
       </p>
     </Foldable>
 
-    <Foldable id="any-program">
+    <Foldable id="any-program" onopen={faq('any-program')}>
       {#snippet summary()}Can CSS-DOS run any DOS program?{/snippet}
       <p>
         Yes - visit the Build page and hand the builder any DOS program (.com/.exe) or folder. Two conditions: it has to fit on a floppy, and it has to stick to 8086 instructions (no Intel 286 or 386 opcodes). The builder bakes it into a <Term t="cabinet">cabinet</Term> for you - every preset here was made exactly that way. One more limit: the finished file must stay under ~536&nbsp;MB, or you hit V8&rsquo;s string size limit and the file simply won&rsquo;t load in a browser. If that happens, try reducing the machine&rsquo;s RAM.
       </p>
     </Foldable>
 
-    <Foldable id="how-long">
+    <Foldable id="how-long" onopen={faq('how-long')}>
       {#snippet summary()}How long did this take?{/snippet}
       <p>
         About six months of hobbyist work - a lot of evenings and weekends and probably thousands of pounds of API-equivalent LLM usage. Worth it? Hopefully - if you enjoyed it, drop me a line at hello [at sign] ahmedamer.co.uk. 
       </p>
     </Foldable>
 
-    <Foldable id="debug">
+    <Foldable id="debug" onopen={faq('debug')}>
       {#snippet summary()}How did you debug this?{/snippet}
       <p>
         With enormous pain. Many late nights and tears shed. There is nothing quite like a program diverging from the reference emulator by a byte or two half a million ticks into boot, which only became apparent when the system crashed four million ticks into boot, inside a system with no debugger, no logging and no stack traces - just 368,256 variables recalculating every tick, one of which did so wrongly. Good luck!
@@ -91,7 +96,7 @@
       </p>
     </Foldable>
 
-    <Foldable id="ai">
+    <Foldable id="ai" onopen={faq('ai')}>
       {#snippet summary()}Did you use AI?{/snippet}
       <p>Yes, a lot. I still consider the code to be <i>my code</i> - but my opinions on the matter are complex. I'm no ambassador for AI accelerationism - as a published AI safety researcher and red-teamer, I'm well aware that LLMs aren't a tool to point at a problem and press 'Go' unthinkingly. I'd label CSS-DOS 'LLM-assisted' but not 'vibe coded'.</p>
 
@@ -126,21 +131,21 @@
       </p>
     </Foldable>
 
-    <Foldable id="contact">
+    <Foldable id="contact" onopen={faq('contact')}>
       {#snippet summary()}I have a question that isn&rsquo;t answered here.{/snippet}
       <p>
         Email me - <b>hello [at] ahmedamer (dot) co.uk</b>. I&rsquo;d love to hear from interested people.
       </p>
     </Foldable>
 
-    <Foldable id="press">
+    <Foldable id="press" onopen={faq('press')}>
       {#snippet summary()}Can I get in touch with you for press/videos/podcasts/etc.?{/snippet}
       <p>
         Email me - <b>hello [at] ahmedamer (dot) co.uk</b>. I&rsquo;d be happy to contribute to press, YouTube videos, and whatever else.
       </p>
     </Foldable>
     
-    <Foldable id="contribute">
+    <Foldable id="contribute" onopen={faq('contribute')}>
       {#snippet summary()}Can I contribute/donate?{/snippet}
       <p>
         <b>Code</b>: both projects (CSS-DOS and Calcite) are open-source, and I&rsquo;d welcome code contributions. Huge performance gains are on the table for Calcite, which is currently written in a sub-optimal way and needs a ground-up refactor. Not for the faint of heart. Interested contributors could also fix bugs that prevent other DOS games&rsquo; compatibility - many programs still crash, hang or run too slowly to be playable.

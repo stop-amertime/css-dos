@@ -1,6 +1,7 @@
 <script>
-  import { nav, ABOUT, PLAY, ABOUT_FILE_SUB } from './lib/router.svelte.js';
+  import { nav, ABOUT, BUILD, PLAY, ABOUT_FILE_SUB } from './lib/router.svelte.js';
   import { build } from './lib/builder.svelte.js';
+  import { track } from './lib/analytics.js';
   import StepDots from './components/StepDots.svelte';
   import About from './routes/About.svelte';
   import Build from './routes/Build.svelte';
@@ -17,13 +18,33 @@
     document.title = nav.atStart ? 'CSS-DOS' : `CSS-DOS - ${TITLES[nav.step - 1]}`;
   });
 
+  // All forward navigation (Next button AND ArrowRight) funnels through
+  // here so the analytics events see every "next" the reader makes:
+  // the once-per-load first advance, and each File-Map carousel step
+  // (named per section - the section being LEFT).
+  let nextPressed = false;
+  function pressNext() {
+    if (!nextPressed) { nextPressed = true; track('first_next'); }
+    if (nav.step === ABOUT && nav.sub === ABOUT_FILE_SUB) {
+      track(`filemap_next_${nav.section}`);
+    }
+    nav.next();
+  }
+
+  // The top strip: jumping to Build straight off the landing hero
+  // (i.e. before ever advancing) is its own funnel signal.
+  function stripJump(n) {
+    if (n === BUILD && nav.atStart && !nextPressed) track('build_tab_from_home');
+    nav.jump(n);
+  }
+
   function onkeydown(e) {
     if (e.target?.matches?.('input, textarea, select, [contenteditable]')) return;
     // next()/prev() walk the How-it-works carousel's sections themselves,
     // so the arrows are plain page turns everywhere.
     if (e.key === 'ArrowRight') {
       e.preventDefault();
-      if (!nav.nextDisabled && !nav.isLast) nav.next();
+      if (!nav.nextDisabled && !nav.isLast) pressNext();
     }
     if (e.key === 'ArrowLeft') {
       e.preventDefault();
@@ -49,7 +70,7 @@
     variant="strip"
     items={STRIP}
     current={nav.step}
-    onjump={(n) => nav.jump(n)}
+    onjump={stripJump}
     disabled={(n) => n === PLAY && !nav.canPlay}
     disabledTip="Please 'Build' a file first"
   />
@@ -70,14 +91,14 @@
     {#if nav.step === PLAY}
       <!-- Play is the flow's end: forward goes to the info pages, landing
            where the Why? page's skip button would have left you. -->
-      <button class="btn primary" onclick={() => nav.goHowItWorks()}>
+      <button class="btn primary" onclick={() => { track('play_how_it_works'); nav.goHowItWorks(); }}>
         How it <span class="hot">W</span>orks »
       </button>
     {:else}
       <!-- data-tip only exists while Next is blocked; the tip-anchor
            wrapper takes the hover/tap a disabled button can't. -->
       <span class="tip-anchor" data-tip={nav.nextTip}>
-        <button class="btn primary" disabled={nav.nextDisabled} onclick={() => nav.next()}>
+        <button class="btn primary" disabled={nav.nextDisabled} onclick={pressNext}>
           <span class="hot">N</span>ext »
         </button>
       </span>

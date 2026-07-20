@@ -11,6 +11,7 @@
   // Section* components carry only the explanation.
   import { fly } from 'svelte/transition';
   import { nav, FILE_SECTIONS } from '../../lib/router.svelte.js';
+  import { track } from '../../lib/analytics.js';
   import CabinetBar from '../../components/anatomy/CabinetBar.svelte';
   import { GROUPS } from '../../components/anatomy/groups.js';
   import TreeView from '../../components/anatomy/tree/TreeView.svelte';
@@ -62,7 +63,10 @@
 <div class="subpage subpage-filemap">
   <CabinetBar selected={nav.section === 'map' ? null : nav.section}
               hint={hintLive}
-              onselect={(g) => nav.sectionJump(g)}
+              onselect={(g) => {
+                if (g !== nav.section) track(`filemap_bar_${g}`);
+                nav.sectionJump(g);
+              }}
               ondismiss={() => nav.dismissHint()} />
 
   <div class="anatomy-pane" style="--pane-c:{curGroup.c}">
