@@ -16,6 +16,7 @@
     "vite": "^6.0.7"
   },
   "dependencies": {
-    "@vercel/analytics": "^2.0.1"
+    "@vercel/analytics": "^2.0.1",
+    "posthog-js": "^1.404.1"
   }
 }
