@@ -3,8 +3,6 @@
   // cart without a cover (or with a broken cover image) falls back to its
   // display.bullets text card - "NAME with: <list>" on the accent colour.
   // Cover wins when both are declared.
-  import IconStar from '~icons/pixelarticons/star';
-
   let { cart, selected, onpick } = $props();
   let broken = $state(false);
 </script>
@@ -43,10 +41,10 @@
     <!-- display.recommended in the cart's program.json: a small gold
          seal in the box's top-right corner - same wiggle edge and gold
          pair as the hero's flair burst (global.css --seal-*). -->
-    <div class="cart-seal" aria-label="Recommended">
+    <div class="cart-seal" aria-label="My pick">
       <div class="cart-seal-disc">
-        <IconStar class="cart-seal-star" aria-hidden="true" />
-        <span class="cart-seal-word">Recommended</span>
+        <span class="cart-seal-l1">My</span>
+        <span class="cart-seal-l2">Pick</span>
       </div>
     </div>
   {/if}
@@ -167,14 +165,16 @@
   }
   .cart-cover-text .ct-list li::before { content: '> '; opacity: 0.7; }
 
-  /* ── The "Recommended" seal (display.recommended) - a small twin of
-     the hero's gold flair burst: same radial-sine wiggle edge and gold
-     band/fill pair (global.css --seal-*), tucked over the box's
-     top-right corner at a sticker-ish tilt. Decorative only - clicks
+  /* ── The "MY PICK" seal (display.recommended) - a small twin of the
+     hero's gold flair burst: same radial-sine wiggle edge and gold
+     band/fill pair (global.css --seal-*), perched over the box's
+     top-right corner at a sticker-ish tilt. The two words fill the
+     inner disc, flair-text style: each line's width sits just inside
+     the 50px disc's chord at its own height. Decorative only - clicks
      fall through to the card. ── */
   .cart-seal {
     position: absolute;
-    top: -10px;
+    top: -16px;
     right: -10px;
     width: 68px;
     height: 68px;
@@ -194,22 +194,13 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
+    gap: 1px;
     background: var(--seal-gold-fill);
     color: var(--edit-black);
     text-align: center;
-  }
-  .cart-seal :global(.cart-seal-star) {
-    width: 15px;
-    height: 15px;
-    display: block;
-  }
-  .cart-seal-word {
-    /* 8px WebVGA: 11 chars × 4px = 44px, just inside the 50px disc's
-       chord one row below centre. */
-    font-size: 8px;
-    line-height: 8px;
-    letter-spacing: -0.2px;
     text-transform: uppercase;
   }
+  /* 16px only: WebVGA's native 1x size - any other size scales the
+     8x16 bitmap grid non-integer and the glyphs render janky. */
+  .cart-seal-l1, .cart-seal-l2 { font-size: 16px; line-height: 16px; }
 </style>

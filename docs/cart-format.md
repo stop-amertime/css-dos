@@ -409,8 +409,8 @@ Ignored by the builder.
 
 ### `display.recommended` · implemented (website)
 
-`true` puts a small gold "Recommended" seal (star + word, the hero
-flair's wiggle edge) on the cart's card in the featured landing grid.
+`true` puts a small gold "MY PICK" seal (the hero flair's wiggle
+edge) on the cart's card in the featured landing grid.
 Display-only; ignored by the builder. Currently set on
 `carts/0windows101` only - it's meant to single out ONE cart, not to
 be sprinkled around.
