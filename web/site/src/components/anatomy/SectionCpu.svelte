@@ -202,9 +202,6 @@ The first question: why is there no ALU in the above list?
   <p>
     DIV divides a 32-bit number - held across two registers, DX and AX - producing a quotient and a remainder at once. Two tables catch its output:
   </p>
-  <p>
-    Now we&rsquo;re cooking. DIV divides a 32-bit number - held across two registers, DX and AX - producing a quotient and a remainder at once. Two tables catch its output:
-  </p>
   <CodeCss code={DIV_ROWS} />
   <p>
     The <code>max(1, &hellip;)</code> is there because a program can ask to divide by zero, and the formula has to stay legal CSS when it does.
