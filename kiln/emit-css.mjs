@@ -521,6 +521,14 @@ export function emitCSS(opts, writeStream) {
   }
 
   const memOpts = { addresses, programBytes, biosBytes, embeddedData, programOffset, diskBytes, writableDisk };
+
+  // Pre-compute the memory maps that multiple streaming emitters need.
+  // Before this change each emitter called buildInitialMemory (×3),
+  // buildInitialMemoryPacked (×3), and buildCellSet (×5) independently,
+  // rebuilding the same data structures on every call.
+  memOpts._cells    = buildCellSet(addresses);
+  memOpts._initMem  = buildInitialMemory(memOpts);
+  memOpts._cellInit = buildInitialMemoryPacked(memOpts);
   // templateOpts.memSize is used for SP init - derive from the top of the lowest zone
   // (conventional memory area, which is always zones[0] by convention)
   const convEnd = memoryZones ? memoryZones[0][1] : (opts.memSize || 0x10000);
@@ -1036,9 +1044,8 @@ function byteGapComment(prevAddr, addr, indent) {
 }
 
 function emitMemoryPropertiesStreaming(opts, ws) {
-  const { addresses } = opts;
+  const { addresses, _cells: cells, _initMem: initMem, _cellInit: cellInit } = opts;
   if (PACK_SIZE === 1) {
-    const initMem = buildInitialMemory(opts);
     ws.write(`/* memory bytes: one @property per byte (--mN);\n   initial-value = the assembled memory image, so power-on state costs no writes */\n`);
     streamRows(ws, addresses, (addr) => {
       const init = initMem.get(addr) || 0;
@@ -1047,8 +1054,6 @@ function emitMemoryPropertiesStreaming(opts, ws) {
     return;
   }
   // Packed: one @property per cell. `--mc{cellIdx}` holds PACK_SIZE bytes.
-  const cells = buildCellSet(addresses);
-  const cellInit = buildInitialMemoryPacked(opts);
   const diskCellStart = opts.writableDisk ? cellIdxOf(opts.writableDisk.base) : -1;
   ws.write(`/* memory cells: one @property per ${PACK_SIZE}-byte cell (--mcN holds bytes 2N and 2N+1);\n   initial-value = the assembled memory image, so power-on state costs no writes */\n`);
   // The disk-shadow-cells banner replaces the address-gap comment at the
@@ -1210,18 +1215,15 @@ function emitReadDiskByteStreaming(diskBytes, ws, writableDisk) {
 }
 
 function emitMemoryBufferReadsStreaming(opts, ws) {
-  const { addresses } = opts;
+  const { addresses, _cells: cells, _initMem: initMem, _cellInit: cellInit } = opts;
   ws.write(`  /* memory-cell double-buffer reads: this tick's stable view of every cell */\n`);
   if (PACK_SIZE === 1) {
-    const initMem = buildInitialMemory(opts);
     streamRows(ws, addresses, (addr) => {
       const init = initMem.get(addr) || 0;
       return `  --__1m${addr}: var(--__2m${addr}, ${init});\n`;
     });
     return;
   }
-  const cells = buildCellSet(addresses);
-  const cellInit = buildInitialMemoryPacked(opts);
   streamCellRows(ws, cells, '  ', (idx) => {
     const init = cellInit.get(idx) || 0;
     return `  --__1mc${idx}: var(--__2mc${idx}, ${init});\n`;
@@ -1298,7 +1300,7 @@ function emitMemoryWriteRulesStreaming(opts, ws) {
   // applySlot handles aligned word writes (loOff=0, hiOff=1, width=2), the
   // straddle cases (loOff=1 → lo half lands here at off 1; hiOff=0 → hi half
   // lands here at off 0, both gated on width=2), and width=1 byte writes.
-  const cells = buildCellSet(addresses);
+  const cells = opts._cells;
   ws.write(`  /* one write rule per cell: a ${NUM_WRITE_SLOTS}-slot --applySlot cascade (slot 0 outermost, so it wins same-cell collisions). Idle slots short-circuit at their --_slotNLive gate. */\n`);
   let buf = '';
   let count = 0;
@@ -1337,18 +1339,15 @@ function emitMemoryWriteRulesStreaming(opts, ws) {
 }
 
 function emitMemoryStoreKeyframeStreaming(opts, ws) {
-  const { addresses } = opts;
+  const { addresses, _cells: cells, _initMem: initMem, _cellInit: cellInit } = opts;
   ws.write(`    /* memory cells: latch last tick's computed values into the __2 buffer */\n`);
   if (PACK_SIZE === 1) {
-    const initMem = buildInitialMemory(opts);
     streamRows(ws, addresses, (addr) => {
       const init = initMem.get(addr) || 0;
       return `    --__2m${addr}: var(--__0m${addr}, ${init});\n`;
     });
     return;
   }
-  const cells = buildCellSet(addresses);
-  const cellInit = buildInitialMemoryPacked(opts);
   streamCellRows(ws, cells, '    ', (idx) => {
     const init = cellInit.get(idx) || 0;
     return `    --__2mc${idx}: var(--__0mc${idx}, ${init});\n`;
@@ -1356,12 +1355,11 @@ function emitMemoryStoreKeyframeStreaming(opts, ws) {
 }
 
 function emitMemoryExecuteKeyframeStreaming(opts, ws) {
-  const { addresses } = opts;
+  const { addresses, _cells: cells } = opts;
   ws.write(`    /* memory cells: expose the freshly computed values as __0 for the next store */\n`);
   if (PACK_SIZE === 1) {
     streamRows(ws, addresses, (addr) => `    --__0m${addr}: var(--m${addr});\n`);
     return;
   }
-  const cells = buildCellSet(addresses);
   streamCellRows(ws, cells, '    ', (idx) => `    --__0mc${idx}: var(--mc${idx});\n`);
 }
