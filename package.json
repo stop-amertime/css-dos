@@ -12,6 +12,7 @@
     "css-dos-build": "builder/build.mjs"
   },
   "scripts": {
+    "postinstall": "npm --prefix web/site install",
     "build": "node builder/build.mjs",
     "dev": "npm --prefix web/site run dev",
     "site:build": "npm --prefix web/site run build",
